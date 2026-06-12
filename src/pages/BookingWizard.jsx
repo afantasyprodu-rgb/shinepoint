@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import AppShell from '../components/AppShell'
+import TimePicker from '../components/TimePicker'
 import Modal from '../components/ui/Modal'
 import { CheckIcon, AlertTriangleIcon, ChevronLeftIcon, SparklesIcon } from '../components/icons'
 import { useStore } from '../context/StoreContext'
@@ -225,14 +226,9 @@ export default function BookingWizard() {
                 ))}
               </div>
 
-              <h2 className="mt-5 text-sm font-semibold text-slate-700">Time</h2>
-              <input
-                type="time"
-                value={time}
-                onChange={(e) => setTime(e.target.value)}
-                className="input mt-2 w-full"
-                aria-label="Appointment time"
-              />
+              <div className="mt-5">
+                <TimePicker value={time} onChange={setTime} />
+              </div>
 
               <button onClick={continueFromSchedule} disabled={!date || !time} className="btn btn-brand mt-8 w-full">
                 Continue
