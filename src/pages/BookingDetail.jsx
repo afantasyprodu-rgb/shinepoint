@@ -25,8 +25,8 @@ export default function BookingDetail() {
   const { id } = useParams()
   const { getBooking, getDetailer, patchBooking, submitReview, cancelBooking, fileDispute } = useStore()
   const [rating, setRating] = useState(0)
-  const [extraTip, setExtraTip] = useState(0)
   const [showReview, setShowReview] = useState(false)
+  const [showTip, setShowTip] = useState(false)
   const [showCancel, setShowCancel] = useState(false)
   const [showDispute, setShowDispute] = useState(false)
   const [disputeReason, setDisputeReason] = useState('')
@@ -269,35 +269,62 @@ export default function BookingDetail() {
 
         <Modal open={showReview} onClose={() => setShowReview(false)} labelledBy="review-title">
           <h2 id="review-title" className="text-center font-display text-xl font-bold text-slate-900">
-            Rate {d?.name}
+            How did {d?.name} do?
           </h2>
-          <div className="mt-4 flex justify-center">
+          <p className="mt-1 text-center text-sm text-slate-500">Tap a star to rate your experience</p>
+          <div className="mt-5 flex justify-center">
             <StarInput value={rating} onChange={setRating} />
-          </div>
-          <h3 className="mt-6 text-sm font-semibold text-slate-700">Add a tip?</h3>
-          <div className="mt-2 flex gap-2">
-            {[0, 5, 10, 15].map((t) => (
-              <button
-                key={t}
-                onClick={() => setExtraTip(t)}
-                aria-pressed={extraTip === t}
-                className={`flex-1 cursor-pointer rounded-xl border py-2 text-sm font-semibold transition-all duration-200 ${
-                  extraTip === t ? 'border-cta-700 bg-cta-700 text-white' : 'border-brand-100 hover:border-cta-600'
-                }`}
-              >
-                {t === 0 ? 'Skip' : `$${t}`}
-              </button>
-            ))}
           </div>
           <button
             disabled={!rating}
             onClick={() => {
-              submitReview(b.id, rating, (b.tip ?? 0) + extraTip)
               setShowReview(false)
+              setShowTip(true)
             }}
-            className="btn btn-cta mt-6 w-full"
+            className="btn btn-cta mt-8 w-full"
           >
-            Submit review
+            Submit rating
+          </button>
+        </Modal>
+
+        <Modal open={showTip} onClose={() => { submitReview(b.id, rating, b.tip ?? 0); setShowTip(false) }} labelledBy="tip-title">
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 220, damping: 16 }}
+            className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-cta-700 text-white"
+          >
+            <CheckIcon className="h-8 w-8" />
+          </motion.div>
+          <h2 id="tip-title" className="mt-4 text-center font-display text-xl font-bold text-slate-900">
+            Rating submitted!
+          </h2>
+          <p className="mt-1 text-center text-sm text-slate-600">
+            Would you like to leave a tip for {d?.name}?<br />
+            <span className="text-xs text-slate-400">100% goes directly to your detailer</span>
+          </p>
+          <div className="mt-5 grid grid-cols-3 gap-2">
+            {[5, 10, 15].map((t) => (
+              <button
+                key={t}
+                onClick={() => {
+                  submitReview(b.id, rating, (b.tip ?? 0) + t)
+                  setShowTip(false)
+                }}
+                className="cursor-pointer rounded-xl border border-brand-100 bg-white py-3 text-sm font-bold text-slate-800 shadow-sm transition-all duration-200 hover:border-cta-600 hover:bg-cta-50 hover:text-cta-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+              >
+                ${t}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => {
+              submitReview(b.id, rating, b.tip ?? 0)
+              setShowTip(false)
+            }}
+            className="mt-3 w-full cursor-pointer rounded py-2 text-sm text-slate-400 transition-colors duration-200 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+          >
+            Skip tip
           </button>
         </Modal>
       </AnimatedPage>

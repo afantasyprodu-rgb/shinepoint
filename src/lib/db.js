@@ -127,7 +127,7 @@ export async function fetchBookingsForCustomer(customerProfileId) {
     .from('bookings')
     .select(`
       id, status, scheduled_time, total_price, tip_amount,
-      booking_address, booking_zip, vehicle_type, created_at,
+      booking_address, booking_zip, created_at,
       service_id, detailer_id,
       services(service_name),
       detailer_profiles!bookings_detailer_id_fkey(
@@ -150,8 +150,8 @@ export async function fetchBookingsForDetailer(detailerProfileId) {
     .from('bookings')
     .select(`
       id, status, scheduled_time, total_price, tip_amount,
-      booking_address, booking_zip, vehicle_type, created_at,
-      service_id, customer_id, detailer_id,
+      booking_address, booking_zip, created_at,
+      service_id, customer_id,
       services(service_name),
       customer_profiles!bookings_customer_id_fkey(
         id,
@@ -178,7 +178,6 @@ export async function createBookingInDB({
   zip,
   totalPrice,
   tipAmount,
-  vehicleType,
 }) {
   const { data, error } = await supabase
     .from('bookings')
@@ -191,7 +190,6 @@ export async function createBookingInDB({
       booking_zip: zip,
       total_price: totalPrice,
       tip_amount: tipAmount ?? 0,
-      vehicle_type: vehicleType,
       status: 'pending',
     })
     .select('id')

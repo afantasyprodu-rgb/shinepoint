@@ -7,7 +7,6 @@ import { CheckIcon, AlertTriangleIcon, ChevronLeftIcon, SparklesIcon } from '../
 import { useStore } from '../context/StoreContext'
 
 const VEHICLES = ['Sedan', 'SUV', 'Truck', 'Coupe', 'Van']
-const TIPS = [0, 5, 10, 15]
 const TIMES = ['9:00 AM', '11:00 AM', '1:00 PM', '3:00 PM', '5:00 PM']
 
 function parseTime(t) {
@@ -49,7 +48,6 @@ export default function BookingWizard() {
   const [vehicle, setVehicle] = useState('Sedan')
   const [date, setDate] = useState(null)
   const [time, setTime] = useState(null)
-  const [tip, setTip] = useState(0)
   const [weatherAck, setWeatherAck] = useState(false)
   const [showWeather, setShowWeather] = useState(false)
   const [showUninsured, setShowUninsured] = useState(false)
@@ -63,7 +61,7 @@ export default function BookingWizard() {
   const reward = !uninsured ? customer.rewards[0] : null
   const baseAfterReward = useReward && reward ? 0 : (service?.price ?? 0)
   const creditUsed = Math.min(customer.referralCredits, baseAfterReward)
-  const total = baseAfterReward - creditUsed + tip
+  const total = baseAfterReward - creditUsed
 
   function continueFromSchedule() {
     if (date?.rainy && !weatherAck) {
@@ -85,8 +83,8 @@ export default function BookingWizard() {
         detailerId: d.id,
         serviceId: service.id,
         service: service.name,
-        price: total - tip,
-        tip,
+        price: total,
+        tip: 0,
         vehicle,
         rewardId: useReward && reward ? reward.id : undefined,
         creditUsed: creditUsed || undefined,
@@ -291,26 +289,6 @@ export default function BookingWizard() {
                 </button>
               )}
 
-              <h2 className="mt-6 text-sm font-semibold text-slate-700">Add a tip</h2>
-              <div className="mt-2 flex gap-2" role="radiogroup" aria-label="Tip">
-                {TIPS.map((t) => (
-                  <button
-                    key={t}
-                    type="button"
-                    role="radio"
-                    aria-checked={tip === t}
-                    onClick={() => setTip(t)}
-                    className={`flex-1 cursor-pointer rounded-xl border py-2.5 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
-                      tip === t
-                        ? 'border-cta-700 bg-cta-700 text-white shadow-md'
-                        : 'border-brand-100 bg-white text-slate-700 hover:border-cta-600'
-                    }`}
-                  >
-                    {t === 0 ? 'Skip' : `$${t}`}
-                  </button>
-                ))}
-              </div>
-
               <div className="card mt-6 !p-5">
                 <div className="flex justify-between text-sm text-slate-600">
                   <span>{service.name}</span>
@@ -328,16 +306,13 @@ export default function BookingWizard() {
                     <span>−${creditUsed}</span>
                   </div>
                 )}
-                <div className="flex justify-between text-sm text-slate-600">
-                  <span>Tip (100% to detailer)</span>
-                  <span>${tip}</span>
-                </div>
                 <div className="mt-2 flex justify-between border-t border-brand-100 pt-2 font-display text-lg font-bold text-slate-900">
                   <span>Total</span>
                   <motion.span key={total} initial={{ scale: 1.2, color: '#15803d' }} animate={{ scale: 1, color: '#0f172a' }}>
                     ${total}
                   </motion.span>
                 </div>
+                <p className="mt-1 text-xs text-slate-400">Tip your detailer after the job</p>
               </div>
 
               <button onClick={pay} className="btn btn-cta mt-6 w-full">
