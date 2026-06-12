@@ -1,0 +1,17 @@
+{
+  "name": "ShinePoint — Mobile Car Detailing",
+  "short_name": "ShinePoint",
+  "description": "LA's vetted mobile detailers, booked in minutes.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#faf5ff",
+  "theme_color": "#6d28d9",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

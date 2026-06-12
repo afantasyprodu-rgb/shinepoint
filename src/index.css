@@ -1,0 +1,121 @@
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+/* Design tokens — see design-system/shinepoint/MASTER.md */
+@theme {
+  --font-sans: "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Lexend", ui-sans-serif, system-ui, sans-serif;
+
+  --color-brand-50: #faf5ff;
+  --color-brand-100: #f3e8ff;
+  --color-brand-200: #e9d5ff;
+  --color-brand-300: #d8b4fe;
+  --color-brand-400: #c084fc;
+  --color-brand-500: #a78bfa;
+  --color-brand-600: #7c3aed;
+  --color-brand-700: #6d28d9;
+  --color-brand-800: #5b21b6;
+  --color-brand-900: #4c1d95;
+
+  --color-cta-500: #22c55e;
+  --color-cta-600: #16a34a;
+  --color-cta-700: #15803d;
+  --color-cta-800: #166534;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-brand-50 font-sans text-slate-900 antialiased;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex h-12 cursor-pointer items-center justify-center gap-2 rounded-xl px-5 font-semibold transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none;
+  }
+
+  /* cta-700 keeps white button text at >= 4.5:1 contrast */
+  .btn-cta {
+    @apply bg-cta-700 text-white hover:bg-cta-800 focus-visible:ring-cta-600;
+  }
+
+  .btn-brand {
+    @apply bg-brand-600 text-white hover:bg-brand-700 focus-visible:ring-brand-600;
+  }
+
+  .btn-outline {
+    @apply border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 focus-visible:ring-brand-600;
+  }
+
+  .btn-outline-light {
+    @apply border border-white/40 text-white hover:bg-white/10 focus-visible:ring-white focus-visible:ring-offset-brand-900;
+  }
+
+  .input {
+    @apply h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-slate-900 placeholder-slate-400 transition-colors duration-200 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200;
+  }
+
+  .label {
+    @apply mb-1 block text-sm font-medium text-slate-700;
+  }
+
+  .card {
+    @apply rounded-2xl border border-brand-100 bg-white p-8 shadow-sm;
+  }
+
+  .card-hover {
+    @apply transition-all duration-200 hover:-translate-y-1 hover:border-brand-300 hover:shadow-xl;
+  }
+
+  .glass {
+    @apply border border-white/20 bg-white/10 backdrop-blur-md;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold;
+  }
+}
+
+@layer utilities {
+  @keyframes float-slow {
+    0%, 100% { transform: translateY(0) }
+    50% { transform: translateY(-18px) }
+  }
+
+  @keyframes shimmer {
+    from { background-position: 200% 0 }
+    to { background-position: -200% 0 }
+  }
+
+  .animate-float-slow {
+    animation: float-slow 7s ease-in-out infinite;
+  }
+
+  .animate-float-slower {
+    animation: float-slow 11s ease-in-out infinite;
+  }
+
+  .text-shimmer {
+    background: linear-gradient(110deg, #fff 35%, #d8b4fe 50%, #fff 65%);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: shimmer 5s linear infinite;
+  }
+}

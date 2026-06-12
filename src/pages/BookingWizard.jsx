@@ -1,0 +1,444 @@
+import { useMemo, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { AnimatePresence, motion } from 'motion/react'
+import AppShell from '../components/AppShell'
+import Modal from '../components/ui/Modal'
+import { CheckIcon, AlertTriangleIcon, ChevronLeftIcon, SparklesIcon } from '../components/icons'
+import { useStore } from '../context/StoreContext'
+
+const VEHICLES = ['Sedan', 'SUV', 'Truck', 'Coupe', 'Van']
+const TIPS = [0, 5, 10, 15]
+const TIMES = ['9:00 AM', '11:00 AM', '1:00 PM', '3:00 PM', '5:00 PM']
+
+function nextDays(n) {
+  return Array.from({ length: n }, (_, i) => {
+    const d = new Date(Date.now() + (i + 1) * 86400_000)
+    return {
+      key: d.toISOString().slice(0, 10),
+      label: d.toLocaleDateString('en-US', { weekday: 'short' }),
+      day: d.getDate(),
+      // Demo weather: rain forecast every 4th day to exercise the warning flow.
+      rainy: d.getDate() % 4 === 0,
+    }
+  })
+}
+
+const stepVariants = {
+  enter: { opacity: 0, x: 24 },
+  center: { opacity: 1, x: 0 },
+  exit: { opacity: 0, x: -24 },
+}
+
+// Blueprint screens 2.3 → 2.7 — booking flow.
+export default function BookingWizard() {
+  const { id } = useParams()
+  const navigate = useNavigate()
+  const { getDetailer, customer, createBooking } = useStore()
+  const d = getDetailer(id)
+
+  const [step, setStep] = useState(0) // 0 service, 1 schedule, 2 review, 3 processing, 4 confirmed
+  const [service, setService] = useState(null)
+  const [vehicle, setVehicle] = useState('Sedan')
+  const [date, setDate] = useState(null)
+  const [time, setTime] = useState(null)
+  const [tip, setTip] = useState(0)
+  const [weatherAck, setWeatherAck] = useState(false)
+  const [showWeather, setShowWeather] = useState(false)
+  const [showUninsured, setShowUninsured] = useState(false)
+  const [bookingId, setBookingId] = useState(null)
+  const [useReward, setUseReward] = useState(false)
+
+  const days = useMemo(() => nextDays(10), [])
+  if (!d) return null
+  const uninsured = d.insurance === 'none'
+  // Loyalty rewards only redeemable with insured detailers (blueprint rule).
+  const reward = !uninsured ? customer.rewards[0] : null
+  const baseAfterReward = useReward && reward ? 0 : (service?.price ?? 0)
+  const creditUsed = Math.min(customer.referralCredits, baseAfterReward)
+  const total = baseAfterReward - creditUsed + tip
+
+  function continueFromSchedule() {
+    if (date?.rainy && !weatherAck) {
+      setShowWeather(true)
+      return
+    }
+    setStep(2)
+  }
+
+  function pay() {
+    if (uninsured && !showUninsured) {
+      setShowUninsured(true)
+      return
+    }
+    setShowUninsured(false)
+    setStep(3)
+    setTimeout(() => {
+      const newId = createBooking({
+        detailerId: d.id,
+        service: service.name,
+        price: total - tip,
+        tip,
+        vehicle,
+        rewardId: useReward && reward ? reward.id : undefined,
+        creditUsed: creditUsed || undefined,
+        is_loyalty_redemption: Boolean(useReward && reward),
+        address: customer.address,
+        zip: customer.zip,
+        scheduledTime: `${date.key}T${time}`,
+        weather: date.rainy
+          ? { ok: false, summary: 'Rain forecast', acknowledged: true }
+          : { ok: true, summary: 'Clear skies' },
+      })
+      setBookingId(newId)
+      setStep(4)
+    }, 2200)
+  }
+
+  const stepTitles = ['Choose service', 'Pick a time', 'Review & pay']
+
+  return (
+    <AppShell role="customer">
+      <div className="mx-auto max-w-xl overflow-x-clip px-4 py-8 sm:px-6">
+        {step < 3 && (
+          <>
+            <button
+              onClick={() => (step === 0 ? navigate(-1) : setStep(step - 1))}
+              className="mb-2 inline-flex cursor-pointer items-center gap-1 rounded text-sm font-medium text-slate-600 transition-colors duration-200 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+            >
+              <ChevronLeftIcon className="h-4 w-4" /> Back
+            </button>
+            <div className="mb-6 flex items-center gap-2" aria-label={`Step ${step + 1} of 3`}>
+              {stepTitles.map((t, i) => (
+                <div key={t} className="flex-1">
+                  <motion.div
+                    animate={{ backgroundColor: i <= step ? '#7c3aed' : '#e9d5ff' }}
+                    className="h-1.5 rounded-full"
+                  />
+                  <p className={`mt-1 text-xs ${i === step ? 'font-semibold text-brand-700' : 'text-slate-400'}`}>
+                    {t}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        <AnimatePresence mode="wait">
+          {/* ===== Step 0: service + vehicle ===== */}
+          {step === 0 && (
+            <motion.div key="s0" variants={stepVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.25, ease: 'easeOut' }}>
+              <h1 className="font-display text-2xl font-bold text-slate-900">
+                What does your car need?
+              </h1>
+              <p className="mt-1 text-sm text-slate-600">Booking with {d.name}</p>
+
+              <div className="mt-5 space-y-3" role="radiogroup" aria-label="Service">
+                {d.services.map((s) => (
+                  <motion.button
+                    key={s.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={service?.id === s.id}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setService(s)}
+                    className={`card flex w-full cursor-pointer items-center justify-between gap-4 !p-5 text-left transition-all duration-200 ${
+                      service?.id === s.id
+                        ? 'border-brand-600 ring-2 ring-brand-200'
+                        : 'hover:border-brand-300'
+                    } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600`}
+                  >
+                    <div>
+                      <p className="font-semibold text-slate-900">{s.name}</p>
+                      <p className="text-sm text-slate-600">{s.desc}</p>
+                    </div>
+                    <span className="font-display text-lg font-bold text-brand-700">${s.price}</span>
+                  </motion.button>
+                ))}
+              </div>
+
+              <h2 className="mt-6 text-sm font-semibold text-slate-700">Vehicle type</h2>
+              <div className="mt-2 flex flex-wrap gap-2" role="radiogroup" aria-label="Vehicle type">
+                {VEHICLES.map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    role="radio"
+                    aria-checked={vehicle === v}
+                    onClick={() => setVehicle(v)}
+                    className={`cursor-pointer rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
+                      vehicle === v
+                        ? 'bg-brand-600 text-white shadow-md'
+                        : 'bg-white text-slate-600 hover:bg-brand-100'
+                    }`}
+                  >
+                    {v}
+                  </button>
+                ))}
+              </div>
+
+              <button onClick={() => setStep(1)} disabled={!service} className="btn btn-brand mt-8 w-full">
+                Continue
+              </button>
+            </motion.div>
+          )}
+
+          {/* ===== Step 1: date + time ===== */}
+          {step === 1 && (
+            <motion.div key="s1" variants={stepVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.25, ease: 'easeOut' }}>
+              <h1 className="font-display text-2xl font-bold text-slate-900">When works for you?</h1>
+              <p className="mt-1 text-sm text-slate-600">
+                {service.name} · ${service.price} · at {customer.address}
+              </p>
+
+              <div className="mt-5 flex gap-2 overflow-x-auto pb-2" role="radiogroup" aria-label="Date">
+                {days.map((day) => (
+                  <button
+                    key={day.key}
+                    type="button"
+                    role="radio"
+                    aria-checked={date?.key === day.key}
+                    onClick={() => {
+                      setDate(day)
+                      setWeatherAck(false)
+                    }}
+                    className={`flex w-16 shrink-0 cursor-pointer flex-col items-center rounded-2xl border py-3 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
+                      date?.key === day.key
+                        ? 'border-brand-600 bg-brand-600 text-white shadow-lg'
+                        : 'border-brand-100 bg-white text-slate-700 hover:border-brand-300'
+                    }`}
+                  >
+                    <span className="text-xs font-medium opacity-80">{day.label}</span>
+                    <span className="font-display text-xl font-bold">{day.day}</span>
+                    {day.rainy && <span className={`text-[10px] ${date?.key === day.key ? 'text-amber-200' : 'text-amber-600'}`}>rain</span>}
+                  </button>
+                ))}
+              </div>
+
+              <h2 className="mt-5 text-sm font-semibold text-slate-700">Time</h2>
+              <div className="mt-2 grid grid-cols-3 gap-2" role="radiogroup" aria-label="Time">
+                {TIMES.map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    role="radio"
+                    aria-checked={time === t}
+                    onClick={() => setTime(t)}
+                    className={`cursor-pointer rounded-xl border px-3 py-2.5 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
+                      time === t
+                        ? 'border-brand-600 bg-brand-600 text-white shadow-md'
+                        : 'border-brand-100 bg-white text-slate-700 hover:border-brand-300'
+                    }`}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+
+              <button onClick={continueFromSchedule} disabled={!date || !time} className="btn btn-brand mt-8 w-full">
+                Continue
+              </button>
+            </motion.div>
+          )}
+
+          {/* ===== Step 2: review ===== */}
+          {step === 2 && (
+            <motion.div key="s2" variants={stepVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.25, ease: 'easeOut' }}>
+              <h1 className="font-display text-2xl font-bold text-slate-900">Review your booking</h1>
+              <div className="card mt-5 space-y-3 !p-5 text-sm">
+                {[
+                  ['Detailer', d.name],
+                  ['Service', `${service.name} · ${vehicle}`],
+                  ['When', `${date.label} ${date.day} · ${time}`],
+                  ['Where', customer.address],
+                ].map(([k, v]) => (
+                  <div key={k} className="flex justify-between gap-4">
+                    <span className="text-slate-500">{k}</span>
+                    <span className="text-right font-medium text-slate-900">{v}</span>
+                  </div>
+                ))}
+                {weatherAck && (
+                  <p className="flex items-center gap-1.5 text-xs text-amber-700">
+                    <AlertTriangleIcon className="h-3.5 w-3.5" /> Rain warning acknowledged
+                  </p>
+                )}
+              </div>
+
+              {reward && (
+                <button
+                  type="button"
+                  aria-pressed={useReward}
+                  onClick={() => setUseReward((v) => !v)}
+                  className={`card mt-4 flex w-full cursor-pointer items-center justify-between gap-3 !p-4 text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
+                    useReward ? 'border-cta-700 ring-2 ring-cta-500/30' : 'hover:border-brand-300'
+                  }`}
+                >
+                  <div>
+                    <p className="font-semibold text-slate-900">Use your reward: {reward.type}</p>
+                    <p className="text-xs text-slate-500">Expires in {reward.expiresDays} days</p>
+                  </div>
+                  <span className={`chip ${useReward ? 'bg-cta-700 text-white' : 'bg-brand-100 text-brand-700'}`}>
+                    {useReward ? 'Applied' : 'Apply'}
+                  </span>
+                </button>
+              )}
+
+              <h2 className="mt-6 text-sm font-semibold text-slate-700">Add a tip</h2>
+              <div className="mt-2 flex gap-2" role="radiogroup" aria-label="Tip">
+                {TIPS.map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    role="radio"
+                    aria-checked={tip === t}
+                    onClick={() => setTip(t)}
+                    className={`flex-1 cursor-pointer rounded-xl border py-2.5 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
+                      tip === t
+                        ? 'border-cta-700 bg-cta-700 text-white shadow-md'
+                        : 'border-brand-100 bg-white text-slate-700 hover:border-cta-600'
+                    }`}
+                  >
+                    {t === 0 ? 'Skip' : `$${t}`}
+                  </button>
+                ))}
+              </div>
+
+              <div className="card mt-6 !p-5">
+                <div className="flex justify-between text-sm text-slate-600">
+                  <span>{service.name}</span>
+                  <span>${service.price}</span>
+                </div>
+                {useReward && reward && (
+                  <div className="flex justify-between text-sm font-medium text-cta-700">
+                    <span>Loyalty reward applied</span>
+                    <span>−${service.price}</span>
+                  </div>
+                )}
+                {creditUsed > 0 && (
+                  <div className="flex justify-between text-sm font-medium text-cta-700">
+                    <span>Referral credit</span>
+                    <span>−${creditUsed}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-sm text-slate-600">
+                  <span>Tip (100% to detailer)</span>
+                  <span>${tip}</span>
+                </div>
+                <div className="mt-2 flex justify-between border-t border-brand-100 pt-2 font-display text-lg font-bold text-slate-900">
+                  <span>Total</span>
+                  <motion.span key={total} initial={{ scale: 1.2, color: '#15803d' }} animate={{ scale: 1, color: '#0f172a' }}>
+                    ${total}
+                  </motion.span>
+                </div>
+              </div>
+
+              <button onClick={pay} className="btn btn-cta mt-6 w-full">
+                Pay ${total} · Book it
+              </button>
+              <p className="mt-2 text-center text-xs text-slate-400">
+                Demo mode — no card is charged. Stripe goes live in Phase 2.
+              </p>
+            </motion.div>
+          )}
+
+          {/* ===== Step 3: processing ===== */}
+          {step === 3 && (
+            <motion.div key="s3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="py-24 text-center" role="status">
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
+                className="mx-auto h-12 w-12 rounded-full border-4 border-brand-200 border-t-brand-600"
+              />
+              <p className="mt-6 font-display text-lg font-semibold text-slate-900">Processing payment…</p>
+              <p className="mt-1 text-sm text-slate-500">Securing your booking with {d.name}</p>
+            </motion.div>
+          )}
+
+          {/* ===== Step 4: confirmed ===== */}
+          {step === 4 && (
+            <motion.div key="s4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="py-16 text-center">
+              <motion.span
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring', stiffness: 200, damping: 12 }}
+                className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-cta-700 text-white shadow-xl"
+              >
+                <CheckIcon className="h-10 w-10" />
+              </motion.span>
+              {[...Array(6)].map((_, i) => (
+                <motion.span
+                  key={i}
+                  aria-hidden="true"
+                  initial={{ opacity: 1, x: 0, y: 0 }}
+                  animate={{ opacity: 0, x: (i - 2.5) * 60, y: -80 - (i % 3) * 30 }}
+                  transition={{ duration: 0.9, delay: 0.15, ease: 'easeOut' }}
+                  className="absolute left-1/2 inline-block text-brand-500"
+                >
+                  <SparklesIcon className="h-5 w-5" />
+                </motion.span>
+              ))}
+              <h1 className="mt-6 font-display text-3xl font-bold text-slate-900">You&apos;re booked!</h1>
+              <p className="mt-2 text-slate-600">
+                Ref <span className="font-mono font-semibold">{bookingId}</span> · {d.name} has
+                been notified and will confirm shortly.
+              </p>
+              <button onClick={() => navigate(`/bookings/${bookingId}`)} className="btn btn-brand mt-8">
+                View booking
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Weather warning (2.4b) */}
+        <Modal open={showWeather} onClose={() => setShowWeather(false)} labelledBy="weather-title">
+          <AlertTriangleIcon className="mx-auto h-10 w-10 text-amber-500" />
+          <h2 id="weather-title" className="mt-3 text-center font-display text-xl font-bold text-slate-900">
+            Rain is forecast that day
+          </h2>
+          <p className="mt-2 text-center text-sm text-slate-600">
+            Detailing in wet conditions may affect results. You can proceed anyway or pick
+            another time.
+          </p>
+          <div className="mt-6 flex flex-col gap-2">
+            <button
+              onClick={() => {
+                setWeatherAck(true)
+                setShowWeather(false)
+                setStep(2)
+              }}
+              className="btn btn-brand"
+            >
+              Proceed anyway
+            </button>
+            <button onClick={() => setShowWeather(false)} className="btn btn-outline">
+              Choose another time
+            </button>
+          </div>
+        </Modal>
+
+        {/* Uninsured acknowledgment (2.5) */}
+        <Modal open={showUninsured} onClose={() => setShowUninsured(false)} labelledBy="unins-title">
+          <AlertTriangleIcon className="mx-auto h-10 w-10 text-red-500" />
+          <h2 id="unins-title" className="mt-3 text-center font-display text-xl font-bold text-slate-900">
+            This detailer is uninsured
+          </h2>
+          <p className="mt-2 text-center text-sm text-slate-600">
+            You are about to book an uninsured detailer. You accept full financial
+            responsibility for any damage to your vehicle. This cannot be disputed through
+            our platform.
+          </p>
+          <div className="mt-6 flex flex-col gap-2">
+            <button onClick={pay} className="btn bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-600">
+              I understand and accept full responsibility
+            </button>
+            <button
+              onClick={() => setShowUninsured(false)}
+              className="cursor-pointer text-sm text-slate-500 underline-offset-2 hover:underline"
+            >
+              Go back
+            </button>
+          </div>
+        </Modal>
+      </div>
+    </AppShell>
+  )
+}
