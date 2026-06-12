@@ -27,6 +27,8 @@ export default function BookingDetail() {
   const [rating, setRating] = useState(0)
   const [showReview, setShowReview] = useState(false)
   const [showTip, setShowTip] = useState(false)
+  const [customTip, setCustomTip] = useState('')
+  const [selectedTip, setSelectedTip] = useState(null)
   const [showCancel, setShowCancel] = useState(false)
   const [showDispute, setShowDispute] = useState(false)
   const [disputeReason, setDisputeReason] = useState('')
@@ -307,22 +309,53 @@ export default function BookingDetail() {
             {[5, 10, 15].map((t) => (
               <button
                 key={t}
-                onClick={() => {
-                  submitReview(b.id, rating, (b.tip ?? 0) + t)
-                  setShowTip(false)
-                }}
-                className="cursor-pointer rounded-xl border border-brand-100 bg-white py-3 text-sm font-bold text-slate-800 shadow-sm transition-all duration-200 hover:border-cta-600 hover:bg-cta-50 hover:text-cta-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+                aria-pressed={selectedTip === t && !customTip}
+                onClick={() => { setSelectedTip(t); setCustomTip('') }}
+                className={`cursor-pointer rounded-xl border py-3 text-sm font-bold shadow-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
+                  selectedTip === t && !customTip
+                    ? 'border-cta-700 bg-cta-700 text-white'
+                    : 'border-brand-100 bg-white text-slate-800 hover:border-cta-600 hover:bg-cta-50 hover:text-cta-700'
+                }`}
               >
                 ${t}
               </button>
             ))}
           </div>
+          <div className="mt-3 flex items-center gap-2">
+            <span className="text-sm font-semibold text-slate-500">$</span>
+            <input
+              type="number"
+              min="1"
+              max="500"
+              placeholder="Custom amount"
+              value={customTip}
+              onChange={(e) => { setCustomTip(e.target.value); setSelectedTip(null) }}
+              className="input flex-1 h-10 text-sm"
+            />
+          </div>
+          <button
+            disabled={!selectedTip && !customTip}
+            onClick={() => {
+              const amount = customTip ? Math.max(1, parseInt(customTip, 10) || 0) : selectedTip
+              submitReview(b.id, rating, (b.tip ?? 0) + amount)
+              setShowTip(false)
+              setCustomTip('')
+              setSelectedTip(null)
+            }}
+            className="btn btn-cta mt-4 w-full disabled:opacity-40"
+          >
+            {customTip || selectedTip
+              ? `Send $${customTip || selectedTip} tip`
+              : 'Add tip'}
+          </button>
           <button
             onClick={() => {
               submitReview(b.id, rating, b.tip ?? 0)
               setShowTip(false)
+              setCustomTip('')
+              setSelectedTip(null)
             }}
-            className="mt-3 w-full cursor-pointer rounded py-2 text-sm text-slate-400 transition-colors duration-200 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+            className="mt-2 w-full cursor-pointer rounded py-2 text-sm text-slate-400 transition-colors duration-200 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
           >
             Skip tip
           </button>
