@@ -3,10 +3,6 @@
 -- Run this in the Supabase SQL Editor (or via supabase db push).
 -- ============================================================
 
--- ------------------------------------------------------------
--- users: one row per account, mirrors auth.users.
--- Role lives here ('customer' | 'detailer' | 'admin').
--- ------------------------------------------------------------
 create table public.users (
   id uuid primary key references auth.users (id) on delete cascade,
   email text not null,
@@ -20,9 +16,6 @@ create table public.users (
   stripe_customer_id text
 );
 
--- ------------------------------------------------------------
--- customer_profiles
--- ------------------------------------------------------------
 create table public.customer_profiles (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null unique references public.users (id) on delete cascade,
@@ -36,9 +29,6 @@ create table public.customer_profiles (
   referred_by text
 );
 
--- ------------------------------------------------------------
--- detailer_profiles
--- ------------------------------------------------------------
 create table public.detailer_profiles (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null unique references public.users (id) on delete cascade,
@@ -76,11 +66,10 @@ create table public.detailer_profiles (
 );
 
 -- ------------------------------------------------------------
--- Signup trigger: when Supabase Auth creates an account, create
--- the users row plus the matching role profile automatically.
--- The role comes from signup metadata; anything other than
--- 'detailer' becomes 'customer' so nobody can self-register
--- as admin.
+-- Signup trigger: when Supabase Auth creates an account, insert
+-- into public.users and the matching role profile.
+-- Role comes from signup metadata; anything other than 'detailer'
+-- becomes 'customer' so nobody can self-register as admin.
 -- ------------------------------------------------------------
 create or replace function public.handle_new_user()
 returns trigger
@@ -130,23 +119,15 @@ alter table public.users enable row level security;
 alter table public.customer_profiles enable row level security;
 alter table public.detailer_profiles enable row level security;
 
--- users: you can read your own row.
 create policy "read own user row"
   on public.users for select
   using (auth.uid() = id);
 
--- users: you can update your own row, but column grants below
--- restrict which columns (so nobody can change their own role,
--- suspension, or ban flags).
 create policy "update own user row"
   on public.users for update
   using (auth.uid() = id)
   with check (auth.uid() = id);
 
-revoke update on public.users from authenticated;
-grant update (full_name, phone) on public.users to authenticated;
-
--- customer_profiles: owner only.
 create policy "read own customer profile"
   on public.customer_profiles for select
   using (auth.uid() = user_id);
@@ -156,14 +137,7 @@ create policy "update own customer profile"
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
-revoke update on public.customer_profiles from authenticated;
-grant update (profile_photo_url, default_address, default_zip)
-  on public.customer_profiles to authenticated;
-
--- detailer_profiles: readable by any logged-in user (the customer
--- map needs this); only the owner can update, and only the fields
--- they manage themselves. Verification, probation, insurance
--- status, and ratings are admin/system-controlled.
+-- Detailer profiles are readable by any logged-in user (map needs this).
 create policy "read detailer profiles"
   on public.detailer_profiles for select
   to authenticated
@@ -173,21 +147,3 @@ create policy "update own detailer profile"
   on public.detailer_profiles for update
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
-
-revoke update on public.detailer_profiles from authenticated;
-grant update (
-  bio,
-  profile_photo_url,
-  zip_code,
-  status,
-  accepts_bookings_when_busy,
-  accepts_reward_bookings,
-  free_travel_miles,
-  charge_per_extra_mile,
-  max_travel_miles,
-  service_days,
-  hours_start,
-  hours_end,
-  accepts_same_day,
-  advance_booking_days
-) on public.detailer_profiles to authenticated;

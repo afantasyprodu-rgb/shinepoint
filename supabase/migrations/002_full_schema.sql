@@ -1,11 +1,9 @@
 -- ============================================================
--- Full platform schema (blueprint Part 2): bookings, services,
--- photos, messages, reviews, disputes, loyalty, referrals,
--- strikes, payouts, notifications.
--- Run after 001_initial_schema.sql.
+-- Full platform schema: bookings, services, photos, messages,
+-- reviews, disputes, loyalty, referrals, strikes, payouts,
+-- notifications. Run after 001_initial_schema.sql.
 -- ============================================================
 
--- Helper: is the current user an admin?
 create or replace function public.is_admin()
 returns boolean
 language sql
@@ -19,9 +17,6 @@ as $$
   );
 $$;
 
--- ------------------------------------------------------------
--- services
--- ------------------------------------------------------------
 create table public.services (
   id uuid primary key default gen_random_uuid(),
   detailer_id uuid not null references public.detailer_profiles (id) on delete cascade,
@@ -34,9 +29,6 @@ create table public.services (
   package_includes text[] not null default '{}'
 );
 
--- ------------------------------------------------------------
--- bookings
--- ------------------------------------------------------------
 create table public.bookings (
   id uuid primary key default gen_random_uuid(),
   customer_id uuid not null references public.customer_profiles (id),
@@ -71,9 +63,6 @@ create index bookings_customer_idx on public.bookings (customer_id);
 create index bookings_detailer_idx on public.bookings (detailer_id);
 create index bookings_status_idx on public.bookings (status);
 
--- ------------------------------------------------------------
--- photos
--- ------------------------------------------------------------
 create table public.photos (
   id uuid primary key default gen_random_uuid(),
   booking_id uuid not null references public.bookings (id) on delete cascade,
@@ -89,9 +78,6 @@ create table public.photos (
 
 create index photos_booking_idx on public.photos (booking_id);
 
--- ------------------------------------------------------------
--- messages
--- ------------------------------------------------------------
 create table public.messages (
   id uuid primary key default gen_random_uuid(),
   booking_id uuid not null references public.bookings (id) on delete cascade,
@@ -105,9 +91,6 @@ create table public.messages (
 
 create index messages_booking_idx on public.messages (booking_id);
 
--- ------------------------------------------------------------
--- reviews
--- ------------------------------------------------------------
 create table public.reviews_of_detailers (
   id uuid primary key default gen_random_uuid(),
   booking_id uuid not null unique references public.bookings (id),
@@ -131,9 +114,6 @@ create table public.reviews_of_customers (
   created_at timestamptz not null default now()
 );
 
--- ------------------------------------------------------------
--- disputes
--- ------------------------------------------------------------
 create table public.disputes (
   id uuid primary key default gen_random_uuid(),
   booking_id uuid not null references public.bookings (id),
@@ -150,9 +130,6 @@ create table public.disputes (
   is_false_dispute boolean not null default false
 );
 
--- ------------------------------------------------------------
--- loyalty
--- ------------------------------------------------------------
 create table public.loyalty_points (
   id uuid primary key default gen_random_uuid(),
   customer_id uuid not null unique references public.customer_profiles (id) on delete cascade,
@@ -173,9 +150,6 @@ create table public.loyalty_rewards (
   is_expired boolean not null default false
 );
 
--- ------------------------------------------------------------
--- referral codes
--- ------------------------------------------------------------
 create table public.referral_codes (
   id uuid primary key default gen_random_uuid(),
   owner_id uuid not null references public.users (id) on delete cascade,
@@ -185,9 +159,6 @@ create table public.referral_codes (
   created_at timestamptz not null default now()
 );
 
--- ------------------------------------------------------------
--- strikes
--- ------------------------------------------------------------
 create table public.strikes (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.users (id) on delete cascade,
@@ -199,9 +170,6 @@ create table public.strikes (
   notes text
 );
 
--- ------------------------------------------------------------
--- payouts
--- ------------------------------------------------------------
 create table public.payouts (
   id uuid primary key default gen_random_uuid(),
   detailer_id uuid not null references public.detailer_profiles (id),
@@ -215,9 +183,6 @@ create table public.payouts (
   completed_at timestamptz
 );
 
--- ------------------------------------------------------------
--- notifications
--- ------------------------------------------------------------
 create table public.notifications (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.users (id) on delete cascade,
@@ -248,7 +213,6 @@ alter table public.strikes enable row level security;
 alter table public.payouts enable row level security;
 alter table public.notifications enable row level security;
 
--- services: everyone logged in can browse; owner manages their own.
 create policy "browse services" on public.services
   for select to authenticated using (true);
 create policy "manage own services" on public.services
@@ -256,7 +220,6 @@ create policy "manage own services" on public.services
     detailer_id in (select id from public.detailer_profiles where user_id = auth.uid())
   );
 
--- bookings: visible to the two parties and admins.
 create policy "parties read bookings" on public.bookings
   for select using (
     customer_id in (select id from public.customer_profiles where user_id = auth.uid())
@@ -274,23 +237,16 @@ create policy "parties update bookings" on public.bookings
     or public.is_admin()
   );
 
--- photos & messages: same access as the booking they belong to.
 create policy "booking parties read photos" on public.photos
-  for select using (
-    booking_id in (select id from public.bookings)
-  );
+  for select using (booking_id in (select id from public.bookings));
 create policy "booking parties add photos" on public.photos
   for insert with check (uploaded_by = auth.uid());
 
 create policy "booking parties read messages" on public.messages
-  for select using (
-    booking_id in (select id from public.bookings)
-  );
+  for select using (booking_id in (select id from public.bookings));
 create policy "send messages as self" on public.messages
   for insert with check (sender_id = auth.uid());
 
--- detailer reviews are public to logged-in users; customer reviews are
--- only visible to detailers and admins (blueprint rule).
 create policy "read detailer reviews" on public.reviews_of_detailers
   for select to authenticated using (true);
 create policy "customers write detailer reviews" on public.reviews_of_detailers
@@ -308,7 +264,6 @@ create policy "detailers write customer reviews" on public.reviews_of_customers
     detailer_id in (select id from public.detailer_profiles where user_id = auth.uid())
   );
 
--- disputes: parties and admins.
 create policy "parties read disputes" on public.disputes
   for select using (filed_by = auth.uid() or filed_against = auth.uid() or public.is_admin());
 create policy "file dispute as self" on public.disputes
@@ -316,8 +271,6 @@ create policy "file dispute as self" on public.disputes
 create policy "admins manage disputes" on public.disputes
   for update using (public.is_admin());
 
--- loyalty / referrals / strikes / payouts / notifications: own rows
--- (writes happen via service-role or admin tooling).
 create policy "own loyalty points" on public.loyalty_points
   for select using (
     customer_id in (select id from public.customer_profiles where user_id = auth.uid())
