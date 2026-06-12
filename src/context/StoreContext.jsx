@@ -1,4 +1,6 @@
-import { createContext, useContext, useMemo, useState } from 'react'
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { supabase } from '../lib/supabase'
+import { useAuth } from './AuthContext'
 import {
   DEMO_DETAILERS,
   DEMO_BOOKINGS,
@@ -6,9 +8,16 @@ import {
   DEMO_CUSTOMER,
   DEMO_ADMIN,
 } from '../data/demoData'
+import {
+  fetchDetailers,
+  fetchCustomerProfile,
+  fetchDetailerProfileRow,
+  fetchBookingsForCustomer,
+  fetchBookingsForDetailer,
+  createBookingInDB,
+  updateBookingStatusInDB,
+} from '../lib/db'
 
-// In-memory app store. Phase 2 swaps these reads/writes for Supabase
-// queries — the shapes already mirror the database tables.
 const StoreContext = createContext(null)
 
 let idCounter = 200
@@ -23,11 +32,22 @@ const STATUS_NOTIFICATIONS = {
 }
 
 export function StoreProvider({ children }) {
-  const [detailers, setDetailers] = useState(DEMO_DETAILERS)
-  const [bookings, setBookings] = useState(DEMO_BOOKINGS)
-  const [messages, setMessages] = useState(DEMO_MESSAGES)
-  const [customer, setCustomer] = useState(DEMO_CUSTOMER)
-  const [admin, setAdmin] = useState(DEMO_ADMIN)
+  const { user, profile, isDemo } = useAuth()
+
+  // ── Demo state ────────────────────────────────────────────────────────────
+  const [demoBookings, setDemoBookings] = useState(DEMO_BOOKINGS)
+  const [demoMessages, setDemoMessages] = useState(DEMO_MESSAGES)
+  const [demoCustomer, setDemoCustomer] = useState(DEMO_CUSTOMER)
+  const [demoAdmin, setDemoAdmin] = useState(DEMO_ADMIN)
+  const [demoDetailers, setDemoDetailers] = useState(DEMO_DETAILERS)
+
+  // ── Real state from Supabase ──────────────────────────────────────────────
+  const [realDetailers, setRealDetailers] = useState([])
+  const [realBookings, setRealBookings] = useState([])
+  const [customerProfile, setCustomerProfile] = useState(null)  // { id, referral_code, ... }
+  const [detailerProfile, setDetailerProfile] = useState(null)  // { id, status, ... }
+
+  // ── Shared ────────────────────────────────────────────────────────────────
   const [notifications, setNotifications] = useState([
     {
       id: 'n-1',
@@ -39,6 +59,76 @@ export function StoreProvider({ children }) {
     },
   ])
 
+  // Load real detailers once on mount (works even in demo — real pins appear on map).
+  useEffect(() => {
+    fetchDetailers().then(setRealDetailers)
+  }, [])
+
+  // Load user-specific data when a real user signs in.
+  useEffect(() => {
+    if (isDemo || !profile?.id) return
+    let cancelled = false
+
+    if (profile.role === 'customer') {
+      fetchCustomerProfile(profile.id).then((cp) => {
+        if (cancelled) return
+        setCustomerProfile(cp)
+        if (cp) {
+          fetchBookingsForCustomer(cp.id).then((bs) => {
+            if (!cancelled) setRealBookings(bs)
+          })
+        }
+      })
+    } else if (profile.role === 'detailer') {
+      fetchDetailerProfileRow(profile.id).then((dp) => {
+        if (cancelled) return
+        setDetailerProfile(dp)
+        if (dp) {
+          fetchBookingsForDetailer(dp.id).then((bs) => {
+            if (!cancelled) setRealBookings(bs)
+          })
+        }
+      })
+    }
+
+    return () => { cancelled = true }
+  }, [isDemo, profile?.id, profile?.role])
+
+  // Real-time: listen for booking changes (status updates, new bookings for detailer).
+  const detailerProfileRef = useRef(detailerProfile)
+  useEffect(() => { detailerProfileRef.current = detailerProfile }, [detailerProfile])
+
+  useEffect(() => {
+    if (isDemo || !profile?.id) return
+
+    const channel = supabase
+      .channel(`bookings:${profile.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'bookings' },
+        (payload) => {
+          setRealBookings((bs) =>
+            bs.map((b) =>
+              b.id === payload.new.id
+                ? { ...b, status: payload.new.status, tip: payload.new.tip_amount }
+                : b
+            )
+          )
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'bookings' },
+        () => {
+          const dp = detailerProfileRef.current
+          if (dp) fetchBookingsForDetailer(dp.id).then(setRealBookings)
+        }
+      )
+      .subscribe()
+
+    return () => supabase.removeChannel(channel)
+  }, [isDemo, profile?.id])
+
   const api = useMemo(() => {
     function notify(audience, title, body) {
       setNotifications((ns) => [
@@ -47,24 +137,65 @@ export function StoreProvider({ children }) {
       ])
     }
 
-    function patchBooking(id, patch) {
-      setBookings((bs) => bs.map((b) => (b.id === id ? { ...b, ...patch } : b)))
+    // ── Merged detailers (real + demo, deduplicated) ──────────────────────
+    const allDetailers = [...realDetailers, ...demoDetailers]
+
+    // ── Per-role bookings ─────────────────────────────────────────────────
+    const bookings = isDemo ? demoBookings : realBookings
+    const messages = isDemo ? demoMessages : {}
+
+    // ── Customer object ───────────────────────────────────────────────────
+    const customer = isDemo
+      ? demoCustomer
+      : {
+          name: profile?.full_name ?? '',
+          address: customerProfile?.default_address ?? '',
+          zip: customerProfile?.default_zip ?? '',
+          referralCode: customerProfile?.referral_code ?? '',
+          referralCredits: 0,
+          points: 0,
+          pointsToNextReward: 5,
+          rewards: [],
+        }
+
+    function demoPatchBooking(id, patch) {
+      setDemoBookings((bs) => bs.map((b) => (b.id === id ? { ...b, ...patch } : b)))
       if (patch.status && STATUS_NOTIFICATIONS[patch.status]) {
         notify(...STATUS_NOTIFICATIONS[patch.status])
       }
     }
 
+    function realPatchBooking(id, patch) {
+      setRealBookings((bs) => bs.map((b) => (b.id === id ? { ...b, ...patch } : b)))
+      updateBookingStatusInDB(id, patch)
+      if (patch.status && STATUS_NOTIFICATIONS[patch.status]) {
+        notify(...STATUS_NOTIFICATIONS[patch.status])
+      }
+    }
+
+    function patchBooking(id, patch) {
+      const booking = bookings.find((b) => b.id === id)
+      if (!isDemo && booking?._real) {
+        realPatchBooking(id, patch)
+      } else {
+        demoPatchBooking(id, patch)
+      }
+    }
+
     return {
-      detailers,
+      isDemo,
+      detailers: allDetailers,
       bookings,
       messages,
       customer,
-      admin,
+      admin: demoAdmin,
       notifications,
+      customerProfile,
+      detailerProfile,
       notify,
 
       updateCustomer(patch) {
-        setCustomer((c) => ({ ...c, ...patch }))
+        if (isDemo) setDemoCustomer((c) => ({ ...c, ...patch }))
       },
 
       markNotificationsRead(audience) {
@@ -78,21 +209,23 @@ export function StoreProvider({ children }) {
       },
 
       fileDispute(bookingId, against, reason) {
-        setAdmin((a) => ({
-          ...a,
-          disputes: [
-            {
-              id: `dsp-${idCounter++}`,
-              bookingId,
-              filedBy: `Customer · ${customer.name}`,
-              against,
-              reason,
-              status: 'open',
-              openedAt: new Date().toISOString(),
-            },
-            ...a.disputes,
-          ],
-        }))
+        if (isDemo) {
+          setDemoAdmin((a) => ({
+            ...a,
+            disputes: [
+              {
+                id: `dsp-${idCounter++}`,
+                bookingId,
+                filedBy: `Customer · ${demoCustomer.name}`,
+                against,
+                reason,
+                status: 'open',
+                openedAt: new Date().toISOString(),
+              },
+              ...a.disputes,
+            ],
+          }))
+        }
         patchBooking(bookingId, { status: 'disputed' })
         notify('customer', 'Dispute filed', 'An admin will review your case within 24 hours.')
       },
@@ -101,20 +234,42 @@ export function StoreProvider({ children }) {
         patchBooking(bookingId, { customerRated: { rating, hardToHandle } })
       },
 
-      getDetailer: (id) => detailers.find((d) => d.id === id),
+      getDetailer: (id) => allDetailers.find((d) => d.id === id),
       getBooking: (id) => bookings.find((b) => b.id === id),
 
       setAvailability(detailerId, patch) {
-        setDetailers((ds) => ds.map((d) => (d.id === detailerId ? { ...d, ...patch } : d)))
+        setDemoDetailers((ds) => ds.map((d) => (d.id === detailerId ? { ...d, ...patch } : d)))
       },
 
-      createBooking(draft) {
+      async createBooking(draft) {
+        const detailer = allDetailers.find((d) => d.id === draft.detailerId)
+        const useRealPath = !isDemo && detailer?._real && customerProfile
+
+        if (useRealPath) {
+          const bookingId = await createBookingInDB({
+            customerProfileId: customerProfile.id,
+            detailerProfileId: draft.detailerId,
+            serviceId: draft.serviceId,
+            scheduledTime: draft.scheduledTime,
+            address: draft.address,
+            zip: draft.zip,
+            totalPrice: draft.price,
+            tipAmount: draft.tip,
+            vehicleType: draft.vehicle,
+          })
+          const refreshed = await fetchBookingsForCustomer(customerProfile.id)
+          setRealBookings(refreshed)
+          notify('detailer', 'New booking request', `${draft.service} — new request waiting`)
+          return bookingId
+        }
+
+        // Demo path (also used when booking a demo detailer as a real user)
         const id = `bk-${idCounter++}`
         if (draft.rewardId) {
-          setCustomer((c) => ({ ...c, rewards: c.rewards.filter((r) => r.id !== draft.rewardId) }))
+          setDemoCustomer((c) => ({ ...c, rewards: c.rewards.filter((r) => r.id !== draft.rewardId) }))
         }
         if (draft.creditUsed) {
-          setCustomer((c) => ({ ...c, referralCredits: Math.max(0, c.referralCredits - draft.creditUsed) }))
+          setDemoCustomer((c) => ({ ...c, referralCredits: Math.max(0, c.referralCredits - draft.creditUsed) }))
         }
         const booking = {
           id,
@@ -126,7 +281,7 @@ export function StoreProvider({ children }) {
           afterPhotos: 0,
           ...draft,
         }
-        setBookings((bs) => [booking, ...bs])
+        setDemoBookings((bs) => [booking, ...bs])
         notify('detailer', 'New booking request', `${booking.service} from ${booking.customerName}`)
         return id
       },
@@ -135,7 +290,7 @@ export function StoreProvider({ children }) {
 
       sendMessage(bookingId, from, text) {
         const flagged = /\d{3}[-.\s]?\d{3}[-.\s]?\d{4}|venmo|zelle|cash ?app/i.test(text)
-        setMessages((m) => ({
+        setDemoMessages((m) => ({
           ...m,
           [bookingId]: [
             ...(m[bookingId] ?? []),
@@ -147,22 +302,24 @@ export function StoreProvider({ children }) {
 
       submitReview(bookingId, rating, tip) {
         patchBooking(bookingId, { reviewed: true, tip })
-        notify('detailer', 'New review', `${rating} stars from ${customer.name}`)
-        setCustomer((c) => {
-          const points = c.points + 1
-          const earned = points >= c.pointsToNextReward
-          return {
-            ...c,
-            points: earned ? 0 : points,
-            rewards: earned
-              ? [...c.rewards, { id: `rw-${idCounter++}`, type: 'Free exterior wash', expiresDays: 90 }]
-              : c.rewards,
-          }
-        })
+        if (isDemo) {
+          notify('detailer', 'New review', `${rating} stars from ${demoCustomer.name}`)
+          setDemoCustomer((c) => {
+            const points = c.points + 1
+            const earned = points >= c.pointsToNextReward
+            return {
+              ...c,
+              points: earned ? 0 : points,
+              rewards: earned
+                ? [...c.rewards, { id: `rw-${idCounter++}`, type: 'Free exterior wash', expiresDays: 90 }]
+                : c.rewards,
+            }
+          })
+        }
       },
 
       resolveDispute(id, resolution) {
-        setAdmin((a) => ({
+        setDemoAdmin((a) => ({
           ...a,
           disputes: a.disputes.map((d) =>
             d.id === id ? { ...d, status: 'resolved', resolution } : d
@@ -171,7 +328,7 @@ export function StoreProvider({ children }) {
       },
 
       decideApplication(id, decision) {
-        setAdmin((a) => ({
+        setDemoAdmin((a) => ({
           ...a,
           applications: a.applications.filter((app) => app.id !== id),
           decided: [...(a.decided ?? []), { id, decision }],
@@ -179,14 +336,21 @@ export function StoreProvider({ children }) {
       },
 
       clearFlag(id) {
-        setAdmin((a) => ({ ...a, flagged: a.flagged.filter((f) => f.id !== id) }))
+        setDemoAdmin((a) => ({ ...a, flagged: a.flagged.filter((f) => f.id !== id) }))
       },
 
       approveOverride(id) {
-        setAdmin((a) => ({ ...a, overrides: a.overrides.filter((o) => o.id !== id) }))
+        setDemoAdmin((a) => ({ ...a, overrides: a.overrides.filter((o) => o.id !== id) }))
       },
     }
-  }, [detailers, bookings, messages, customer, admin, notifications])
+  }, [
+    isDemo,
+    demoDetailers, demoBookings, demoMessages, demoCustomer, demoAdmin,
+    realDetailers, realBookings,
+    customerProfile, detailerProfile,
+    profile,
+    notifications,
+  ])
 
   return <StoreContext.Provider value={api}>{children}</StoreContext.Provider>
 }

@@ -10,6 +10,14 @@ const VEHICLES = ['Sedan', 'SUV', 'Truck', 'Coupe', 'Van']
 const TIPS = [0, 5, 10, 15]
 const TIMES = ['9:00 AM', '11:00 AM', '1:00 PM', '3:00 PM', '5:00 PM']
 
+function parseTime(t) {
+  const [hm, ampm] = t.split(' ')
+  let [h, m] = hm.split(':').map(Number)
+  if (ampm === 'PM' && h !== 12) h += 12
+  if (ampm === 'AM' && h === 12) h = 0
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00`
+}
+
 function nextDays(n) {
   return Array.from({ length: n }, (_, i) => {
     const d = new Date(Date.now() + (i + 1) * 86400_000)
@@ -72,9 +80,10 @@ export default function BookingWizard() {
     }
     setShowUninsured(false)
     setStep(3)
-    setTimeout(() => {
-      const newId = createBooking({
+    setTimeout(async () => {
+      const newId = await createBooking({
         detailerId: d.id,
+        serviceId: service.id,
         service: service.name,
         price: total - tip,
         tip,
@@ -84,7 +93,7 @@ export default function BookingWizard() {
         is_loyalty_redemption: Boolean(useReward && reward),
         address: customer.address,
         zip: customer.zip,
-        scheduledTime: `${date.key}T${time}`,
+        scheduledTime: `${date.key}T${parseTime(time)}`,
         weather: date.rainy
           ? { ok: false, summary: 'Rain forecast', acknowledged: true }
           : { ok: true, summary: 'Clear skies' },

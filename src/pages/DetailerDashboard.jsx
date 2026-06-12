@@ -7,15 +7,17 @@ import { Avatar, CountUp, ProgressBar, StatusPill } from '../components/ui/bits'
 import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
 
-const ME = 'det-1' // demo detailer identity
-
 // Blueprint screen 5.1 — Detailer Dashboard.
 export default function DetailerDashboard() {
   const { profile } = useAuth()
-  const { bookings, getDetailer, patchBooking } = useStore()
-  const me = getDetailer(ME)
+  const { bookings, getDetailer, patchBooking, isDemo, detailerProfile } = useStore()
 
-  const mine = bookings.filter((b) => b.detailerId === ME)
+  // Demo: use the seeded detailer. Real: use the logged-in detailer's DB profile id.
+  const meId = isDemo ? 'det-1' : detailerProfile?.id
+  const me = meId ? getDetailer(meId) : null
+
+  // Demo: filter the shared pool. Real: all bookings loaded are already ours.
+  const mine = isDemo ? bookings.filter((b) => b.detailerId === meId) : bookings
   const incoming = mine.filter((b) => b.status === 'pending')
   const active = mine.filter((b) => !['pending', 'complete', 'cancelled'].includes(b.status))
   const earningsToday = mine
@@ -23,9 +25,9 @@ export default function DetailerDashboard() {
     .reduce((sum, b) => sum + b.price * 0.85 + (b.tip ?? 0), 0)
 
   const stats = [
-    { label: 'Earnings this week', value: 1284, prefix: '$' },
-    { label: 'Rating', value: me.rating, suffix: ' ★' },
-    { label: 'Jobs completed', value: me.completedJobs },
+    { label: 'Earnings this week', value: earningsToday || (isDemo ? 1284 : 0), prefix: '$' },
+    { label: 'Rating', value: me?.rating ?? detailerProfile?.average_rating ?? 5.0, suffix: ' ★' },
+    { label: 'Jobs completed', value: me?.completedJobs ?? detailerProfile?.total_completed_jobs ?? 0 },
     { label: 'Acceptance rate', value: 96, suffix: '%' },
   ]
 
@@ -49,11 +51,11 @@ export default function DetailerDashboard() {
           ))}
         </div>
 
-        {me.probationRemaining > 0 && (
+        {(me?.probationRemaining ?? detailerProfile?.probation_jobs_remaining ?? 0) > 0 && (
           <FadeIn delay={0.2}>
             <div className="card mt-4 !p-5">
               <ProgressBar
-                value={5 - me.probationRemaining}
+                value={5 - (me?.probationRemaining ?? detailerProfile?.probation_jobs_remaining ?? 0)}
                 max={5}
                 label="Quality review — first 5 jobs"
               />

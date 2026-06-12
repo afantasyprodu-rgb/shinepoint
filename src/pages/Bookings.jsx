@@ -6,8 +6,9 @@ import { CalendarIcon } from '../components/icons'
 import { useStore } from '../context/StoreContext'
 
 export default function Bookings() {
-  const { bookings, customer, getDetailer } = useStore()
-  const mine = bookings.filter((b) => b.customerName === customer.name)
+  const { bookings, customer, isDemo, getDetailer } = useStore()
+  // Demo: filter from the shared demo pool. Real: all bookings loaded are already ours.
+  const mine = isDemo ? bookings.filter((b) => b.customerName === customer.name) : bookings
 
   return (
     <AppShell role="customer">
