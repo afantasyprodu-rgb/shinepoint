@@ -7,14 +7,18 @@ import { CheckIcon, AlertTriangleIcon, ChevronLeftIcon, SparklesIcon } from '../
 import { useStore } from '../context/StoreContext'
 
 const VEHICLES = ['Sedan', 'SUV', 'Truck', 'Coupe', 'Van']
-const TIMES = ['9:00 AM', '11:00 AM', '1:00 PM', '3:00 PM', '5:00 PM']
 
+// time is already "HH:MM" from <input type="time">
 function parseTime(t) {
-  const [hm, ampm] = t.split(' ')
-  let [h, m] = hm.split(':').map(Number)
-  if (ampm === 'PM' && h !== 12) h += 12
-  if (ampm === 'AM' && h === 12) h = 0
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00`
+  return t ? `${t}:00` : '09:00:00'
+}
+
+function formatTime(t) {
+  if (!t) return ''
+  const [h, m] = t.split(':').map(Number)
+  const ampm = h >= 12 ? 'PM' : 'AM'
+  const h12 = h % 12 || 12
+  return `${h12}:${String(m).padStart(2, '0')} ${ampm}`
 }
 
 function nextDays(n) {
@@ -47,7 +51,7 @@ export default function BookingWizard() {
   const [service, setService] = useState(null)
   const [vehicle, setVehicle] = useState('Sedan')
   const [date, setDate] = useState(null)
-  const [time, setTime] = useState(null)
+  const [time, setTime] = useState('')
   const [weatherAck, setWeatherAck] = useState(false)
   const [showWeather, setShowWeather] = useState(false)
   const [showUninsured, setShowUninsured] = useState(false)
@@ -222,24 +226,13 @@ export default function BookingWizard() {
               </div>
 
               <h2 className="mt-5 text-sm font-semibold text-slate-700">Time</h2>
-              <div className="mt-2 grid grid-cols-3 gap-2" role="radiogroup" aria-label="Time">
-                {TIMES.map((t) => (
-                  <button
-                    key={t}
-                    type="button"
-                    role="radio"
-                    aria-checked={time === t}
-                    onClick={() => setTime(t)}
-                    className={`cursor-pointer rounded-xl border px-3 py-2.5 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
-                      time === t
-                        ? 'border-brand-600 bg-brand-600 text-white shadow-md'
-                        : 'border-brand-100 bg-white text-slate-700 hover:border-brand-300'
-                    }`}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
+              <input
+                type="time"
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+                className="input mt-2 w-full"
+                aria-label="Appointment time"
+              />
 
               <button onClick={continueFromSchedule} disabled={!date || !time} className="btn btn-brand mt-8 w-full">
                 Continue
@@ -255,7 +248,7 @@ export default function BookingWizard() {
                 {[
                   ['Detailer', d.name],
                   ['Service', `${service.name} · ${vehicle}`],
-                  ['When', `${date.label} ${date.day} · ${time}`],
+                  ['When', `${date.label} ${date.day} · ${formatTime(time)}`],
                   ['Where', customer.address],
                 ].map(([k, v]) => (
                   <div key={k} className="flex justify-between gap-4">
