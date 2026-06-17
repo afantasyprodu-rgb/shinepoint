@@ -97,7 +97,7 @@ export default function Welcome() {
           </FadeIn>
           <FadeIn delay={0.1} y={22}>
             <h1 className="mx-auto mt-8 max-w-2xl font-display text-5xl font-bold leading-tight text-white sm:text-6xl">
-              Your car, <span className="text-shimmer">detailed</span> at your door
+              Your car, <span className="text-spectrum">detailed</span> at your door
             </h1>
           </FadeIn>
           <FadeIn delay={0.2}>
