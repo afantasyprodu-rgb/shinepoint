@@ -294,7 +294,7 @@ export default function BookingDetail() {
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: 'spring', stiffness: 220, damping: 16 }}
-            className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-cta-700 text-white"
+            className="glow-cta mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-cta-700 text-white"
           >
             <CheckIcon className="h-8 w-8" />
           </motion.div>

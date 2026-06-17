@@ -304,7 +304,7 @@ export default function BookingWizard() {
                 <p className="mt-1 text-xs text-slate-400">Tip your detailer after the job</p>
               </div>
 
-              <button onClick={pay} className="btn btn-cta mt-6 w-full">
+              <button onClick={pay} className="btn btn-cta-gradient glow-cta glow-pulse mt-6 w-full">
                 Pay ${total} · Book it
               </button>
               <p className="mt-2 text-center text-xs text-slate-400">
@@ -333,7 +333,7 @@ export default function BookingWizard() {
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ type: 'spring', stiffness: 200, damping: 12 }}
-                className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-cta-700 text-white shadow-xl"
+                className="glow-cta mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-cta-700 text-white shadow-xl"
               >
                 <CheckIcon className="h-10 w-10" />
               </motion.span>

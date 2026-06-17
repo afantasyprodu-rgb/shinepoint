@@ -28,7 +28,7 @@ export default function Rewards() {
         <h1 className="font-display text-2xl font-bold text-slate-900">Rewards</h1>
 
         <FadeIn>
-          <div className="card mt-6 bg-gradient-to-br from-brand-600 to-brand-800 text-white">
+          <div className="card card-glow mt-6 bg-gradient-to-br from-brand-600 to-brand-800 text-white">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-brand-200">Loyalty points</p>

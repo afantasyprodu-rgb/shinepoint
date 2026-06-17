@@ -39,7 +39,9 @@
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
       animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
     }
   }
 }
@@ -56,6 +58,24 @@
 
   .btn-brand {
     @apply bg-brand-600 text-white hover:bg-brand-700 focus-visible:ring-brand-600;
+  }
+
+  /* Gradient fills — oklch keeps the blend clean. Stops stay in the dark end of
+     the ramp so white text holds >= 4.5:1 contrast across the whole button. */
+  .btn-brand-gradient {
+    background-image: linear-gradient(135deg in oklch, #6d28d9, #7c3aed);
+    @apply text-white focus-visible:ring-brand-600;
+  }
+  .btn-brand-gradient:hover {
+    background-image: linear-gradient(135deg in oklch, #5b21b6, #6d28d9);
+  }
+
+  .btn-cta-gradient {
+    background-image: linear-gradient(135deg in oklch, #166534, #15803d);
+    @apply text-white focus-visible:ring-cta-600;
+  }
+  .btn-cta-gradient:hover {
+    background-image: linear-gradient(135deg in oklch, #14532d, #166534);
   }
 
   .btn-outline {
@@ -117,5 +137,50 @@
     background-clip: text;
     color: transparent;
     animation: shimmer 5s linear infinite;
+  }
+
+  /* ── Ambient glow ─────────────────────────────────────────────────────────
+     Soft radial halo behind important elements. The glow lives on a blurred
+     ::before so only opacity/transform animate (GPU-cheap, mobile-safe).
+     Usage: <button class="btn btn-cta glow-cta glow-pulse">…</button>
+     The host needs a stacking context; .glow-* sets position + isolation. */
+  .glow-brand,
+  .glow-cta {
+    position: relative;
+    isolation: isolate;
+  }
+  .glow-brand::before,
+  .glow-cta::before {
+    content: "";
+    position: absolute;
+    inset: -35%;
+    z-index: -1;
+    border-radius: inherit;
+    filter: blur(22px);
+    opacity: 0.55;
+    pointer-events: none;
+  }
+  .glow-brand::before {
+    background: radial-gradient(circle at center, #a78bfa 0%, transparent 70%);
+  }
+  .glow-cta::before {
+    background: radial-gradient(circle at center, #22c55e 0%, transparent 70%);
+  }
+
+  .glow-pulse::before {
+    animation: glow-pulse 2.8s ease-in-out infinite;
+  }
+
+  @keyframes glow-pulse {
+    0%, 100% { opacity: 0.4; transform: scale(1); }
+    50%      { opacity: 0.7; transform: scale(1.06); }
+  }
+
+  /* Static card halo for milestone surfaces (reward earned, booking confirmed) */
+  .card-glow {
+    box-shadow:
+      0 0 0 1px rgba(124, 58, 237, 0.12),
+      0 8px 24px -8px rgba(124, 58, 237, 0.35),
+      0 0 40px -8px rgba(167, 139, 250, 0.45);
   }
 }
