@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import AppShell from '../components/AppShell'
@@ -6,6 +7,49 @@ import { AnimatedPage, FadeIn } from '../components/ui/Motion'
 import { Avatar, CountUp, ProgressBar, StatusPill } from '../components/ui/bits'
 import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
+import { startConnectOnboarding, isStripeConfigured } from '../lib/stripe'
+
+// Stripe Connect payout setup (real detailers only).
+function PayoutSetup() {
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const done = new URLSearchParams(window.location.search).get('payouts') === 'done'
+
+  async function connect() {
+    setBusy(true)
+    setError('')
+    try {
+      const url = await startConnectOnboarding()
+      window.location.href = url
+    } catch (e) {
+      setError(e.message || 'Could not start payout setup.')
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="card mt-4 !p-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="font-semibold text-slate-900">
+            Payouts {done && <span className="text-cta-700">· setup returned</span>}
+          </p>
+          <p className="text-sm text-slate-500">
+            Connect your bank with Stripe to get paid after each job. Tips are 100% yours.
+          </p>
+        </div>
+        <button onClick={connect} disabled={busy} className="btn btn-brand h-10 px-4 text-sm">
+          {busy ? 'Opening…' : done ? 'Manage payouts' : 'Set up payouts'}
+        </button>
+      </div>
+      {error && (
+        <p role="alert" className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+          {error}
+        </p>
+      )}
+    </div>
+  )
+}
 
 // Blueprint screen 5.1 — Detailer Dashboard.
 export default function DetailerDashboard() {
@@ -66,6 +110,8 @@ export default function DetailerDashboard() {
         <div className="mt-6">
           <AvailabilityToggle />
         </div>
+
+        {!isDemo && isStripeConfigured && <PayoutSetup />}
 
         <Link
           to="/detailer/onboarding"

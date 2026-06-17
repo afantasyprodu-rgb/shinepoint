@@ -16,6 +16,9 @@ import {
   fetchBookingsForDetailer,
   createBookingInDB,
   updateBookingStatusInDB,
+  saveDetailerOnboarding,
+  insertDetailerReview,
+  insertCustomerReview,
 } from '../lib/db'
 
 const StoreContext = createContext(null)
@@ -231,6 +234,16 @@ export function StoreProvider({ children }) {
       },
 
       rateCustomer(bookingId, rating, hardToHandle) {
+        const booking = bookings.find((b) => b.id === bookingId)
+        if (!isDemo && booking?._real) {
+          setRealBookings((bs) =>
+            bs.map((b) => (b.id === bookingId ? { ...b, customerRated: { rating, hardToHandle } } : b))
+          )
+          if (detailerProfile && booking.customerId) {
+            insertCustomerReview(bookingId, booking.detailerId, booking.customerId, rating, hardToHandle)
+          }
+          return
+        }
         patchBooking(bookingId, { customerRated: { rating, hardToHandle } })
       },
 
@@ -239,6 +252,16 @@ export function StoreProvider({ children }) {
 
       setAvailability(detailerId, patch) {
         setDemoDetailers((ds) => ds.map((d) => (d.id === detailerId ? { ...d, ...patch } : d)))
+      },
+
+      // Persist the detailer onboarding wizard. Demo users skip the DB.
+      async saveOnboarding(draft) {
+        if (isDemo || profile?.role !== 'detailer') return
+        const detailerId = await saveDetailerOnboarding(profile.id, draft)
+        // Refresh own profile + the map list so the new services/zip show up.
+        fetchDetailerProfileRow(profile.id).then(setDetailerProfile)
+        fetchDetailers().then(setRealDetailers)
+        return detailerId
       },
 
       async createBooking(draft) {
@@ -300,6 +323,17 @@ export function StoreProvider({ children }) {
       },
 
       submitReview(bookingId, rating, tip) {
+        const booking = bookings.find((b) => b.id === bookingId)
+        if (!isDemo && booking?._real) {
+          setRealBookings((bs) =>
+            bs.map((b) => (b.id === bookingId ? { ...b, reviewed: true, tip } : b))
+          )
+          updateBookingStatusInDB(bookingId, { tip })
+          if (customerProfile) {
+            insertDetailerReview(bookingId, customerProfile.id, booking.detailerId, rating)
+          }
+          return
+        }
         patchBooking(bookingId, { reviewed: true, tip })
         if (isDemo) {
           notify('detailer', 'New review', `${rating} stars from ${demoCustomer.name}`)

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import AppShell from '../components/AppShell'
 import MarketingTip from '../components/MarketingTip'
+import { useStore } from '../context/StoreContext'
 import { CheckIcon, ShieldCheckIcon, CreditCardIcon, ClipboardCheckIcon, UsersIcon, ChevronLeftIcon, PlusIcon, XIcon, LightbulbIcon } from '../components/icons'
 
 const SERVICE_MENU = [
@@ -30,8 +31,11 @@ const STEPS = ['Identity', 'Insurance', 'Profile', 'Services', 'Schedule', 'Payo
 // Stripe Identity / Connect calls are simulated until Phase 4 wiring.
 export default function DetailerOnboarding() {
   const navigate = useNavigate()
+  const { isDemo, saveOnboarding } = useStore()
   const [step, setStep] = useState(0)
   const [submitted, setSubmitted] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
 
   // Step state
   const [idStatus, setIdStatus] = useState('idle') // idle | scanning | passed
@@ -71,6 +75,33 @@ export default function DetailerOnboarding() {
   function runIdCheck() {
     setIdStatus('scanning')
     setTimeout(() => setIdStatus('passed'), 1800)
+  }
+
+  async function handleSubmit() {
+    // Demo mode never touches the DB — just show the success screen.
+    if (isDemo) {
+      setSubmitted(true)
+      return
+    }
+    setSaving(true)
+    setSaveError('')
+    try {
+      await saveOnboarding({
+        bio,
+        zip,
+        insurance,
+        vehicles,
+        services,
+        freeTravelMiles: travel,
+        chargePerMile,
+        serviceDays: days,
+      })
+      setSubmitted(true)
+    } catch (e) {
+      setSaveError(e?.message || 'Could not save your application. Please try again.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   function toggle(list, setList, item) {
@@ -135,7 +166,7 @@ export default function DetailerOnboarding() {
             ))}
           </ol>
           <button onClick={() => navigate('/detailer')} className="btn btn-cta mt-8 w-full">
-            Demo: skip review → approved
+            {isDemo ? 'Demo: skip review → approved' : 'Go to dashboard'}
           </button>
         </div>
       </AppShell>
@@ -478,18 +509,28 @@ export default function DetailerOnboarding() {
           </motion.div>
         </AnimatePresence>
 
+        {saveError && (
+          <p role="alert" className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+            {saveError}
+          </p>
+        )}
+
         <div className="mt-6 flex gap-2">
           {step > 0 && (
-            <button onClick={() => setStep(step - 1)} className="btn btn-outline">
+            <button onClick={() => setStep(step - 1)} disabled={saving} className="btn btn-outline">
               Back
             </button>
           )}
           <button
-            onClick={() => (step === STEPS.length - 1 ? setSubmitted(true) : setStep(step + 1))}
-            disabled={!canContinue}
+            onClick={() => (step === STEPS.length - 1 ? handleSubmit() : setStep(step + 1))}
+            disabled={!canContinue || saving}
             className="btn btn-brand flex-1"
           >
-            {step === STEPS.length - 1 ? 'Submit application' : 'Continue'}
+            {step === STEPS.length - 1
+              ? saving
+                ? 'Submitting…'
+                : 'Submit application'
+              : 'Continue'}
           </button>
         </div>
       </div>

@@ -1,11 +1,14 @@
 import { useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
+import { Elements } from '@stripe/react-stripe-js'
 import AppShell from '../components/AppShell'
 import TimePicker from '../components/TimePicker'
+import PaymentForm from '../components/PaymentForm'
 import Modal from '../components/ui/Modal'
 import { CheckIcon, AlertTriangleIcon, ChevronLeftIcon, SparklesIcon } from '../components/icons'
 import { useStore } from '../context/StoreContext'
+import { stripePromise, isStripeConfigured, createPaymentIntent } from '../lib/stripe'
 
 const VEHICLES = ['Sedan', 'SUV', 'Truck', 'Coupe', 'Van']
 
@@ -45,10 +48,10 @@ const stepVariants = {
 export default function BookingWizard() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { getDetailer, customer, createBooking } = useStore()
+  const { getDetailer, customer, createBooking, isDemo, customerProfile } = useStore()
   const d = getDetailer(id)
 
-  const [step, setStep] = useState(0) // 0 service, 1 schedule, 2 review, 3 processing, 4 confirmed
+  const [step, setStep] = useState(0) // 0 service, 1 schedule, 2 review, 3 processing, 4 confirmed, 5 card
   const [service, setService] = useState(null)
   const [vehicle, setVehicle] = useState('Sedan')
   const [date, setDate] = useState(null)
@@ -58,6 +61,8 @@ export default function BookingWizard() {
   const [showUninsured, setShowUninsured] = useState(false)
   const [bookingId, setBookingId] = useState(null)
   const [useReward, setUseReward] = useState(false)
+  const [clientSecret, setClientSecret] = useState(null)
+  const [payError, setPayError] = useState('')
 
   const days = useMemo(() => nextDays(10), [])
   if (!d) return null
@@ -76,34 +81,66 @@ export default function BookingWizard() {
     setStep(2)
   }
 
-  function pay() {
+  function buildDraft() {
+    return {
+      detailerId: d.id,
+      serviceId: service.id,
+      service: service.name,
+      price: total,
+      tip: 0,
+      vehicle,
+      rewardId: useReward && reward ? reward.id : undefined,
+      creditUsed: creditUsed || undefined,
+      is_loyalty_redemption: Boolean(useReward && reward),
+      address: customer.address,
+      zip: customer.zip,
+      scheduledTime: `${date.key}T${parseTime(time)}`,
+      weather: date.rainy
+        ? { ok: false, summary: 'Rain forecast', acknowledged: true }
+        : { ok: true, summary: 'Clear skies' },
+    }
+  }
+
+  // Real Stripe charge only when: live user, real detailer, profile loaded,
+  // Stripe configured, and a non-zero total. Everything else uses the
+  // simulated demo flow.
+  const realPaid =
+    !isDemo && d._real && Boolean(customerProfile) && isStripeConfigured && total > 0
+
+  async function pay() {
     if (uninsured && !showUninsured) {
       setShowUninsured(true)
       return
     }
     setShowUninsured(false)
+    setPayError('')
     setStep(3)
-    setTimeout(async () => {
-      const newId = await createBooking({
-        detailerId: d.id,
-        serviceId: service.id,
-        service: service.name,
-        price: total,
-        tip: 0,
-        vehicle,
-        rewardId: useReward && reward ? reward.id : undefined,
-        creditUsed: creditUsed || undefined,
-        is_loyalty_redemption: Boolean(useReward && reward),
-        address: customer.address,
-        zip: customer.zip,
-        scheduledTime: `${date.key}T${parseTime(time)}`,
-        weather: date.rainy
-          ? { ok: false, summary: 'Rain forecast', acknowledged: true }
-          : { ok: true, summary: 'Clear skies' },
-      })
+
+    if (!realPaid) {
+      // Demo / free / Stripe-off: simulate the charge and confirm.
+      setTimeout(async () => {
+        const newId = await createBooking(buildDraft())
+        setBookingId(newId)
+        setStep(4)
+      }, 2200)
+      return
+    }
+
+    // Real payment: create the booking, get a PaymentIntent, show the card form.
+    try {
+      const newId = await createBooking(buildDraft())
       setBookingId(newId)
-      setStep(4)
-    }, 2200)
+      const res = await createPaymentIntent(newId)
+      if (res.free) {
+        setStep(4)
+        return
+      }
+      setClientSecret(res.clientSecret)
+      setStep(5)
+    } catch (e) {
+      setPayError(e.message || 'Could not start payment. Please try again.')
+      setStep(2)
+    }
   }
 
   const stepTitles = ['Choose service', 'Pick a time', 'Review & pay']
@@ -304,11 +341,18 @@ export default function BookingWizard() {
                 <p className="mt-1 text-xs text-slate-400">Tip your detailer after the job</p>
               </div>
 
+              {payError && (
+                <p role="alert" className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+                  {payError}
+                </p>
+              )}
               <button onClick={pay} className="btn btn-cta-gradient glow-cta glow-pulse mt-6 w-full">
                 Pay ${total} · Book it
               </button>
               <p className="mt-2 text-center text-xs text-slate-400">
-                Demo mode — no card is charged. Stripe goes live in Phase 2.
+                {realPaid
+                  ? 'Secure card payment on the next step, powered by Stripe.'
+                  : 'Demo mode — no card is charged.'}
               </p>
             </motion.div>
           )}
@@ -357,6 +401,24 @@ export default function BookingWizard() {
               <button onClick={() => navigate(`/bookings/${bookingId}`)} className="btn btn-brand mt-8">
                 View booking
               </button>
+            </motion.div>
+          )}
+
+          {/* ===== Step 5: card payment (real Stripe flow) ===== */}
+          {step === 5 && clientSecret && (
+            <motion.div key="s5" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
+              <h1 className="font-display text-2xl font-bold text-slate-900">Payment</h1>
+              <p className="mt-1 text-sm text-slate-600">
+                {service.name} with {d.name} · ${total}
+              </p>
+              <div className="card mt-5">
+                <Elements
+                  stripe={stripePromise}
+                  options={{ clientSecret, appearance: { theme: 'stripe', variables: { colorPrimary: '#7c3aed' } } }}
+                >
+                  <PaymentForm amount={total} onSuccess={() => setStep(4)} />
+                </Elements>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

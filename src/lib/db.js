@@ -47,6 +47,8 @@ function normalizeCustomerBooking(row) {
     address: row.booking_address ?? '',
     zip: row.booking_zip ?? '',
     vehicle: row.vehicle_type ?? 'Sedan',
+    // A review row for this booking means the customer already rated it.
+    reviewed: (row.reviews_of_detailers?.length ?? 0) > 0,
     damageReport: { submitted: false, acknowledged: false, items: [] },
     beforePhotos: 0,
     afterPhotos: 0,
@@ -56,9 +58,11 @@ function normalizeCustomerBooking(row) {
 }
 
 function normalizeDetailerBooking(row) {
+  const custReview = row.reviews_of_customers?.[0]
   return {
     id: row.id,
     detailerId: row.detailer_id,
+    customerId: row.customer_id,
     customerName: row.customer_profiles?.users?.full_name ?? 'Customer',
     service: row.services?.service_name ?? '',
     serviceId: row.service_id,
@@ -69,6 +73,10 @@ function normalizeDetailerBooking(row) {
     address: row.booking_address ?? '',
     zip: row.booking_zip ?? '',
     vehicle: row.vehicle_type ?? 'Sedan',
+    // A customer-review row means this detailer already rated the customer.
+    customerRated: custReview
+      ? { rating: custReview.rating, hardToHandle: custReview.is_hard_to_handle }
+      : undefined,
     damageReport: { submitted: false, acknowledged: false, items: [] },
     beforePhotos: 0,
     afterPhotos: 0,
@@ -133,7 +141,8 @@ export async function fetchBookingsForCustomer(customerProfileId) {
       detailer_profiles!bookings_detailer_id_fkey(
         id,
         users!inner(full_name)
-      )
+      ),
+      reviews_of_detailers(id)
     `)
     .eq('customer_id', customerProfileId)
     .order('created_at', { ascending: false })
@@ -156,7 +165,8 @@ export async function fetchBookingsForDetailer(detailerProfileId) {
       customer_profiles!bookings_customer_id_fkey(
         id,
         users!inner(full_name)
-      )
+      ),
+      reviews_of_customers(rating, is_hard_to_handle)
     `)
     .eq('detailer_id', detailerProfileId)
     .not('status', 'in', '("cancelled")')
@@ -210,6 +220,111 @@ export async function updateBookingStatusInDB(bookingId, patch) {
   if (error) console.error('updateBookingStatus:', error.message)
 }
 
+// Persist the detailer onboarding wizard: profile fields + the full service
+// list. Services are replaced wholesale (delete + insert) so re-submitting the
+// wizard is idempotent. `userId` is the auth user id (profile.id) — RLS keys
+// every write to auth.uid() = user_id, so this only ever touches the caller's
+// own rows.
+export async function saveDetailerOnboarding(userId, {
+  bio,
+  zip,
+  insurance,
+  vehicles,
+  services,
+  freeTravelMiles,
+  chargePerMile,
+  serviceDays,
+}) {
+  const { data: prof, error: profErr } = await supabase
+    .from('detailer_profiles')
+    .update({
+      bio,
+      zip_code: zip,
+      insurance_status: insurance,
+      free_travel_miles: freeTravelMiles,
+      charge_per_extra_mile: chargePerMile,
+      service_days: serviceDays,
+    })
+    .eq('user_id', userId)
+    .select('id')
+    .single()
+
+  if (profErr) {
+    console.error('saveDetailerOnboarding profile:', profErr.message)
+    throw profErr
+  }
+
+  const detailerId = prof.id
+
+  const { error: delErr } = await supabase
+    .from('services')
+    .delete()
+    .eq('detailer_id', detailerId)
+  if (delErr) {
+    console.error('saveDetailerOnboarding clear services:', delErr.message)
+    throw delErr
+  }
+
+  const rows = Object.entries(services).map(([name, price]) => ({
+    detailer_id: detailerId,
+    service_name: name,
+    price: Number(price),
+    vehicle_types: vehicles,
+    is_active: true,
+  }))
+
+  if (rows.length) {
+    const { error: insErr } = await supabase.from('services').insert(rows)
+    if (insErr) {
+      console.error('saveDetailerOnboarding insert services:', insErr.message)
+      throw insErr
+    }
+  }
+
+  return detailerId
+}
+
+// Customer rates a detailer. Upsert keyed on booking_id (the table's unique
+// column) so re-submitting the rating modal can't error on a duplicate. The
+// 004 trigger recomputes the detailer's average_rating server-side.
+export async function insertDetailerReview(bookingId, customerProfileId, detailerProfileId, rating) {
+  const { error } = await supabase
+    .from('reviews_of_detailers')
+    .upsert(
+      {
+        booking_id: bookingId,
+        customer_id: customerProfileId,
+        detailer_id: detailerProfileId,
+        rating,
+      },
+      { onConflict: 'booking_id' }
+    )
+  if (error) console.error('insertDetailerReview:', error.message)
+}
+
+// Detailer rates a customer (private — read by detailers + admins only).
+export async function insertCustomerReview(
+  bookingId,
+  detailerProfileId,
+  customerProfileId,
+  rating,
+  hardToHandle
+) {
+  const { error } = await supabase
+    .from('reviews_of_customers')
+    .upsert(
+      {
+        booking_id: bookingId,
+        detailer_id: detailerProfileId,
+        customer_id: customerProfileId,
+        rating,
+        is_hard_to_handle: hardToHandle,
+      },
+      { onConflict: 'booking_id' }
+    )
+  if (error) console.error('insertCustomerReview:', error.message)
+}
+
 export async function fetchMessages(bookingId) {
   const { data, error } = await supabase
     .from('messages')
@@ -233,12 +348,19 @@ export async function fetchMessages(bookingId) {
 
 export async function sendMessageToDB(bookingId, senderId, content) {
   const flagged = /\d{3}[-.\s]?\d{3}[-.\s]?\d{4}|venmo|zelle|cash ?app/i.test(content)
-  const { error } = await supabase.from('messages').insert({
-    booking_id: bookingId,
-    sender_id: senderId,
-    content,
-    is_flagged: flagged,
-  })
-  if (error) console.error('sendMessage:', error.message)
-  return flagged
+  const { data, error } = await supabase
+    .from('messages')
+    .insert({
+      booking_id: bookingId,
+      sender_id: senderId,
+      content,
+      is_flagged: flagged,
+    })
+    .select('id')
+    .single()
+  if (error) {
+    console.error('sendMessage:', error.message)
+    return { id: null, flagged, error }
+  }
+  return { id: data.id, flagged }
 }

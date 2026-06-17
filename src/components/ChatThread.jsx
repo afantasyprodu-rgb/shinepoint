@@ -1,22 +1,77 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { SendIcon } from './icons'
 import { useStore } from '../context/StoreContext'
+import { useAuth } from '../context/AuthContext'
+import { supabase } from '../lib/supabase'
+import { fetchMessages, sendMessageToDB } from '../lib/db'
 
 // Blueprint 3.3 — in-app chat tied to a booking. Auto-flags phone numbers
 // and payment-app mentions (off-platform solicitation guard).
 export default function ChatThread({ bookingId, me }) {
   const { messages, sendMessage } = useStore()
-  const thread = messages[bookingId] ?? []
+  const { user, isDemo } = useAuth()
   const [text, setText] = useState('')
   const [flagNotice, setFlagNotice] = useState(false)
 
-  function submit(e) {
+  // Real chat is loaded per-booking and kept live with a realtime subscription.
+  const [realThread, setRealThread] = useState([])
+
+  useEffect(() => {
+    if (isDemo || !bookingId) return
+    let cancelled = false
+    fetchMessages(bookingId).then((rows) => {
+      if (!cancelled) setRealThread(rows)
+    })
+
+    const channel = supabase
+      .channel(`messages:${bookingId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages', filter: `booking_id=eq.${bookingId}` },
+        (payload) => {
+          const m = payload.new
+          setRealThread((prev) =>
+            prev.some((x) => x.id === m.id)
+              ? prev
+              : [...prev, { id: m.id, text: m.content, at: m.sent_at, flagged: m.is_flagged, senderId: m.sender_id }]
+          )
+        }
+      )
+      .subscribe()
+
+    return () => {
+      cancelled = true
+      supabase.removeChannel(channel)
+    }
+  }, [bookingId, isDemo])
+
+  // Demo aligns by role string; real aligns by sender id.
+  const thread = isDemo
+    ? (messages[bookingId] ?? []).map((m) => ({ ...m, mine: m.from === me }))
+    : realThread.map((m) => ({ ...m, mine: m.senderId === user?.id }))
+
+  async function submit(e) {
     e.preventDefault()
-    if (!text.trim()) return
-    const flagged = sendMessage(bookingId, me, text.trim())
-    setFlagNotice(flagged)
+    const body = text.trim()
+    if (!body) return
     setText('')
+
+    if (isDemo) {
+      setFlagNotice(sendMessage(bookingId, me, body))
+      return
+    }
+
+    const { id, flagged } = await sendMessageToDB(bookingId, user.id, body)
+    setFlagNotice(flagged)
+    // Optimistic append; the realtime echo is deduped by id.
+    if (id) {
+      setRealThread((prev) =>
+        prev.some((x) => x.id === id)
+          ? prev
+          : [...prev, { id, text: body, at: new Date().toISOString(), flagged, senderId: user.id }]
+      )
+    }
   }
 
   return (
@@ -33,11 +88,11 @@ export default function ChatThread({ bookingId, me }) {
               initial={{ opacity: 0, y: 10, scale: 0.97 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 0.2, ease: 'easeOut' }}
-              className={`flex ${m.from === me ? 'justify-end' : 'justify-start'}`}
+              className={`flex ${m.mine ? 'justify-end' : 'justify-start'}`}
             >
               <div
                 className={`max-w-[80%] rounded-2xl px-3.5 py-2 text-sm ${
-                  m.from === me
+                  m.mine
                     ? 'rounded-br-md bg-brand-600 text-white'
                     : 'rounded-bl-md bg-brand-50 text-slate-800'
                 } ${m.flagged ? 'ring-2 ring-red-400' : ''}`}
