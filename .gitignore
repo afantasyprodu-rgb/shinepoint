@@ -5,3 +5,10 @@ dist
 .env.*.local
 *.log
 .DS_Store
+
+.vercel
+
+# Local secrets / OAuth credentials — never commit
+client_secret_*.json
+Ignore.txt
+.claude/
