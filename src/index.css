@@ -139,24 +139,21 @@
     animation: shimmer 5s linear infinite;
   }
 
-  /* ── Animated spectrum gradient ───────────────────────────────────────────
-     A 60° gradient whose colors continuously rotate through the full hue
-     spectrum. hue-rotate is GPU-accelerated, so this is cheap and mobile-safe.
-     Reduced-motion stops it on one frame (global rule caps iteration count).
-     .text-spectrum clips it to text; .bg-spectrum fills a surface. */
+  /* ── Slow color drift ─────────────────────────────────────────────────────
+     Starts purple, drifts through the hue spectrum so slowly the shift is
+     imperceptible frame-to-frame (only obvious if you compare over minutes).
+     hue-rotate is GPU-accelerated, cheap, mobile-safe.
+     Reduced-motion stops it on one frame (global rule caps iteration count). */
   @keyframes spectrum-shift {
     to { filter: hue-rotate(360deg); }
   }
   .text-spectrum {
-    background: linear-gradient(60deg, #7c3aed, #22c55e, #c084fc);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    animation: spectrum-shift 8s linear infinite;
+    color: #7c3aed;
+    animation: spectrum-shift 120s linear infinite;
   }
   .bg-spectrum {
-    background: linear-gradient(60deg, #7c3aed, #22c55e, #c084fc);
-    animation: spectrum-shift 8s linear infinite;
+    background-color: #7c3aed;
+    animation: spectrum-shift 120s linear infinite;
   }
 
   /* ── Ambient glow ─────────────────────────────────────────────────────────
