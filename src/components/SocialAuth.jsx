@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { GoogleIcon, AppleIcon } from './icons'
+import { GoogleIcon } from './icons'
 
 // One-tap login/signup via OAuth providers. The intended role is stashed in
 // localStorage so the /auth/callback page can finish setting up the account
@@ -44,15 +44,6 @@ export default function SocialAuth({ role = 'customer', label = 'Continue' }) {
       >
         <GoogleIcon className="h-5 w-5" />
         {busy === 'google' ? 'Redirecting…' : `${label} with Google`}
-      </button>
-      <button
-        type="button"
-        onClick={() => signInWith('apple')}
-        disabled={busy}
-        className="btn w-full bg-slate-900 text-white hover:bg-slate-800 focus-visible:ring-slate-900"
-      >
-        <AppleIcon className="h-5 w-5" />
-        {busy === 'apple' ? 'Redirecting…' : `${label} with Apple`}
       </button>
 
       {error && (
