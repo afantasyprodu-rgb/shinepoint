@@ -6,6 +6,7 @@ import Login from './pages/Login'
 import CustomerSignup from './pages/CustomerSignup'
 import DetailerSignup from './pages/DetailerSignup'
 import CheckEmail from './pages/CheckEmail'
+import AuthCallback from './pages/AuthCallback'
 import DetailerProfile from './pages/DetailerProfile'
 import BookingWizard from './pages/BookingWizard'
 import Bookings from './pages/Bookings'
@@ -52,6 +53,7 @@ export default function App() {
         <Route path="/signup" element={<CustomerSignup />} />
         <Route path="/signup/detailer" element={<DetailerSignup />} />
         <Route path="/check-email" element={<CheckEmail />} />
+        <Route path="/auth/callback" element={<AuthCallback />} />
 
         {/* Customer */}
         <Route

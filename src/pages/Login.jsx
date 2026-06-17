@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { homePathForRole } from '../context/AuthContext'
 import Logo from '../components/Logo'
+import SocialAuth from '../components/SocialAuth'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -60,6 +61,8 @@ export default function Login() {
         </Link>
         <h1 className="mt-6 text-2xl font-bold text-slate-900">Welcome back</h1>
         <p className="mt-1 mb-6 text-sm text-slate-600">Log in to your account.</p>
+
+        <SocialAuth label="Log in" />
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

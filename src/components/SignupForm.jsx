@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { homePathForRole } from '../context/AuthContext'
+import SocialAuth from './SocialAuth'
 
 // Shared signup form for both account types (Blueprint screens 1.2 and 4.1).
 // The role is passed in user metadata; a database trigger creates the
@@ -72,6 +73,8 @@ export default function SignupForm({ role }) {
   }
 
   return (
+    <>
+    <SocialAuth role={role} label="Sign up" />
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label htmlFor="fullName" className="label">
@@ -175,5 +178,6 @@ export default function SignupForm({ role }) {
         {submitting ? 'Creating account…' : 'Sign Up'}
       </button>
     </form>
+    </>
   )
 }
