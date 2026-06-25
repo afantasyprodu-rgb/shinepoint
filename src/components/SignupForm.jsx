@@ -11,6 +11,7 @@ import PhoneAuthForm from './PhoneAuthForm'
 export default function SignupForm({ role }) {
   const navigate = useNavigate()
   const [method, setMethod] = useState('email')
+  const [phoneMode, setPhoneMode] = useState('signup')
   const [form, setForm] = useState({
     fullName: '',
     email: '',
@@ -100,7 +101,7 @@ export default function SignupForm({ role }) {
     </div>
 
     {method === 'phone' ? (
-      <PhoneAuthForm mode="signup" role={role} />
+      <PhoneAuthForm mode={phoneMode} role={role} onModeChange={setPhoneMode} />
     ) : (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>

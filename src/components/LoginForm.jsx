@@ -12,6 +12,7 @@ import PhoneAuthForm from './PhoneAuthForm'
 export default function LoginForm({ onAuthenticated }) {
   const navigate = useNavigate()
   const [method, setMethod] = useState('email')
+  const [phoneMode, setPhoneMode] = useState('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -87,7 +88,7 @@ export default function LoginForm({ onAuthenticated }) {
       </div>
 
       {method === 'phone' ? (
-        <PhoneAuthForm mode="login" onAuthenticated={onAuthenticated} />
+        <PhoneAuthForm mode={phoneMode} onAuthenticated={onAuthenticated} onModeChange={setPhoneMode} />
       ) : (
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>

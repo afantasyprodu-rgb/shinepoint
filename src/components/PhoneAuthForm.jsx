@@ -15,7 +15,7 @@ import { homePathForRole } from '../context/AuthContext'
 // existing DB trigger creates the matching profile row. Login never creates
 // an account (shouldCreateUser: false) — an unrecognized number gets a clear
 // error instead of silently signing someone up.
-export default function PhoneAuthForm({ mode, role, onAuthenticated }) {
+export default function PhoneAuthForm({ mode, role, onAuthenticated, onModeChange }) {
   const navigate = useNavigate()
   const [step, setStep] = useState('phone')
   const [fullName, setFullName] = useState('')
@@ -145,8 +145,39 @@ export default function PhoneAuthForm({ mode, role, onAuthenticated }) {
     )
   }
 
+  function switchMode(next) {
+    setStep('phone')
+    setCode('')
+    setError('')
+    setFullName('')
+    setPhone('')
+    onModeChange?.(next)
+  }
+
   return (
     <form onSubmit={sendCode} className="space-y-4">
+      {onModeChange && (
+        <div className="flex gap-1 rounded-lg bg-slate-100 p-1">
+          <button
+            type="button"
+            onClick={() => switchMode('signup')}
+            className={`flex-1 rounded-md py-1.5 text-sm font-medium transition-colors duration-200 ${
+              mode === 'signup' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
+            }`}
+          >
+            New account
+          </button>
+          <button
+            type="button"
+            onClick={() => switchMode('login')}
+            className={`flex-1 rounded-md py-1.5 text-sm font-medium transition-colors duration-200 ${
+              mode === 'login' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
+            }`}
+          >
+            Log in
+          </button>
+        </div>
+      )}
       {mode === 'signup' && (
         <div>
           <label htmlFor="phoneFullName" className="label">
