@@ -195,8 +195,18 @@ export default function AuthCard({ defaultMode = 'signup', role = 'customer', on
 
   const formContent = (
     <>
+      {/* Google — top */}
+      <button type="button" onClick={handleGoogle} disabled={busy} className="auth-btn-outline w-full mb-5">
+        <GoogleIcon className="h-5 w-5 shrink-0" />
+        Continue with Google
+      </button>
+
+      <div className="auth-divider">
+        <span className="auth-divider-line" /><span className="auth-divider-text">or</span><span className="auth-divider-line" />
+      </div>
+
       {/* Mode toggle */}
-      <div className="auth-toggle">
+      <div className="auth-toggle mt-5">
         <button type="button" onClick={() => switchMode('signup')}
           className={`auth-toggle-btn ${mode === 'signup' ? 'auth-toggle-active' : 'auth-toggle-inactive'}`}>
           New account
@@ -276,15 +286,6 @@ export default function AuthCard({ defaultMode = 'signup', role = 'customer', on
           {busy ? '…' : isPhone ? 'Send code' : isSignup ? 'Create account' : 'Log in'}
         </button>
       </form>
-
-      {/* Divider + Google */}
-      <div className="auth-divider">
-        <span className="auth-divider-line" /><span className="auth-divider-text">or</span><span className="auth-divider-line" />
-      </div>
-      <button type="button" onClick={handleGoogle} disabled={busy} className="auth-btn-outline w-full">
-        <GoogleIcon className="h-5 w-5 shrink-0" />
-        Continue with Google
-      </button>
 
       <p className="auth-terms">
         By continuing you agree to our{' '}
