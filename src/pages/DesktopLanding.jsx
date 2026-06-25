@@ -235,17 +235,7 @@ export default function DesktopLanding() {
           <AuthCard defaultMode="login" onAuthenticated={handleAuthed} standalone={false} />
         </div>
 
-        <p className="mt-6 text-sm text-slate-600">
-          New here?{' '}
-          <Link
-            to="/signup"
-            className="rounded font-semibold text-brand-600 transition-colors duration-200 hover:text-brand-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
-          >
-            Create an account
-          </Link>
-        </p>
-
-        <div className="mt-4 flex items-center gap-4 text-sm">
+        <div className="mt-6 flex items-center gap-4 text-sm">
           <button
             onClick={startDemo}
             className="cursor-pointer rounded font-medium text-slate-500 underline-offset-4 transition-colors duration-200 hover:text-brand-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
