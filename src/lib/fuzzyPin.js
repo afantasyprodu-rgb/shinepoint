@@ -18,6 +18,25 @@ export const LA_ZIP_CENTROIDS = {
   91401: { lat: 34.1783, lng: -118.4319 }, // Van Nuys
 }
 
+const EARTH_RADIUS_MI = 3958.8
+
+// Straight-line miles between two zip centroids (haversine), or null if
+// either zip isn't in the table. Used for a real-distance mileage estimate —
+// not a fake/random number — on the detailer earnings page (tax mileage log).
+export function milesBetweenZips(zipA, zipB) {
+  const a = LA_ZIP_CENTROIDS[zipA]
+  const b = LA_ZIP_CENTROIDS[zipB]
+  if (!a || !b) return null
+  const toRad = (d) => (d * Math.PI) / 180
+  const dLat = toRad(b.lat - a.lat)
+  const dLng = toRad(b.lng - a.lng)
+  const sinDLat = Math.sin(dLat / 2)
+  const sinDLng = Math.sin(dLng / 2)
+  const h =
+    sinDLat * sinDLat + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * sinDLng * sinDLng
+  return EARTH_RADIUS_MI * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h))
+}
+
 function hashString(str) {
   let h = 2166136261
   for (let i = 0; i < str.length; i++) {

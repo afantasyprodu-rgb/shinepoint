@@ -91,6 +91,12 @@ export default function Welcome() {
           />
         </motion.div>
 
+        {/* Radial vignette deepens the edges so the headline pops. */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_55%_at_50%_42%,transparent,rgba(76,29,149,0.55))]"
+        />
+
         <motion.div style={reduce ? undefined : { opacity: heroOpacity }} className="relative z-10">
           <FadeIn y={18}>
             <Logo tone="light" size="lg" />
@@ -108,7 +114,7 @@ export default function Welcome() {
           </FadeIn>
           <FadeIn delay={0.3}>
             <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <Link to="/signup" className="btn btn-cta w-64 sm:w-auto">
+              <Link to="/signup" className="btn btn-cta-gradient glow-cta w-64 sm:w-auto">
                 Book a detail <ArrowRightIcon className="h-4 w-4" />
               </Link>
               <Link to="/login" className="btn btn-outline-light w-64 sm:w-auto">
@@ -137,16 +143,22 @@ export default function Welcome() {
       {/* ===== How it works ===== */}
       <section className="mx-auto max-w-5xl px-6 py-24">
         <FadeIn>
-          <h2 className="text-center font-display text-3xl font-bold text-brand-900 sm:text-4xl">
-            How it works
-          </h2>
+          <div className="text-center">
+            <span className="eyebrow">How it works</span>
+            <h2 className="font-display text-3xl font-bold text-brand-900 sm:text-4xl">
+              Three taps to a clean car
+            </h2>
+          </div>
         </FadeIn>
-        <div className="mt-12 grid gap-6 sm:grid-cols-3">
+        <div className="mt-14 grid gap-6 sm:grid-cols-3">
           {steps.map(({ icon: StepIcon, title, body }, i) => (
             <FadeIn key={title} delay={i * 0.12}>
               <div className="card card-hover h-full text-center">
-                <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 text-white">
+                <span className="relative mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-md">
                   <StepIcon className="h-7 w-7" />
+                  <span className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-white font-display text-xs font-bold text-brand-700 shadow ring-1 ring-brand-100">
+                    {i + 1}
+                  </span>
                 </span>
                 <h3 className="mt-4 font-display text-lg font-semibold text-slate-900">{title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-slate-600">{body}</p>
@@ -160,11 +172,14 @@ export default function Welcome() {
       <section className="bg-white py-24">
         <div className="mx-auto max-w-5xl px-6">
           <FadeIn>
-            <h2 className="text-center font-display text-3xl font-bold text-brand-900 sm:text-4xl">
-              Available right now in LA
-            </h2>
+            <div className="text-center">
+              <span className="eyebrow">Available now</span>
+              <h2 className="font-display text-3xl font-bold text-brand-900 sm:text-4xl">
+                Vetted detailers near you in LA
+              </h2>
+            </div>
           </FadeIn>
-          <div className="mt-12 grid gap-6 sm:grid-cols-3">
+          <div className="mt-14 grid gap-6 sm:grid-cols-3">
             {featured.map((d, i) => (
               <FadeIn key={d.id} delay={i * 0.12}>
                 <div className="card card-hover h-full">
@@ -199,14 +214,17 @@ export default function Welcome() {
       {/* ===== Live demo entry ===== */}
       <section id="demo" className="mx-auto max-w-5xl scroll-mt-12 px-6 py-24">
         <FadeIn>
-          <h2 className="text-center font-display text-3xl font-bold text-brand-900 sm:text-4xl">
-            Take the demo for a spin
-          </h2>
-          <p className="mx-auto mt-3 max-w-md text-center text-slate-600">
-            No account needed. Seeded data, every screen, all three sides of the marketplace.
-          </p>
+          <div className="text-center">
+            <span className="eyebrow">Live demo</span>
+            <h2 className="font-display text-3xl font-bold text-brand-900 sm:text-4xl">
+              Take it for a spin, no signup
+            </h2>
+            <p className="mx-auto mt-3 max-w-md text-slate-600">
+              Seeded data, every screen, all three sides of the marketplace.
+            </p>
+          </div>
         </FadeIn>
-        <Stagger className="mt-12 grid gap-6 sm:grid-cols-3">
+        <Stagger className="mt-14 grid gap-6 sm:grid-cols-3">
           {demoRoles.map(({ role, icon: RoleIcon, title, body }) => (
             <StaggerItem key={role}>
               <button
@@ -241,7 +259,7 @@ export default function Welcome() {
               Set your own prices, radius, and hours. Get paid fast with photo-protected
               jobs and zero marketing spend.
             </p>
-            <Link to="/signup/detailer" className="btn btn-cta mt-8">
+            <Link to="/signup/detailer" className="btn btn-cta-gradient glow-cta mt-8">
               Join as a detailer <ArrowRightIcon className="h-4 w-4" />
             </Link>
           </FadeIn>

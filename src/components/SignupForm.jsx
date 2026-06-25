@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { homePathForRole } from '../context/AuthContext'
 import SocialAuth from './SocialAuth'
+import PhoneAuthForm from './PhoneAuthForm'
 
 // Shared signup form for both account types (Blueprint screens 1.2 and 4.1).
 // The role is passed in user metadata; a database trigger creates the
 // matching row in users + customer_profiles / detailer_profiles.
 export default function SignupForm({ role }) {
   const navigate = useNavigate()
+  const [method, setMethod] = useState('email')
   const [form, setForm] = useState({
     fullName: '',
     email: '',
@@ -75,6 +77,31 @@ export default function SignupForm({ role }) {
   return (
     <>
     <SocialAuth role={role} label="Sign up" />
+
+    <div className="mb-4 flex gap-1 rounded-lg bg-slate-100 p-1">
+      <button
+        type="button"
+        onClick={() => setMethod('email')}
+        className={`flex-1 rounded-md py-1.5 text-sm font-medium transition-colors duration-200 ${
+          method === 'email' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
+        }`}
+      >
+        Email
+      </button>
+      <button
+        type="button"
+        onClick={() => setMethod('phone')}
+        className={`flex-1 rounded-md py-1.5 text-sm font-medium transition-colors duration-200 ${
+          method === 'phone' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
+        }`}
+      >
+        Phone
+      </button>
+    </div>
+
+    {method === 'phone' ? (
+      <PhoneAuthForm mode="signup" role={role} />
+    ) : (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label htmlFor="fullName" className="label">
@@ -178,6 +205,7 @@ export default function SignupForm({ role }) {
         {submitting ? 'Creating account…' : 'Sign Up'}
       </button>
     </form>
+    )}
     </>
   )
 }

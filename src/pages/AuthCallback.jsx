@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { homePathForRole } from '../context/AuthContext'
+import { markArrival } from '../lib/transition'
 import Logo from '../components/Logo'
 
 // Landing page after an OAuth redirect. Finalizes the session, applies the
@@ -47,6 +48,9 @@ export default function AuthCallback() {
         return
       }
 
+      // Desktop gets the arrival reveal on the destination (Google login can't
+      // show the in-page fly-through since it redirects off-page).
+      markArrival(userRow?.role)
       navigate(homePathForRole(userRow?.role), { replace: true })
     }
 

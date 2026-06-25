@@ -1,7 +1,9 @@
 import { lazy, Suspense } from 'react'
 import { Routes, Route, useLocation } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute'
-import Welcome from './pages/Welcome'
+import ArrivalTransition from './components/ArrivalTransition'
+import { loadCustomerHome } from './lib/preload'
+import Landing from './pages/Landing'
 import Login from './pages/Login'
 import CustomerSignup from './pages/CustomerSignup'
 import DetailerSignup from './pages/DetailerSignup'
@@ -23,8 +25,9 @@ import AdminPeople from './pages/admin/AdminPeople'
 import AdminOps from './pages/admin/AdminOps'
 import AdminFinance from './pages/admin/AdminFinance'
 
-// Lazy: keeps mapbox-gl (~1.6 MB) out of the initial bundle.
-const CustomerHome = lazy(() => import('./pages/CustomerHome'))
+// Lazy: keeps mapbox-gl (~1.6 MB) out of the initial bundle. Same loader is
+// reused by the login transition's preload so the page is warm on arrival.
+const CustomerHome = lazy(loadCustomerHome)
 
 function PageLoader() {
   return (
@@ -47,8 +50,9 @@ export default function App() {
   // AnimatedPage entrance plays. (Route-level exit animations via
   // AnimatePresence proved wedge-prone with rapid history changes.)
   return (
+    <ArrivalTransition>
       <Routes location={location} key={location.pathname}>
-        <Route path="/" element={<Welcome />} />
+        <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<CustomerSignup />} />
         <Route path="/signup/detailer" element={<DetailerSignup />} />
@@ -85,5 +89,6 @@ export default function App() {
         <Route path="/admin/ops" element={guard('admin', <AdminOps />)} />
         <Route path="/admin/finance" element={guard('admin', <AdminFinance />)} />
       </Routes>
+    </ArrivalTransition>
   )
 }

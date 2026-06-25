@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import Logo from './Logo'
-import { BellIcon } from './icons'
+import { BellIcon, ClipboardCheckIcon, TrendingUpIcon, UsersIcon } from './icons'
 import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
 
@@ -96,10 +96,38 @@ const NAVS = {
     { to: '/settings', label: 'Account' },
   ],
   detailer: [
-    { to: '/detailer', label: 'Dashboard', end: true },
-    { to: '/detailer/earnings', label: 'Earnings' },
-    { to: '/detailer/profile', label: 'Profile' },
+    { to: '/detailer', label: 'Jobs', end: true, icon: ClipboardCheckIcon },
+    { to: '/detailer/earnings', label: 'Earnings', icon: TrendingUpIcon },
+    { to: '/detailer/profile', label: 'Account', icon: UsersIcon },
   ],
+}
+
+// Fixed bottom tab bar, detailer-only, mobile only — matches the Stitch
+// dashboard mockup so detailers checking between jobs always have one-handed
+// nav within thumb reach instead of scrolling up to a top bar.
+function BottomNav({ items }) {
+  return (
+    <nav
+      aria-label="Main mobile"
+      className="fixed inset-x-0 bottom-0 z-20 flex border-t border-slate-200 bg-white/95 backdrop-blur sm:hidden"
+    >
+      {items.map(({ to, label, end, icon: ItemIcon }) => (
+        <NavLink
+          key={to}
+          to={to}
+          end={end}
+          className={({ isActive }) =>
+            `flex flex-1 flex-col items-center gap-0.5 py-2.5 text-xs font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
+              isActive ? 'text-brand-700' : 'text-slate-500'
+            }`
+          }
+        >
+          {ItemIcon && <ItemIcon className="h-5 w-5" />}
+          {label}
+        </NavLink>
+      ))}
+    </nav>
+  )
 }
 
 export default function AppShell({ role, children }) {
@@ -155,25 +183,29 @@ export default function AppShell({ role, children }) {
             </button>
           </div>
         </div>
-        {/* Mobile nav */}
-        <nav aria-label="Main mobile" className="flex gap-1 overflow-x-auto px-4 pb-2 sm:hidden">
-          {nav.map(({ to, label, end }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={end}
-              className={({ isActive }) =>
-                `shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium ${
-                  isActive ? 'bg-brand-100 text-brand-800' : 'text-slate-600'
-                }`
-              }
-            >
-              {label}
-            </NavLink>
-          ))}
-        </nav>
+        {/* Mobile nav: detailer gets a fixed bottom tab bar instead (thumb reach
+            between jobs); other roles keep this top scroller. */}
+        {role !== 'detailer' && (
+          <nav aria-label="Main mobile" className="flex gap-1 overflow-x-auto px-4 pb-2 sm:hidden">
+            {nav.map(({ to, label, end }) => (
+              <NavLink
+                key={to}
+                to={to}
+                end={end}
+                className={({ isActive }) =>
+                  `shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium ${
+                    isActive ? 'bg-brand-100 text-brand-800' : 'text-slate-600'
+                  }`
+                }
+              >
+                {label}
+              </NavLink>
+            ))}
+          </nav>
+        )}
       </header>
-      <div className="flex-1">{children}</div>
+      <div className={`flex-1 ${role === 'detailer' ? 'pb-16 sm:pb-0' : ''}`}>{children}</div>
+      {role === 'detailer' && <BottomNav items={nav} />}
     </div>
   )
 }

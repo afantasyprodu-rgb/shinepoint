@@ -2,6 +2,7 @@ import AppShell from '../components/AppShell'
 import { AnimatedPage, FadeIn, Stagger, StaggerItem } from '../components/ui/Motion'
 import { CountUp, Bars } from '../components/ui/bits'
 import { useStore } from '../context/StoreContext'
+import { milesBetweenZips } from '../lib/fuzzyPin'
 
 const ME = 'det-1'
 const WEEKS = ['W1', 'W2', 'W3', 'W4', 'W5', 'W6']
@@ -9,14 +10,25 @@ const WEEKLY = [240, 310, 285, 390, 364, 412]
 
 // Blueprint screen 5.6 — Detailer Earnings.
 export default function DetailerEarnings() {
-  const { bookings } = useStore()
+  const { bookings, getDetailer, isDemo, detailerProfile } = useStore()
   const complete = bookings.filter((b) => b.detailerId === ME && b.status === 'complete')
+
+  const meId = isDemo ? ME : detailerProfile?.id
+  const me = meId ? getDetailer(meId) : null
+
+  // Round-trip straight-line distance home base <-> each job's zip — a real
+  // distance estimate (not fabricated), useful alongside the tax CSV export.
+  const milesTraveled = complete.reduce((sum, b) => {
+    const oneWay = me?.zip ? milesBetweenZips(me.zip, b.zip) : null
+    return sum + (oneWay ? oneWay * 2 : 0)
+  }, 0)
 
   const stats = [
     { label: 'This week', value: 412, prefix: '$' },
     { label: 'This month', value: 1690, prefix: '$' },
     { label: 'All time', value: 24830, prefix: '$' },
     { label: 'Tips (100% yours)', value: 1240, prefix: '$' },
+    { label: 'Miles traveled', value: Math.round(milesTraveled), suffix: ' mi' },
   ]
 
   function exportCsv() {
@@ -42,13 +54,13 @@ export default function DetailerEarnings() {
           </button>
         </div>
 
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {stats.map(({ label, value, prefix }, i) => (
+        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-5">
+          {stats.map(({ label, value, prefix, suffix }, i) => (
             <FadeIn key={label} delay={i * 0.08}>
               <div className="card !p-4">
                 <p className="text-xs font-medium text-slate-500">{label}</p>
                 <p className="mt-1 font-display text-2xl font-bold text-brand-800">
-                  <CountUp value={value} prefix={prefix} />
+                  <CountUp value={value} prefix={prefix} suffix={suffix} />
                 </p>
               </div>
             </FadeIn>

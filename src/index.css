@@ -34,6 +34,7 @@
 
   h1, h2, h3, h4 {
     font-family: var(--font-display);
+    letter-spacing: -0.02em;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -147,13 +148,19 @@
   @keyframes spectrum-shift {
     to { filter: hue-rotate(360deg); }
   }
+  /* Light tint so the accent word stays readable on the dark hero. */
   .text-spectrum {
-    color: #7c3aed;
+    color: #d8b4fe;
     animation: spectrum-shift 120s linear infinite;
   }
   .bg-spectrum {
     background-color: #7c3aed;
     animation: spectrum-shift 120s linear infinite;
+  }
+
+  /* Section kicker label above headings. */
+  .eyebrow {
+    @apply mb-2 inline-block text-xs font-semibold uppercase tracking-[0.2em] text-brand-600;
   }
 
   /* ── Ambient glow ─────────────────────────────────────────────────────────
