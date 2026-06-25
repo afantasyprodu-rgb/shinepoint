@@ -220,7 +220,7 @@ export default function AuthCard({ defaultMode = 'signup', role = 'customer', on
       </div>
 
       {/* Fields */}
-      <form onSubmit={isPhone ? handleSendCode : handleEmail} className="flex flex-col gap-3">
+      <form onSubmit={isPhone ? handleSendCode : handleEmail} className="flex flex-col gap-2.5">
         {isSignup && (
           <div className="auth-field">
             <label className="auth-label">Full name</label>
@@ -272,7 +272,7 @@ export default function AuthCard({ defaultMode = 'signup', role = 'customer', on
 
         {error && <p role="alert" className="auth-error">{error}</p>}
 
-        <button type="submit" disabled={busy} className="auth-btn-primary w-full mt-2">
+        <button type="submit" disabled={busy} className="auth-btn-primary w-full mt-3">
           {busy ? '…' : isPhone ? 'Send code' : isSignup ? 'Create account' : 'Log in'}
         </button>
       </form>

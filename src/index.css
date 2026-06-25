@@ -113,24 +113,25 @@
 
   /* ── Auth card ──────────────────────────────────────────── */
   .auth-card-shell {
-    @apply flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10;
+    @apply flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12;
   }
 
+  /* No uniform gap — each section uses explicit margin for rhythm */
   .auth-card {
-    @apply w-full max-w-sm rounded-3xl bg-white px-8 py-9 shadow-xl shadow-slate-200/60 flex flex-col gap-5;
+    @apply w-full max-w-sm rounded-3xl bg-white px-8 pt-10 pb-8 shadow-xl shadow-slate-200/60 flex flex-col;
   }
 
   .auth-logo-block {
-    @apply flex flex-col items-center gap-1.5;
+    @apply flex flex-col items-center gap-1.5 mb-8;
   }
 
   .auth-tagline {
     @apply text-xs text-slate-400 tracking-wide;
   }
 
-  /* mode toggle — big pill */
+  /* mode toggle — big pill, bottom of primary nav zone */
   .auth-toggle {
-    @apply flex gap-1 rounded-2xl bg-slate-100 p-1;
+    @apply flex gap-1 rounded-2xl bg-slate-100 p-1 mb-2;
   }
 
   .auth-toggle-btn {
@@ -145,9 +146,9 @@
     @apply text-slate-500 hover:text-slate-700;
   }
 
-  /* method tabs — smaller */
+  /* method tabs — smaller, tight below mode toggle */
   .auth-method-tabs {
-    @apply flex gap-1 rounded-xl bg-slate-100 p-1;
+    @apply flex gap-1 rounded-xl bg-slate-100 p-1 mb-5;
   }
 
   .auth-method-tab {
@@ -184,9 +185,9 @@
     @apply inline-flex h-12 cursor-pointer items-center justify-center gap-2.5 rounded-xl border border-slate-200 bg-white px-5 text-sm font-medium text-slate-700 transition-all duration-200 hover:bg-slate-50 hover:border-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
-  /* divider */
+  /* divider — generous breathing room above/below */
   .auth-divider {
-    @apply flex items-center gap-3;
+    @apply flex items-center gap-3 my-5;
   }
 
   .auth-divider-line {
@@ -199,7 +200,7 @@
 
   /* terms */
   .auth-terms {
-    @apply text-center text-xs text-slate-400 leading-relaxed;
+    @apply text-center text-xs text-slate-400 leading-relaxed mt-4;
   }
 
   .auth-error {
