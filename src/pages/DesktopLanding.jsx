@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion, useAnimate, useReducedMotion } from 'motion/react'
 import Logo from '../components/Logo'
-import LoginForm from '../components/LoginForm'
+import AuthCard from '../components/AuthCard'
 import { useAuth, homePathForRole } from '../context/AuthContext'
 import { markArrival } from '../lib/transition'
 import { preloadRoute } from '../lib/preload'
@@ -232,7 +232,7 @@ export default function DesktopLanding() {
         </p>
 
         <div className="mt-7">
-          <LoginForm onAuthenticated={handleAuthed} />
+          <AuthCard defaultMode="login" onAuthenticated={handleAuthed} standalone={false} />
         </div>
 
         <p className="mt-6 text-sm text-slate-600">
