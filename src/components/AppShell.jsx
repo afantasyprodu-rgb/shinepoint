@@ -92,7 +92,6 @@ const NAVS = {
   customer: [
     { to: '/home', label: 'Map' },
     { to: '/bookings', label: 'My Bookings' },
-    { to: '/rewards', label: 'Rewards' },
     { to: '/settings', label: 'Account' },
   ],
   detailer: [

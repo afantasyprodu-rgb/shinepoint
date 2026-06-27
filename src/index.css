@@ -304,3 +304,29 @@
       0 0 40px -8px rgba(167, 139, 250, 0.45);
   }
 }
+
+/* ── Invoice print ──────────────────────────────────────────────────────────
+   The printable invoice lives in the DOM (id="invoice-print") but is hidden on
+   screen via the .invoice-print-host class. When printing, hide everything else
+   and reveal only the invoice so "Save as PDF" produces a clean document. */
+.invoice-print-host {
+  display: none;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #invoice-print,
+  #invoice-print * {
+    visibility: visible;
+  }
+  .invoice-print-host {
+    display: block;
+  }
+  #invoice-print {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+  }
+}

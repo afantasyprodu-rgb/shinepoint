@@ -4,9 +4,20 @@ import { AnimatePresence, motion } from 'motion/react'
 import AppShell from '../components/AppShell'
 import ChatThread from '../components/ChatThread'
 import PhotoGrid from '../components/PhotoGrid'
+import Drawer from '../components/ui/Drawer'
+import InvoiceBuilder from '../components/InvoiceBuilder'
+import DamageInspection from '../components/DamageInspection'
+import PhotoCapture from '../components/PhotoCapture'
 import { AnimatedPage } from '../components/ui/Motion'
 import { StatusPill, StarInput } from '../components/ui/bits'
-import { CheckIcon, ChevronLeftIcon, CameraIcon, MapPinIcon } from '../components/icons'
+import {
+  CheckIcon,
+  ChevronLeftIcon,
+  CameraIcon,
+  MapPinIcon,
+  MenuIcon,
+  NavigationIcon,
+} from '../components/icons'
 import { useStore } from '../context/StoreContext'
 
 // Blueprint 5.3–5.5 — the detailer's gated job flow:
@@ -14,9 +25,12 @@ import { useStore } from '../context/StoreContext'
 // in progress → after photos → complete. Photos are mandatory gates.
 export default function DetailerJob() {
   const { id } = useParams()
-  const { getBooking, patchBooking, rateCustomer } = useStore()
+  const { getBooking, getDetailer, patchBooking, rateCustomer } = useStore()
   const [custRating, setCustRating] = useState(0)
   const [hardToHandle, setHardToHandle] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [showInvoice, setShowInvoice] = useState(false)
+  const [showPayout, setShowPayout] = useState(false)
   const b = getBooking(id)
 
   if (!b) {
@@ -78,8 +92,6 @@ export default function DetailerJob() {
       desc: 'Front, rear, both sides, interior — all five required to unlock the job.',
       done: b.beforePhotos >= 5,
       ready: b.status === 'arrived' && damageDone && b.beforePhotos < 5,
-      action: () => patchBooking(b.id, { beforePhotos: 5 }),
-      cta: 'Capture 5 before photos',
     },
     {
       key: 'start',
@@ -98,8 +110,6 @@ export default function DetailerJob() {
       desc: 'Same five angles. No photos, no payout.',
       done: b.afterPhotos >= 5,
       ready: b.status === 'in_progress' && b.afterPhotos < 5,
-      action: () => patchBooking(b.id, { afterPhotos: 5 }),
-      cta: 'Capture 5 after photos',
     },
     {
       key: 'complete',
@@ -107,7 +117,7 @@ export default function DetailerJob() {
       desc: 'Customer gets the photos, tip prompt, and review request. Payout initiates.',
       done: b.status === 'complete',
       ready: b.status === 'in_progress' && b.afterPhotos >= 5,
-      action: () => patchBooking(b.id, { status: 'complete' }),
+      action: () => { patchBooking(b.id, { status: 'complete' }); setShowPayout(true) },
       cta: 'Mark job complete',
     },
   ]
@@ -132,11 +142,20 @@ export default function DetailerJob() {
                 <MapPinIcon className="h-4 w-4" /> {b.address}
               </p>
             </div>
-            <div className="text-right">
-              <StatusPill status={b.status} />
-              <p className="mt-1 font-display text-lg font-bold text-cta-700">
-                +${(b.price * 0.85 + (b.tip ?? 0)).toFixed(0)}
-              </p>
+            <div className="flex items-start gap-2">
+              <div className="text-right">
+                <StatusPill status={b.status} />
+                <p className="mt-1 font-display text-lg font-bold text-cta-700">
+                  +${(b.price * 0.85 + (b.tip ?? 0)).toFixed(0)}
+                </p>
+              </div>
+              <button
+                onClick={() => setMenuOpen(true)}
+                aria-label="Open job menu"
+                className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-brand-100 text-slate-600 transition-colors duration-200 hover:bg-brand-50 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+              >
+                <MenuIcon className="h-5 w-5" />
+              </button>
             </div>
           </div>
         </div>
@@ -184,12 +203,79 @@ export default function DetailerJob() {
                   <div className="flex-1">
                     <h2 className="font-display font-semibold text-slate-900">{g.title}</h2>
                     <p className="mt-0.5 text-sm text-slate-600">{g.desc}</p>
-                    {g.ready && (
+                    {g.ready && g.key === 'damage' ? (
+                      <DamageInspection
+                        booking={b}
+                        onSubmit={(items) =>
+                          patchBooking(b.id, {
+                            damageReport: { submitted: true, acknowledged: false, items },
+                          })
+                        }
+                        onNoDamage={() =>
+                          patchBooking(b.id, {
+                            damageReport: { submitted: true, acknowledged: true, items: [] },
+                          })
+                        }
+                      />
+                    ) : g.ready && (g.key === 'before' || g.key === 'after') ? (
+                      <PhotoCapture
+                        label={g.key}
+                        onSubmit={(photos) =>
+                          patchBooking(b.id, {
+                            [g.key === 'before' ? 'beforePhotos' : 'afterPhotos']: 5,
+                            [g.key === 'before' ? 'beforePhotoData' : 'afterPhotoData']: photos,
+                          })
+                        }
+                      />
+                    ) : g.ready && g.key === 'en_route' ? (
+                      <div className="mt-3 rounded-2xl border border-brand-100 bg-brand-50/60 p-4">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-brand-700">Heading to</p>
+                        <p className="mt-1 font-display text-base font-bold text-slate-900">{b.address}</p>
+                        <div className="mt-3 flex gap-2">
+                          <button
+                            onClick={g.action}
+                            className="btn btn-brand h-10 flex-1 text-sm"
+                          >
+                            <NavigationIcon className="h-4 w-4" /> I'm on my way
+                          </button>
+                        </div>
+                      </div>
+                    ) : g.ready && g.key === 'arrived' ? (
+                      <div className="mt-3 rounded-2xl border border-cta-200 bg-cta-50/60 p-4">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-cta-700">Full address</p>
+                        <p className="mt-1 font-display text-base font-bold text-slate-900">812 Lakeview Ter, Echo Park</p>
+                        <p className="mt-0.5 text-xs text-slate-500">Confirm you're at the right vehicle before proceeding.</p>
+                        <button
+                          onClick={g.action}
+                          className="btn btn-cta mt-3 h-10 w-full text-sm"
+                        >
+                          <CheckIcon className="h-4 w-4" /> I've arrived — correct vehicle
+                        </button>
+                      </div>
+                    ) : g.ready && g.key === 'start' ? (
+                      <div className="mt-3 rounded-2xl border border-brand-200 bg-white p-4">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-slate-500">Service</span>
+                          <span className="font-semibold text-slate-900">{b.service}</span>
+                        </div>
+                        <div className="mt-2 flex items-center justify-between text-sm">
+                          <span className="text-slate-500">Vehicle</span>
+                          <span className="font-semibold text-slate-900">{b.vehicleType ?? 'SUV'}</span>
+                        </div>
+                        <div className="mt-2 flex items-center justify-between text-sm">
+                          <span className="text-slate-500">Your take</span>
+                          <span className="font-semibold text-cta-700">+${(b.price * 0.85).toFixed(0)}</span>
+                        </div>
+                        <button
+                          onClick={g.action}
+                          className="btn btn-brand mt-4 h-10 w-full text-sm"
+                        >
+                          {g.cta}
+                        </button>
+                      </div>
+                    ) : g.ready ? (
                       <div className="mt-3 flex flex-wrap gap-2">
                         <button onClick={g.action} className="btn btn-brand h-10 text-sm">
-                          {g.key.includes('photo') || g.key === 'before' || g.key === 'after' ? (
-                            <CameraIcon className="h-4 w-4" />
-                          ) : null}
                           {g.cta}
                         </button>
                         {g.secondary && (
@@ -198,7 +284,7 @@ export default function DetailerJob() {
                           </button>
                         )}
                       </div>
-                    )}
+                    ) : null}
                   </div>
                 </div>
               </motion.li>
@@ -209,11 +295,11 @@ export default function DetailerJob() {
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <div className="card !p-5">
             <h2 className="mb-3 font-display text-sm font-semibold text-slate-900">Before</h2>
-            <PhotoGrid count={b.beforePhotos} label="before" />
+            <PhotoGrid count={b.beforePhotos} photos={b.beforePhotoData} label="before" />
           </div>
           <div className="card !p-5">
             <h2 className="mb-3 font-display text-sm font-semibold text-slate-900">After</h2>
-            <PhotoGrid count={b.afterPhotos} label="after" />
+            <PhotoGrid count={b.afterPhotos} photos={b.afterPhotoData} label="after" />
           </div>
         </div>
 
@@ -272,6 +358,108 @@ export default function DetailerJob() {
           <ChatThread bookingId={b.id} me="detailer" />
         </div>
       </AnimatedPage>
+
+      <Drawer open={menuOpen} onClose={() => setMenuOpen(false)} title="More">
+        {!showInvoice ? (
+          <ul className="space-y-2">
+            <li>
+              <button
+                onClick={() => setShowInvoice(true)}
+                className="card card-hover flex w-full items-center justify-between !p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+              >
+                <div>
+                  <p className="font-semibold text-slate-900">
+                    {b.invoice ? 'Edit invoice' : 'Create invoice'}
+                  </p>
+                  <p className="text-sm text-slate-500">
+                    Itemize the service and share a full breakdown with {b.customerName}.
+                  </p>
+                </div>
+                <span className="text-sm font-semibold text-brand-600">Open →</span>
+              </button>
+            </li>
+          </ul>
+        ) : (
+          <div>
+            <button
+              onClick={() => setShowInvoice(false)}
+              className="mb-4 inline-flex items-center gap-1 rounded text-sm font-medium text-slate-600 transition-colors duration-200 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+            >
+              <ChevronLeftIcon className="h-4 w-4" /> More
+            </button>
+            <InvoiceBuilder booking={b} detailer={getDetailer(b.detailerId)} />
+          </div>
+        )}
+      </Drawer>
+
+      {/* Payout celebration overlay */}
+      <AnimatePresence>
+        {showPayout && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-black/80 px-8"
+            onClick={() => setShowPayout(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 260, damping: 18, delay: 0.1 }}
+              onClick={(e) => e.stopPropagation()}
+              className="flex w-full max-w-xs flex-col items-center rounded-3xl bg-white px-8 py-10 text-center shadow-2xl"
+            >
+              <motion.div
+                animate={{ rotate: [0, -8, 8, -5, 5, 0], scale: [1, 1.15, 1.1, 1.15, 1] }}
+                transition={{ duration: 0.7, delay: 0.3 }}
+                className="text-6xl leading-none select-none"
+              >
+                💰
+              </motion.div>
+
+              <motion.h2
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="mt-4 font-display text-2xl font-bold text-slate-900"
+              >
+                Job complete!
+              </motion.h2>
+
+              <motion.p
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                className="mt-1 text-3xl font-bold text-cta-700"
+              >
+                +${(b.price * 0.85).toFixed(0)}
+                {b.tip ? <span className="text-xl"> + ${b.tip} tip</span> : null}
+              </motion.p>
+
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.65 }}
+                className="mt-2 text-sm text-slate-500"
+              >
+                Payout initiated — funds arrive within 24 hrs.
+              </motion.p>
+
+              <motion.button
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.75 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={() => setShowPayout(false)}
+                className="btn btn-brand mt-6 h-11 w-full text-sm"
+              >
+                Done 🙌
+              </motion.button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </AppShell>
   )
 }

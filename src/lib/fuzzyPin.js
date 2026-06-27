@@ -20,13 +20,8 @@ export const LA_ZIP_CENTROIDS = {
 
 const EARTH_RADIUS_MI = 3958.8
 
-// Straight-line miles between two zip centroids (haversine), or null if
-// either zip isn't in the table. Used for a real-distance mileage estimate —
-// not a fake/random number — on the detailer earnings page (tax mileage log).
-export function milesBetweenZips(zipA, zipB) {
-  const a = LA_ZIP_CENTROIDS[zipA]
-  const b = LA_ZIP_CENTROIDS[zipB]
-  if (!a || !b) return null
+// Straight-line miles between two { lat, lng } points (haversine).
+export function milesBetween(a, b) {
   const toRad = (d) => (d * Math.PI) / 180
   const dLat = toRad(b.lat - a.lat)
   const dLng = toRad(b.lng - a.lng)
@@ -35,6 +30,16 @@ export function milesBetweenZips(zipA, zipB) {
   const h =
     sinDLat * sinDLat + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * sinDLng * sinDLng
   return EARTH_RADIUS_MI * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h))
+}
+
+// Straight-line miles between two zip centroids, or null if either zip isn't
+// in the table. Used for a real-distance mileage estimate — not a fake/random
+// number — on the detailer earnings page (tax mileage log).
+export function milesBetweenZips(zipA, zipB) {
+  const a = LA_ZIP_CENTROIDS[zipA]
+  const b = LA_ZIP_CENTROIDS[zipB]
+  if (!a || !b) return null
+  return milesBetween(a, b)
 }
 
 function hashString(str) {

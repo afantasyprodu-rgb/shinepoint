@@ -338,26 +338,50 @@ export function StoreProvider({ children }) {
         if (isDemo) {
           notify('detailer', 'New review', `${rating} stars from ${demoCustomer.name}`)
           setDemoCustomer((c) => {
-            const points = c.points + 1
-            const earned = points >= c.pointsToNextReward
+            const newPoints = c.points + 1
+            const MILESTONES = [
+              { at: 5,  reward: 'Free exterior wash',              tier: 'bronze' },
+              { at: 15, reward: 'Free exterior + interior detail', tier: 'silver' },
+              { at: 25, reward: 'Free full detail + priority booking', tier: 'gold' },
+            ]
+            const unlocked = c.unlockedMilestones ?? []
+            const newlyUnlocked = MILESTONES.filter(
+              (m) => newPoints >= m.at && !unlocked.includes(m.at)
+            )
+            const newRewards = newlyUnlocked.map((m) => ({
+              id: `rw-${idCounter++}`,
+              type: m.reward,
+              tier: m.tier,
+              expiresDays: 90,
+            }))
+            if (newlyUnlocked.length) {
+              notify('customer', '🎉 Reward unlocked!', newlyUnlocked[0].reward)
+            }
             return {
               ...c,
-              points: earned ? 0 : points,
-              rewards: earned
-                ? [...c.rewards, { id: `rw-${idCounter++}`, type: 'Free exterior wash', expiresDays: 90 }]
-                : c.rewards,
+              points: newPoints,
+              pointsToNextReward: MILESTONES.find((m) => newPoints < m.at)?.at ?? MILESTONES.at(-1).at,
+              unlockedMilestones: [...unlocked, ...newlyUnlocked.map((m) => m.at)],
+              rewards: [...c.rewards, ...newRewards],
             }
           })
         }
       },
 
       resolveDispute(id, resolution) {
+        const dispute = demoAdmin.disputes.find((d) => d.id === id)
         setDemoAdmin((a) => ({
           ...a,
           disputes: a.disputes.map((d) =>
             d.id === id ? { ...d, status: 'resolved', resolution } : d
           ),
         }))
+        // Settle the linked booking (if it's a live one) so it leaves the
+        // 'disputed' state and the customer sees the recorded outcome.
+        if (dispute && bookings.some((b) => b.id === dispute.bookingId)) {
+          patchBooking(dispute.bookingId, { status: 'complete', disputeResolution: resolution })
+          notify('customer', 'Dispute resolved', 'An admin has settled your case — see the booking.')
+        }
       },
 
       decideApplication(id, decision) {
@@ -372,7 +396,25 @@ export function StoreProvider({ children }) {
         setDemoAdmin((a) => ({ ...a, flagged: a.flagged.filter((f) => f.id !== id) }))
       },
 
-      approveOverride(id) {
+      // Admin decides a stalled damage-report override. 'approve' unlocks the
+      // detailer's job (acknowledges the report); 'cancel' cancels the booking.
+      // Either way the booking reflects the admin's decision on every side.
+      approveOverride(id, decision = 'approve') {
+        const ovr = demoAdmin.overrides.find((o) => o.id === id)
+        if (ovr) {
+          const booking = bookings.find((b) => b.id === ovr.bookingId)
+          if (decision === 'cancel') {
+            patchBooking(ovr.bookingId, { status: 'cancelled', cancelledBy: 'admin' })
+          } else {
+            patchBooking(ovr.bookingId, {
+              damageReport: {
+                ...(booking?.damageReport ?? { submitted: true, items: [] }),
+                acknowledged: true,
+                overriddenByAdmin: true,
+              },
+            })
+          }
+        }
         setDemoAdmin((a) => ({ ...a, overrides: a.overrides.filter((o) => o.id !== id) }))
       },
     }

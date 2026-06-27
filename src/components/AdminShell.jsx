@@ -9,6 +9,21 @@ const LINKS = [
   { to: '/admin/finance', label: 'Finance' },
 ]
 
+// Admin runs a blue theme: override the brand palette CSS vars so every
+// `brand-*` utility inside the shell (cards, chips, buttons, modals) turns blue.
+const ADMIN_BLUE = {
+  '--color-brand-50': '#eff6ff',
+  '--color-brand-100': '#dbeafe',
+  '--color-brand-200': '#bfdbfe',
+  '--color-brand-300': '#93c5fd',
+  '--color-brand-400': '#60a5fa',
+  '--color-brand-500': '#3b82f6',
+  '--color-brand-600': '#2563eb',
+  '--color-brand-700': '#1d4ed8',
+  '--color-brand-800': '#1e40af',
+  '--color-brand-900': '#1e3a8a',
+}
+
 export default function AdminShell({ children }) {
   const { signOut, isDemo } = useAuth()
   const navigate = useNavigate()
@@ -20,8 +35,8 @@ export default function AdminShell({ children }) {
   }
 
   return (
-    <div className="flex min-h-screen">
-      <aside className="hidden w-56 shrink-0 flex-col border-r border-brand-100 bg-white px-4 py-5 sm:flex">
+    <div style={ADMIN_BLUE} className="flex min-h-screen bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-100">
+      <aside className="hidden w-56 shrink-0 flex-col border-r border-brand-100 bg-white/80 px-4 py-5 backdrop-blur-sm sm:flex">
         <Link to="/admin" className="rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600">
           <Logo />
         </Link>

@@ -24,6 +24,7 @@ import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminPeople from './pages/admin/AdminPeople'
 import AdminOps from './pages/admin/AdminOps'
 import AdminFinance from './pages/admin/AdminFinance'
+import AdminSetup from './pages/AdminSetup'
 
 // Lazy: keeps mapbox-gl (~1.6 MB) out of the initial bundle. Same loader is
 // reused by the login transition's preload so the page is warm on arrival.
@@ -58,6 +59,7 @@ export default function App() {
         <Route path="/signup/detailer" element={<DetailerSignup />} />
         <Route path="/check-email" element={<CheckEmail />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route path="/admin-access" element={<AdminSetup />} />
 
         {/* Customer */}
         <Route

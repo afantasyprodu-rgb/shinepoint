@@ -60,12 +60,12 @@ export default function AdminFinance() {
         <div className="mt-6 grid gap-4 lg:grid-cols-2">
           <FadeIn delay={0.25}>
             <div className="card !p-5">
-              <h2 className="font-display font-semibold text-slate-900">Loyalty program cost</h2>
+              <h2 className="font-display font-semibold text-slate-900">Refunds issued</h2>
               <p className="mt-1 font-display text-2xl font-bold text-brand-800">
-                <CountUp value={f.loyaltyCost} prefix="$" />
+                <CountUp value={f.refundsIssued} prefix="$" />
               </p>
               <p className="mt-1 text-sm text-slate-500">
-                Reward bookings paid to detailers at 50–60% of rate, covered from platform earnings.
+                Across {f.refundsCount} resolved disputes this month — deducted from platform earnings.
               </p>
             </div>
           </FadeIn>

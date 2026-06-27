@@ -1,0 +1,61 @@
+import { useEffect, useRef } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
+import { XIcon } from '../icons'
+
+// Slide-out side menu. Mirrors Modal.jsx (backdrop, ESC + click-out close, focus
+// trap entry), but the panel anchors to the right edge and slides in horizontally.
+// Holds secondary actions so the main page stays uncluttered on mobile.
+export default function Drawer({ open, onClose, title, children }) {
+  const panelRef = useRef(null)
+
+  useEffect(() => {
+    if (!open) return
+    panelRef.current?.focus()
+    function onKey(e) {
+      if (e.key === 'Escape') onClose?.()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open, onClose])
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          className="fixed inset-0 z-50 bg-brand-900/50 backdrop-blur-sm"
+          onClick={onClose}
+        >
+          <motion.div
+            ref={panelRef}
+            tabIndex={-1}
+            role="dialog"
+            aria-modal="true"
+            aria-label={title}
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'spring', stiffness: 320, damping: 34 }}
+            className="absolute inset-y-0 right-0 flex w-full max-w-sm flex-col border-l border-brand-100 bg-white shadow-2xl focus-visible:outline-none"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-brand-100 bg-white/95 px-5 py-4 backdrop-blur">
+              <h2 className="font-display text-lg font-bold text-slate-900">{title}</h2>
+              <button
+                onClick={onClose}
+                aria-label="Close menu"
+                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-slate-500 transition-colors duration-200 hover:bg-brand-100 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+              >
+                <XIcon className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-5 py-5">{children}</div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
+}
