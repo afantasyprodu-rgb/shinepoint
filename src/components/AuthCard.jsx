@@ -59,6 +59,7 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
   const navigate = useNavigate()
 
   const [mode, setMode] = useState(defaultMode)  // 'signup' | 'login'
+  const [modeDir, setModeDir] = useState(1)       // 1 = forward (signup), -1 = back (login)
   const [view, setView] = useState('methods')     // 'methods' | 'email' | 'phone' | 'otp'
 
   const [fullName, setFullName] = useState('')
@@ -74,7 +75,7 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
-  function switchMode(m) { setMode(m); setError('') }
+  function switchMode(m) { setModeDir(m === 'signup' ? 1 : -1); setMode(m); setError('') }
   function goBack() { setView('methods'); setError('') }
 
   function buildE164() {
@@ -177,11 +178,17 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
       {/* ── Methods ──────────────────────────────────────── */}
       {view === 'methods' && (
         <motion.div
-          key="methods"
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.20, ease: EASE }}
+          key={`methods-${mode}`}
+          custom={modeDir}
+          variants={{
+            enter: (d) => ({ opacity: 0, x: d * 28, filter: 'blur(3px)' }),
+            center: { opacity: 1, x: 0, filter: 'blur(0px)' },
+            exit: (d) => ({ opacity: 0, x: d * -28, filter: 'blur(3px)' }),
+          }}
+          initial="enter"
+          animate="center"
+          exit="exit"
+          transition={{ duration: 0.22, ease: EASE }}
         >
           <h2 className="font-display text-xl font-bold text-slate-900 mb-1">
             {isSignup ? 'Create your account' : 'Welcome back'}
