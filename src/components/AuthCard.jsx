@@ -190,10 +190,10 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
           exit="exit"
           transition={{ duration: 0.22, ease: EASE }}
         >
-          <h2 className="font-display text-xl font-bold text-slate-900 mb-1">
+          <h2 className="font-display text-xl font-bold text-white mb-1">
             {isSignup ? 'Create your account' : 'Welcome back'}
           </h2>
-          <p className="text-sm text-slate-400 mb-6">
+          <p className="text-sm text-white/60 mb-6">
             {isSignup ? "Join ShinePoint — LA's detailing marketplace." : 'Sign in to continue.'}
           </p>
 
@@ -223,18 +223,18 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
 
           {error && <p role="alert" className="auth-error mt-3">{error}</p>}
 
-          <p className="mt-7 text-center text-sm text-slate-400">
+          <p className="mt-7 text-center text-sm text-white/60">
             {isSignup ? (
               <>Already have an account?{' '}
                 <button type="button" onClick={() => switchMode('login')}
-                  className="font-semibold text-brand-600 hover:text-brand-700 transition-colors">
+                  className="font-semibold text-white transition-colors hover:text-white/80">
                   Log in
                 </button>
               </>
             ) : (
               <>New here?{' '}
                 <button type="button" onClick={() => switchMode('signup')}
-                  className="font-semibold text-brand-600 hover:text-brand-700 transition-colors">
+                  className="font-semibold text-white transition-colors hover:text-white/80">
                   Create an account
                 </button>
               </>
@@ -243,9 +243,9 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
 
           <p className="auth-terms mt-3">
             By continuing you agree to our{' '}
-            <Link to="/terms" className="underline underline-offset-2 hover:text-slate-700">Terms</Link>
+            <Link to="/terms" className="underline underline-offset-2 hover:text-white">Terms</Link>
             {' & '}
-            <Link to="/privacy" className="underline underline-offset-2 hover:text-slate-700">Privacy Policy</Link>
+            <Link to="/privacy" className="underline underline-offset-2 hover:text-white">Privacy Policy</Link>
           </p>
         </motion.div>
       )}
@@ -358,7 +358,7 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
                     placeholder="310 555 0123" className="auth-input flex-1 min-w-0"
                     autoFocus={!isSignup} />
                 </div>
-                <p className="mt-1 text-xs text-slate-400">
+                <p className="mt-1 text-xs text-white/50">
                   {COUNTRIES[countryIdx].flag} {COUNTRIES[countryIdx].name}
                 </p>
               </div>
@@ -388,8 +388,8 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
         >
           <form onSubmit={handleVerifyCode} className="flex flex-col gap-3">
             <Field index={0}>
-              <p className="pb-1 text-sm text-slate-500">
-                Code sent to <span className="font-semibold text-slate-900">{fullPhone}</span>
+              <p className="pb-1 text-sm text-white/70">
+                Code sent to <span className="font-semibold text-white">{fullPhone}</span>
               </p>
             </Field>
 
@@ -415,7 +415,7 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
 
           <button type="button"
             onClick={() => { setView('phone'); setOtpCode(''); setError('') }}
-            className="mt-3 w-full py-1 text-center text-sm text-slate-400 hover:text-slate-600 transition-colors">
+            className="mt-3 w-full py-1 text-center text-sm text-white/50 hover:text-white transition-colors">
             Use a different number
           </button>
         </motion.div>
@@ -431,8 +431,8 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
       <div className="auth-card">
         <div className="auth-logo-block">
           <div className="relative">
-            <div className="absolute inset-0 -z-10 scale-[2] rounded-full bg-brand-200 opacity-40 blur-xl" />
-            <Logo />
+            <div className="absolute inset-0 -z-10 scale-[2] rounded-full bg-white/15 blur-xl" />
+            <Logo tone="light" />
           </div>
           <p className="auth-tagline">LA's mobile detailing marketplace</p>
         </div>
@@ -448,7 +448,7 @@ function MethodButton({ icon, onClick, disabled, children }) {
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="flex h-12 w-full cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition-all duration-150 hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+      className="flex h-12 w-full cursor-pointer items-center gap-3 rounded-xl border border-white/20 bg-white/12 px-4 text-sm font-medium text-white backdrop-blur-sm transition-all duration-150 hover:border-white/35 hover:bg-white/20 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
     >
       <span className="shrink-0">{icon}</span>
       {children}
@@ -461,7 +461,7 @@ function BackButton({ onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className="mb-4 flex items-center gap-1 text-sm text-slate-400 hover:text-slate-700 transition-colors"
+      className="mb-4 flex items-center gap-1 text-sm text-white/60 hover:text-white transition-colors"
     >
       <ChevronLeftIcon className="h-4 w-4" />
       Back

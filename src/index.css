@@ -117,12 +117,9 @@
     @apply flex min-h-screen items-center justify-center px-4 py-12;
   }
 
-  /* No uniform gap — each section uses explicit margin for rhythm */
+  /* No card bg — content floats directly on the gradient shell */
   .auth-card {
-    background: linear-gradient(180deg, #faf5ff 0%, #ffffff 28%);
-    border: 1px solid #e9d5ff;
-    box-shadow: 0 24px 64px -12px rgba(76, 29, 149, 0.35), 0 4px 16px -4px rgba(109, 40, 217, 0.15);
-    @apply w-full max-w-sm rounded-3xl px-8 pt-10 pb-8 flex flex-col;
+    @apply w-full max-w-sm px-6 pt-10 pb-8 flex flex-col;
   }
 
   .auth-logo-block {
@@ -130,7 +127,7 @@
   }
 
   .auth-tagline {
-    @apply text-xs text-brand-400 tracking-wide;
+    @apply text-xs text-white/60 tracking-wide;
   }
 
   /* mode toggle — big pill, bottom of primary nav zone */
@@ -169,20 +166,20 @@
   }
 
   .auth-label {
-    @apply mb-1.5 text-xs font-medium text-slate-500;
+    @apply mb-1.5 text-xs font-medium text-white/70;
   }
 
   .auth-input {
-    @apply h-11 rounded-xl border-0 bg-slate-100 px-3.5 text-sm text-slate-900 placeholder-slate-400 ring-0 transition-all duration-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:ring-offset-0;
+    @apply h-11 w-full rounded-xl border border-white/20 bg-white/15 px-3.5 text-sm text-white placeholder-white/40 ring-0 transition-all duration-200 focus:bg-white/25 focus:border-white/40 focus:outline-none focus:ring-2 focus:ring-white/20 focus:ring-offset-0;
   }
 
   .auth-select {
-    @apply w-auto shrink-0 cursor-pointer;
+    @apply w-auto shrink-0 cursor-pointer bg-white/15 border border-white/20 text-white rounded-xl;
   }
 
   /* buttons */
   .auth-btn-primary {
-    @apply inline-flex h-12 cursor-pointer items-center justify-center gap-2 rounded-xl bg-brand-600 px-5 text-sm font-semibold text-white transition-all duration-200 hover:bg-brand-700 hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none;
+    @apply inline-flex h-12 cursor-pointer items-center justify-center gap-2 rounded-xl bg-white px-5 text-sm font-semibold text-brand-700 transition-all duration-200 hover:bg-brand-50 hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none;
   }
 
   .auth-btn-outline {
@@ -195,20 +192,20 @@
   }
 
   .auth-divider-line {
-    @apply flex-1 h-px bg-slate-100;
+    @apply flex-1 h-px bg-white/20;
   }
 
   .auth-divider-text {
-    @apply text-xs text-slate-400;
+    @apply text-xs text-white/50;
   }
 
   /* terms */
   .auth-terms {
-    @apply text-center text-xs text-slate-400 leading-relaxed mt-4;
+    @apply text-center text-xs text-white/50 leading-relaxed mt-4;
   }
 
   .auth-error {
-    @apply rounded-xl bg-red-50 px-4 py-2.5 text-xs text-red-600;
+    @apply rounded-xl border border-red-400/30 bg-red-500/20 px-4 py-2.5 text-xs text-red-200;
   }
 }
 

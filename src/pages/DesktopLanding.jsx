@@ -221,13 +221,14 @@ export default function DesktopLanding() {
         initial={reduce ? false : { opacity: 0, x: -24 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.5, ease: EASE_OUT_EXPO }}
-        className="relative z-10 flex h-screen w-full max-w-[460px] flex-col justify-center overflow-y-auto border-r border-slate-200 bg-white px-12 py-10 shadow-2xl will-change-transform"
+        style={{ background: 'linear-gradient(160deg in oklch, #3b0764 0%, #6d28d9 55%, #7c3aed 100%)' }}
+        className="relative z-10 flex h-screen w-full max-w-[460px] flex-col justify-center overflow-y-auto border-r border-white/10 px-12 py-10 shadow-2xl will-change-transform"
       >
-        <Logo />
-        <h1 className="mt-10 font-display text-3xl font-bold leading-tight text-slate-900">
+        <Logo tone="light" />
+        <h1 className="mt-10 font-display text-3xl font-bold leading-tight text-white">
           Your car, detailed at your door
         </h1>
-        <p className="mt-2.5 text-sm text-slate-500">
+        <p className="mt-2.5 text-sm text-white/60">
           Log in to book LA&apos;s vetted mobile detailers.
         </p>
 
@@ -238,14 +239,14 @@ export default function DesktopLanding() {
         <div className="mt-8 flex items-center gap-4 text-sm">
           <button
             onClick={startDemo}
-            className="cursor-pointer rounded font-medium text-slate-500 underline-offset-4 transition-colors duration-200 hover:text-brand-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+            className="cursor-pointer rounded font-medium text-white/60 underline-offset-4 transition-colors duration-200 hover:text-white hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
           >
             Explore the demo
           </button>
-          <span className="text-slate-300">·</span>
+          <span className="text-white/30">·</span>
           <Link
             to="/signup/detailer"
-            className="rounded font-medium text-slate-500 underline-offset-4 transition-colors duration-200 hover:text-brand-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+            className="rounded font-medium text-white/60 underline-offset-4 transition-colors duration-200 hover:text-white hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
           >
             Join as a detailer
           </Link>
