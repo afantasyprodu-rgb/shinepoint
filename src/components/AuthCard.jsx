@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { motion, AnimatePresence } from 'motion/react'
 import { supabase } from '../lib/supabase'
 import { homePathForRole } from '../context/AuthContext'
 import Logo from './Logo'
-import { GoogleIcon } from './icons'
-import { isNative, OAUTH_REDIRECT } from '../lib/native'
+import { GoogleIcon, MailIcon, PhoneIcon, ChevronLeftIcon } from './icons'
 
 const COUNTRIES = [
   { code: '+1',   flag: '🇺🇸', name: 'United States' },
@@ -35,16 +35,31 @@ const COUNTRIES = [
   { code: '+61',  flag: '🇦🇺', name: 'Australia' },
 ]
 
-// Unified auth card — handles signup + login, email + phone.
+// ease-out-expo — decisive and quick
+const EASE = [0.16, 1, 0.3, 1]
+
+// Each form field slides in from behind, staggered.
+function Field({ index, children }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -14, filter: 'blur(4px)' }}
+      animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+      transition={{ delay: index * 0.045, duration: 0.30, ease: EASE }}
+    >
+      {children}
+    </motion.div>
+  )
+}
+
+// Unified auth card — button-first: user picks a method, then form reveals.
 // standalone=true (default): renders as a full centered page with logo.
 // standalone=false: renders just the form content (for embedding in DesktopLanding).
 // onAuthenticated: optional callback, parent handles nav (desktop fly-through).
-export default function AuthCard({ defaultMode = 'signup', role = 'customer', onAuthenticated, standalone = true }) {
+export default function AuthCard({ defaultMode = 'login', role = 'customer', onAuthenticated, standalone = true }) {
   const navigate = useNavigate()
 
-  const [mode, setMode] = useState(defaultMode)
-  const [method, setMethod] = useState('email')
-  const [phoneStep, setPhoneStep] = useState('phone')
+  const [mode, setMode] = useState(defaultMode)  // 'signup' | 'login'
+  const [view, setView] = useState('methods')     // 'methods' | 'email' | 'phone' | 'otp'
 
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
@@ -59,9 +74,8 @@ export default function AuthCard({ defaultMode = 'signup', role = 'customer', on
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
-  function reset() { setError(''); setPhoneStep('phone'); setOtpCode('') }
-  function switchMode(m) { setMode(m); reset() }
-  function switchMethod(m) { setMethod(m); reset() }
+  function switchMode(m) { setMode(m); setError('') }
+  function goBack() { setView('methods'); setError('') }
 
   function buildE164() {
     const c = COUNTRIES[countryIdx]
@@ -121,7 +135,7 @@ export default function AuthCard({ defaultMode = 'signup', role = 'customer', on
       )
       return
     }
-    setPhoneStep('code')
+    setView('otp')
   }
 
   async function handleVerifyCode(e) {
@@ -148,167 +162,262 @@ export default function AuthCard({ defaultMode = 'signup', role = 'customer', on
     setBusy(true)
     if (role === 'detailer') localStorage.setItem('pendingRole', 'detailer')
     else localStorage.removeItem('pendingRole')
-    const { data, error: err } = await supabase.auth.signInWithOAuth({
+    const { error: err } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: {
-        redirectTo: OAUTH_REDIRECT,
-        // On native we open the returned URL ourselves so the deep link can
-        // bring the user back into the app; on web, let Supabase redirect.
-        skipBrowserRedirect: isNative,
-      },
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
     })
-    if (err) { setBusy(false); setError(err.message); return }
-    if (isNative && data?.url) {
-      const { Browser } = await import('@capacitor/browser')
-      await Browser.open({ url: data.url })
-    }
+    if (err) { setBusy(false); setError(err.message) }
   }
 
   const isSignup = mode === 'signup'
-  const isPhone = method === 'phone'
 
-  // OTP code verification step
-  if (isPhone && phoneStep === 'code') {
-    const inner = (
-      <form onSubmit={handleVerifyCode} className="flex flex-col gap-4">
-        <p className="text-center text-sm text-slate-600">
-          Code sent to <span className="font-semibold text-slate-900">{fullPhone}</span>
-        </p>
-        <div className="auth-field">
-          <label className="auth-label">Verification code</label>
-          <input
-            type="text" inputMode="numeric" autoComplete="one-time-code" required
-            value={otpCode} onChange={(e) => setOtpCode(e.target.value)}
-            placeholder="123456" className="auth-input"
-          />
-        </div>
-        {error && <p role="alert" className="auth-error">{error}</p>}
-        <button type="submit" disabled={busy} className="auth-btn-primary w-full">
-          {busy ? 'Verifying…' : 'Verify & continue'}
-        </button>
-        <button type="button" onClick={() => { setPhoneStep('phone'); setOtpCode(''); setError('') }}
-          className="w-full text-center text-sm text-slate-400 hover:text-slate-600 transition-colors">
-          Use a different number
-        </button>
-      </form>
-    )
-    if (!standalone) return inner
-    return (
-      <div className="auth-card-shell">
-        <div className="auth-card">
-          <div className="auth-logo-block"><Logo /><p className="auth-tagline">LA's mobile detailing marketplace</p></div>
-          {inner}
-        </div>
-      </div>
-    )
-  }
+  const content = (
+    <AnimatePresence mode="wait">
 
-  const formContent = (
-    <>
-      {/* Google — top */}
-      <button type="button" onClick={handleGoogle} disabled={busy} className="auth-btn-outline w-full">
-        <GoogleIcon className="h-5 w-5 shrink-0" />
-        Continue with Google
-      </button>
+      {/* ── Methods ──────────────────────────────────────── */}
+      {view === 'methods' && (
+        <motion.div
+          key="methods"
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.20, ease: EASE }}
+        >
+          <h2 className="font-display text-xl font-bold text-slate-900 mb-1">
+            {isSignup ? 'Create your account' : 'Welcome back'}
+          </h2>
+          <p className="text-sm text-slate-400 mb-6">
+            {isSignup ? "Join ShinePoint — LA's detailing marketplace." : 'Sign in to continue.'}
+          </p>
 
-      <div className="auth-divider">
-        <span className="auth-divider-line" /><span className="auth-divider-text">or</span><span className="auth-divider-line" />
-      </div>
-
-      {/* Mode toggle */}
-      <div className="auth-toggle">
-        <button type="button" onClick={() => switchMode('signup')}
-          className={`auth-toggle-btn ${mode === 'signup' ? 'auth-toggle-active' : 'auth-toggle-inactive'}`}>
-          New account
-        </button>
-        <button type="button" onClick={() => switchMode('login')}
-          className={`auth-toggle-btn ${mode === 'login' ? 'auth-toggle-active' : 'auth-toggle-inactive'}`}>
-          Log in
-        </button>
-      </div>
-
-      {/* Method tabs */}
-      <div className="auth-method-tabs">
-        <button type="button" onClick={() => switchMethod('email')}
-          className={`auth-method-tab ${method === 'email' ? 'auth-method-tab-active' : ''}`}>
-          Email
-        </button>
-        <button type="button" onClick={() => switchMethod('phone')}
-          className={`auth-method-tab ${method === 'phone' ? 'auth-method-tab-active' : ''}`}>
-          Phone
-        </button>
-      </div>
-
-      {/* Fields */}
-      <form onSubmit={isPhone ? handleSendCode : handleEmail} className="flex flex-col gap-3">
-        {isSignup && (
-          <div className="auth-field">
-            <label className="auth-label">Full name</label>
-            <input type="text" autoComplete="name" required value={fullName}
-              onChange={(e) => setFullName(e.target.value)} placeholder="Jordan Doe" className="auth-input" />
+          <div className="flex flex-col gap-2.5">
+            <MethodButton
+              icon={<GoogleIcon className="h-5 w-5" />}
+              onClick={handleGoogle}
+              disabled={busy}
+            >
+              Continue with Google
+            </MethodButton>
+            <MethodButton
+              icon={<MailIcon className="h-5 w-5 text-slate-400" />}
+              onClick={() => { setView('email'); setError('') }}
+              disabled={busy}
+            >
+              Continue with Email
+            </MethodButton>
+            <MethodButton
+              icon={<PhoneIcon className="h-5 w-5 text-slate-400" />}
+              onClick={() => { setView('phone'); setError('') }}
+              disabled={busy}
+            >
+              Continue with Phone
+            </MethodButton>
           </div>
-        )}
 
-        {!isPhone && (
-          <>
-            <div className="auth-field">
-              <label className="auth-label">Email</label>
-              <input type="email" autoComplete="email" required value={email}
-                onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" className="auth-input" />
-            </div>
-            <div className="auth-field">
-              <label className="auth-label">Password</label>
-              <input type="password" autoComplete={isSignup ? 'new-password' : 'current-password'} required
-                value={password} onChange={(e) => setPassword(e.target.value)}
-                placeholder={isSignup ? 'At least 8 characters' : '••••••••'} className="auth-input" />
-            </div>
-            {isSignup && (
-              <div className="auth-field">
-                <label className="auth-label">Confirm password</label>
-                <input type="password" autoComplete="new-password" required value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)} className="auth-input" />
-              </div>
+          {error && <p role="alert" className="auth-error mt-3">{error}</p>}
+
+          <p className="mt-7 text-center text-sm text-slate-400">
+            {isSignup ? (
+              <>Already have an account?{' '}
+                <button type="button" onClick={() => switchMode('login')}
+                  className="font-semibold text-brand-600 hover:text-brand-700 transition-colors">
+                  Log in
+                </button>
+              </>
+            ) : (
+              <>New here?{' '}
+                <button type="button" onClick={() => switchMode('signup')}
+                  className="font-semibold text-brand-600 hover:text-brand-700 transition-colors">
+                  Create an account
+                </button>
+              </>
             )}
-          </>
-        )}
+          </p>
 
-        {isPhone && (
-          <div className="auth-field">
-            <label className="auth-label">Phone number</label>
-            <div className="flex gap-2">
-              <select value={countryIdx} onChange={(e) => setCountryIdx(Number(e.target.value))}
-                className="auth-input auth-select" aria-label="Country code">
-                {COUNTRIES.map((c, i) => (
-                  <option key={`${c.name}-${i}`} value={i}>{c.flag} {c.code}</option>
-                ))}
-              </select>
-              <input type="tel" inputMode="numeric" autoComplete="tel-national" required
-                value={localNumber} onChange={(e) => setLocalNumber(e.target.value)}
-                placeholder="310 555 0123" className="auth-input flex-1 min-w-0" />
-            </div>
-            <p className="mt-1 text-xs text-slate-400">{COUNTRIES[countryIdx].flag} {COUNTRIES[countryIdx].name}</p>
-          </div>
-        )}
+          <p className="auth-terms mt-3">
+            By continuing you agree to our{' '}
+            <Link to="/terms" className="underline underline-offset-2 hover:text-slate-700">Terms</Link>
+            {' & '}
+            <Link to="/privacy" className="underline underline-offset-2 hover:text-slate-700">Privacy Policy</Link>
+          </p>
+        </motion.div>
+      )}
 
-        {error && <p role="alert" className="auth-error">{error}</p>}
+      {/* ── Email form ───────────────────────────────────── */}
+      {view === 'email' && (
+        <motion.div
+          key="email"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0, y: 8 }}
+          transition={{ duration: 0.16, ease: EASE }}
+        >
+          <BackButton onClick={goBack} />
 
-        <button type="submit" disabled={busy} className="auth-btn-primary w-full mt-2">
-          {busy
-            ? <span className="inline-flex items-center gap-2"><BtnSpinner />{isPhone ? 'Sending…' : isSignup ? 'Creating…' : 'Logging in…'}</span>
-            : isPhone ? 'Send code' : isSignup ? 'Create account' : 'Log in'}
-        </button>
-      </form>
+          <form onSubmit={handleEmail} className="flex flex-col gap-3">
+            {isSignup && (
+              <Field index={0}>
+                <div className="auth-field">
+                  <label className="auth-label">Full name</label>
+                  <input type="text" autoComplete="name" required value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Jordan Doe" className="auth-input" autoFocus />
+                </div>
+              </Field>
+            )}
 
-      <p className="auth-terms">
-        By continuing you agree to our{' '}
-        <Link to="/terms" className="underline underline-offset-2 hover:text-slate-700">Terms</Link>
-        {' & '}
-        <Link to="/privacy" className="underline underline-offset-2 hover:text-slate-700">Privacy Policy</Link>
-      </p>
-    </>
+            <Field index={isSignup ? 1 : 0}>
+              <div className="auth-field">
+                <label className="auth-label">Email</label>
+                <input type="email" autoComplete="email" required value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com" className="auth-input"
+                  autoFocus={!isSignup} />
+              </div>
+            </Field>
+
+            <Field index={isSignup ? 2 : 1}>
+              <div className="auth-field">
+                <label className="auth-label">Password</label>
+                <input type="password"
+                  autoComplete={isSignup ? 'new-password' : 'current-password'}
+                  required value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={isSignup ? 'At least 8 characters' : '••••••••'}
+                  className="auth-input" />
+              </div>
+            </Field>
+
+            {isSignup && (
+              <Field index={3}>
+                <div className="auth-field">
+                  <label className="auth-label">Confirm password</label>
+                  <input type="password" autoComplete="new-password" required
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="auth-input" />
+                </div>
+              </Field>
+            )}
+
+            {error && <p role="alert" className="auth-error">{error}</p>}
+
+            <Field index={isSignup ? 4 : 2}>
+              <button type="submit" disabled={busy} className="auth-btn-primary w-full">
+                {busy
+                  ? <span className="inline-flex items-center gap-2"><BtnSpinner />{isSignup ? 'Creating…' : 'Logging in…'}</span>
+                  : isSignup ? 'Create account' : 'Log in'}
+              </button>
+            </Field>
+          </form>
+        </motion.div>
+      )}
+
+      {/* ── Phone form ───────────────────────────────────── */}
+      {view === 'phone' && (
+        <motion.div
+          key="phone"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0, y: 8 }}
+          transition={{ duration: 0.16, ease: EASE }}
+        >
+          <BackButton onClick={goBack} />
+
+          <form onSubmit={handleSendCode} className="flex flex-col gap-3">
+            {isSignup && (
+              <Field index={0}>
+                <div className="auth-field">
+                  <label className="auth-label">Full name</label>
+                  <input type="text" autoComplete="name" required value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Jordan Doe" className="auth-input" autoFocus />
+                </div>
+              </Field>
+            )}
+
+            <Field index={isSignup ? 1 : 0}>
+              <div className="auth-field">
+                <label className="auth-label">Phone number</label>
+                <div className="flex gap-2">
+                  <select value={countryIdx} onChange={(e) => setCountryIdx(Number(e.target.value))}
+                    className="auth-input auth-select" aria-label="Country code">
+                    {COUNTRIES.map((c, i) => (
+                      <option key={`${c.name}-${i}`} value={i}>{c.flag} {c.code}</option>
+                    ))}
+                  </select>
+                  <input type="tel" inputMode="numeric" autoComplete="tel-national" required
+                    value={localNumber} onChange={(e) => setLocalNumber(e.target.value)}
+                    placeholder="310 555 0123" className="auth-input flex-1 min-w-0"
+                    autoFocus={!isSignup} />
+                </div>
+                <p className="mt-1 text-xs text-slate-400">
+                  {COUNTRIES[countryIdx].flag} {COUNTRIES[countryIdx].name}
+                </p>
+              </div>
+            </Field>
+
+            {error && <p role="alert" className="auth-error">{error}</p>}
+
+            <Field index={isSignup ? 2 : 1}>
+              <button type="submit" disabled={busy} className="auth-btn-primary w-full">
+                {busy
+                  ? <span className="inline-flex items-center gap-2"><BtnSpinner />Sending…</span>
+                  : 'Send code'}
+              </button>
+            </Field>
+          </form>
+        </motion.div>
+      )}
+
+      {/* ── OTP verify ───────────────────────────────────── */}
+      {view === 'otp' && (
+        <motion.div
+          key="otp"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0, y: 8 }}
+          transition={{ duration: 0.16, ease: EASE }}
+        >
+          <form onSubmit={handleVerifyCode} className="flex flex-col gap-3">
+            <Field index={0}>
+              <p className="pb-1 text-sm text-slate-500">
+                Code sent to <span className="font-semibold text-slate-900">{fullPhone}</span>
+              </p>
+            </Field>
+
+            <Field index={1}>
+              <div className="auth-field">
+                <label className="auth-label">Verification code</label>
+                <input type="text" inputMode="numeric" autoComplete="one-time-code" required
+                  value={otpCode} onChange={(e) => setOtpCode(e.target.value)}
+                  placeholder="123456" className="auth-input" autoFocus />
+              </div>
+            </Field>
+
+            {error && <p role="alert" className="auth-error">{error}</p>}
+
+            <Field index={2}>
+              <button type="submit" disabled={busy} className="auth-btn-primary w-full">
+                {busy
+                  ? <span className="inline-flex items-center gap-2"><BtnSpinner />Verifying…</span>
+                  : 'Verify & continue'}
+              </button>
+            </Field>
+          </form>
+
+          <button type="button"
+            onClick={() => { setView('phone'); setOtpCode(''); setError('') }}
+            className="mt-3 w-full py-1 text-center text-sm text-slate-400 hover:text-slate-600 transition-colors">
+            Use a different number
+          </button>
+        </motion.div>
+      )}
+
+    </AnimatePresence>
   )
 
-  if (!standalone) return formContent
+  if (!standalone) return content
 
   return (
     <div className="auth-card-shell">
@@ -317,9 +426,36 @@ export default function AuthCard({ defaultMode = 'signup', role = 'customer', on
           <Logo />
           <p className="auth-tagline">LA's mobile detailing marketplace</p>
         </div>
-        {formContent}
+        {content}
       </div>
     </div>
+  )
+}
+
+function MethodButton({ icon, onClick, disabled, children }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="flex h-12 w-full cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition-all duration-150 hover:border-slate-300 hover:bg-slate-50 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      <span className="shrink-0">{icon}</span>
+      {children}
+    </button>
+  )
+}
+
+function BackButton({ onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="mb-4 flex items-center gap-1 text-sm text-slate-400 hover:text-slate-700 transition-colors"
+    >
+      <ChevronLeftIcon className="h-4 w-4" />
+      Back
+    </button>
   )
 }
 
