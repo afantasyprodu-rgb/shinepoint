@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { Routes, Route, useLocation } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute'
 import ArrivalTransition from './components/ArrivalTransition'
+import NativeBridge from './components/NativeBridge'
 import { loadCustomerHome } from './lib/preload'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
@@ -25,6 +26,9 @@ import AdminPeople from './pages/admin/AdminPeople'
 import AdminOps from './pages/admin/AdminOps'
 import AdminFinance from './pages/admin/AdminFinance'
 import AdminSetup from './pages/AdminSetup'
+import ProfileSetup from './pages/ProfileSetup'
+import CustomerOnboarding from './pages/CustomerOnboarding'
+import { Terms, Privacy } from './pages/Legal'
 
 // Lazy: keeps mapbox-gl (~1.6 MB) out of the initial bundle. Same loader is
 // reused by the login transition's preload so the page is warm on arrival.
@@ -52,6 +56,7 @@ export default function App() {
   // AnimatePresence proved wedge-prone with rapid history changes.)
   return (
     <ArrivalTransition>
+      <NativeBridge />
       <Routes location={location} key={location.pathname}>
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
@@ -60,6 +65,12 @@ export default function App() {
         <Route path="/check-email" element={<CheckEmail />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/admin-access" element={<AdminSetup />} />
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/privacy" element={<Privacy />} />
+        {/* Post-signup profile setup — any signed-in role, no role gate. */}
+        <Route path="/welcome" element={<ProtectedRoute><ProfileSetup /></ProtectedRoute>} />
+        {/* Customer post-signup onboarding (vehicle + address). */}
+        <Route path="/onboarding" element={<ProtectedRoute role="customer"><CustomerOnboarding /></ProtectedRoute>} />
 
         {/* Customer */}
         <Route

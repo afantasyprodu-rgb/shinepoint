@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { homePathForRole } from '../context/AuthContext'
 import Logo from './Logo'
 import { GoogleIcon } from './icons'
+import { isNative, OAUTH_REDIRECT } from '../lib/native'
 
 const COUNTRIES = [
   { code: '+1',   flag: '🇺🇸', name: 'United States' },
@@ -82,7 +83,7 @@ export default function AuthCard({ defaultMode = 'signup', role = 'customer', on
       setBusy(false)
       if (err) { setError(err.message); return }
       if (!data.session) { navigate('/check-email', { state: { email } }); return }
-      navigate(homePathForRole(role))
+      navigate(role === 'customer' ? '/onboarding' : homePathForRole(role))
     } else {
       const { data, error: err } = await supabase.auth.signInWithPassword({ email, password })
       if (err) { setBusy(false); setError(err.message); return }
@@ -129,7 +130,7 @@ export default function AuthCard({ defaultMode = 'signup', role = 'customer', on
     setBusy(true)
     const { data, error: err } = await supabase.auth.verifyOtp({ phone: fullPhone, token: otpCode, type: 'sms' })
     if (err) { setBusy(false); setError(err.message); return }
-    if (mode === 'signup') { setBusy(false); navigate(homePathForRole(role)); return }
+    if (mode === 'signup') { setBusy(false); navigate(role === 'customer' ? '/onboarding' : homePathForRole(role)); return }
     const { data: userRow } = await supabase
       .from('users').select('role, is_suspended, is_banned').eq('id', data.user.id).single()
     setBusy(false)
@@ -147,11 +148,20 @@ export default function AuthCard({ defaultMode = 'signup', role = 'customer', on
     setBusy(true)
     if (role === 'detailer') localStorage.setItem('pendingRole', 'detailer')
     else localStorage.removeItem('pendingRole')
-    const { error: err } = await supabase.auth.signInWithOAuth({
+    const { data, error: err } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: {
+        redirectTo: OAUTH_REDIRECT,
+        // On native we open the returned URL ourselves so the deep link can
+        // bring the user back into the app; on web, let Supabase redirect.
+        skipBrowserRedirect: isNative,
+      },
     })
-    if (err) { setBusy(false); setError(err.message) }
+    if (err) { setBusy(false); setError(err.message); return }
+    if (isNative && data?.url) {
+      const { Browser } = await import('@capacitor/browser')
+      await Browser.open({ url: data.url })
+    }
   }
 
   const isSignup = mode === 'signup'
@@ -196,7 +206,7 @@ export default function AuthCard({ defaultMode = 'signup', role = 'customer', on
   const formContent = (
     <>
       {/* Google — top */}
-      <button type="button" onClick={handleGoogle} disabled={busy} className="auth-btn-outline w-full mb-5">
+      <button type="button" onClick={handleGoogle} disabled={busy} className="auth-btn-outline w-full">
         <GoogleIcon className="h-5 w-5 shrink-0" />
         Continue with Google
       </button>
@@ -206,7 +216,7 @@ export default function AuthCard({ defaultMode = 'signup', role = 'customer', on
       </div>
 
       {/* Mode toggle */}
-      <div className="auth-toggle mt-5">
+      <div className="auth-toggle">
         <button type="button" onClick={() => switchMode('signup')}
           className={`auth-toggle-btn ${mode === 'signup' ? 'auth-toggle-active' : 'auth-toggle-inactive'}`}>
           New account
@@ -230,7 +240,7 @@ export default function AuthCard({ defaultMode = 'signup', role = 'customer', on
       </div>
 
       {/* Fields */}
-      <form onSubmit={isPhone ? handleSendCode : handleEmail} className="flex flex-col gap-2.5">
+      <form onSubmit={isPhone ? handleSendCode : handleEmail} className="flex flex-col gap-3">
         {isSignup && (
           <div className="auth-field">
             <label className="auth-label">Full name</label>
@@ -282,16 +292,18 @@ export default function AuthCard({ defaultMode = 'signup', role = 'customer', on
 
         {error && <p role="alert" className="auth-error">{error}</p>}
 
-        <button type="submit" disabled={busy} className="auth-btn-primary w-full mt-3">
-          {busy ? '…' : isPhone ? 'Send code' : isSignup ? 'Create account' : 'Log in'}
+        <button type="submit" disabled={busy} className="auth-btn-primary w-full mt-2">
+          {busy
+            ? <span className="inline-flex items-center gap-2"><BtnSpinner />{isPhone ? 'Sending…' : isSignup ? 'Creating…' : 'Logging in…'}</span>
+            : isPhone ? 'Send code' : isSignup ? 'Create account' : 'Log in'}
         </button>
       </form>
 
       <p className="auth-terms">
         By continuing you agree to our{' '}
-        <a href="/terms" className="underline underline-offset-2 hover:text-slate-700">Terms</a>
+        <Link to="/terms" className="underline underline-offset-2 hover:text-slate-700">Terms</Link>
         {' & '}
-        <a href="/privacy" className="underline underline-offset-2 hover:text-slate-700">Privacy Policy</a>
+        <Link to="/privacy" className="underline underline-offset-2 hover:text-slate-700">Privacy Policy</Link>
       </p>
     </>
   )
@@ -309,4 +321,8 @@ export default function AuthCard({ defaultMode = 'signup', role = 'customer', on
       </div>
     </div>
   )
+}
+
+function BtnSpinner() {
+  return <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
 }
