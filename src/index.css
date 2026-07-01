@@ -113,12 +113,16 @@
 
   /* ── Auth card ──────────────────────────────────────────── */
   .auth-card-shell {
-    @apply flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12;
+    background: linear-gradient(160deg in oklch, #3b0764 0%, #6d28d9 55%, #7c3aed 100%);
+    @apply flex min-h-screen items-center justify-center px-4 py-12;
   }
 
   /* No uniform gap — each section uses explicit margin for rhythm */
   .auth-card {
-    @apply w-full max-w-sm rounded-3xl bg-white px-8 pt-10 pb-8 shadow-xl shadow-slate-200/60 flex flex-col;
+    background: linear-gradient(180deg, #faf5ff 0%, #ffffff 28%);
+    border: 1px solid #e9d5ff;
+    box-shadow: 0 24px 64px -12px rgba(76, 29, 149, 0.35), 0 4px 16px -4px rgba(109, 40, 217, 0.15);
+    @apply w-full max-w-sm rounded-3xl px-8 pt-10 pb-8 flex flex-col;
   }
 
   .auth-logo-block {
@@ -126,7 +130,7 @@
   }
 
   .auth-tagline {
-    @apply text-xs text-slate-400 tracking-wide;
+    @apply text-xs text-brand-400 tracking-wide;
   }
 
   /* mode toggle — big pill, bottom of primary nav zone */

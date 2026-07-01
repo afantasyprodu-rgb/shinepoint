@@ -430,7 +430,10 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
     <div className="auth-card-shell">
       <div className="auth-card">
         <div className="auth-logo-block">
-          <Logo />
+          <div className="relative">
+            <div className="absolute inset-0 -z-10 scale-[2] rounded-full bg-brand-200 opacity-40 blur-xl" />
+            <Logo />
+          </div>
           <p className="auth-tagline">LA's mobile detailing marketplace</p>
         </div>
         {content}
@@ -445,7 +448,7 @@ function MethodButton({ icon, onClick, disabled, children }) {
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="flex h-12 w-full cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition-all duration-150 hover:border-slate-300 hover:bg-slate-50 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+      className="flex h-12 w-full cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition-all duration-150 hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
     >
       <span className="shrink-0">{icon}</span>
       {children}
