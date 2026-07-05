@@ -258,6 +258,108 @@ section.board{padding:72px 0;border-top:1px solid var(--line)}
 .cl-confetti{position:absolute;width:9px;height:9px;border-radius:3px;z-index:30;pointer-events:none;animation:confFall 1s ease-out forwards}
 @keyframes confFall{0%{transform:translate(0,0) rotate(0);opacity:1}100%{transform:translate(var(--dx),var(--dy)) rotate(300deg);opacity:0}}
 
+/* ═══ 6 · DARK ═══ */
+.dk{height:100%;position:relative;background:#131020;--pnl:rgba(26,20,40,.62);--pnl-b:rgba(255,255,255,.14);--txt:#F0EBFA;--sub:#B4A8CE;transition:background .4s}
+.dk.day{background:#E9E4F4;--pnl:rgba(255,255,255,.6);--pnl-b:rgba(255,255,255,.75);--txt:#2A1560;--sub:#5B4B85}
+.dk canvas{position:absolute;inset:0;width:100%;height:100%}
+.dk-panel{background:var(--pnl);backdrop-filter:blur(16px) saturate(1.4);-webkit-backdrop-filter:blur(16px) saturate(1.4);border:1px solid var(--pnl-b);color:var(--txt)}
+.dk-search{position:absolute;top:58px;left:14px;right:14px;display:flex;align-items:center;gap:10px;border-radius:16px;padding:13px 16px;font-family:var(--disp);font-weight:600;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.dk-toggle{position:absolute;top:120px;right:14px;z-index:20;border-radius:999px;padding:8px 14px;font-family:var(--disp);font-size:11.5px;font-weight:600;cursor:pointer;display:flex;gap:7px;align-items:center;transition:transform .3s cubic-bezier(.34,1.8,.5,1)}
+.dk-toggle:active{transform:scale(.92)}
+.dk-toggle:focus-visible{outline:3px solid #A78BFA;outline-offset:2px}
+.dk-pin{position:absolute;width:34px;height:34px;margin:-17px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+.dk-pin i{width:13px;height:13px;border-radius:50%;display:block;box-shadow:0 0 12px 2px currentColor}
+.dk-card{position:absolute;left:14px;right:14px;bottom:20px;border-radius:22px;padding:17px 18px;box-shadow:0 16px 40px rgba(0,0,0,.35)}
+.dk-name{font-family:var(--disp);font-weight:600;font-size:16px}
+.dk-meta{font-size:13px;color:var(--sub);margin-top:2px}
+.dk-eta{display:flex;align-items:center;gap:12px;margin-top:14px}
+.dk-eta b{font-family:var(--disp);font-size:13px;white-space:nowrap}
+.dk-eta-bar{flex:1;height:6px;border-radius:3px;background:rgba(124,58,237,.28);overflow:hidden}
+.dk-eta-fill{height:100%;width:64%;border-radius:3px;background:linear-gradient(90deg,#7C3AED,#22C55E);animation:etaPulse 2.2s ease-in-out infinite}
+@keyframes etaPulse{50%{opacity:.65}}
+@media(prefers-reduced-motion:reduce){.dk-eta-fill{animation:none}}
+
+/* ═══ 7 · BENTO ═══ */
+.bn{height:100%;background:#FAF7FF;color:#2A1560;padding:58px 15px 16px;box-sizing:border-box;display:flex;flex-direction:column;overflow:auto}
+.bn-hi{font-family:var(--disp);font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#8A7BB0;margin:4px 0 0}
+.bn h3{font-family:var(--disp);font-size:22px;font-weight:700;margin:2px 0 14px}
+.bn-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.bn-tile{background:#fff;border:1px solid #EEE7FB;border-radius:20px;padding:14px;box-shadow:0 4px 14px rgba(124,58,237,.07)}
+.bn-big{grid-column:1/-1;padding-bottom:8px}
+.bn-k{font-family:var(--disp);font-size:10.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#8A7BB0}
+.bn-v{font-family:var(--disp);font-weight:700;font-size:27px;font-variant-numeric:tabular-nums;margin-top:3px}
+.bn-sm .bn-v{font-size:19px}
+.bn-delta{font-size:12px;color:#15803D;font-weight:600;margin-left:6px}
+.bn-spark{display:block;width:100%;height:58px;margin-top:6px}
+.bn-line{fill:none;stroke:#7C3AED;stroke-width:2.5;stroke-linecap:round;stroke-dasharray:420;stroke-dashoffset:420;animation:bnDash 1.4s ease forwards .3s}
+.bn-fill{stroke:none;opacity:0;animation:bnFade .8s ease forwards 1.2s}
+.bn-dot{opacity:0;animation:bnFade .4s ease forwards 1.5s}
+@keyframes bnDash{to{stroke-dashoffset:0}}
+@keyframes bnFade{to{opacity:1}}
+@media(prefers-reduced-motion:reduce){.bn-line{animation-duration:.01s;animation-delay:0s}.bn-fill,.bn-dot{animation-duration:.01s;animation-delay:0s}}
+.bn-payout{grid-column:1/-1;background:linear-gradient(135deg,#7C3AED,#5B21B6);border:none;color:#fff;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.bn-payout .bn-k{color:#CDB6FF}
+.bn-payout .bn-v{font-size:21px}
+.bn-payout button{background:#22C55E;border:none;color:#fff;font-family:var(--disp);font-weight:600;font-size:12.5px;border-radius:11px;padding:10px 13px;cursor:pointer;white-space:nowrap;transition:transform .3s cubic-bezier(.34,1.8,.5,1),filter .2s}
+.bn-payout button:hover{filter:brightness(1.08)}
+.bn-payout button:active{transform:scale(.93)}
+.bn-payout button:focus-visible{outline:3px solid #fff;outline-offset:2px}
+
+/* ═══ 8 · SKELETON ═══ */
+.sk{height:100%;background:#FAF7FF;color:#2A1560;padding:58px 15px;box-sizing:border-box;overflow:auto}
+.sk h3{font-family:var(--disp);font-size:22px;font-weight:700;margin:6px 0 14px}
+.sk-card{background:#fff;border:1px solid #EEE7FB;border-radius:18px;padding:14px 15px;margin-bottom:11px;min-height:74px;box-sizing:border-box}
+.sk-bone{border-radius:8px;background:linear-gradient(100deg,#EFE9FA 40%,#F9F5FF 50%,#EFE9FA 60%);background-size:200% 100%;animation:skShimmer 1.3s linear infinite}
+@keyframes skShimmer{from{background-position:180% 0}to{background-position:-20% 0}}
+@media(prefers-reduced-motion:reduce){.sk-bone{animation:none}}
+.sk-real{animation:skRise .35s ease both}
+@keyframes skRise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.sk-real{animation:none}}
+.sk-row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.sk-svc{font-family:var(--disp);font-weight:600;font-size:15px}
+.sk-who{font-size:13px;color:#7A6E9B;margin-top:2px}
+.sk-when{font-size:12.5px;color:#8A7BB0;margin-top:8px}
+.sk-pill{font-family:var(--disp);font-size:10.5px;font-weight:600;border-radius:999px;padding:4px 10px;white-space:nowrap}
+
+/* ═══ 9 · ILLUSTRATION ═══ */
+.il{height:100%;background:#FAF7FF;color:#2A1560;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 30px;text-align:center}
+.il .stroke{fill:none;stroke:#7C3AED;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.il .stroke2{fill:none;stroke:#A78BFA;stroke-width:2.2;stroke-linecap:round}
+.il-bub{animation:ilBub 4.5s ease-in-out infinite;transform-origin:center}
+.il-b2{animation-delay:1.4s}.il-b3{animation-delay:2.6s}
+@keyframes ilBub{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@media(prefers-reduced-motion:reduce){.il-bub{animation:none}}
+.il h3{font-family:var(--disp);font-weight:700;font-size:21px;margin:22px 0 6px}
+.il p{font-size:14.5px;color:#7A6E9B;margin:0 0 20px;max-width:26ch}
+.il-cta{background:#16A34A;border:none;color:#fff;font-family:var(--disp);font-weight:600;font-size:15px;border-radius:13px;padding:14px 24px;cursor:pointer;transition:transform .3s cubic-bezier(.34,1.8,.5,1),filter .2s}
+.il-cta:hover{filter:brightness(1.07)}
+.il-cta:active{transform:scale(.94)}
+.il-cta:focus-visible{outline:3px solid #2A1560;outline-offset:2px}
+
+/* ═══ 10 · PAINT ═══ */
+.pt{height:100%;background:#F6F2FE;color:#2A1560;padding:58px 17px;box-sizing:border-box;--acc:#3B5BA5}
+.pt-hi{font-family:var(--disp);font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#8A7BB0;margin:4px 0 0}
+.pt h3{font-family:var(--disp);font-size:22px;font-weight:700;margin:2px 0 16px}
+.pt-vehicle{border-radius:24px;padding:18px;color:#fff;background:linear-gradient(150deg,var(--acc),color-mix(in oklab,var(--acc),black 38%));box-shadow:0 14px 30px color-mix(in srgb,var(--acc),transparent 68%);transition:background .5s,box-shadow .5s}
+.pt-vname{font-family:var(--disp);font-weight:700;font-size:18px}
+.pt-vmeta{font-size:13px;opacity:.85;margin-top:2px}
+.pt-vbadge{display:inline-block;margin-top:12px;font-family:var(--disp);font-size:11px;font-weight:600;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:4px 11px}
+.pt-lab{font-family:var(--disp);font-size:11.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#8A7BB0;margin:18px 0 9px}
+.pt-swatches{display:flex;gap:11px}
+.pt-sw{width:40px;height:40px;border-radius:50%;border:3px solid #fff;box-shadow:0 3px 10px rgba(42,21,96,.25);cursor:pointer;transition:transform .3s cubic-bezier(.34,1.8,.5,1)}
+.pt-sw:hover{transform:scale(1.12)}
+.pt-sw:active{transform:scale(.9)}
+.pt-sw.sel{outline:3px solid var(--acc);outline-offset:2px}
+.pt-sw:focus-visible{outline:3px solid #2A1560;outline-offset:2px}
+.pt-book{width:100%;box-sizing:border-box;margin-top:20px;background:var(--acc);border:none;color:#fff;font-family:var(--disp);font-weight:600;font-size:15px;border-radius:14px;padding:14px;cursor:pointer;transition:background .5s,transform .3s cubic-bezier(.34,1.8,.5,1)}
+.pt-book:active{transform:scale(.96)}
+.pt-book:focus-visible{outline:3px solid #2A1560;outline-offset:2px}
+.pt-track{margin-top:12px;background:#fff;border:1px solid #EEE7FB;border-radius:18px;padding:13px 15px;display:flex;align-items:center;gap:12px}
+.pt-track i{width:10px;height:10px;border-radius:50%;background:var(--acc);flex:none;transition:background .5s;box-shadow:0 0 0 5px color-mix(in srgb,var(--acc),transparent 82%)}
+.pt-track p{margin:0;font-size:13.5px;color:#5B4B85}
+.pt-track b{font-family:var(--disp);color:#2A1560}
+.ship{display:inline-block;margin-left:8px;font-family:var(--disp);font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#7BEBA4;border:1px solid rgba(34,197,94,.45);border-radius:999px;padding:2.5px 9px;vertical-align:1px}
+
 /* ── system map ───────────────────────────── */
 section.sysmap{padding:72px 0 40px;border-top:1px solid var(--line)}
 .sys-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:30px}
@@ -275,7 +377,7 @@ footer .wrap{border-top:1px solid var(--line);padding-top:24px}
 <header class="hero">
   <div class="wrap">
     <p class="eyebrow">ShinePoint · Design Direction Studies</p>
-    <h1>Five treatments, one product — each tried on a real screen.</h1>
+    <h1>Ten studies, one product — five shipped, five proposed.</h1>
     <p class="lede">Every mockup below is built from the repo's actual tokens — trust purple <strong>#7C3AED</strong>, transaction green <strong>#22C55E</strong>, <strong>Lexend</strong> / <strong>Source Sans 3</strong> — and real demo data (Marco's Mobile Shine, Crown Auto Spa, real prices). The proposal isn't "pick one everywhere": it's a layered system where each treatment owns the screens it's best at. The mockups are interactive — tap around.</p>
   </div>
 </header>
@@ -287,6 +389,11 @@ footer .wrap{border-top:1px solid var(--line);padding-top:24px}
     <a href="#aurora"><span class="dot" style="background:linear-gradient(135deg,#7C3AED,#22C55E)"></span>Aurora + Motion</a>
     <a href="#duotone"><span class="dot" style="background:#7C3AED"></span>Duotone Block</a>
     <a href="#clay"><span class="dot" style="background:linear-gradient(#D8B4FE,#8B5CF6)"></span>Clay · Rewards</a>
+    <a href="#dark"><span class="dot" style="background:#131020;border:1px solid #7C3AED"></span>OLED Dark</a>
+    <a href="#bento"><span class="dot" style="background:conic-gradient(#7C3AED 0 50%,#22C55E 50% 100%)"></span>Bento</a>
+    <a href="#skeleton"><span class="dot" style="background:linear-gradient(100deg,#EFE9FA,#fff,#EFE9FA)"></span>Skeleton</a>
+    <a href="#illus"><span class="dot" style="background:#fff;border:1.5px solid #7C3AED"></span>Illustration</a>
+    <a href="#paint"><span class="dot" style="background:conic-gradient(#3B5BA5,#B3383E,#9BA3AD,#3E7C5B,#3B5BA5)"></span>Paint Theming</a>
     <a href="#system"><span class="dot" style="background:#22C55E"></span>The System</a>
   </div>
 </nav>
@@ -295,7 +402,7 @@ footer .wrap{border-top:1px solid var(--line);padding-top:24px}
 <section class="board" id="minimal">
   <div class="wrap">
     <div>
-      <p class="b-no">Study 01 · The Base Layer</p>
+      <p class="b-no">Study 01 · The Base Layer<span class="ship">shipped</span></p>
       <h2 class="b-title">Refined Minimalism</h2>
       <p class="b-role">Owns: booking flow, bookings list, settings, earnings — every data screen</p>
       <div class="b-copy">
@@ -332,7 +439,7 @@ footer .wrap{border-top:1px solid var(--line);padding-top:24px}
 <section class="board" id="glass">
   <div class="wrap">
     <div>
-      <p class="b-no">Study 02 · The Signature</p>
+      <p class="b-no">Study 02 · The Signature<span class="ship">shipped</span></p>
       <h2 class="b-title">Glassmorphism</h2>
       <p class="b-role">Owns: map overlays, search bar, en-route tracker — anything floating over Mapbox</p>
       <div class="b-copy">
@@ -370,7 +477,7 @@ footer .wrap{border-top:1px solid var(--line);padding-top:24px}
 <section class="board" id="aurora">
   <div class="wrap">
     <div>
-      <p class="b-no">Study 03 · The Welcome</p>
+      <p class="b-no">Study 03 · The Welcome<span class="ship">shipped</span></p>
       <h2 class="b-title">Aurora + Kinetic Motion</h2>
       <p class="b-role">Owns: auth, onboarding, empty states — screens with no data to show</p>
       <div class="b-copy">
@@ -417,7 +524,7 @@ footer .wrap{border-top:1px solid var(--line);padding-top:24px}
 <section class="board" id="duotone">
   <div class="wrap">
     <div>
-      <p class="b-no">Study 04 · The Front Door</p>
+      <p class="b-no">Study 04 · The Front Door<span class="ship">shipped</span></p>
       <h2 class="b-title">Duotone Block</h2>
       <p class="b-role">Owns: the marketing landing page — and nothing else</p>
       <div class="b-copy">
@@ -463,7 +570,7 @@ footer .wrap{border-top:1px solid var(--line);padding-top:24px}
 <section class="board" id="clay">
   <div class="wrap">
     <div>
-      <p class="b-no">Study 05 · The Toy Box — added on request</p>
+      <p class="b-no">Study 05 · The Toy Box<span class="ship">shipped</span></p>
       <h2 class="b-title">Clay-lite</h2>
       <p class="b-role">Owns: Rewards, streaks, milestones, referral — the screens that are already a game</p>
       <div class="b-copy">
@@ -510,6 +617,205 @@ footer .wrap{border-top:1px solid var(--line);padding-top:24px}
   </div>
 </section>
 
+<!-- ════ 6 · DARK ════ -->
+<section class="board" id="dark">
+  <div class="wrap">
+    <div>
+      <p class="b-no">Study 06 · The Night Shift — proposed</p>
+      <h2 class="b-title">OLED Dark Mode</h2>
+      <p class="b-role">Owns: an app-wide theme — shown where it matters most, tracking a detailer at night</p>
+      <div class="b-copy">
+        <p>Detailers start jobs at 6am; customers check the en-route tracker from a dark parked car at 9pm. True-black ground with the brand purple <strong>glowing</strong> on it is the most literal "Uber Black" move available — and it's the strongest single upgrade left, because it's not one screen, it's every screen after sunset.</p>
+        <p>The glass layer you already shipped survives intact: the same frosted panels simply go smoke-tinted over Mapbox's dark style. Status pins gain a soft glow so green/yellow/grey read at a glance in the dark. <strong>Flip the toggle</strong> — same screen, both worlds.</p>
+      </div>
+      <ul class="specs">
+        <li>ground #131020</li><li>smoke glass rgba(26,20,40,.62)</li><li>glowing status pins</li><li>Mapbox dark style</li><li>one token flip, not a redesign</li>
+      </ul>
+      <div class="watch"><b>Watch for</b>Contrast inversion: light-theme brand-600 purple is too dark for text on black — swap to brand-400/300 for dark-theme text roles. Respect the OS setting via <code style="font-family:var(--disp);font-size:.85em">prefers-color-scheme</code>, with a manual override.</div>
+    </div>
+    <div class="phone-col">
+      <div class="phone ph-aur"><div class="notch"></div>
+        <div class="screen dk" id="dkScreen">
+          <canvas id="dkMap" width="636" height="1320" aria-label="Night map with detailer en route" role="img"></canvas>
+          <div class="dk-search dk-panel">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A78BFA" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            Marco is on the way
+          </div>
+          <button class="dk-toggle dk-panel" id="dkToggle" aria-pressed="false">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+            <span id="dkLabel">Day mode</span>
+          </button>
+          <div id="dkPins"></div>
+          <div class="dk-card dk-panel">
+            <div style="display:flex;align-items:center;gap:12px">
+              <span class="gl-ava" style="width:42px;height:42px;font-size:15px">M</span>
+              <div><div class="dk-name">Marco's Mobile Shine</div><div class="dk-meta">Full Detail · $189 · Echo Park</div></div>
+            </div>
+            <div class="dk-eta"><b>Arrives in 12 min</b><span class="dk-eta-bar"><span class="dk-eta-fill"></span></span></div>
+          </div>
+        </div>
+      </div>
+      <p class="hint">Tap "Day mode" — the whole screen flips themes.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════ 7 · BENTO ════ -->
+<section class="board" id="bento">
+  <div class="wrap">
+    <div>
+      <p class="b-no">Study 07 · The Cockpit — proposed</p>
+      <h2 class="b-title">Bento Grid</h2>
+      <p class="b-role">Owns: DetailerEarnings and the admin dashboard — the stat-heavy screens</p>
+      <div class="b-copy">
+        <p>Earnings is currently list-shaped; a detailer glancing between jobs needs it <strong>tile-shaped</strong>. Bento gives every number its own weighted cell — the week's take gets the big tile with a drawn-in sparkline, the payout gets the action tile, and jobs/tips/rating/miles pack the small cells. Mixed tile sizes <em>are</em> the hierarchy; no headings needed.</p>
+        <p>Numbers are Marco's real seed data: 412 lifetime jobs, 4.9 rating, and the miles stat your earnings page already computes via haversine. The sparkline draws itself on load — watch the big tile.</p>
+      </div>
+      <ul class="specs">
+        <li>2-col grid, 10px gutters</li><li>radius 20px</li><li>tabular-nums everywhere</li><li>1 action tile max</li><li>sparkline: 1.4s draw-in</li>
+      </ul>
+      <div class="watch"><b>Watch for</b>Bento sprawl. Cap it at one screen-height of tiles; the moment it scrolls two screens it's a worse list. And only one colored action tile — two competing payout CTAs breaks "one task per screen."</div>
+    </div>
+    <div class="phone-col">
+      <div class="phone ph-min"><div class="notch"></div>
+        <div class="screen bn">
+          <p class="bn-hi">Earnings · Marco's Mobile Shine</p>
+          <h3>This week</h3>
+          <div class="bn-grid">
+            <div class="bn-tile bn-big">
+              <span class="bn-k">Net earnings</span>
+              <div class="bn-v"><span id="bnBig">$0</span><span class="bn-delta">+18% vs last wk</span></div>
+              <svg class="bn-spark" viewBox="0 0 280 58" preserveAspectRatio="none" aria-hidden="true">
+                <defs><linearGradient id="bnGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7C3AED" stop-opacity=".22"/><stop offset="1" stop-color="#7C3AED" stop-opacity="0"/></linearGradient></defs>
+                <path class="bn-fill" fill="url(#bnGrad)" d="M0,44 L40,38 L80,41 L120,28 L160,32 L200,18 L240,22 L280,10 L280,58 L0,58 Z"/>
+                <polyline class="bn-line" points="0,44 40,38 80,41 120,28 160,32 200,18 240,22 280,10"/>
+                <circle class="bn-dot" cx="280" cy="10" r="4" fill="#22C55E"/>
+              </svg>
+            </div>
+            <div class="bn-tile bn-sm"><span class="bn-k">Jobs</span><div class="bn-v" id="bnJobs">0</div></div>
+            <div class="bn-tile bn-sm"><span class="bn-k">Avg tip</span><div class="bn-v">18%</div></div>
+            <div class="bn-tile bn-payout">
+              <div><span class="bn-k">Next payout · Fri</span><div class="bn-v">$963.40</div></div>
+              <button>Cash out early</button>
+            </div>
+            <div class="bn-tile bn-sm"><span class="bn-k">Rating</span><div class="bn-v">4.9</div></div>
+            <div class="bn-tile bn-sm"><span class="bn-k">Miles driven</span><div class="bn-v" id="bnMiles">0</div></div>
+          </div>
+        </div>
+      </div>
+      <p class="hint">Numbers count up and the sparkline draws in on load.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════ 8 · SKELETON ════ -->
+<section class="board" id="skeleton">
+  <div class="wrap">
+    <div>
+      <p class="b-no">Study 08 · The Illusion of Speed — proposed</p>
+      <h2 class="b-title">Skeleton Shimmer + Optimistic UI</h2>
+      <p class="b-role">Owns: every Supabase fetch — bookings, detailer lists, chat, earnings</p>
+      <div class="b-copy">
+        <p>This isn't a look; it's what <strong>premium feels like while waiting</strong>. Cheap apps spin; expensive apps sketch the answer's shape and fill it in. Purple-tinted bones shimmer where the bookings will be, then real cards rise into place — the layout never jumps because the skeleton reserves exact heights.</p>
+        <p>The other half is optimistic UI: when a customer books, the booking card appears <em>instantly</em> in demo-store state while Supabase confirms in the background — your dual demo/real store architecture is literally already built for this.</p>
+      </div>
+      <ul class="specs">
+        <li>bones match final layout 1:1</li><li>shimmer 1.3s linear</li><li>tint #EFE9FA→#F9F5FF</li><li>rise-in 350ms stagger</li><li>zero layout shift</li>
+      </ul>
+      <div class="watch"><b>Watch for</b>Skeletons that lie. A bone layout that doesn't match the loaded card (wrong heights, wrong count) makes the swap feel like a glitch — worse than a spinner. Reserve real dimensions.</div>
+      <button class="replay" id="skReplay">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+        Replay the load
+      </button>
+    </div>
+    <div class="phone-col">
+      <div class="phone ph-min"><div class="notch"></div>
+        <div class="screen sk">
+          <h3>Your bookings</h3>
+          <div id="skList"></div>
+        </div>
+      </div>
+      <p class="hint">Shimmering bones → content rises in. Replay it from the left.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════ 9 · ILLUSTRATION ════ -->
+<section class="board" id="illus">
+  <div class="wrap">
+    <div>
+      <p class="b-no">Study 09 · The Warmth — proposed</p>
+      <h2 class="b-title">Spot Illustration</h2>
+      <p class="b-role">Owns: empty states, onboarding moments, friendly errors</p>
+      <div class="b-copy">
+        <p>Your brief asks for "lighter, more personal than Uber" — illustration is how you get personal without clay's toy risk. A small set of line drawings in the brand stroke (a car under drifting soap bubbles, a sparkling wheel, a waving detailer) turns dead-end screens into brand moments.</p>
+        <p>Shown on the screen every new customer hits: <strong>zero bookings</strong>. Instead of a blank list, the car waits with floating bubbles and one green way forward. Six to eight of these cover every empty state and error in the app, and they work in both themes.</p>
+      </div>
+      <ul class="specs">
+        <li>2.4px brand stroke</li><li>flat line style, no fills</li><li>violet secondary strokes</li><li>gentle 4.5s float loop</li><li>6–8 drawings cover the app</li>
+      </ul>
+      <div class="watch"><b>Watch for</b>Style drift. Mixed illustration styles (one flat, one 3D, one clip-art) reads as templated instantly. One stroke weight, one palette, drawn as a set.</div>
+    </div>
+    <div class="phone-col">
+      <div class="phone ph-min"><div class="notch"></div>
+        <div class="screen il">
+          <svg width="200" height="128" viewBox="0 0 200 128" role="img" aria-label="Line drawing of a car with soap bubbles">
+            <g class="il-bub"><circle class="stroke2" cx="58" cy="26" r="9"/><circle cx="61" cy="23" r="2" fill="#A78BFA"/></g>
+            <g class="il-bub il-b2"><circle class="stroke2" cx="96" cy="14" r="6"/></g>
+            <g class="il-bub il-b3"><circle class="stroke2" cx="130" cy="30" r="7.5"/><circle cx="133" cy="27" r="1.6" fill="#22C55E"/></g>
+            <circle class="stroke" cx="44" cy="92" r="10"/><circle class="stroke" cx="156" cy="92" r="10"/>
+            <path class="stroke" d="M56 92 h88"/>
+            <path class="stroke" d="M22 92 c0-14 8-20 22-22 l14-14 c4-4 8-6 14-6 h32 c8 0 12 3 17 8 l11 12 c14 2 24 8 24 22"/>
+            <path class="stroke" d="M76 56 l-10 12 h58 l-9-11 c-2-2.5-4-3.5-7-3.5 h-24 c-3.5 0-6 1-8 2.5z"/>
+            <path class="stroke2" d="M96 68 v-12"/>
+          </svg>
+          <h3>No bookings yet</h3>
+          <p>Your car misses you. Find a detailer nearby and give it a shine.</p>
+          <button class="il-cta">Find a detailer</button>
+        </div>
+      </div>
+      <p class="hint">The bubbles drift; the CTA squishes. That's the whole trick.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════ 10 · PAINT ════ -->
+<section class="board" id="paint">
+  <div class="wrap">
+    <div>
+      <p class="b-no">Study 10 · The Wildcard — proposed</p>
+      <h2 class="b-title">Dynamic Paint Theming</h2>
+      <p class="b-role">Owns: the customer's personal surfaces — vehicle card, booking cards, arrival tracker</p>
+      <div class="b-copy">
+        <p>The one nobody can copy honestly: when a customer adds their vehicle, the app samples the <strong>paint color from their car photo</strong> and uses it as their personal accent. Brand purple stays the brand; the customer's own car tints <em>their</em> corner of the app. A detailing app that dresses in your car's color understands what business it's in.</p>
+        <p>Technically small: Capacitor camera photo → dominant-color extraction on-device → one CSS custom property. <strong>Tap the swatches</strong> to feel the garage, booking button, and tracker re-dress themselves.</p>
+      </div>
+      <ul class="specs">
+        <li>one CSS var: --accent</li><li>on-device color extraction</li><li>brand purple stays global chrome</li><li>clamp lightness for contrast</li><li>500ms cross-fade</li>
+      </ul>
+      <div class="watch"><b>Watch for</b>Unusable paints. White, black, and silver cars need a lightness clamp (mix toward the brand ramp) or text contrast dies. Never let the extracted color touch global chrome — personal surfaces only.</div>
+    </div>
+    <div class="phone-col">
+      <div class="phone ph-duo"><div class="notch"></div>
+        <div class="screen pt" id="ptScreen">
+          <p class="pt-hi">Your garage</p>
+          <h3>Alex's Tesla Model 3</h3>
+          <div class="pt-vehicle">
+            <div class="pt-vname">2021 Tesla Model 3</div>
+            <div class="pt-vmeta">Deep Blue Metallic · 7,200 mi since last detail</div>
+            <span class="pt-vbadge">Accent sampled from your paint</span>
+          </div>
+          <p class="pt-lab">Try another paint</p>
+          <div class="pt-swatches" id="ptSwatches"></div>
+          <button class="pt-book">Book a detail for this car</button>
+          <div class="pt-track"><i></i><p><b>Last detail:</b> Full Detail with Marco, 3 weeks ago</p></div>
+        </div>
+      </div>
+      <p class="hint">Tap a paint swatch — the personal surfaces re-dress in 500ms.</p>
+    </div>
+  </div>
+</section>
+
 <!-- ════ SYSTEM MAP ════ -->
 <section class="sysmap" id="system">
   <div class="wrap">
@@ -536,6 +842,29 @@ footer .wrap{border-top:1px solid var(--line);padding-top:24px}
       <div class="sys-card" style="--card-accent:#D8B4FE">
         <h4>Clay-lite</h4><div class="where">Rewards.jsx · milestone toasts · streaks</div>
         <p>Squish and stamps where the product is a game. Never on forms, booking, or trust screens.</p>
+      </div>
+    </div>
+    <p class="b-no" style="margin-top:40px">Phase 2 · Proposed — in build order</p>
+    <div class="sys-grid" style="margin-top:16px">
+      <div class="sys-card" style="--card-accent:#4C1D95">
+        <h4>1 · OLED Dark Mode</h4><div class="where">App-wide theme · Mapbox dark style</div>
+        <p>The biggest single upgrade left — every screen after sunset. Glass panels go smoke-tinted.</p>
+      </div>
+      <div class="sys-card" style="--card-accent:#EFE9FA">
+        <h4>2 · Skeleton + Optimistic</h4><div class="where">Every Supabase fetch · booking writes</div>
+        <p>Perceived speed. Bones reserve exact layout; writes appear instantly, confirm quietly.</p>
+      </div>
+      <div class="sys-card" style="--card-accent:#22C55E">
+        <h4>3 · Bento Grid</h4><div class="where">DetailerEarnings · Admin dashboard</div>
+        <p>Stat-heavy screens become glanceable cockpits. One action tile, sparkline in the hero cell.</p>
+      </div>
+      <div class="sys-card" style="--card-accent:#A78BFA">
+        <h4>4 · Spot Illustration</h4><div class="where">Empty states · onboarding · errors</div>
+        <p>One stroke weight, one palette, drawn as a set. Warmth without clay's toy risk.</p>
+      </div>
+      <div class="sys-card" style="--card-accent:#3B5BA5">
+        <h4>5 · Paint Theming</h4><div class="where">Vehicle card · bookings · tracker</div>
+        <p>The customer's car color tints their personal surfaces. Un-copyable; personal-only, never chrome.</p>
       </div>
     </div>
     <div class="motion-note">
@@ -681,6 +1010,119 @@ document.getElementById('clCopy').onclick=e=>{
   if(navigator.vibrate)navigator.vibrate(10);
   setTimeout(()=>e.target.textContent='Copy code',1400);
 };
+
+// ── 6 · dark: themed canvas map + toggle ────────────────
+const dkCv=document.getElementById('dkMap'),dkCx=dkCv.getContext('2d');
+function dkDraw(night){
+  const W=636,H=1320;
+  const P=night
+    ?{bg:'#141021',block:'#1C1630',street:'#251E3E',blvd:'#2E2650',park:'#16281E',route:'#8B5CF6'}
+    :{bg:'#E7E2F1',block:'#DDD6EC',street:'#F4F1FA',blvd:'#FFFFFF',park:'#CBE8D2',route:'#7C3AED'};
+  dkCx.fillStyle=P.bg;dkCx.fillRect(0,0,W,H);
+  dkCx.fillStyle=P.block;
+  for(let y=40;y<H;y+=110){for(let x=20;x<W;x+=130){
+    const jx=((x*7+y*13)%37)-18,jw=100+((x+y)%3)*8;
+    dkCx.beginPath();dkCx.roundRect(x+jx,y,jw,78,10);dkCx.fill();
+  }}
+  dkCx.fillStyle=P.park;dkCx.beginPath();dkCx.roundRect(390,780,190,170,26);dkCx.fill();
+  dkCx.strokeStyle=P.street;dkCx.lineCap='round';dkCx.lineWidth=14;
+  for(let y=25;y<H;y+=110){dkCx.beginPath();dkCx.moveTo(0,y);dkCx.lineTo(W,y);dkCx.stroke();}
+  for(let x=8;x<W;x+=130){dkCx.beginPath();dkCx.moveTo(x,0);dkCx.lineTo(x,H);dkCx.stroke();}
+  dkCx.strokeStyle=P.blvd;dkCx.lineWidth=24;
+  dkCx.beginPath();dkCx.moveTo(-30,980);dkCx.quadraticCurveTo(330,760,680,880);dkCx.stroke();
+  // route: Marco -> customer
+  dkCx.strokeStyle=P.route;dkCx.lineWidth=8;dkCx.setLineDash([26,18]);
+  dkCx.beginPath();dkCx.moveTo(140,400);dkCx.quadraticCurveTo(300,600,220,900);dkCx.stroke();
+  dkCx.setLineDash([]);
+}
+let dkNight=true;
+dkDraw(true);
+const dkPinsBox=document.getElementById('dkPins');
+[{top:'30%',left:'22%',c:'#22C55E',l:"Marco — en route"},{top:'68%',left:'34%',c:'#A78BFA',l:'You'}].forEach(d=>{
+  const p=document.createElement('span');
+  p.className='dk-pin dk-panel';p.style.top=d.top;p.style.left=d.left;
+  p.setAttribute('role','img');p.setAttribute('aria-label',d.l);
+  p.innerHTML=`<i style="background:${d.c};color:${d.c}"></i>`;
+  dkPinsBox.appendChild(p);
+});
+document.getElementById('dkToggle').onclick=e=>{
+  dkNight=!dkNight;
+  document.getElementById('dkScreen').classList.toggle('day',!dkNight);
+  document.getElementById('dkLabel').textContent=dkNight?'Day mode':'Night mode';
+  e.currentTarget.setAttribute('aria-pressed',String(!dkNight));
+  dkDraw(dkNight);
+};
+
+// ── 7 · bento: count-ups on view ────────────────────────
+function countUp(el,target,fmt,ms=1100){
+  const t0=performance.now();
+  (function tick(t){
+    const k=Math.min(1,(t-t0)/ms),e=1-Math.pow(1-k,3);
+    el.textContent=fmt(target*e);
+    if(k<1)requestAnimationFrame(tick);
+  })(t0);
+}
+let bnDone=false;
+new IntersectionObserver((es,obs)=>{
+  if(!es[0].isIntersecting||bnDone)return;
+  bnDone=true;obs.disconnect();
+  countUp(document.getElementById('bnBig'),1284,v=>'$'+Math.round(v).toLocaleString());
+  countUp(document.getElementById('bnJobs'),14,v=>Math.round(v));
+  countUp(document.getElementById('bnMiles'),212,v=>Math.round(v));
+},{threshold:.4}).observe(document.querySelector('.bn'));
+
+// ── 8 · skeleton: load simulation ───────────────────────
+const SK_BOOKINGS=[
+  {svc:'Full Detail',who:"Marco's Mobile Shine",when:'Sat · 10:00 AM · your driveway',st:'Confirmed',c:'#15803D',bg:'rgba(34,197,94,.14)'},
+  {svc:'Interior Deep Clean',who:'Pearl Finish Detailing',when:'Tue · 2:30 PM · office lot',st:'Pending',c:'#854D0E',bg:'rgba(234,179,8,.16)'},
+  {svc:'Exterior Wash',who:'Westside Detail Co.',when:'Completed 3 weeks ago',st:'Done',c:'#4B5563',bg:'rgba(156,163,175,.2)'},
+];
+const skList=document.getElementById('skList');
+function skLoad(){
+  skList.innerHTML=SK_BOOKINGS.map(()=>`
+    <div class="sk-card">
+      <div class="sk-row">
+        <div style="flex:1"><div class="sk-bone" style="height:15px;width:55%"></div>
+        <div class="sk-bone" style="height:12px;width:75%;margin-top:7px"></div></div>
+        <div class="sk-bone" style="height:22px;width:64px;border-radius:999px"></div>
+      </div>
+      <div class="sk-bone" style="height:11px;width:45%;margin-top:10px"></div>
+    </div>`).join('');
+  setTimeout(()=>{
+    skList.innerHTML=SK_BOOKINGS.map((b,i)=>`
+      <div class="sk-card sk-real" style="animation-delay:${i*0.08}s">
+        <div class="sk-row">
+          <div><div class="sk-svc">${b.svc}</div><div class="sk-who">${b.who}</div></div>
+          <span class="sk-pill" style="color:${b.c};background:${b.bg}">${b.st}</span>
+        </div>
+        <div class="sk-when">${b.when}</div>
+      </div>`).join('');
+  },1400);
+}
+skLoad();
+document.getElementById('skReplay').onclick=skLoad;
+
+// ── 10 · paint: swatch theming ──────────────────────────
+const PAINTS=[
+  {c:'#3B5BA5',n:'Deep Blue Metallic'},
+  {c:'#B3383E',n:'Crimson Red'},
+  {c:'#5B6770',n:'Stealth Grey'},
+  {c:'#3E7C5B',n:'Racing Green'},
+  {c:'#7C5A2E',n:'Desert Bronze'},
+];
+const ptScreen=document.getElementById('ptScreen'),ptSw=document.getElementById('ptSwatches');
+PAINTS.forEach((p,i)=>{
+  const b=document.createElement('button');
+  b.className='pt-sw'+(i===0?' sel':'');
+  b.style.background=p.c;
+  b.setAttribute('aria-label','Paint: '+p.n);
+  b.onclick=()=>{
+    ptScreen.style.setProperty('--acc',p.c);
+    document.querySelector('.pt-vmeta').textContent=p.n+' · 7,200 mi since last detail';
+    [...ptSw.children].forEach((s,j)=>s.classList.toggle('sel',j===i));
+  };
+  ptSw.appendChild(b);
+});
 </script>
 
 </body>
