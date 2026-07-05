@@ -21,6 +21,9 @@
   --color-cta-600: #16a34a;
   --color-cta-700: #15803d;
   --color-cta-800: #166534;
+
+  /* Bouncy overshoot easing — the app-wide "fun" press feel */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 @layer base {
@@ -49,7 +52,23 @@
 
 @layer components {
   .btn {
-    @apply inline-flex h-12 cursor-pointer items-center justify-center gap-2 rounded-xl px-5 font-semibold transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none;
+    @apply inline-flex h-12 cursor-pointer items-center justify-center gap-2 rounded-xl px-5 font-semibold transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none;
+    transition-timing-function: var(--ease-spring);
+  }
+
+  /* Springy press for non-.btn interactive elements (chips, cards, stamps).
+     Pair with cursor-pointer; the scale-down + overshoot release is the
+     micro-interaction layer that runs through every treatment. */
+  .press-spring {
+    transition:
+      transform 300ms var(--ease-spring),
+      background-color 200ms ease,
+      color 200ms ease,
+      opacity 200ms ease,
+      box-shadow 200ms ease;
+  }
+  .press-spring:active {
+    transform: scale(0.94);
   }
 
   /* cta-700 keeps white button text at >= 4.5:1 contrast */
@@ -107,14 +126,110 @@
     @apply border border-white/20 bg-white/10 backdrop-blur-md;
   }
 
+  /* ── Glass layer (map overlays only) ─────────────────────
+     Light frosted panel for anything floating over Mapbox tiles.
+     The >=60% white fill + heavy blur keeps dark text at 4.5:1
+     over any tile. Labels and numbers only — never body text. */
+  .glass-panel {
+    background: rgba(255, 255, 255, 0.62);
+    -webkit-backdrop-filter: blur(16px) saturate(1.5);
+    backdrop-filter: blur(16px) saturate(1.5);
+    @apply border border-white/70 shadow-lg shadow-brand-900/10;
+  }
+
+  /* ── Clay layer (Rewards + gamified surfaces only) ───────
+     Soft-extruded cards: outer drop + double inset (light top,
+     brand-tint bottom) reads as pressed clay. Keep type dark
+     purple on the pastel surfaces for contrast. */
+  .clay-card {
+    background: linear-gradient(#fdfcff, #f7f2ff);
+    border-radius: 1.625rem;
+    box-shadow:
+      0 12px 26px rgba(124, 58, 237, 0.16),
+      inset 0 -8px 14px rgba(124, 58, 237, 0.09),
+      inset 0 8px 14px rgba(255, 255, 255, 0.95);
+  }
+
+  .clay-card-brand {
+    background: linear-gradient(160deg in oklch, #7c3aed, #5b21b6);
+    border-radius: 1.625rem;
+    box-shadow:
+      0 14px 30px rgba(124, 58, 237, 0.35),
+      inset 0 6px 12px rgba(255, 255, 255, 0.22),
+      inset 0 -8px 16px rgba(59, 7, 100, 0.4);
+  }
+
+  /* Punch-card stamps: filled = raised white clay, empty = pressed-in slot */
+  .clay-stamp-fill {
+    background: linear-gradient(#ffffff, #f3ecff);
+    box-shadow:
+      0 4px 10px rgba(59, 7, 100, 0.35),
+      inset 0 2px 4px rgba(255, 255, 255, 0.9),
+      inset 0 -3px 6px rgba(124, 58, 237, 0.25);
+  }
+
+  .clay-stamp-slot {
+    background: rgba(255, 255, 255, 0.14);
+    box-shadow:
+      inset 0 3px 6px rgba(59, 7, 100, 0.4),
+      inset 0 -2px 4px rgba(255, 255, 255, 0.15);
+  }
+
+  .clay-chip {
+    background: linear-gradient(#f3ecff, #e9defd);
+    box-shadow:
+      0 6px 12px rgba(124, 58, 237, 0.22),
+      inset 0 2px 5px rgba(255, 255, 255, 0.9),
+      inset 0 -3px 6px rgba(124, 58, 237, 0.14);
+  }
+
+  .clay-cta {
+    background: linear-gradient(160deg in oklch, #16a34a, #15803d);
+    box-shadow:
+      0 10px 20px rgba(34, 197, 94, 0.4),
+      inset 0 3px 6px rgba(255, 255, 255, 0.4),
+      inset 0 -4px 8px rgba(15, 118, 60, 0.45);
+  }
+
   .chip {
     @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold;
   }
 
   /* ── Auth card ──────────────────────────────────────────── */
+  /* Aurora shell: two blurred brand blobs drift slowly behind the
+     content (violet top-left, transaction-green bottom-right).
+     Reduced-motion freezes them via the global base-layer rule. */
   .auth-card-shell {
     background: linear-gradient(160deg in oklch, #3b0764 0%, #6d28d9 55%, #7c3aed 100%);
-    @apply flex min-h-screen items-center justify-center px-4 py-12;
+    @apply relative isolate flex min-h-screen items-center justify-center overflow-hidden px-4 py-12;
+  }
+
+  .auth-card-shell::before,
+  .auth-card-shell::after {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    border-radius: 50%;
+    filter: blur(70px);
+    pointer-events: none;
+  }
+
+  .auth-card-shell::before {
+    width: 34rem;
+    height: 34rem;
+    top: -10rem;
+    left: -12rem;
+    background: radial-gradient(circle, rgba(167, 139, 250, 0.6), transparent 70%);
+    animation: aurora-drift-a 13s ease-in-out infinite alternate;
+  }
+
+  .auth-card-shell::after {
+    width: 28rem;
+    height: 28rem;
+    bottom: -12rem;
+    right: -10rem;
+    background: radial-gradient(circle, rgba(34, 197, 94, 0.35), transparent 70%);
+    animation: aurora-drift-b 11s ease-in-out infinite alternate;
   }
 
   /* No card bg — content floats directly on the gradient shell */
@@ -210,6 +325,14 @@
 }
 
 @layer utilities {
+  @keyframes aurora-drift-a {
+    to { transform: translate(4rem, 3rem) scale(1.15); }
+  }
+
+  @keyframes aurora-drift-b {
+    to { transform: translate(-3rem, -4rem) scale(1.1); }
+  }
+
   @keyframes float-slow {
     0%, 100% { transform: translateY(0) }
     50% { transform: translateY(-18px) }

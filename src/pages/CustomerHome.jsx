@@ -54,7 +54,7 @@ export default function CustomerHome() {
             placeholder="Search zip code or neighborhood"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="input h-11 w-full shadow-lg"
+            className="input glass-panel h-11 w-full rounded-xl border-white/70 placeholder-slate-500"
           />
           <div className="mt-2 flex flex-wrap justify-center gap-1.5">
             {FILTERS.map(({ key, label }) => (
@@ -63,10 +63,10 @@ export default function CustomerHome() {
                 type="button"
                 aria-pressed={active.includes(key)}
                 onClick={() => toggleFilter(key)}
-                className={`cursor-pointer rounded-full px-3 py-1.5 text-xs font-semibold shadow-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
+                className={`press-spring cursor-pointer rounded-full px-3 py-1.5 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
                   active.includes(key)
                     ? 'bg-brand-600 text-white shadow-md'
-                    : 'bg-white text-slate-600 hover:bg-brand-50'
+                    : 'glass-panel text-slate-700 hover:bg-white/80'
                 }`}
               >
                 {label}
@@ -75,7 +75,7 @@ export default function CustomerHome() {
           </div>
         </div>
 
-        <div className="absolute bottom-56 right-4 flex flex-col gap-1.5 rounded-xl border border-brand-100 bg-white/95 px-3 py-2 text-xs shadow-sm">
+        <div className="glass-panel absolute bottom-56 right-4 flex flex-col gap-1.5 rounded-xl px-3 py-2 text-xs">
           {Object.entries(STATUS_BADGES).map(([key, { dot, label }]) => (
             <span key={key} className="flex items-center gap-2 text-slate-700">
               <span className={`h-2.5 w-2.5 rounded-full ${dot}`} />
@@ -87,7 +87,7 @@ export default function CustomerHome() {
         <div className="absolute inset-x-0 bottom-0 z-10 pb-4">
           <h2 className="sr-only">Nearby detailers</h2>
           {filtered.length === 0 && (
-            <p role="status" className="mx-auto w-fit rounded-xl bg-white/95 px-4 py-2 text-sm text-slate-600 shadow-md">
+            <p role="status" className="glass-panel mx-auto w-fit rounded-xl px-4 py-2 text-sm text-slate-700">
               No detailers match — try clearing a filter.
             </p>
           )}
@@ -99,7 +99,7 @@ export default function CustomerHome() {
               const badge = STATUS_BADGES[d.status]
               return (
                 <StaggerItem key={d.id} className="shrink-0">
-                  <div className="w-64 rounded-2xl border border-brand-100 bg-white p-4 shadow-md transition-all duration-200 hover:-translate-y-1 hover:shadow-xl">
+                  <div className="glass-panel w-64 rounded-2xl p-4 transition-all duration-200 hover:-translate-y-1 hover:bg-white/75 hover:shadow-xl">
                     <div className="flex items-center justify-between gap-2">
                       <button
                         onClick={() => navigate(`/detailers/${d.id}`)}
@@ -126,13 +126,13 @@ export default function CustomerHome() {
                       <div className="flex gap-2">
                         <button
                           onClick={() => d.pin && setFocus({ ...d.pin })}
-                          className="cursor-pointer rounded-lg px-2 py-1 text-xs font-semibold text-slate-500 transition-colors duration-200 hover:bg-brand-50 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+                          className="press-spring cursor-pointer rounded-lg px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-white/70 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
                         >
                           Locate
                         </button>
                         <button
                           onClick={() => navigate(`/detailers/${d.id}`)}
-                          className="cursor-pointer rounded-lg bg-brand-600 px-3 py-1 text-xs font-semibold text-white transition-all duration-200 hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-1"
+                          className="press-spring cursor-pointer rounded-lg bg-brand-600 px-3 py-1 text-xs font-semibold text-white hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-1"
                         >
                           View
                         </button>

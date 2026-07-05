@@ -19,7 +19,6 @@ const MILESTONES = [
     at: 5,
     reward: 'Free exterior wash',
     tier: 'bronze',
-    emoji: '🥉',
     gradient: 'from-amber-400 to-orange-500',
     bg: 'bg-amber-50',
     border: 'border-amber-200',
@@ -30,7 +29,6 @@ const MILESTONES = [
     at: 15,
     reward: 'Free exterior + interior detail',
     tier: 'silver',
-    emoji: '🥈',
     gradient: 'from-slate-400 to-slate-600',
     bg: 'bg-slate-50',
     border: 'border-slate-200',
@@ -41,7 +39,6 @@ const MILESTONES = [
     at: 25,
     reward: 'Free full detail + priority booking',
     tier: 'gold',
-    emoji: '🏆',
     gradient: 'from-yellow-400 to-amber-500',
     bg: 'bg-yellow-50',
     border: 'border-yellow-200',
@@ -50,29 +47,42 @@ const MILESTONES = [
   },
 ]
 
+// Clay punch card: filled washes are raised white clay stamps that pop in
+// with a spring; the remaining slots read as pressed-in clay.
 function PunchCard({ points, target }) {
   const slots = Array.from({ length: target })
   const filled = Math.min(points % target === 0 && points > 0 ? target : points % target, target)
 
   return (
-    <div className="mt-4">
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-xs font-semibold text-brand-200 uppercase tracking-wide">Progress to next reward</p>
-        <p className="text-xs font-bold text-white tabular-nums">{filled}/{target}</p>
+    <div className="mt-5">
+      <div className="mb-2.5 flex items-center justify-between">
+        <p className="text-xs font-semibold uppercase tracking-wide text-brand-200">Progress to next reward</p>
+        <p className="text-xs font-bold tabular-nums text-white">{filled}/{target}</p>
       </div>
-      <div className="flex gap-1.5">
-        {slots.map((_, i) => (
-          <motion.div
-            key={i}
-            initial={false}
-            animate={{
-              backgroundColor: i < filled ? '#fff' : 'rgba(255,255,255,0.15)',
-              scale: i < filled ? 1 : 0.92,
-            }}
-            transition={{ duration: 0.3, delay: i * 0.04 }}
-            className="flex-1 rounded-full h-2.5"
-          />
-        ))}
+      <div className="flex justify-between gap-2">
+        {slots.map((_, i) => {
+          const stamped = i < filled
+          return (
+            <div
+              key={i}
+              className={`flex aspect-square w-full max-w-11 items-center justify-center rounded-full ${
+                stamped ? 'clay-stamp-fill' : 'clay-stamp-slot'
+              }`}
+            >
+              {stamped ? (
+                <motion.span
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 15, delay: 0.15 + i * 0.06 }}
+                >
+                  <CheckIcon className="h-4 w-4 text-brand-700" />
+                </motion.span>
+              ) : (
+                <span className="font-display text-xs font-bold text-white/40">{i + 1}</span>
+              )}
+            </div>
+          )
+        })}
       </div>
     </div>
   )
@@ -105,7 +115,7 @@ export default function Rewards() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
-          className="overflow-hidden rounded-3xl bg-gradient-to-br from-brand-600 via-brand-700 to-brand-900 p-6 text-white shadow-xl"
+          className="clay-card-brand overflow-hidden p-6 text-white"
         >
           <div className="flex items-start justify-between">
             <div>
@@ -128,7 +138,7 @@ export default function Rewards() {
               <p className="mt-1 text-sm text-brand-300">
                 {nextMilestone
                   ? `${nextMilestone.at - customer.points} more to unlock ${nextMilestone.reward}`
-                  : 'Max tier reached! 🏆'}
+                  : 'Max tier reached — you did it'}
               </p>
             </div>
             <motion.div
@@ -163,10 +173,12 @@ export default function Rewards() {
                       initial={{ opacity: 0, x: -12 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: i * 0.07 }}
-                      className={`flex items-center justify-between gap-3 overflow-hidden rounded-2xl border ${ms.border} ${ms.bg} px-4 py-3.5`}
+                      className="clay-card flex items-center justify-between gap-3 overflow-hidden px-4 py-3.5"
                     >
                       <div className="flex items-center gap-3">
-                        <span className="text-2xl leading-none">{ms.emoji}</span>
+                        <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${ms.badge}`}>
+                          <GiftIcon className="h-4 w-4" />
+                        </span>
                         <div>
                           <p className={`font-semibold ${ms.text}`}>{r.type}</p>
                           <p className="text-xs text-slate-500">Expires in {r.expiresDays} days</p>
@@ -174,7 +186,7 @@ export default function Rewards() {
                       </div>
                       <Link
                         to="/map"
-                        className={`shrink-0 rounded-xl px-3 py-1.5 text-xs font-bold transition-opacity hover:opacity-80 ${ms.badge}`}
+                        className={`press-spring shrink-0 rounded-xl px-3 py-1.5 text-xs font-bold hover:opacity-80 ${ms.badge}`}
                       >
                         Use →
                       </Link>
@@ -203,8 +215,8 @@ export default function Rewards() {
                   key={m.at}
                   initial={false}
                   animate={{ opacity: hit || active ? 1 : 0.5 }}
-                  className={`flex items-center gap-4 rounded-2xl border px-4 py-4 ${
-                    hit ? `${m.border} ${m.bg}` : active ? 'border-brand-200 bg-brand-50/60' : 'border-slate-100 bg-white'
+                  className={`flex items-center gap-4 px-4 py-4 ${
+                    hit || active ? 'clay-card' : 'rounded-2xl border border-slate-100 bg-white'
                   }`}
                 >
                   <motion.div
@@ -221,10 +233,7 @@ export default function Rewards() {
                     )}
                   </motion.div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg leading-none">{m.emoji}</span>
-                      <p className={`font-semibold ${hit ? m.text : 'text-slate-700'}`}>{m.reward}</p>
-                    </div>
+                    <p className={`font-semibold ${hit ? m.text : 'text-slate-700'}`}>{m.reward}</p>
                     <p className="mt-0.5 text-xs text-slate-500">
                       {hit ? 'Unlocked!' : active ? `${m.at - customer.points} points away` : `${m.at} points needed`}
                     </p>
@@ -245,7 +254,7 @@ export default function Rewards() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="card mt-6"
+          className="clay-card mt-6 p-6"
         >
           <h2 className="font-display text-sm font-semibold text-slate-900 uppercase tracking-wide">How to earn points</h2>
           <ul className="mt-3 space-y-2.5">
@@ -272,9 +281,9 @@ export default function Rewards() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25 }}
-          className="card mt-4 overflow-hidden !p-0"
+          className="clay-card mt-4 overflow-hidden"
         >
-          <div className="bg-gradient-to-r from-cta-600 to-cta-500 px-5 py-4 text-white">
+          <div className="clay-cta px-5 py-4 text-white">
             <div className="flex items-center gap-2">
               <UsersIcon className="h-4 w-4 opacity-80" />
               <p className="font-display text-sm font-bold uppercase tracking-wide">Refer a friend</p>
@@ -293,9 +302,10 @@ export default function Rewards() {
               </p>
             </div>
             <motion.button
-              whileTap={{ scale: 0.96 }}
+              whileTap={{ scale: 0.9 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 18 }}
               onClick={copyCode}
-              className="btn btn-brand h-10 shrink-0 text-sm"
+              className="clay-chip inline-flex h-10 shrink-0 cursor-pointer items-center rounded-2xl border-none px-4 text-sm font-bold text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
             >
               <AnimatePresence mode="wait">
                 <motion.span
