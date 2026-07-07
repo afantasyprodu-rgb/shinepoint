@@ -1,6 +1,11 @@
 @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
+/* Manual dark mode: the `dark` class on <html> wins over the OS setting.
+   ThemeContext toggles it and persists the choice; first paint is seeded
+   inline in index.html so there's no flash. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* Design tokens — see design-system/shinepoint/MASTER.md */
 @theme {
   --font-sans: "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
@@ -33,6 +38,8 @@
 
   body {
     @apply bg-brand-50 font-sans text-slate-900 antialiased;
+    @apply dark:bg-[#131020] dark:text-slate-100;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
 
   h1, h2, h3, h4 {
@@ -108,18 +115,21 @@
 
   .input {
     @apply h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-slate-900 placeholder-slate-400 transition-colors duration-200 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200;
+    @apply dark:border-white/15 dark:bg-white/5 dark:text-slate-100 dark:placeholder-slate-500 dark:focus:border-brand-400 dark:focus:ring-brand-500/30;
   }
 
   .label {
-    @apply mb-1 block text-sm font-medium text-slate-700;
+    @apply mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300;
   }
 
   .card {
     @apply rounded-2xl border border-brand-100 bg-white p-8 shadow-sm;
+    @apply dark:border-white/10 dark:bg-[#1E1730] dark:shadow-black/30;
   }
 
   .card-hover {
     @apply transition-all duration-200 hover:-translate-y-1 hover:border-brand-300 hover:shadow-xl;
+    @apply dark:hover:border-brand-500/40;
   }
 
   .glass {
@@ -135,6 +145,12 @@
     -webkit-backdrop-filter: blur(16px) saturate(1.5);
     backdrop-filter: blur(16px) saturate(1.5);
     @apply border border-white/70 shadow-lg shadow-brand-900/10;
+  }
+  /* Dark: smoke-tinted glass over the Mapbox dark style. The >=58% opaque
+     fill keeps light text at 4.5:1 over any dark tile. */
+  :where(.dark) .glass-panel {
+    background: rgba(26, 20, 40, 0.62);
+    @apply border-white/12 text-slate-100 shadow-black/40;
   }
 
   /* ── Clay layer (Rewards + gamified surfaces only) ───────
@@ -189,6 +205,57 @@
       0 10px 20px rgba(34, 197, 94, 0.4),
       inset 0 3px 6px rgba(255, 255, 255, 0.4),
       inset 0 -4px 8px rgba(15, 118, 60, 0.45);
+  }
+
+  /* Dark clay: deep violet surface keeps the extruded feel without the
+     pastel glare on a dark ground. */
+  :where(.dark) .clay-card {
+    background: linear-gradient(#221a38, #1b1430);
+    box-shadow:
+      0 12px 26px rgba(0, 0, 0, 0.4),
+      inset 0 -8px 14px rgba(0, 0, 0, 0.35),
+      inset 0 8px 14px rgba(167, 139, 250, 0.14);
+  }
+  :where(.dark) .clay-chip {
+    background: linear-gradient(#2a2144, #201938);
+    @apply text-brand-200;
+    box-shadow:
+      0 6px 12px rgba(0, 0, 0, 0.35),
+      inset 0 2px 5px rgba(167, 139, 250, 0.15),
+      inset 0 -3px 6px rgba(0, 0, 0, 0.3);
+  }
+
+  /* ── Bento layer (earnings + admin cockpits) ─────────────
+     Weighted tiles; mixed sizes carry the hierarchy. One accent
+     action tile max per grid. */
+  .bento-tile {
+    @apply rounded-3xl border border-brand-100 bg-white p-5 shadow-sm;
+    @apply dark:border-white/10 dark:bg-[#1E1730] dark:shadow-black/30;
+  }
+  .bento-k {
+    @apply text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400;
+    font-family: var(--font-display);
+  }
+  .bento-v {
+    @apply font-display font-bold tabular-nums text-brand-800 dark:text-brand-200;
+  }
+  .bento-action {
+    background: linear-gradient(135deg in oklch, #6d28d9, #5b21b6);
+    @apply rounded-3xl p-5 text-white shadow-lg shadow-brand-900/20;
+  }
+
+  /* ── Skeleton bones ──────────────────────────────────────
+     Purple-tinted shimmer; bones must match the loaded card's
+     dimensions 1:1 so the swap never shifts layout. */
+  .skeleton-bone {
+    @apply rounded-lg;
+    background: linear-gradient(100deg, #efe9fa 40%, #f9f5ff 50%, #efe9fa 60%);
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.3s linear infinite;
+  }
+  :where(.dark) .skeleton-bone {
+    background: linear-gradient(100deg, #241b38 40%, #2f2547 50%, #241b38 60%);
+    background-size: 200% 100%;
   }
 
   .chip {
@@ -325,6 +392,53 @@
 }
 
 @layer utilities {
+  @keyframes skeleton-shimmer {
+    from { background-position: 180% 0; }
+    to   { background-position: -20% 0; }
+  }
+
+  @keyframes rise-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: none; }
+  }
+  .animate-rise-in {
+    animation: rise-in 0.35s ease both;
+  }
+
+  /* Soap-bubble float for the spot illustration. */
+  @keyframes bubble-float {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-8px); }
+  }
+  .il-bubble {
+    animation: bubble-float 4.5s ease-in-out infinite;
+    transform-origin: center;
+  }
+  .il-bubble-2 { animation-delay: 1.4s; }
+  .il-bubble-3 { animation-delay: 2.6s; }
+
+  /* Dynamic paint theming: the customer's car color lives in --accent
+     (set by PaintContext). --accent-ink is a contrast-safe text color the
+     component picks. Only personal surfaces read these — never chrome. */
+  .paint-surface {
+    background: linear-gradient(150deg, var(--accent, #7c3aed), color-mix(in oklab, var(--accent, #7c3aed), black 38%));
+    color: #fff;
+    transition: background 0.5s ease, box-shadow 0.5s ease;
+  }
+  .paint-accent-bg {
+    background: var(--accent, #7c3aed);
+    color: #fff;
+    transition: background 0.5s ease;
+  }
+  .paint-accent-text {
+    color: var(--accent, #7c3aed);
+    transition: color 0.5s ease;
+  }
+  .paint-accent-ring {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent, #7c3aed), transparent 78%);
+    transition: box-shadow 0.5s ease;
+  }
+
   @keyframes aurora-drift-a {
     to { transform: translate(4rem, 3rem) scale(1.15); }
   }

@@ -2,9 +2,35 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import Logo from './Logo'
-import { BellIcon, ClipboardCheckIcon, TrendingUpIcon, UsersIcon } from './icons'
+import { BellIcon, ClipboardCheckIcon, TrendingUpIcon, UsersIcon, SunIcon, MoonIcon } from './icons'
 import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
+import { useTheme } from '../context/ThemeContext'
+
+function ThemeToggle() {
+  const { theme, toggle } = useTheme()
+  const dark = theme === 'dark'
+  return (
+    <button
+      onClick={toggle}
+      aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+      aria-pressed={dark}
+      className="press-spring flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-slate-600 hover:bg-brand-50 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-brand-200"
+    >
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.span
+          key={dark ? 'moon' : 'sun'}
+          initial={{ scale: 0, rotate: -90 }}
+          animate={{ scale: 1, rotate: 0 }}
+          exit={{ scale: 0, rotate: 90 }}
+          transition={{ duration: 0.2 }}
+        >
+          {dark ? <MoonIcon className="h-5 w-5" /> : <SunIcon className="h-5 w-5" />}
+        </motion.span>
+      </AnimatePresence>
+    </button>
+  )
+}
 
 function NotificationBell({ role }) {
   const { notifications, markNotificationsRead } = useStore()
@@ -41,7 +67,7 @@ function NotificationBell({ role }) {
         onClick={toggle}
         aria-label={`Notifications${unread ? ` (${unread} unread)` : ''}`}
         aria-expanded={open}
-        className="relative flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-slate-600 transition-colors duration-200 hover:bg-brand-50 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+        className="relative flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-slate-600 transition-colors duration-200 hover:bg-brand-50 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-brand-200"
       >
         <BellIcon className="h-5 w-5" />
         <AnimatePresence>
@@ -65,9 +91,9 @@ function NotificationBell({ role }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.98 }}
             transition={{ duration: 0.18, ease: 'easeOut' }}
-            className="absolute right-0 top-11 z-30 w-80 rounded-2xl border border-brand-100 bg-white p-2 shadow-xl"
+            className="absolute right-0 top-11 z-30 w-80 rounded-2xl border border-brand-100 bg-white p-2 shadow-xl dark:border-white/10 dark:bg-[#1E1730] dark:shadow-black/40"
           >
-            <h2 className="px-3 pt-2 font-display text-sm font-semibold text-slate-900">
+            <h2 className="px-3 pt-2 font-display text-sm font-semibold text-slate-900 dark:text-slate-100">
               Notifications
             </h2>
             <div className="mt-1 max-h-80 overflow-y-auto">
@@ -75,9 +101,9 @@ function NotificationBell({ role }) {
                 <p className="px-3 py-6 text-center text-sm text-slate-400">All quiet.</p>
               )}
               {mine.map((n) => (
-                <div key={n.id} className="rounded-xl px-3 py-2.5 transition-colors duration-150 hover:bg-brand-50">
-                  <p className="text-sm font-semibold text-slate-900">{n.title}</p>
-                  <p className="text-xs text-slate-500">{n.body}</p>
+                <div key={n.id} className="rounded-xl px-3 py-2.5 transition-colors duration-150 hover:bg-brand-50 dark:hover:bg-white/5">
+                  <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{n.title}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">{n.body}</p>
                 </div>
               ))}
             </div>
@@ -108,7 +134,7 @@ function BottomNav({ items }) {
   return (
     <nav
       aria-label="Main mobile"
-      className="fixed inset-x-0 bottom-0 z-20 flex border-t border-slate-200 bg-white/95 backdrop-blur sm:hidden"
+      className="fixed inset-x-0 bottom-0 z-20 flex border-t border-slate-200 bg-white/95 backdrop-blur dark:border-white/10 dark:bg-[#1A1430]/95 sm:hidden"
     >
       {items.map(({ to, label, end, icon: ItemIcon }) => (
         <NavLink
@@ -117,7 +143,7 @@ function BottomNav({ items }) {
           end={end}
           className={({ isActive }) =>
             `flex flex-1 flex-col items-center gap-0.5 py-2.5 text-xs font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
-              isActive ? 'text-brand-700' : 'text-slate-500'
+              isActive ? 'text-brand-700 dark:text-brand-300' : 'text-slate-500 dark:text-slate-400'
             }`
           }
         >
@@ -142,7 +168,7 @@ export default function AppShell({ role, children }) {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="z-20 border-b border-brand-100 bg-white/90 backdrop-blur">
+      <header className="z-20 border-b border-brand-100 bg-white/90 backdrop-blur dark:border-white/10 dark:bg-[#1A1430]/90">
         <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="flex items-center gap-4">
             <Link
@@ -160,8 +186,8 @@ export default function AppShell({ role, children }) {
                   className={({ isActive }) =>
                     `rounded-lg px-3 py-1.5 text-sm font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
                       isActive
-                        ? 'bg-brand-100 text-brand-800'
-                        : 'text-slate-600 hover:bg-brand-50 hover:text-brand-800'
+                        ? 'bg-brand-100 text-brand-800 dark:bg-brand-500/20 dark:text-brand-200'
+                        : 'text-slate-600 hover:bg-brand-50 hover:text-brand-800 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-brand-200'
                     }`
                   }
                 >
@@ -172,10 +198,11 @@ export default function AppShell({ role, children }) {
           </div>
           <div className="flex items-center gap-2">
             {isDemo && (
-              <span className="chip hidden bg-amber-500/15 text-amber-700 sm:inline-flex">
+              <span className="chip hidden bg-amber-500/15 text-amber-700 dark:text-amber-300 sm:inline-flex">
                 Demo · {profile?.full_name}
               </span>
             )}
+            <ThemeToggle />
             <NotificationBell role={role} />
             <button onClick={handleSignOut} className="btn btn-outline h-9 px-3 text-sm">
               {isDemo ? 'Exit demo' : 'Sign out'}
@@ -193,7 +220,9 @@ export default function AppShell({ role, children }) {
                 end={end}
                 className={({ isActive }) =>
                   `shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium ${
-                    isActive ? 'bg-brand-100 text-brand-800' : 'text-slate-600'
+                    isActive
+                      ? 'bg-brand-100 text-brand-800 dark:bg-brand-500/20 dark:text-brand-200'
+                      : 'text-slate-600 dark:text-slate-300'
                   }`
                 }
               >

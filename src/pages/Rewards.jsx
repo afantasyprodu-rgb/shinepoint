@@ -163,7 +163,7 @@ export default function Rewards() {
               transition={{ delay: 0.1 }}
               className="mt-6"
             >
-              <h2 className="font-display text-lg font-semibold text-slate-900">Your rewards</h2>
+              <h2 className="font-display text-lg font-semibold text-slate-900 dark:text-slate-100">Your rewards</h2>
               <div className="mt-3 space-y-2">
                 {customer.rewards.map((r, i) => {
                   const ms = MILESTONES.find((m) => m.tier === r.tier) ?? MILESTONES[0]
@@ -205,7 +205,7 @@ export default function Rewards() {
           transition={{ delay: 0.15 }}
           className="mt-6"
         >
-          <h2 className="font-display text-lg font-semibold text-slate-900">Milestone road</h2>
+          <h2 className="font-display text-lg font-semibold text-slate-900 dark:text-slate-100">Milestone road</h2>
           <ol className="mt-3 space-y-3">
             {MILESTONES.map((m, i) => {
               const hit = unlocked.includes(m.at)
@@ -233,7 +233,7 @@ export default function Rewards() {
                     )}
                   </motion.div>
                   <div className="flex-1 min-w-0">
-                    <p className={`font-semibold ${hit ? m.text : 'text-slate-700'}`}>{m.reward}</p>
+                    <p className={`font-semibold ${hit ? m.text : 'text-slate-700 dark:text-slate-200'}`}>{m.reward}</p>
                     <p className="mt-0.5 text-xs text-slate-500">
                       {hit ? 'Unlocked!' : active ? `${m.at - customer.points} points away` : `${m.at} points needed`}
                     </p>
@@ -256,7 +256,7 @@ export default function Rewards() {
           transition={{ delay: 0.2 }}
           className="clay-card mt-6 p-6"
         >
-          <h2 className="font-display text-sm font-semibold text-slate-900 uppercase tracking-wide">How to earn points</h2>
+          <h2 className="font-display text-sm font-semibold text-slate-900 uppercase tracking-wide dark:text-slate-100">How to earn points</h2>
           <ul className="mt-3 space-y-2.5">
             {[
               { icon: CalendarIcon, label: 'Complete a booking', pts: '+1 pt' },
@@ -264,7 +264,7 @@ export default function Rewards() {
               { icon: UsersIcon,   label: 'Refer a friend who books', pts: '+2 pts' },
             ].map(({ icon: Icon, label, pts }) => (
               <li key={label} className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5 text-sm text-slate-700">
+                <div className="flex items-center gap-2.5 text-sm text-slate-700 dark:text-slate-200">
                   <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-100 text-brand-600">
                     <Icon className="h-3.5 w-3.5" />
                   </span>

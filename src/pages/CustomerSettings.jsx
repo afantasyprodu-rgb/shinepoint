@@ -5,7 +5,57 @@ import { AnimatedPage } from '../components/ui/Motion'
 import { Avatar } from '../components/ui/bits'
 import { CheckIcon, MapPinIcon } from '../components/icons'
 import { useStore } from '../context/StoreContext'
+import { usePaint, PAINTS } from '../context/PaintContext'
 import { LA_ZIP_CENTROIDS } from '../lib/fuzzyPin'
+
+// "Your garage" — the paint accent is sampled from the customer's car photo
+// (on-device in production); the swatches are the manual override. Only these
+// personal surfaces read --accent — never the app chrome.
+function GarageCard() {
+  const { accent, setAccent } = usePaint()
+  const current = PAINTS.find((p) => p.hex.toLowerCase() === accent.toLowerCase())
+
+  return (
+    <div className="card mt-4">
+      <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">Your garage</h2>
+      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+        Your car&apos;s paint color personalizes your bookings and arrival tracker.
+      </p>
+
+      <div className="paint-surface mt-4 rounded-2xl p-5">
+        <p className="font-display text-lg font-bold">2021 Tesla Model 3</p>
+        <p className="mt-0.5 text-sm text-white/85">
+          {current?.name ?? 'Custom paint'} · 7,200 mi since last detail
+        </p>
+        <span className="mt-3 inline-block rounded-full border border-white/35 bg-white/20 px-3 py-1 text-xs font-semibold">
+          Accent sampled from your paint
+        </span>
+      </div>
+
+      <p className="mt-4 mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+        Try another paint
+      </p>
+      <div className="flex flex-wrap gap-3">
+        {PAINTS.map((p) => {
+          const selected = p.hex.toLowerCase() === accent.toLowerCase()
+          return (
+            <button
+              key={p.hex}
+              type="button"
+              onClick={() => setAccent(p.hex)}
+              aria-label={`Paint: ${p.name}`}
+              aria-pressed={selected}
+              className={`press-spring h-10 w-10 cursor-pointer rounded-full border-[3px] border-white shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:border-white/20 ${
+                selected ? 'paint-accent-ring' : ''
+              }`}
+              style={{ background: p.hex }}
+            />
+          )
+        })}
+      </div>
+    </div>
+  )
+}
 
 // Blueprint screen 1.4 — home address setup / account settings.
 export default function CustomerSettings() {
@@ -26,22 +76,24 @@ export default function CustomerSettings() {
   return (
     <AppShell role="customer">
       <AnimatedPage className="mx-auto max-w-xl px-4 py-8 sm:px-6">
-        <h1 className="font-display text-2xl font-bold text-slate-900">Account</h1>
+        <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">Account</h1>
 
         <div className="card mt-6 flex items-center gap-4">
           <Avatar name={customer.name} size="lg" />
           <div>
-            <p className="font-display text-lg font-semibold text-slate-900">{customer.name}</p>
-            <p className="text-sm text-slate-500">
+            <p className="font-display text-lg font-semibold text-slate-900 dark:text-slate-100">{customer.name}</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
               {customer.points} loyalty point{customer.points !== 1 && 's'} · $
               {customer.referralCredits} referral credit
             </p>
           </div>
         </div>
 
+        <GarageCard />
+
         <form onSubmit={save} className="card mt-4 space-y-4">
-          <h2 className="font-display font-semibold text-slate-900">Home address</h2>
-          <p className="-mt-2 text-sm text-slate-500">
+          <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">Home address</h2>
+          <p className="-mt-2 text-sm text-slate-500 dark:text-slate-400">
             Used as your default booking location and to center the map.
           </p>
           <div>
@@ -103,12 +155,12 @@ export default function CustomerSettings() {
         </form>
 
         <div className="card mt-4">
-          <h2 className="font-display font-semibold text-slate-900">Phone verification</h2>
-          <p className="mt-1 text-sm text-slate-500">
+          <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">Phone verification</h2>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
             SMS verification (blueprint 1.3) arrives with the Twilio integration — flagged as
             pending so duplicate-account detection can land with it.
           </p>
-          <span className="chip mt-3 bg-amber-500/15 text-amber-700">Coming with Phase 2</span>
+          <span className="chip mt-3 bg-amber-500/15 text-amber-700 dark:text-amber-300">Coming with Phase 2</span>
         </div>
       </AnimatedPage>
     </AppShell>

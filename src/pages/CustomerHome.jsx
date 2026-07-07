@@ -103,23 +103,23 @@ export default function CustomerHome() {
                     <div className="flex items-center justify-between gap-2">
                       <button
                         onClick={() => navigate(`/detailers/${d.id}`)}
-                        className="cursor-pointer truncate text-left font-display font-semibold text-slate-900 transition-colors duration-200 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+                        className="cursor-pointer truncate text-left font-display font-semibold text-slate-900 transition-colors duration-200 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-slate-100 dark:hover:text-brand-300"
                       >
                         {d.name}
                       </button>
-                      <span className="flex shrink-0 items-center gap-1 text-sm text-slate-700">
+                      <span className="flex shrink-0 items-center gap-1 text-sm text-slate-700 dark:text-slate-200">
                         <StarIcon className="h-3.5 w-3.5 text-amber-500" />
                         {d.rating.toFixed(1)}
                       </span>
                     </div>
-                    <p className="mt-0.5 flex items-center gap-1.5 truncate text-sm text-slate-600">
+                    <p className="mt-0.5 flex items-center gap-1.5 truncate text-sm text-slate-600 dark:text-slate-300">
                       {d.insurance !== 'none' && (
-                        <ShieldCheckIcon className="h-3.5 w-3.5 shrink-0 text-brand-600" />
+                        <ShieldCheckIcon className="h-3.5 w-3.5 shrink-0 text-brand-600 dark:text-brand-400" />
                       )}
                       {d.area} · from ${Math.min(...d.services.map((s) => s.price))}
                     </p>
                     <div className="mt-3 flex items-center justify-between">
-                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600">
+                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-300">
                         <span className={`h-2 w-2 rounded-full ${badge.dot}`} />
                         {d.status === 'busy' && d.acceptsWhenBusy ? 'Busy — accepting' : badge.label}
                       </span>
