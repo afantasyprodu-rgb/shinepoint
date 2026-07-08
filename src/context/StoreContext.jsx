@@ -19,7 +19,35 @@ import {
   saveDetailerOnboarding,
   insertDetailerReview,
   insertCustomerReview,
+  uploadProfileImage,
+  updateUserName,
+  updateCustomerProfile,
+  updateDetailerProfile,
+  saveServices,
+  uploadBookingPhoto,
+  setDamageReportFlags,
+  fetchNotifications,
+  markNotificationsReadDB,
+  insertDispute,
+  fetchDisputes,
+  fetchPendingApplications,
+  fetchFlaggedMessages,
+  adminVerifyDetailer,
+  adminResolveDispute,
+  adminClearFlag,
+  adminOverrideDamage,
 } from '../lib/db'
+
+// Demo image uploads have no backend — read the file into a base64 data URL so
+// it can live in app state exactly like a real public URL would.
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result)
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
 
 const StoreContext = createContext(null)
 
@@ -49,6 +77,8 @@ export function StoreProvider({ children }) {
   const [realBookings, setRealBookings] = useState([])
   const [customerProfile, setCustomerProfile] = useState(null)  // { id, referral_code, ... }
   const [detailerProfile, setDetailerProfile] = useState(null)  // { id, status, ... }
+  const [realNotifications, setRealNotifications] = useState([])
+  const [realAdmin, setRealAdmin] = useState(null)  // built from live moderation queries
 
   // ── Shared ────────────────────────────────────────────────────────────────
   const [notifications, setNotifications] = useState([
@@ -132,6 +162,61 @@ export function StoreProvider({ children }) {
     return () => supabase.removeChannel(channel)
   }, [isDemo, profile?.id])
 
+  // Notifications: load the user's rows and keep them live (rows are created
+  // server-side by the notify_booking_change trigger).
+  useEffect(() => {
+    if (isDemo || !profile?.id) return
+    let cancelled = false
+    fetchNotifications(profile.id, profile.role).then((ns) => {
+      if (!cancelled) setRealNotifications(ns)
+    })
+    const channel = supabase
+      .channel(`notifications:${profile.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${profile.id}` },
+        (payload) => {
+          const n = payload.new
+          setRealNotifications((prev) =>
+            prev.some((x) => x.id === n.id)
+              ? prev
+              : [{ id: n.id, audience: profile.role, title: n.title, body: n.body ?? '', read: false, at: n.created_at }, ...prev]
+          )
+        }
+      )
+      .subscribe()
+    return () => { cancelled = true; supabase.removeChannel(channel) }
+  }, [isDemo, profile?.id, profile?.role])
+
+  // Admin moderation queues, loaded from live tables. Analytics the schema
+  // doesn't back yet (finance, milestones, dispute evidence) reuse the demo
+  // seed so the dashboards render — see loadRealAdmin.
+  const loadRealAdmin = useRef(() => {})
+  useEffect(() => {
+    if (isDemo || profile?.role !== 'admin') return
+    let cancelled = false
+    const load = async () => {
+      const [applications, disputes, flagged] = await Promise.all([
+        fetchPendingApplications(),
+        fetchDisputes(),
+        fetchFlaggedMessages(),
+      ])
+      if (cancelled) return
+      setRealAdmin({
+        applications,
+        disputes,
+        flagged,
+        overrides: [],                 // derived override queue: not wired (needs a rule)
+        finance: DEMO_ADMIN.finance,   // analytics: no real source yet
+        milestones: DEMO_ADMIN.milestones,
+        decided: [],
+      })
+    }
+    loadRealAdmin.current = load
+    load()
+    return () => { cancelled = true }
+  }, [isDemo, profile?.role])
+
   const api = useMemo(() => {
     function notify(audience, title, body) {
       setNotifications((ns) => [
@@ -142,6 +227,13 @@ export function StoreProvider({ children }) {
 
     // ── Merged detailers (real + demo, deduplicated) ──────────────────────
     const allDetailers = [...realDetailers, ...demoDetailers]
+
+    // The logged-in detailer's own merged record (demo seeds 'det-1').
+    const myDetailer = isDemo
+      ? demoDetailers.find((d) => d.id === 'det-1')
+      : detailerProfile
+        ? allDetailers.find((d) => d.id === detailerProfile.id) ?? null
+        : null
 
     // ── Per-role bookings ─────────────────────────────────────────────────
     const bookings = isDemo ? demoBookings : realBookings
@@ -154,6 +246,13 @@ export function StoreProvider({ children }) {
           name: profile?.full_name ?? '',
           address: customerProfile?.default_address ?? '',
           zip: customerProfile?.default_zip ?? '',
+          photo: customerProfile?.profile_photo_url ?? null,
+          bio: customerProfile?.bio ?? '',
+          vehicle: {
+            make: customerProfile?.vehicle_make ?? '',
+            model: customerProfile?.vehicle_model ?? '',
+            type: customerProfile?.vehicle_type ?? '',
+          },
           referralCode: customerProfile?.referral_code ?? '',
           referralCredits: 0,
           points: 0,
@@ -188,23 +287,158 @@ export function StoreProvider({ children }) {
     return {
       isDemo,
       detailers: allDetailers,
+      myDetailer,
       bookings,
       messages,
       customer,
-      admin: demoAdmin,
-      notifications,
+      admin: isDemo
+        ? demoAdmin
+        : (realAdmin ?? {
+            applications: [], disputes: [], flagged: [], overrides: [], decided: [],
+            finance: DEMO_ADMIN.finance, milestones: DEMO_ADMIN.milestones,
+          }),
+      notifications: isDemo ? notifications : realNotifications,
       customerProfile,
       detailerProfile,
       notify,
 
-      updateCustomer(patch) {
-        if (isDemo) setDemoCustomer((c) => ({ ...c, ...patch }))
+      // Upload a profile/gallery image. Demo → base64 data URL held in state;
+      // real → Supabase Storage public URL. Same return shape either way.
+      async uploadImage(file, bucket = 'avatars') {
+        if (isDemo || !profile?.id) return fileToDataUrl(file)
+        return uploadProfileImage(profile.id, bucket, file)
+      },
+
+      // Update the customer profile. `patch` uses app-shaped keys (name, address,
+      // zip, photo, bio, vehicle:{make,model,type}); we map to DB columns for the
+      // real path and merge straight into demo state.
+      async updateCustomer(patch) {
+        if (isDemo) { setDemoCustomer((c) => ({ ...c, ...patch })); return }
+        if (!profile?.id) return
+        if (patch.name != null) await updateUserName(profile.id, patch.name)
+        const cols = {}
+        if (patch.address != null) cols.default_address = patch.address
+        if (patch.zip != null) cols.default_zip = patch.zip
+        if ('photo' in patch) cols.profile_photo_url = patch.photo
+        if (patch.bio != null) cols.bio = patch.bio
+        if (patch.vehicle) {
+          cols.vehicle_make = patch.vehicle.make ?? ''
+          cols.vehicle_model = patch.vehicle.model ?? ''
+          cols.vehicle_type = patch.vehicle.type ?? ''
+        }
+        if (Object.keys(cols).length) {
+          await updateCustomerProfile(profile.id, cols)
+          setCustomerProfile((cp) => ({ ...(cp ?? {}), ...cols }))
+        }
+      },
+
+      // Update the logged-in detailer's own profile (name, bio, photo, gallery).
+      // Demo edits the seeded 'det-1' record; real persists to detailer_profiles.
+      async updateDetailerMe(patch) {
+        if (isDemo) {
+          setDemoDetailers((ds) =>
+            ds.map((d) => (d.id === 'det-1' ? { ...d, ...patch } : d))
+          )
+          return
+        }
+        if (!profile?.id) return
+        if (patch.name != null) await updateUserName(profile.id, patch.name)
+        const cols = {}
+        if (patch.bio != null) cols.bio = patch.bio
+        if ('photo' in patch) cols.profile_photo_url = patch.photo
+        if (patch.gallery) cols.gallery_urls = patch.gallery
+        if (Object.keys(cols).length) {
+          await updateDetailerProfile(profile.id, cols)
+          setDetailerProfile((dp) => ({ ...(dp ?? {}), ...cols }))
+        }
+      },
+
+      // Replace the logged-in detailer's service list. `services` is
+      // [{ id?, name, price, desc }]. Demo edits the seeded record in place.
+      async updateMyServices(services) {
+        if (isDemo) {
+          setDemoDetailers((ds) =>
+            ds.map((d) => (d.id === 'det-1' ? { ...d, services } : d))
+          )
+          return
+        }
+        if (!profile?.id) return
+        await saveServices(profile.id, services)
+        fetchDetailers().then(setRealDetailers)
+      },
+
+      // Submit before/after photos for a booking. `kind` is 'before' | 'after',
+      // `items` is [{ area, photo(base64), file }]. Demo keeps base64 in state;
+      // real uploads each File to Storage + the photos table, then reflects the
+      // public URLs locally so every role sees the same shots.
+      async addBookingPhotos(bookingId, kind, items) {
+        const countKey = kind === 'before' ? 'beforePhotos' : 'afterPhotos'
+        const dataKey = kind === 'before' ? 'beforePhotoData' : 'afterPhotoData'
+        const booking = bookings.find((b) => b.id === bookingId)
+
+        if (isDemo || !booking?._real) {
+          patchBooking(bookingId, { [countKey]: items.length, [dataKey]: items })
+          return
+        }
+        const uploaded = []
+        for (const it of items) {
+          if (!it.file) continue
+          const { url } = await uploadBookingPhoto(profile.id, bookingId, it.file, kind, it.area)
+          uploaded.push({ area: it.area, photo: url })
+        }
+        setRealBookings((bs) =>
+          bs.map((b) => (b.id === bookingId ? { ...b, [countKey]: uploaded.length, [dataKey]: uploaded } : b))
+        )
+      },
+
+      // Detailer submits the damage report. `items` is [{ area, note, photo, file }].
+      async submitDamageReport(bookingId, items) {
+        const booking = bookings.find((b) => b.id === bookingId)
+        if (isDemo || !booking?._real) {
+          patchBooking(bookingId, { damageReport: { submitted: true, acknowledged: false, items } })
+          return
+        }
+        const saved = []
+        for (const it of items) {
+          if (!it.file) { saved.push({ area: it.area, note: it.note }); continue }
+          const label = it.note ? `${it.area} — ${it.note}` : it.area
+          const { url } = await uploadBookingPhoto(profile.id, bookingId, it.file, 'damage_report', label)
+          saved.push({ area: it.area, note: it.note, photo: url })
+        }
+        await setDamageReportFlags(bookingId, { submitted: true, acknowledged: false })
+        setRealBookings((bs) =>
+          bs.map((b) =>
+            b.id === bookingId
+              ? { ...b, damageReport: { submitted: true, acknowledged: false, items: saved } }
+              : b
+          )
+        )
+      },
+
+      // Detailer marks "no pre-existing damage" — report submitted + auto-acked.
+      async markNoDamage(bookingId) {
+        const booking = bookings.find((b) => b.id === bookingId)
+        if (isDemo || !booking?._real) {
+          patchBooking(bookingId, { damageReport: { submitted: true, acknowledged: true, items: [] } })
+          return
+        }
+        await setDamageReportFlags(bookingId, { submitted: true, acknowledged: true })
+        setRealBookings((bs) =>
+          bs.map((b) =>
+            b.id === bookingId ? { ...b, damageReport: { submitted: true, acknowledged: true, items: [] } } : b
+          )
+        )
       },
 
       markNotificationsRead(audience) {
-        setNotifications((ns) =>
-          ns.map((n) => (n.audience === audience ? { ...n, read: true } : n))
-        )
+        if (isDemo) {
+          setNotifications((ns) =>
+            ns.map((n) => (n.audience === audience ? { ...n, read: true } : n))
+          )
+          return
+        }
+        setRealNotifications((ns) => ns.map((n) => ({ ...n, read: true })))
+        if (profile?.id) markNotificationsReadDB(profile.id)
       },
 
       cancelBooking(id, by) {
@@ -212,6 +446,11 @@ export function StoreProvider({ children }) {
       },
 
       fileDispute(bookingId, against, reason) {
+        if (!isDemo && profile?.id) {
+          insertDispute(bookingId, profile.id, reason)
+          patchBooking(bookingId, { status: 'disputed' })
+          return
+        }
         if (isDemo) {
           setDemoAdmin((a) => ({
             ...a,
@@ -251,7 +490,21 @@ export function StoreProvider({ children }) {
       getBooking: (id) => bookings.find((b) => b.id === id),
 
       setAvailability(detailerId, patch) {
-        setDemoDetailers((ds) => ds.map((d) => (d.id === detailerId ? { ...d, ...patch } : d)))
+        if (isDemo || !profile?.id) {
+          setDemoDetailers((ds) => ds.map((d) => (d.id === detailerId ? { ...d, ...patch } : d)))
+          return
+        }
+        // Map app-shaped keys to detailer_profiles columns.
+        const cols = {}
+        if (patch.status != null) cols.status = patch.status
+        if (patch.acceptsWhenBusy != null) cols.accepts_bookings_when_busy = patch.acceptsWhenBusy
+        if (patch.acceptsRewards != null) cols.accepts_reward_bookings = patch.acceptsRewards
+        if (patch.travelMiles != null) cols.free_travel_miles = patch.travelMiles
+        if (Object.keys(cols).length) {
+          updateDetailerProfile(profile.id, cols)
+          setDetailerProfile((dp) => ({ ...(dp ?? {}), ...cols }))
+          setRealDetailers((ds) => ds.map((d) => (d.id === detailerId ? { ...d, ...patch } : d)))
+        }
       },
 
       // Persist the detailer onboarding wizard. Demo users skip the DB.
@@ -369,6 +622,10 @@ export function StoreProvider({ children }) {
       },
 
       resolveDispute(id, resolution) {
+        if (!isDemo) {
+          adminResolveDispute(id, resolution).then(() => loadRealAdmin.current())
+          return
+        }
         const dispute = demoAdmin.disputes.find((d) => d.id === id)
         setDemoAdmin((a) => ({
           ...a,
@@ -385,6 +642,10 @@ export function StoreProvider({ children }) {
       },
 
       decideApplication(id, decision) {
+        if (!isDemo) {
+          adminVerifyDetailer(id, decision === 'approved').then(() => loadRealAdmin.current())
+          return
+        }
         setDemoAdmin((a) => ({
           ...a,
           applications: a.applications.filter((app) => app.id !== id),
@@ -393,6 +654,10 @@ export function StoreProvider({ children }) {
       },
 
       clearFlag(id) {
+        if (!isDemo) {
+          adminClearFlag(id).then(() => loadRealAdmin.current())
+          return
+        }
         setDemoAdmin((a) => ({ ...a, flagged: a.flagged.filter((f) => f.id !== id) }))
       },
 
@@ -400,6 +665,11 @@ export function StoreProvider({ children }) {
       // detailer's job (acknowledges the report); 'cancel' cancels the booking.
       // Either way the booking reflects the admin's decision on every side.
       approveOverride(id, decision = 'approve') {
+        if (!isDemo) {
+          // In real mode `id` is the booking id (see fetchOverrides note).
+          adminOverrideDamage(id, decision).then(() => loadRealAdmin.current())
+          return
+        }
         const ovr = demoAdmin.overrides.find((o) => o.id === id)
         if (ovr) {
           const booking = bookings.find((b) => b.id === ovr.bookingId)
@@ -424,7 +694,7 @@ export function StoreProvider({ children }) {
     realDetailers, realBookings,
     customerProfile, detailerProfile,
     profile,
-    notifications,
+    notifications, realNotifications, realAdmin,
   ])
 
   return <StoreContext.Provider value={api}>{children}</StoreContext.Provider>

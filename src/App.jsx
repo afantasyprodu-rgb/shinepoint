@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { Routes, Route, useLocation } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute'
+import ErrorBoundary from './components/ErrorBoundary'
 import ArrivalTransition from './components/ArrivalTransition'
 import NativeBridge from './components/NativeBridge'
 import { loadCustomerHome } from './lib/preload'
@@ -25,7 +26,6 @@ import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminPeople from './pages/admin/AdminPeople'
 import AdminOps from './pages/admin/AdminOps'
 import AdminFinance from './pages/admin/AdminFinance'
-import AdminSetup from './pages/AdminSetup'
 import ProfileSetup from './pages/ProfileSetup'
 import CustomerOnboarding from './pages/CustomerOnboarding'
 import { Terms, Privacy } from './pages/Legal'
@@ -55,6 +55,7 @@ export default function App() {
   // AnimatedPage entrance plays. (Route-level exit animations via
   // AnimatePresence proved wedge-prone with rapid history changes.)
   return (
+    <ErrorBoundary>
     <ArrivalTransition>
       <NativeBridge />
       <Routes location={location} key={location.pathname}>
@@ -64,7 +65,6 @@ export default function App() {
         <Route path="/signup/detailer" element={<DetailerSignup />} />
         <Route path="/check-email" element={<CheckEmail />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
-        <Route path="/admin-access" element={<AdminSetup />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/privacy" element={<Privacy />} />
         {/* Post-signup profile setup — any signed-in role, no role gate. */}
@@ -103,5 +103,6 @@ export default function App() {
         <Route path="/admin/finance" element={guard('admin', <AdminFinance />)} />
       </Routes>
     </ArrivalTransition>
+    </ErrorBoundary>
   )
 }

@@ -18,8 +18,6 @@ import { useStore } from '../../context/StoreContext'
 
 const TABS = ['Applications', 'Detailers', 'Customers', 'Team']
 
-const ADMIN_KEY = import.meta.env.VITE_ADMIN_KEY ?? ''
-
 const DEMO_ADMINS = [
   { id: 'a1', name: 'Riley Park', email: 'riley@shinepoint.app', since: '2026-01-01' },
 ]
@@ -218,18 +216,7 @@ export default function AdminPeople() {
   const [rejecting, setRejecting] = useState(null)
   const [rejectReason, setRejectReason] = useState('')
   const [toast, setToast] = useState(null)
-  const [keyVisible, setKeyVisible] = useState(false)
-  const [copied, setCopied] = useState(null) // 'link' | 'key'
   const { admin, detailers, decideApplication } = useStore()
-
-  const inviteUrl = `${window.location.origin}/admin-access`
-
-  function copyToClipboard(text, what) {
-    navigator.clipboard.writeText(text).then(() => {
-      setCopied(what)
-      setTimeout(() => setCopied(null), 2000)
-    })
-  }
 
   function showToast(type, name) {
     setToast({ type, name })
@@ -310,21 +297,33 @@ export default function AdminPeople() {
             {tab === 'Detailers' && (
               <div className="space-y-3">
                 {detailers.map((d) => (
-                  <div key={d.id} className="card flex flex-wrap items-center justify-between gap-3 !p-5">
-                    <div className="flex items-center gap-3">
-                      <Avatar name={d.name} />
-                      <div>
-                        <p className="font-semibold text-slate-900">{d.name}</p>
-                        <p className="flex items-center gap-2 text-sm text-slate-500">
-                          <Stars rating={d.rating} className="h-3 w-3" /> {d.rating.toFixed(1)} ·{' '}
-                          {d.completedJobs} jobs · {d.area}
-                          {d.probationRemaining > 0 && (
-                            <span className="chip bg-amber-500/15 text-amber-700">probation</span>
-                          )}
-                        </p>
+                  <div key={d.id} className="card !p-5 space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <Avatar name={d.name} photo={d.photo} />
+                        <div>
+                          <p className="font-semibold text-slate-900">{d.name}</p>
+                          <p className="flex items-center gap-2 text-sm text-slate-500">
+                            <Stars rating={d.rating} className="h-3 w-3" /> {d.rating.toFixed(1)} ·{' '}
+                            {d.completedJobs} jobs · {d.area}
+                            {d.probationRemaining > 0 && (
+                              <span className="chip bg-amber-500/15 text-amber-700">probation</span>
+                            )}
+                          </p>
+                        </div>
                       </div>
+                      <StatusPill status={d.status} acceptsWhenBusy={d.acceptsWhenBusy} />
                     </div>
-                    <StatusPill status={d.status} acceptsWhenBusy={d.acceptsWhenBusy} />
+                    {d.services?.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {d.services.map((s) => (
+                          <span key={s.id ?? s.name} className="chip bg-brand-50 text-brand-700 border border-brand-100">
+                            {s.name}
+                            <span className="ml-1 font-normal text-brand-500">${s.price}</span>
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -377,53 +376,17 @@ export default function AdminPeople() {
                   ))}
                 </div>
 
-                {/* Invite card */}
+                {/* Adding an admin is an ops action, not a self-service flow.
+                    Promote a signed-up user in Supabase:
+                    update public.users set role='admin' where email='...'; */}
                 <div className="card !p-5 border-brand-200">
-                  <p className="font-semibold text-slate-900">Invite a team member</p>
+                  <p className="font-semibold text-slate-900">Add a team member</p>
                   <p className="mt-0.5 text-sm text-slate-500">
-                    Share both the access link and the passphrase. Only people with both can create an admin account.
+                    Have them sign up normally, then grant admin in the Supabase SQL editor:
                   </p>
-
-                  {/* Access link */}
-                  <div className="mt-4">
-                    <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-slate-400">Access link</p>
-                    <div className="flex items-center gap-2 rounded-xl border border-brand-100 bg-slate-50 px-3 py-2.5">
-                      <code className="flex-1 truncate text-sm text-slate-700">{inviteUrl}</code>
-                      <button
-                        onClick={() => copyToClipboard(inviteUrl, 'link')}
-                        className="shrink-0 rounded-lg px-2.5 py-1 text-xs font-semibold text-brand-700 transition-colors hover:bg-brand-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
-                      >
-                        {copied === 'link' ? '✓ Copied' : 'Copy'}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Passphrase */}
-                  <div className="mt-3">
-                    <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-slate-400">Passphrase</p>
-                    <div className="flex items-center gap-2 rounded-xl border border-brand-100 bg-slate-50 px-3 py-2.5">
-                      <code className="flex-1 truncate text-sm text-slate-700 font-mono">
-                        {keyVisible ? ADMIN_KEY : '•'.repeat(Math.max(ADMIN_KEY.length, 8))}
-                      </code>
-                      <button
-                        onClick={() => setKeyVisible((v) => !v)}
-                        className="shrink-0 rounded-lg px-2.5 py-1 text-xs font-semibold text-slate-500 transition-colors hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
-                      >
-                        {keyVisible ? 'Hide' : 'Show'}
-                      </button>
-                      <button
-                        onClick={() => copyToClipboard(ADMIN_KEY, 'key')}
-                        className="shrink-0 rounded-lg px-2.5 py-1 text-xs font-semibold text-brand-700 transition-colors hover:bg-brand-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
-                      >
-                        {copied === 'key' ? '✓ Copied' : 'Copy'}
-                      </button>
-                    </div>
-                  </div>
-
-                  <p className="mt-3 text-xs text-slate-400">
-                    To change the passphrase, update <code>VITE_ADMIN_KEY</code> in your <code>.env</code> and redeploy.
-                    Old invites with the old passphrase will stop working immediately.
-                  </p>
+                  <code className="mt-3 block overflow-x-auto rounded-xl border border-brand-100 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 font-mono">
+                    update public.users set role='admin' where email='them@example.com';
+                  </code>
                 </div>
               </div>
             )}

@@ -19,6 +19,8 @@ function normalizeDetailer(row) {
     acceptsWhenBusy: row.accepts_bookings_when_busy,
     status: row.status,
     bio: row.bio ?? '',
+    photo: row.profile_photo_url ?? null,
+    gallery: row.gallery_urls ?? [],
     probationRemaining: row.probation_jobs_remaining ?? 0,
     services: (row.services ?? [])
       .filter((s) => s.is_active)
@@ -49,9 +51,7 @@ function normalizeCustomerBooking(row) {
     vehicle: row.vehicle_type ?? 'Sedan',
     // A review row for this booking means the customer already rated it.
     reviewed: (row.reviews_of_detailers?.length ?? 0) > 0,
-    damageReport: { submitted: false, acknowledged: false, items: [] },
-    beforePhotos: 0,
-    afterPhotos: 0,
+    ...mapBookingPhotos(row),
     weather: { ok: true, summary: 'Clear' },
     _real: true,
   }
@@ -77,9 +77,7 @@ function normalizeDetailerBooking(row) {
     customerRated: custReview
       ? { rating: custReview.rating, hardToHandle: custReview.is_hard_to_handle }
       : undefined,
-    damageReport: { submitted: false, acknowledged: false, items: [] },
-    beforePhotos: 0,
-    afterPhotos: 0,
+    ...mapBookingPhotos(row),
     weather: { ok: true, summary: 'Clear' },
     _real: true,
   }
@@ -92,6 +90,7 @@ export async function fetchDetailers() {
       id, zip_code, pin_lat, pin_lng, status,
       accepts_bookings_when_busy, accepts_reward_bookings,
       insurance_status, total_completed_jobs, average_rating, bio,
+      profile_photo_url, gallery_urls,
       probation_jobs_remaining,
       users!inner(full_name),
       services(id, service_name, description, price, vehicle_types, is_active)
@@ -107,7 +106,7 @@ export async function fetchDetailers() {
 export async function fetchCustomerProfile(userId) {
   const { data, error } = await supabase
     .from('customer_profiles')
-    .select('id, referral_code, default_address, default_zip')
+    .select('id, referral_code, default_address, default_zip, profile_photo_url, bio, vehicle_make, vehicle_model, vehicle_type')
     .eq('user_id', userId)
     .single()
   if (error) {
@@ -115,6 +114,142 @@ export async function fetchCustomerProfile(userId) {
     return null
   }
   return data
+}
+
+// ------------------------------------------------------------
+// Profile customization
+// ------------------------------------------------------------
+
+// Upload an image to a public bucket under the owner's uid folder and
+// return its public URL. `bucket` is 'avatars' or 'gallery'.
+export async function uploadProfileImage(userId, bucket, file) {
+  const ext = (file.name?.split('.').pop() || 'jpg').toLowerCase()
+  const path = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+  const { error } = await supabase.storage
+    .from(bucket)
+    .upload(path, file, { cacheControl: '3600', upsert: true, contentType: file.type })
+  if (error) {
+    console.error(`uploadProfileImage(${bucket}):`, error.message)
+    throw error
+  }
+  const { data } = supabase.storage.from(bucket).getPublicUrl(path)
+  return data.publicUrl
+}
+
+// Upload one booking photo to the public 'job-photos' bucket and record it in
+// the photos table. `photoType` is 'before' | 'after' | 'damage_report'.
+// Returns { url, area_label } so the caller can update local state immediately.
+export async function uploadBookingPhoto(userId, bookingId, file, photoType, areaLabel) {
+  const ext = (file.name?.split('.').pop() || 'jpg').toLowerCase()
+  const path = `${userId}/${bookingId}/${photoType}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}.${ext}`
+  const { error: upErr } = await supabase.storage
+    .from('job-photos')
+    .upload(path, file, { cacheControl: '3600', contentType: file.type })
+  if (upErr) { console.error('uploadBookingPhoto storage:', upErr.message); throw upErr }
+
+  const { data: pub } = supabase.storage.from('job-photos').getPublicUrl(path)
+  const url = pub.publicUrl
+
+  const { error: rowErr } = await supabase.from('photos').insert({
+    booking_id: bookingId,
+    uploaded_by: userId,
+    photo_type: photoType,
+    url,
+    area_label: areaLabel ?? null,
+  })
+  if (rowErr) { console.error('uploadBookingPhoto row:', rowErr.message); throw rowErr }
+
+  return { url, area_label: areaLabel ?? null }
+}
+
+// Flip the damage-report flags on a booking (server-persisted equivalent of the
+// demo `damageReport` object).
+export async function setDamageReportFlags(bookingId, { submitted, acknowledged }) {
+  const patch = {}
+  if (submitted !== undefined) patch.damage_report_submitted = submitted
+  if (acknowledged !== undefined) patch.damage_report_acknowledged = acknowledged
+  if (!Object.keys(patch).length) return
+  const { error } = await supabase.from('bookings').update(patch).eq('id', bookingId)
+  if (error) console.error('setDamageReportFlags:', error.message)
+}
+
+// Shape a booking row's nested `photos` into the app's photo fields. Damage
+// notes ride in area_label as "Area — note" (the photos table has no note col).
+function mapBookingPhotos(row) {
+  const photos = row.photos ?? []
+  const toData = (type) =>
+    photos.filter((p) => p.photo_type === type).map((p) => ({ area: p.area_label ?? '', photo: p.url }))
+  const before = toData('before')
+  const after = toData('after')
+  const damage = photos
+    .filter((p) => p.photo_type === 'damage_report')
+    .map((p) => {
+      const [area, ...rest] = (p.area_label ?? '').split(' — ')
+      return { area: area ?? '', note: rest.join(' — '), photo: p.url }
+    })
+  return {
+    beforePhotoData: before,
+    afterPhotoData: after,
+    beforePhotos: before.length,
+    afterPhotos: after.length,
+    damageReport: {
+      submitted: row.damage_report_submitted ?? (damage.length > 0),
+      acknowledged: row.damage_report_acknowledged ?? false,
+      items: damage,
+    },
+  }
+}
+
+// Update the display name on the shared users row.
+export async function updateUserName(userId, fullName) {
+  const { error } = await supabase.from('users').update({ full_name: fullName }).eq('id', userId)
+  if (error) console.error('updateUserName:', error.message)
+}
+
+// Patch the caller's customer_profiles row. `patch` keys map directly to
+// columns (profile_photo_url, bio, vehicle_make/model/type, default_address,
+// default_zip). RLS keys the write to auth.uid() = user_id.
+export async function updateCustomerProfile(userId, patch) {
+  const { error } = await supabase.from('customer_profiles').update(patch).eq('user_id', userId)
+  if (error) {
+    console.error('updateCustomerProfile:', error.message)
+    throw error
+  }
+}
+
+// Patch the caller's detailer_profiles row (bio, profile_photo_url, gallery_urls).
+export async function updateDetailerProfile(userId, patch) {
+  const { error } = await supabase.from('detailer_profiles').update(patch).eq('user_id', userId)
+  if (error) {
+    console.error('updateDetailerProfile:', error.message)
+    throw error
+  }
+}
+
+// Replace the caller's service list wholesale (delete + insert), so the editor
+// is idempotent. `services` is [{ name, price, desc }].
+export async function saveServices(userId, services) {
+  const { data: prof, error: profErr } = await supabase
+    .from('detailer_profiles').select('id').eq('user_id', userId).single()
+  if (profErr) { console.error('saveServices lookup:', profErr.message); throw profErr }
+  const detailerId = prof.id
+
+  const { error: delErr } = await supabase.from('services').delete().eq('detailer_id', detailerId)
+  if (delErr) { console.error('saveServices clear:', delErr.message); throw delErr }
+
+  const rows = services
+    .filter((s) => s.name?.trim())
+    .map((s) => ({
+      detailer_id: detailerId,
+      service_name: s.name.trim(),
+      price: Number(s.price) || 0,
+      description: s.desc ?? '',
+      is_active: true,
+    }))
+  if (rows.length) {
+    const { error: insErr } = await supabase.from('services').insert(rows)
+    if (insErr) { console.error('saveServices insert:', insErr.message); throw insErr }
+  }
 }
 
 export async function fetchDetailerProfileRow(userId) {
@@ -137,12 +272,14 @@ export async function fetchBookingsForCustomer(customerProfileId) {
       id, status, scheduled_time, total_price, tip_amount,
       booking_address, booking_zip, created_at,
       service_id, detailer_id,
+      damage_report_submitted, damage_report_acknowledged,
       services(service_name),
       detailer_profiles!bookings_detailer_id_fkey(
         id,
         users!inner(full_name)
       ),
-      reviews_of_detailers(id)
+      reviews_of_detailers(id),
+      photos(id, photo_type, url, area_label)
     `)
     .eq('customer_id', customerProfileId)
     .order('created_at', { ascending: false })
@@ -161,12 +298,14 @@ export async function fetchBookingsForDetailer(detailerProfileId) {
       id, status, scheduled_time, total_price, tip_amount,
       booking_address, booking_zip, created_at,
       service_id, customer_id,
+      damage_report_submitted, damage_report_acknowledged,
       services(service_name),
       customer_profiles!bookings_customer_id_fkey(
         id,
         users!inner(full_name)
       ),
-      reviews_of_customers(rating, is_hard_to_handle)
+      reviews_of_customers(rating, is_hard_to_handle),
+      photos(id, photo_type, url, area_label)
     `)
     .eq('detailer_id', detailerProfileId)
     .not('status', 'in', '("cancelled")')
@@ -363,4 +502,145 @@ export async function sendMessageToDB(bookingId, senderId, content) {
     return { id: null, flagged, error }
   }
   return { id: data.id, flagged }
+}
+
+// ------------------------------------------------------------
+// Notifications (server rows are created by the notify_booking_change
+// trigger; the client only reads + marks read).
+// ------------------------------------------------------------
+export async function fetchNotifications(userId, role) {
+  const { data, error } = await supabase
+    .from('notifications')
+    .select('id, title, body, read_at, created_at')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(50)
+  if (error) { console.error('fetchNotifications:', error.message); return [] }
+  return (data ?? []).map((n) => ({
+    id: n.id,
+    audience: role,          // a user only ever sees their own; role drives the UI filter
+    title: n.title,
+    body: n.body ?? '',
+    read: n.read_at != null,
+    at: n.created_at,
+  }))
+}
+
+export async function markNotificationsReadDB(userId) {
+  const { error } = await supabase
+    .from('notifications')
+    .update({ read_at: new Date().toISOString() })
+    .eq('user_id', userId)
+    .is('read_at', null)
+  if (error) console.error('markNotificationsRead:', error.message)
+}
+
+// ------------------------------------------------------------
+// Disputes
+// ------------------------------------------------------------
+// Customer or detailer files a dispute. filed_by must be the caller (RLS);
+// filed_against is the other party's user id, looked up from the booking.
+export async function insertDispute(bookingId, filedByUserId, reason) {
+  const { data: bk, error: bErr } = await supabase
+    .from('bookings')
+    .select('customer_profiles!bookings_customer_id_fkey(user_id), detailer_profiles!bookings_detailer_id_fkey(user_id)')
+    .eq('id', bookingId)
+    .single()
+  if (bErr) { console.error('insertDispute lookup:', bErr.message); throw bErr }
+  const custUser = bk.customer_profiles?.user_id
+  const detUser = bk.detailer_profiles?.user_id
+  const against = filedByUserId === custUser ? detUser : custUser
+
+  const { error } = await supabase.from('disputes').insert({
+    booking_id: bookingId,
+    filed_by: filedByUserId,
+    filed_against: against,
+    reason,
+    status: 'open',
+  })
+  if (error) { console.error('insertDispute:', error.message); throw error }
+}
+
+// Admin: all disputes with party names, shaped for the ops console. Fields the
+// schema doesn't store (statements, evidence, service, amount) are left blank.
+export async function fetchDisputes() {
+  const { data, error } = await supabase
+    .from('disputes')
+    .select('id, booking_id, reason, status, resolution, refund_amount, opened_at, filer:filed_by(full_name), against:filed_against(full_name)')
+    .order('opened_at', { ascending: false })
+  if (error) { console.error('fetchDisputes:', error.message); return [] }
+  return (data ?? []).map((d) => ({
+    id: d.id,
+    bookingId: d.booking_id,
+    reason: d.reason,
+    status: d.status,
+    resolution: d.resolution ?? undefined,
+    openedAt: d.opened_at,
+    filedBy: d.filer?.full_name ?? 'User',
+    against: d.against?.full_name ?? 'User',
+    amount: d.refund_amount ?? undefined,
+  }))
+}
+
+// Admin: detailers awaiting verification, shaped for the People console.
+export async function fetchPendingApplications() {
+  const { data, error } = await supabase
+    .from('detailer_profiles')
+    .select('id, zip_code, insurance_status, users!inner(full_name, phone, created_at), services(service_name, is_active)')
+    .eq('is_verified', false)
+  if (error) { console.error('fetchPendingApplications:', error.message); return [] }
+  return (data ?? []).map((d) => ({
+    id: d.id,
+    name: d.users?.full_name ?? 'Applicant',
+    applied: d.users?.created_at,
+    insurance: d.insurance_status,
+    area: d.zip_code ?? '',
+    phone: d.users?.phone ?? '',
+    services: (d.services ?? []).filter((s) => s.is_active).map((s) => s.service_name),
+  }))
+}
+
+// Admin: flagged messages across all bookings (RLS admins-read-messages).
+export async function fetchFlaggedMessages() {
+  const { data, error } = await supabase
+    .from('messages')
+    .select('id, booking_id, content, flag_reason, sent_at, users(full_name)')
+    .eq('is_flagged', true)
+    .order('sent_at', { ascending: false })
+  if (error) { console.error('fetchFlaggedMessages:', error.message); return [] }
+  return (data ?? []).map((m) => ({
+    id: m.id,
+    bookingId: m.booking_id,
+    sender: m.users?.full_name ?? 'User',
+    text: m.content,
+    reason: m.flag_reason ?? 'Flagged',
+    at: m.sent_at,
+  }))
+}
+
+// ------------------------------------------------------------
+// Admin actions — security-definer RPCs (migration 010). Each is
+// is_admin()-gated server-side; a raw client UPDATE would be rejected
+// by the 009 column guards.
+// ------------------------------------------------------------
+export async function adminVerifyDetailer(detailerId, approve) {
+  const { error } = await supabase.rpc('admin_verify_detailer', { p_detailer_id: detailerId, p_approve: approve })
+  if (error) console.error('adminVerifyDetailer:', error.message)
+}
+
+export async function adminResolveDispute(disputeId, resolution, refundAmount = null) {
+  const { error } = await supabase.rpc('admin_resolve_dispute', {
+    p_dispute_id: disputeId, p_resolution: resolution, p_refund_amount: refundAmount,
+  })
+  if (error) console.error('adminResolveDispute:', error.message)
+}
+
+export async function adminClearFlag(messageId) {
+  const { error } = await supabase.rpc('admin_clear_flag', { p_message_id: messageId })
+  if (error) console.error('adminClearFlag:', error.message)
+}
+
+export async function adminOverrideDamage(bookingId, decision) {
+  const { error } = await supabase.rpc('admin_override_damage', { p_booking_id: bookingId, p_decision: decision })
+  if (error) console.error('adminOverrideDamage:', error.message)
 }
