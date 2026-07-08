@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
       .select('stripe_account_id, stripe_charges_enabled')
       .eq('id', booking.detailer_id)
       .single()
-    if (!detailer?.stripe_account_id) {
+    if (!detailer?.stripe_account_id || !detailer?.stripe_charges_enabled) {
       return json({ error: 'Detailer has not set up payouts yet.' }, 409)
     }
 
