@@ -20,10 +20,22 @@ import {
   insertDetailerReview,
   insertCustomerReview,
 } from '../lib/db'
+import { DEMO_SYNC_KEY, loadDemoSnapshot, saveDemoSnapshot } from '../lib/demoSync'
 
 const StoreContext = createContext(null)
 
 let idCounter = 200
+
+const initialNotifications = () => [
+  {
+    id: 'n-1',
+    audience: 'customer',
+    title: 'Welcome to ShinePoint',
+    body: 'Book your first detail and start earning loyalty points.',
+    read: false,
+    at: new Date().toISOString(),
+  },
+]
 
 const STATUS_NOTIFICATIONS = {
   accepted: ['customer', 'Booking confirmed', 'Your detailer accepted the job.'],
@@ -38,11 +50,15 @@ export function StoreProvider({ children }) {
   const { user, profile, isDemo } = useAuth()
 
   // ── Demo state ────────────────────────────────────────────────────────────
-  const [demoBookings, setDemoBookings] = useState(DEMO_BOOKINGS)
-  const [demoMessages, setDemoMessages] = useState(DEMO_MESSAGES)
-  const [demoCustomer, setDemoCustomer] = useState(DEMO_CUSTOMER)
-  const [demoAdmin, setDemoAdmin] = useState(DEMO_ADMIN)
-  const [demoDetailers, setDemoDetailers] = useState(DEMO_DETAILERS)
+  // Seeded from the cross-tab snapshot when one exists, so a second tab (the
+  // other side of the two-screen simulation at /demo) picks up bookings made
+  // in the first.
+  const [demoSeed] = useState(loadDemoSnapshot)
+  const [demoBookings, setDemoBookings] = useState(demoSeed?.bookings ?? DEMO_BOOKINGS)
+  const [demoMessages, setDemoMessages] = useState(demoSeed?.messages ?? DEMO_MESSAGES)
+  const [demoCustomer, setDemoCustomer] = useState(demoSeed?.customer ?? DEMO_CUSTOMER)
+  const [demoAdmin, setDemoAdmin] = useState(demoSeed?.admin ?? DEMO_ADMIN)
+  const [demoDetailers, setDemoDetailers] = useState(demoSeed?.detailers ?? DEMO_DETAILERS)
 
   // ── Real state from Supabase ──────────────────────────────────────────────
   const [realDetailers, setRealDetailers] = useState([])
@@ -51,16 +67,66 @@ export function StoreProvider({ children }) {
   const [detailerProfile, setDetailerProfile] = useState(null)  // { id, status, ... }
 
   // ── Shared ────────────────────────────────────────────────────────────────
-  const [notifications, setNotifications] = useState([
-    {
-      id: 'n-1',
-      audience: 'customer',
-      title: 'Welcome to ShinePoint',
-      body: 'Book your first detail and start earning loyalty points.',
-      read: false,
-      at: new Date().toISOString(),
-    },
-  ])
+  const [notifications, setNotifications] = useState(
+    demoSeed?.notifications ?? initialNotifications
+  )
+
+  // ── Cross-tab demo sync ───────────────────────────────────────────────────
+  // Each tab of the two-screen simulation writes its demo state to
+  // localStorage and applies writes coming from the other tab. lastWireRef
+  // breaks the echo: a snapshot we just applied (or just wrote) is never
+  // re-broadcast, so the tabs can't ping-pong.
+  const lastWireRef = useRef(null)
+  const isDemoRef = useRef(isDemo)
+  useEffect(() => { isDemoRef.current = isDemo }, [isDemo])
+
+  useEffect(() => {
+    const state = {
+      bookings: demoBookings,
+      messages: demoMessages,
+      customer: demoCustomer,
+      admin: demoAdmin,
+      detailers: demoDetailers,
+      notifications,
+    }
+    const wire = JSON.stringify(state)
+    if (wire === lastWireRef.current) return
+    lastWireRef.current = wire
+    saveDemoSnapshot(state)
+  }, [demoBookings, demoMessages, demoCustomer, demoAdmin, demoDetailers, notifications])
+
+  useEffect(() => {
+    function onStorage(e) {
+      if (e.key !== DEMO_SYNC_KEY) return
+      if (!e.newValue) {
+        // Another tab reset the demo — return to seed data.
+        lastWireRef.current = null
+        setDemoBookings(DEMO_BOOKINGS)
+        setDemoMessages(DEMO_MESSAGES)
+        setDemoCustomer(DEMO_CUSTOMER)
+        setDemoAdmin(DEMO_ADMIN)
+        setDemoDetailers(DEMO_DETAILERS)
+        if (isDemoRef.current) setNotifications(initialNotifications())
+        return
+      }
+      try {
+        const { state } = JSON.parse(e.newValue)
+        if (!state?.bookings) return
+        lastWireRef.current = JSON.stringify(state)
+        setDemoBookings(state.bookings)
+        setDemoMessages(state.messages ?? {})
+        setDemoCustomer(state.customer ?? DEMO_CUSTOMER)
+        setDemoAdmin(state.admin ?? DEMO_ADMIN)
+        setDemoDetailers(state.detailers ?? DEMO_DETAILERS)
+        // Notifications are shared with real mode — only demo tabs take them.
+        if (isDemoRef.current && state.notifications) setNotifications(state.notifications)
+      } catch {
+        // Malformed write — ignore, this tab keeps its own state.
+      }
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [])
 
   // Load real detailers once on mount (works even in demo — real pins appear on map).
   useEffect(() => {

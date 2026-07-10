@@ -28,6 +28,8 @@ import AdminFinance from './pages/admin/AdminFinance'
 import AdminSetup from './pages/AdminSetup'
 import ProfileSetup from './pages/ProfileSetup'
 import CustomerOnboarding from './pages/CustomerOnboarding'
+import DemoLauncher from './pages/DemoLauncher'
+import DemoEntry from './pages/DemoEntry'
 import { Terms, Privacy } from './pages/Legal'
 
 // Lazy: keeps mapbox-gl (~1.6 MB) out of the initial bundle. Same loader is
@@ -67,6 +69,10 @@ export default function App() {
         <Route path="/admin-access" element={<AdminSetup />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/privacy" element={<Privacy />} />
+        {/* Two-screen simulation: launcher + one direct-entry URL per side. */}
+        <Route path="/demo" element={<DemoLauncher />} />
+        <Route path="/demo/customer" element={<DemoEntry role="customer" />} />
+        <Route path="/demo/detailer" element={<DemoEntry role="detailer" />} />
         {/* Post-signup profile setup — any signed-in role, no role gate. */}
         <Route path="/welcome" element={<ProtectedRoute><ProfileSetup /></ProtectedRoute>} />
         {/* Customer post-signup onboarding (vehicle + address). */}

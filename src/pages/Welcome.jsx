@@ -22,6 +22,7 @@ import {
   CarIcon,
   UsersIcon,
   TrendingUpIcon,
+  ZapIcon,
 } from '../components/icons'
 import { DEMO_DETAILERS } from '../data/demoData'
 
@@ -279,6 +280,31 @@ export default function Welcome() {
             </StaggerItem>
           ))}
         </Stagger>
+        <FadeIn delay={0.15}>
+          <Link
+            to="/demo"
+            className="card card-hover group mt-6 flex flex-wrap items-center justify-between gap-4 border-brand-300 !p-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+          >
+            <div className="flex items-center gap-4">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-md">
+                <ZapIcon className="h-6 w-6" />
+              </span>
+              <div>
+                <h3 className="font-display font-semibold text-slate-900">
+                  Two-screen simulation
+                </h3>
+                <p className="mt-0.5 max-w-md text-sm text-slate-600">
+                  Hire a detailer on one screen and watch the job land on the
+                  other — the whole flow, both sides, live.
+                </p>
+              </div>
+            </div>
+            <span className="inline-flex items-center gap-1 text-sm font-semibold text-brand-600">
+              Launch it
+              <ArrowRightIcon className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
+            </span>
+          </Link>
+        </FadeIn>
       </section>
 
       {/* ===== Detailer CTA ===== */}

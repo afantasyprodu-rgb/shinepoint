@@ -236,7 +236,7 @@ export default function DesktopLanding() {
           <AuthCard defaultMode="login" onAuthenticated={handleAuthed} standalone={false} />
         </div>
 
-        <div className="mt-8 flex items-center gap-4 text-sm">
+        <div className="mt-8 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
           <button
             onClick={startDemo}
             className="cursor-pointer rounded font-medium text-white/60 underline-offset-4 transition-colors duration-200 hover:text-white hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
@@ -249,6 +249,13 @@ export default function DesktopLanding() {
             className="rounded font-medium text-white/60 underline-offset-4 transition-colors duration-200 hover:text-white hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
           >
             Join as a detailer
+          </Link>
+          <span className="text-white/30">·</span>
+          <Link
+            to="/demo"
+            className="rounded font-medium text-white/60 underline-offset-4 transition-colors duration-200 hover:text-white hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+          >
+            Watch a live booking
           </Link>
         </div>
       </motion.div>
