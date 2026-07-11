@@ -59,23 +59,26 @@ const STAGE_DETAIL = {
     prep: () => 'Unlock the car or leave the keys out, and clear space around it.',
   },
   arrived: {
-    what: (d, b) =>
-      b?.damageReport?.acknowledged
-        ? `You approved the condition notes — ${d} is getting set up to start.`
-        : `${d} is here and noting the car's current condition before getting started.`,
-    eta: (d, b) =>
-      b?.damageReport?.acknowledged
-        ? 'Work begins any moment — nothing else needed from you.'
-        : 'Takes 2–3 minutes. You\'ll get a few condition notes to approve.',
-    prep: (d, b) =>
-      b?.damageReport?.acknowledged
-        ? 'Sit back — you\'ll see "In progress" the moment they start.'
-        : 'Review the notes and tap "Approve" — work starts the moment you confirm.',
+    what: (d) => `${d} is here and noting the car's current condition before getting started.`,
+    eta: () => 'Takes 2–3 minutes. You\'ll get a few condition notes to approve.',
+    prep: () => 'Review the notes and tap "Approve" — work starts the moment you confirm.',
   },
   in_progress: {
-    what: () => 'Your detail is underway.',
-    eta: () => 'Most details take 1–3 hours depending on the package.',
-    prep: () => 'Sit back — you’ll get after-photos the moment it’s done.',
+    // While the client has approved but the detailer hasn't tapped Start yet,
+    // the timeline already shows this bubble as current (see visualStageIdx) —
+    // this copy covers that brief in-between beat.
+    what: (d, b) =>
+      b?.status === 'arrived'
+        ? `You approved the condition notes — ${d} is getting set up to start.`
+        : 'Your detail is underway.',
+    eta: (d, b) =>
+      b?.status === 'arrived'
+        ? 'Work begins any moment — nothing else needed from you.'
+        : 'Most details take 1–3 hours depending on the package.',
+    prep: (d, b) =>
+      b?.status === 'arrived'
+        ? 'Sit back — this updates the instant they start.'
+        : 'Sit back — you’ll get after-photos the moment it’s done.',
   },
   complete: {
     what: () => 'All done — your after-photos are ready.',
@@ -116,16 +119,19 @@ export default function BookingDetail() {
   }
 
   const stageIdx = TIMELINE.indexOf(b.status)
-const shownStage = openStage ?? stageIdx
+  // Status only advances to "in_progress" once the detailer taps Start, but
+  // there's nothing left for the client to do the moment they approve the
+  // condition notes — so the timeline jumps ahead to the "In progress" bubble
+  // right away, showing a spinner there instead of sitting stalled on
+  // "Arrived" until the detailer's action catches up.
+  const awaitingDetailerStart =
+    b.status === 'arrived' && b.damageReport.submitted && b.damageReport.acknowledged
+  const visualStageIdx = awaitingDetailerStart ? stageIdx + 1 : stageIdx
+  const shownStage = openStage ?? visualStageIdx
   const shownKey = TIMELINE[shownStage]
   const detail = STAGE_DETAIL[shownKey]
   const detailerName = d?.name ?? 'Your detailer'
-  const isPreview = openStage != null && openStage !== stageIdx
-  // Status only advances to "in_progress" once the detailer taps Start —
-  // once the client approves the condition notes, the "Arrived" bubble
-  // spins in place instead of looking stalled while that happens.
-  const awaitingDetailerStart =
-    b.status === 'arrived' && b.damageReport.submitted && b.damageReport.acknowledged
+  const isPreview = openStage != null && openStage !== visualStageIdx
 
   // Demo helper: advance the job to showcase the full lifecycle.
   function advance() {
@@ -183,14 +189,14 @@ const shownStage = openStage ?? stageIdx
                         <motion.span
                           initial={false}
                           animate={{
-                            backgroundColor: i <= stageIdx ? '#7c3aed' : '#e9d5ff',
-                            scale: i === stageIdx ? 1.15 : 1,
+                            backgroundColor: i <= visualStageIdx ? '#7c3aed' : '#e9d5ff',
+                            scale: i === visualStageIdx ? 1.15 : 1,
                           }}
                           className="flex h-7 w-7 items-center justify-center rounded-full text-white"
                         >
-                          {i < stageIdx ? (
+                          {i < visualStageIdx ? (
                             <CheckIcon className="h-3.5 w-3.5" />
-                          ) : i === stageIdx && awaitingDetailerStart ? (
+                          ) : i === visualStageIdx && awaitingDetailerStart ? (
                             <motion.span
                               aria-hidden="true"
                               animate={{ rotate: 360 }}
@@ -202,23 +208,14 @@ const shownStage = openStage ?? stageIdx
                           )}
                         </motion.span>
                       </button>
-                      <span className={`mt-1 hidden text-[10px] sm:block ${i === stageIdx ? 'font-bold text-brand-700' : 'text-slate-400'}`}>
+                      <span className={`mt-1 hidden text-[10px] sm:block ${i === visualStageIdx ? 'font-bold text-brand-700' : 'text-slate-400'}`}>
                         {TIMELINE_LABELS[stage]}
                       </span>
                     </div>
                     {i < TIMELINE.length - 1 && (
                       <motion.div
                         initial={false}
-                        animate={
-                          i === stageIdx && awaitingDetailerStart
-                            ? { backgroundColor: ['#e9d5ff', '#c4b5fd', '#e9d5ff'] }
-                            : { backgroundColor: i < stageIdx ? '#7c3aed' : '#e9d5ff' }
-                        }
-                        transition={
-                          i === stageIdx && awaitingDetailerStart
-                            ? { duration: 1.3, repeat: Infinity, ease: 'easeInOut' }
-                            : undefined
-                        }
+                        animate={{ backgroundColor: i < visualStageIdx ? '#7c3aed' : '#e9d5ff' }}
                         className="mx-1 mb-4 h-1 flex-1 rounded-full sm:mb-0"
                       />
                     )}
@@ -240,11 +237,11 @@ const shownStage = openStage ?? stageIdx
                     <h2 className="font-display text-sm font-bold text-slate-900">
                       {TIMELINE_LABELS[shownKey]}
                     </h2>
-                    {shownStage === stageIdx ? (
+                    {shownStage === visualStageIdx ? (
                       <span className="chip bg-brand-600 text-white">Current</span>
                     ) : (
                       <span className="chip bg-brand-100 text-brand-700">
-                        {shownStage < stageIdx ? 'Done' : 'Preview'}
+                        {shownStage < visualStageIdx ? 'Done' : 'Preview'}
                       </span>
                     )}
                   </div>
