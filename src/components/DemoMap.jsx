@@ -59,7 +59,7 @@ function statusLine(d) {
   return 'Offline'
 }
 
-export default function DemoMap({ detailers, focus }) {
+export default function DemoMap({ detailers, focus, onSelect }) {
   const [activeId, setActiveId] = useState(null)
   const { theme } = useTheme()
   const P = PALETTES[theme] ?? PALETTES.light
@@ -79,7 +79,7 @@ export default function DemoMap({ detailers, focus }) {
     <div
       className="relative h-full w-full overflow-hidden transition-colors duration-300"
       style={{ background: P.land }}
-      onClick={() => setActiveId(null)}
+      onClick={() => { setActiveId(null); onSelect?.(null) }}
     >
       <svg
         viewBox="0 0 100 100"
@@ -180,7 +180,11 @@ export default function DemoMap({ detailers, focus }) {
               type="button"
               aria-label={`${d.name} — ${statusLine(d)}`}
               aria-expanded={active}
-              onClick={() => setActiveId(active ? null : d.id)}
+              onClick={() => {
+                const next = active ? null : d.id
+                setActiveId(next)
+                onSelect?.(next)
+              }}
               className="relative block h-[22px] w-[22px] cursor-pointer rounded-full border-[3px] border-white shadow-md transition-transform duration-150 hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
               style={{ background: PIN_COLORS[d.status] ?? PIN_COLORS.offline }}
             />

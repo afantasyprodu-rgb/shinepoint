@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { AnimatePresence, motion } from 'motion/react'
 import AppShell from '../components/AppShell'
 import DetailerMap from '../components/DetailerMap'
-import { StarIcon, ShieldCheckIcon } from '../components/icons'
+import { StarIcon, ShieldCheckIcon, ArrowRightIcon } from '../components/icons'
 import { Stagger, StaggerItem } from '../components/ui/Motion'
 import { useStore } from '../context/StoreContext'
 
@@ -26,6 +27,15 @@ export default function CustomerHome() {
   const [focus, setFocus] = useState(null)
   const [query, setQuery] = useState('')
   const [active, setActive] = useState([])
+  const [selectedId, setSelectedId] = useState(null)
+  const cardRefs = useRef({})
+
+  // Tapping a pin selects its detailer — scroll that card into view and pop
+  // its quick-services drawer open.
+  useEffect(() => {
+    if (!selectedId) return
+    cardRefs.current[selectedId]?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
+  }, [selectedId])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -36,6 +46,11 @@ export default function CustomerHome() {
     )
   }, [detailers, query, active])
 
+  const selectedDetailer = useMemo(
+    () => filtered.find((d) => d.id === selectedId) ?? null,
+    [filtered, selectedId]
+  )
+
   function toggleFilter(key) {
     setActive((a) => (a.includes(key) ? a.filter((k) => k !== key) : [...a, key]))
   }
@@ -44,7 +59,7 @@ export default function CustomerHome() {
     <AppShell role="customer">
       <main className="relative h-[calc(100vh-61px)]">
         <h1 className="sr-only">Find a detailer near you</h1>
-        <DetailerMap detailers={filtered} focus={focus} />
+        <DetailerMap detailers={filtered} focus={focus} onSelect={setSelectedId} />
 
         {/* Search + filters (2.1) */}
         <div className="absolute inset-x-0 top-3 z-10 mx-auto w-full max-w-md px-4">
@@ -75,7 +90,11 @@ export default function CustomerHome() {
           </div>
         </div>
 
-        <div className="glass-panel absolute bottom-56 right-4 flex flex-col gap-1.5 rounded-xl px-3 py-2 text-xs">
+        <div
+          className={`glass-panel absolute bottom-56 right-4 flex flex-col gap-1.5 rounded-xl px-3 py-2 text-xs transition-opacity duration-200 ${
+            selectedDetailer ? 'pointer-events-none opacity-0' : ''
+          }`}
+        >
           {Object.entries(STATUS_BADGES).map(([key, { dot, label }]) => (
             <span key={key} className="flex items-center gap-2 text-slate-700">
               <span className={`h-2.5 w-2.5 rounded-full ${dot}`} />
@@ -86,6 +105,49 @@ export default function CustomerHome() {
 
         <div className="absolute inset-x-0 bottom-0 z-10 pb-4">
           <h2 className="sr-only">Nearby detailers</h2>
+
+          {/* Quick-services drawer — pops up above the strip when a pin is tapped.
+              Rendered here (not inside the horizontally-scrolling row below) because
+              overflow-x-auto implicitly clips the y-axis too, which would cut off
+              anything trying to float above a card inside that row. */}
+          <AnimatePresence>
+            {selectedDetailer && (
+              <motion.div
+                initial={{ opacity: 0, y: 8, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 8, scale: 0.97 }}
+                transition={{ duration: 0.18, ease: 'easeOut' }}
+                className="glass-panel relative z-20 mx-auto mb-3 w-64 rounded-2xl p-3"
+              >
+                <p className="px-1 text-xs font-semibold uppercase tracking-wide text-brand-700 dark:text-brand-300">
+                  {selectedDetailer.name} · Services
+                </p>
+                <ul className="mt-1.5 space-y-1">
+                  {selectedDetailer.services.slice(0, 3).map((s) => (
+                    <li
+                      key={s.id}
+                      className="flex items-center justify-between gap-2 rounded-lg px-1.5 py-1 text-sm text-slate-700 dark:text-slate-200"
+                    >
+                      <span className="truncate">{s.name}</span>
+                      <span className="shrink-0 font-semibold text-slate-900 dark:text-slate-100">${s.price}</span>
+                    </li>
+                  ))}
+                  {selectedDetailer.services.length > 3 && (
+                    <li className="px-1.5 text-xs text-slate-500 dark:text-slate-400">
+                      +{selectedDetailer.services.length - 3} more
+                    </li>
+                  )}
+                </ul>
+                <button
+                  onClick={() => navigate(`/detailers/${selectedDetailer.id}`)}
+                  className="press-spring mt-2 flex w-full cursor-pointer items-center justify-center gap-1 rounded-lg bg-brand-600 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-1"
+                >
+                  View profile &amp; book <ArrowRightIcon className="h-3 w-3" />
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {filtered.length === 0 && (
             <p role="status" className="glass-panel mx-auto w-fit rounded-xl px-4 py-2 text-sm text-slate-700">
               No detailers match — try clearing a filter.
@@ -97,9 +159,15 @@ export default function CustomerHome() {
           >
             {filtered.map((d) => {
               const badge = STATUS_BADGES[d.status]
+              const isSelected = selectedId === d.id
               return (
                 <StaggerItem key={d.id} className="shrink-0">
-                  <div className="glass-panel w-64 rounded-2xl p-4 transition-all duration-200 hover:-translate-y-1 hover:bg-white/75 hover:shadow-xl">
+                  <div
+                    ref={(el) => { if (el) cardRefs.current[d.id] = el }}
+                    className={`glass-panel w-64 rounded-2xl p-4 transition-all duration-200 hover:-translate-y-1 hover:bg-white/75 hover:shadow-xl ${
+                      isSelected ? 'ring-2 ring-brand-400' : ''
+                    }`}
+                  >
                     <div className="flex items-center justify-between gap-2">
                       <button
                         onClick={() => navigate(`/detailers/${d.id}`)}

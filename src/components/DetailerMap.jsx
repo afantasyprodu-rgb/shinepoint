@@ -20,10 +20,15 @@ export function isMapboxConfigured() {
   return Boolean(MAPBOX_TOKEN)
 }
 
-export default function DetailerMap({ detailers, focus }) {
+export default function DetailerMap({ detailers, focus, onSelect }) {
   const containerRef = useRef(null)
   const mapRef = useRef(null)
   const { theme } = useTheme()
+  // Kept in a ref so the marker-rebuild effect below doesn't need onSelect in
+  // its dependency array — the caller passes a new inline function every
+  // render, and rebuilding every marker on every render would be wasteful.
+  const onSelectRef = useRef(onSelect)
+  useEffect(() => { onSelectRef.current = onSelect }, [onSelect])
 
   useEffect(() => {
     if (!MAPBOX_TOKEN || !containerRef.current) return
@@ -52,6 +57,7 @@ export default function DetailerMap({ detailers, focus }) {
           background: ${PIN_COLORS[d.status] ?? PIN_COLORS.offline};
           border: 3px solid white; box-shadow: 0 1px 4px rgba(0,0,0,0.4);
         `
+        el.addEventListener('click', () => onSelectRef.current?.(d.id))
 
         const popup = new mapboxgl.Popup({ offset: 16, closeButton: false }).setHTML(`
           <div style="font-family: 'Source Sans 3', sans-serif; min-width: 160px;">
@@ -94,7 +100,7 @@ export default function DetailerMap({ detailers, focus }) {
 
   // No token: fall back to the stylized demo map so the app still demos well.
   if (!MAPBOX_TOKEN) {
-    return <DemoMap detailers={detailers} focus={focus} />
+    return <DemoMap detailers={detailers} focus={focus} onSelect={onSelect} />
   }
 
   return <div ref={containerRef} className="h-full w-full" />
