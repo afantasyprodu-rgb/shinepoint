@@ -249,6 +249,12 @@ export function StoreProvider({ children }) {
       } else {
         demoPatchBooking(id, patch)
       }
+      // If the customer approves on their own after the detailer already
+      // reported a stall to admin, clear the now-stale override request so
+      // it doesn't sit in the admin queue asking for a decision that's moot.
+      if (patch.damageReport?.acknowledged) {
+        setDemoAdmin((a) => ({ ...a, overrides: a.overrides.filter((o) => o.bookingId !== id) }))
+      }
     }
 
     return {
@@ -460,6 +466,30 @@ export function StoreProvider({ children }) {
 
       clearFlag(id) {
         setDemoAdmin((a) => ({ ...a, flagged: a.flagged.filter((f) => f.id !== id) }))
+      },
+
+      // Detailer-initiated: the customer isn't responding to the condition
+      // report, so flag it for admin to review and unlock (or cancel) the job.
+      // A no-op if a request for this booking is already queued.
+      requestOverride(bookingId) {
+        if (demoAdmin.overrides.some((o) => o.bookingId === bookingId)) return
+        const booking = bookings.find((b) => b.id === bookingId)
+        if (!booking) return
+        const detailer = allDetailers.find((d) => d.id === booking.detailerId)
+        setDemoAdmin((a) => ({
+          ...a,
+          overrides: [
+            {
+              id: `ovr-${idCounter++}`,
+              bookingId,
+              detailer: detailer?.name ?? 'Detailer',
+              requestedAt: new Date().toISOString(),
+              damageItems: booking.damageReport?.items ?? [],
+            },
+            ...a.overrides,
+          ],
+        }))
+        notify('admin', 'Approval needed', `${detailer?.name ?? 'A detailer'} is waiting on a stalled condition report.`)
       },
 
       // Admin decides a stalled damage-report override. 'approve' unlocks the

@@ -17,6 +17,7 @@ import {
   MapPinIcon,
   MenuIcon,
   NavigationIcon,
+  AlertTriangleIcon,
 } from '../components/icons'
 import { useStore } from '../context/StoreContext'
 
@@ -27,7 +28,7 @@ const MIN_PHOTOS = 1
 // in progress → after photos → complete. Photos are mandatory gates.
 export default function DetailerJob() {
   const { id } = useParams()
-  const { getBooking, getDetailer, patchBooking, rateCustomer } = useStore()
+  const { getBooking, getDetailer, patchBooking, rateCustomer, admin, requestOverride } = useStore()
   const [custRating, setCustRating] = useState(0)
   const [hardToHandle, setHardToHandle] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -47,6 +48,7 @@ export default function DetailerJob() {
 
   const damageDone = b.damageReport.submitted
   const damageAcked = b.damageReport.acknowledged
+  const overrideRequested = admin.overrides.some((o) => o.bookingId === b.id)
 
   const gates = [
     {
@@ -163,15 +165,29 @@ export default function DetailerJob() {
         </div>
 
         {damageDone && !damageAcked && (
-          <motion.p
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             role="status"
             className="mt-3 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800"
           >
-            Waiting on customer to confirm the damage report… (15-min reminder, 30-min admin
-            override available)
-          </motion.p>
+            <p>
+              Waiting on customer to confirm the damage report… (15-min reminder, 30-min admin
+              override available)
+            </p>
+            {overrideRequested ? (
+              <p className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-amber-900">
+                <CheckIcon className="h-3.5 w-3.5" /> Reported to admin — waiting on their review
+              </p>
+            ) : (
+              <button
+                onClick={() => requestOverride(b.id)}
+                className="btn btn-outline mt-3 h-9 border-amber-300 bg-white px-3 text-xs text-amber-800 hover:bg-amber-100"
+              >
+                <AlertTriangleIcon className="h-3.5 w-3.5" /> Customer not responding? Report to admin
+              </button>
+            )}
+          </motion.div>
         )}
 
         <ol className="mt-6 space-y-3">

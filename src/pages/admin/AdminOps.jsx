@@ -173,7 +173,8 @@ function OverrideCard({ override, booking, onApprove, onCancel }) {
           </p>
           <div className="mt-2 flex flex-wrap gap-2">
             <span className="chip bg-amber-500/15 text-amber-700">
-              <ClockIcon className="mr-1 h-3 w-3" /> waiting {override.waitingMins} min
+              <ClockIcon className="mr-1 h-3 w-3" />
+              {override.requestedAt ? `reported ${hoursAgo(override.requestedAt)}` : `waiting ${override.waitingMins} min`}
             </span>
             <span className="chip bg-brand-100 text-brand-700">
               <CameraIcon className="mr-1 h-3 w-3" /> {items.length} damage photos
