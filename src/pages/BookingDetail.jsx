@@ -133,19 +133,6 @@ export default function BookingDetail() {
   const detailerName = d?.name ?? 'Your detailer'
   const isPreview = openStage != null && openStage !== visualStageIdx
 
-  // Demo helper: advance the job to showcase the full lifecycle.
-  function advance() {
-    setOpenStage(null) // snap the detail panel back to the new current stage
-    if (stageIdx < TIMELINE.length - 1) {
-      const next = TIMELINE[stageIdx + 1]
-      const patch = { status: next }
-      if (next === 'arrived') patch.damageReport = { ...b.damageReport, submitted: true, items: b.damageReport.items.length ? b.damageReport.items : [{ area: 'Driver door', note: 'Small ding, pre-existing' }] }
-      if (next === 'in_progress') patch.beforePhotos = 5
-      if (next === 'complete') patch.afterPhotos = 5
-      patchBooking(b.id, patch)
-    }
-  }
-
   return (
     <AppShell role="customer">
       <AnimatedPage className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
@@ -325,12 +312,6 @@ export default function BookingDetail() {
                 </motion.div>
               </AnimatePresence>
             </>
-          )}
-
-          {stageIdx < TIMELINE.length - 1 && b.status !== 'cancelled' && b.status !== 'disputed' && (
-            <button onClick={advance} className="btn btn-outline mt-5 h-9 w-full text-xs">
-              Demo: simulate next step →
-            </button>
           )}
 
           {['pending', 'accepted'].includes(b.status) && (
