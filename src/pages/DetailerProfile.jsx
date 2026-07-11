@@ -8,6 +8,7 @@ import {
   MapPinIcon,
   ChevronLeftIcon,
   ArrowRightIcon,
+  FileTextIcon,
 } from '../components/icons'
 import { useStore } from '../context/StoreContext'
 
@@ -115,6 +116,23 @@ export default function DetailerProfile() {
               </div>
             </StaggerItem>
           ))}
+          <StaggerItem>
+            <Link
+              to={`/quote/${d.id}`}
+              className="card card-hover flex items-center justify-between gap-4 !p-5 border-dashed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+            >
+              <div className="flex items-center gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-brand-700">
+                  <FileTextIcon className="h-5 w-5" />
+                </span>
+                <div>
+                  <p className="font-semibold text-slate-900">Other — get a custom quote</p>
+                  <p className="text-sm text-slate-600">Describe what you need, add photos, get a price back</p>
+                </div>
+              </div>
+              <ArrowRightIcon className="h-4 w-4 shrink-0 text-brand-600" />
+            </Link>
+          </StaggerItem>
         </Stagger>
 
         <h2 className="mt-8 font-display text-lg font-semibold text-slate-900">Reviews</h2>

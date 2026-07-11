@@ -3,11 +3,117 @@ import { Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import AppShell from '../components/AppShell'
 import AvailabilityToggle from '../components/AvailabilityToggle'
+import EvidencePhotos from '../components/EvidencePhotos'
 import { AnimatedPage, FadeIn } from '../components/ui/Motion'
 import { Avatar, CountUp, ProgressBar, StatusPill } from '../components/ui/bits'
+import { CheckIcon, ClockIcon } from '../components/icons'
 import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
 import { startConnectOnboarding, isStripeConfigured } from '../lib/stripe'
+
+// One incoming "how much for this?" request — collapsed to a summary until
+// the detailer opens it to review photos and send back a price.
+function QuoteInbound({ quote, onRespond, onDecline }) {
+  const [open, setOpen] = useState(false)
+  const [price, setPrice] = useState('')
+  const [note, setNote] = useState('')
+
+  if (quote.status === 'quoted') {
+    return (
+      <div className="card mt-3 !p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <Avatar name={quote.customerName} />
+            <div>
+              <p className="font-semibold text-slate-900">{quote.customerName}</p>
+              <p className="truncate text-sm text-slate-500">{quote.description}</p>
+            </div>
+          </div>
+          <span className="chip bg-cta-700/10 text-cta-700">Quoted ${quote.price}</span>
+        </div>
+        <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
+          <ClockIcon className="h-3.5 w-3.5" /> Waiting on {quote.customerName} to accept
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <motion.div layout initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="card mt-3 border-brand-300 ring-2 ring-brand-100">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <Avatar name={quote.customerName} />
+          <div>
+            <p className="font-semibold text-slate-900">{quote.customerName}</p>
+            <p className="text-sm text-slate-500">wants a custom price</p>
+          </div>
+        </div>
+        {!open && (
+          <button onClick={() => setOpen(true)} className="btn btn-brand h-9 px-3 text-sm">
+            Review
+          </button>
+        )}
+      </div>
+
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <p className="mt-3 text-sm text-slate-700">{quote.description}</p>
+            {quote.photos?.length > 0 && (
+              <div className="mt-3">
+                <EvidencePhotos items={quote.photos} columns={4} />
+              </div>
+            )}
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <div>
+                <label htmlFor={`price-${quote.id}`} className="label">Your price</label>
+                <div className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-200">
+                  <span className="font-semibold text-slate-400">$</span>
+                  <input
+                    id={`price-${quote.id}`}
+                    type="number"
+                    min="1"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                    placeholder="0"
+                    className="h-10 w-full bg-transparent text-sm outline-none placeholder:text-slate-400"
+                  />
+                </div>
+              </div>
+            </div>
+            <label htmlFor={`note-${quote.id}`} className="label mt-3">Note (optional)</label>
+            <textarea
+              id={`note-${quote.id}`}
+              rows={2}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="e.g. Based on the photos this needs extraction, not just a standard clean."
+              className="input h-auto resize-none py-2"
+            />
+            <div className="mt-3 flex gap-2">
+              <button
+                disabled={!price || Number(price) <= 0}
+                onClick={() => onRespond(quote.id, Number(price), note.trim())}
+                className="btn btn-cta h-10 flex-1 text-sm disabled:opacity-40"
+              >
+                <CheckIcon className="h-4 w-4" /> Send price
+              </button>
+              <button onClick={() => onDecline(quote.id)} className="btn btn-outline h-10 flex-1 text-sm">
+                Can't take this
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  )
+}
 
 // Stripe Connect payout setup (real detailers only).
 function PayoutSetup() {
@@ -54,7 +160,7 @@ function PayoutSetup() {
 // Blueprint screen 5.1 — Detailer Dashboard.
 export default function DetailerDashboard() {
   const { profile } = useAuth()
-  const { bookings, getDetailer, patchBooking, isDemo, detailerProfile } = useStore()
+  const { bookings, getDetailer, patchBooking, isDemo, detailerProfile, quotes, respondToQuote, declineQuote } = useStore()
 
   // Demo: use the seeded detailer. Real: use the logged-in detailer's DB profile id.
   const meId = isDemo ? 'det-1' : detailerProfile?.id
@@ -64,6 +170,9 @@ export default function DetailerDashboard() {
   const mine = isDemo ? bookings.filter((b) => b.detailerId === meId) : bookings
   const incoming = mine.filter((b) => b.status === 'pending')
   const active = mine.filter((b) => !['pending', 'complete', 'cancelled'].includes(b.status))
+  const myQuotes = quotes
+    .filter((q) => q.detailerId === meId && (q.status === 'pending' || q.status === 'quoted'))
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
   const earningsToday = mine
     .filter((b) => b.status === 'complete')
     .reduce((sum, b) => sum + b.price * 0.85 + (b.tip ?? 0), 0)
@@ -182,6 +291,23 @@ export default function DetailerDashboard() {
             </motion.div>
           ))}
         </AnimatePresence>
+
+        {/* Custom quote requests — "how much for this?" outside the price list */}
+        {myQuotes.length > 0 && (
+          <>
+            <h2 className="mt-8 font-display text-lg font-semibold text-slate-900">Quote requests</h2>
+            <AnimatePresence>
+              {myQuotes.map((q) => (
+                <QuoteInbound
+                  key={q.id}
+                  quote={q}
+                  onRespond={respondToQuote}
+                  onDecline={(id) => declineQuote(id, 'detailer')}
+                />
+              ))}
+            </AnimatePresence>
+          </>
+        )}
 
         {/* Today's jobs */}
         <h2 className="mt-8 font-display text-lg font-semibold text-slate-900">Active jobs</h2>

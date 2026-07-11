@@ -223,6 +223,28 @@ export const DEMO_MESSAGES = {
   ],
 }
 
+// "Get a custom quote" requests — for anything outside a detailer's listed
+// services. pending: sent, waiting on the detailer. quoted: detailer set a
+// price, waiting on the customer. declined / booked are terminal.
+export const DEMO_QUOTES = [
+  {
+    id: 'qt-1',
+    detailerId: 'det-1',
+    customerName: 'Alex Rivera',
+    description:
+      'My dog had an accident in the back seat and there are some grease stains too — how much for a deep interior detail plus odor removal?',
+    photos: [
+      { area: 'Back seat', note: 'Stain + odor' },
+      { area: 'Footwell', note: 'Grease stain' },
+    ],
+    status: 'quoted',
+    price: 135,
+    note: 'Based on your photos this needs extraction + an ozone pass, not just the standard interior clean — quoted for both.',
+    createdAt: hrs(-20),
+    bookingId: null,
+  },
+]
+
 export const DEMO_CUSTOMER = {
   name: 'Alex Rivera',
   zip: '90026',

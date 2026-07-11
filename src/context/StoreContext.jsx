@@ -7,6 +7,7 @@ import {
   DEMO_MESSAGES,
   DEMO_CUSTOMER,
   DEMO_ADMIN,
+  DEMO_QUOTES,
 } from '../data/demoData'
 import {
   fetchDetailers,
@@ -59,6 +60,9 @@ export function StoreProvider({ children }) {
   const [demoCustomer, setDemoCustomer] = useState(demoSeed?.customer ?? DEMO_CUSTOMER)
   const [demoAdmin, setDemoAdmin] = useState(demoSeed?.admin ?? DEMO_ADMIN)
   const [demoDetailers, setDemoDetailers] = useState(demoSeed?.detailers ?? DEMO_DETAILERS)
+  // Custom-quote requests are demo-only for now (like admin ops) — not yet
+  // persisted to Supabase.
+  const [demoQuotes, setDemoQuotes] = useState(demoSeed?.quotes ?? DEMO_QUOTES)
 
   // ── Real state from Supabase ──────────────────────────────────────────────
   const [realDetailers, setRealDetailers] = useState([])
@@ -87,13 +91,14 @@ export function StoreProvider({ children }) {
       customer: demoCustomer,
       admin: demoAdmin,
       detailers: demoDetailers,
+      quotes: demoQuotes,
       notifications,
     }
     const wire = JSON.stringify(state)
     if (wire === lastWireRef.current) return
     lastWireRef.current = wire
     saveDemoSnapshot(state)
-  }, [demoBookings, demoMessages, demoCustomer, demoAdmin, demoDetailers, notifications])
+  }, [demoBookings, demoMessages, demoCustomer, demoAdmin, demoDetailers, demoQuotes, notifications])
 
   useEffect(() => {
     function onStorage(e) {
@@ -106,6 +111,7 @@ export function StoreProvider({ children }) {
         setDemoCustomer(DEMO_CUSTOMER)
         setDemoAdmin(DEMO_ADMIN)
         setDemoDetailers(DEMO_DETAILERS)
+        setDemoQuotes(DEMO_QUOTES)
         if (isDemoRef.current) setNotifications(initialNotifications())
         return
       }
@@ -118,6 +124,7 @@ export function StoreProvider({ children }) {
         setDemoCustomer(state.customer ?? DEMO_CUSTOMER)
         setDemoAdmin(state.admin ?? DEMO_ADMIN)
         setDemoDetailers(state.detailers ?? DEMO_DETAILERS)
+        setDemoQuotes(state.quotes ?? DEMO_QUOTES)
         // Notifications are shared with real mode — only demo tabs take them.
         if (isDemoRef.current && state.notifications) setNotifications(state.notifications)
       } catch {
@@ -326,6 +333,44 @@ export function StoreProvider({ children }) {
         setDemoDetailers((ds) => ds.map((d) => (d.id === detailerId ? { ...d, ...patch } : d)))
       },
 
+      // ── Custom quotes: "how much for this?" outside the listed services ──
+      quotes: demoQuotes,
+      getQuote: (id) => demoQuotes.find((q) => q.id === id),
+
+      requestQuote({ detailerId, description, photos }) {
+        const detailer = allDetailers.find((d) => d.id === detailerId)
+        const id = `qt-${idCounter++}`
+        setDemoQuotes((qs) => [
+          {
+            id,
+            detailerId,
+            customerName: customer.name,
+            description,
+            photos: photos ?? [],
+            status: 'pending',
+            price: null,
+            note: '',
+            createdAt: new Date().toISOString(),
+            bookingId: null,
+          },
+          ...qs,
+        ])
+        notify('detailer', 'New quote request', `${customer.name} wants a price for something`)
+        return id
+      },
+
+      respondToQuote(quoteId, price, note) {
+        setDemoQuotes((qs) => qs.map((q) => (q.id === quoteId ? { ...q, status: 'quoted', price, note } : q)))
+        notify('customer', 'Your quote is ready', `Price sent: $${price}`)
+      },
+
+      declineQuote(quoteId, by) {
+        setDemoQuotes((qs) => qs.map((q) => (q.id === quoteId ? { ...q, status: 'declined', declinedBy: by } : q)))
+        if (by === 'detailer') {
+          notify('customer', 'Quote declined', "Your detailer can't take this one — try another detailer.")
+        }
+      },
+
       // Persist the detailer onboarding wizard. Demo users skip the DB.
       async saveOnboarding(draft) {
         if (isDemo || profile?.role !== 'detailer') return
@@ -376,6 +421,9 @@ export function StoreProvider({ children }) {
           ...draft,
         }
         setDemoBookings((bs) => [booking, ...bs])
+        if (draft.quoteId) {
+          setDemoQuotes((qs) => qs.map((q) => (q.id === draft.quoteId ? { ...q, status: 'booked', bookingId: id } : q)))
+        }
         notify('detailer', 'New booking request', `${booking.service} from ${booking.customerName}`)
         return id
       },
@@ -516,7 +564,7 @@ export function StoreProvider({ children }) {
     }
   }, [
     isDemo,
-    demoDetailers, demoBookings, demoMessages, demoCustomer, demoAdmin,
+    demoDetailers, demoBookings, demoMessages, demoCustomer, demoAdmin, demoQuotes,
     realDetailers, realBookings,
     customerProfile, detailerProfile,
     profile,

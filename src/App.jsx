@@ -11,6 +11,7 @@ import DetailerSignup from './pages/DetailerSignup'
 import CheckEmail from './pages/CheckEmail'
 import AuthCallback from './pages/AuthCallback'
 import DetailerProfile from './pages/DetailerProfile'
+import QuoteRequest from './pages/QuoteRequest'
 import BookingWizard from './pages/BookingWizard'
 import Bookings from './pages/Bookings'
 import BookingDetail from './pages/BookingDetail'
@@ -89,6 +90,7 @@ export default function App() {
           )}
         />
         <Route path="/detailers/:id" element={guard('customer', <DetailerProfile />)} />
+        <Route path="/quote/:id" element={guard('customer', <QuoteRequest />)} />
         <Route path="/book/:id" element={guard('customer', <BookingWizard />)} />
         <Route path="/bookings" element={guard('customer', <Bookings />)} />
         <Route path="/bookings/:id" element={guard('customer', <BookingDetail />)} />

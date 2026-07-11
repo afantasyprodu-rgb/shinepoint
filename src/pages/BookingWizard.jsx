@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { Elements } from '@stripe/react-stripe-js'
 import AppShell from '../components/AppShell'
@@ -47,12 +47,20 @@ const stepVariants = {
 // Blueprint screens 2.3 → 2.7 — booking flow.
 export default function BookingWizard() {
   const { id } = useParams()
+  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const { getDetailer, customer, createBooking, isDemo, customerProfile } = useStore()
+  const { getDetailer, getQuote, customer, createBooking, isDemo, customerProfile } = useStore()
   const d = getDetailer(id)
 
-  const [step, setStep] = useState(0) // 0 service, 1 schedule, 2 review, 3 processing, 4 confirmed, 5 card
-  const [service, setService] = useState(null)
+  // Arriving from an accepted custom quote (see Bookings.jsx) skips straight
+  // to scheduling — the price is already agreed, not picked from the list.
+  const quoteId = searchParams.get('quote')
+  const quote = quoteId ? getQuote(quoteId) : null
+
+  const [step, setStep] = useState(() => (quote ? 1 : 0)) // 0 service, 1 schedule, 2 review, 3 processing, 4 confirmed, 5 card
+  const [service, setService] = useState(() =>
+    quote ? { id: 'custom', name: `Custom: ${quote.description}`, price: quote.price } : null
+  )
   const [vehicle, setVehicle] = useState('Sedan')
   const [date, setDate] = useState(null)
   const [time, setTime] = useState('')
@@ -66,6 +74,21 @@ export default function BookingWizard() {
 
   const days = useMemo(() => nextDays(10), [])
   if (!d) return null
+
+  // Only gate entry before payment starts — completing the booking is what
+  // flips this same quote's status to 'booked', so re-checking it during
+  // the processing/confirmation steps would incorrectly block our own flow.
+  if (quoteId && step < 3 && quote?.status !== 'quoted') {
+    return (
+      <AppShell role="customer">
+        <div className="mx-auto max-w-xl px-6 py-16 text-center text-slate-600">
+          This quote isn't available to book anymore.{' '}
+          <Link to="/bookings" className="font-semibold text-brand-600">Back to My Bookings</Link>
+        </div>
+      </AppShell>
+    )
+  }
+
   const uninsured = d.insurance === 'none'
   // Loyalty rewards only redeemable with insured detailers (blueprint rule).
   const reward = !uninsured ? customer.rewards[0] : null
@@ -89,6 +112,7 @@ export default function BookingWizard() {
       price: total,
       tip: 0,
       vehicle,
+      quoteId: quote?.id,
       rewardId: useReward && reward ? reward.id : undefined,
       creditUsed: creditUsed || undefined,
       is_loyalty_redemption: Boolean(useReward && reward),
@@ -151,7 +175,7 @@ export default function BookingWizard() {
         {step < 3 && (
           <>
             <button
-              onClick={() => (step === 0 ? navigate(-1) : setStep(step - 1))}
+              onClick={() => (step === 0 || (quote && step === 1) ? navigate(-1) : setStep(step - 1))}
               className="mb-2 inline-flex cursor-pointer items-center gap-1 rounded text-sm font-medium text-slate-600 transition-colors duration-200 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
             >
               <ChevronLeftIcon className="h-4 w-4" /> Back
