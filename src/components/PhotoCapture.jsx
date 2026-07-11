@@ -12,16 +12,27 @@ const ANGLE_GRADIENTS = [
   'from-cta-500/60 to-cta-700/60',
 ]
 
+const MIN_PHOTOS = 1
+
 export default function PhotoCapture({ label = 'before', onSubmit }) {
   const [photos, setPhotos] = useState({}) // { angle: base64 }
   const [lightbox, setLightbox] = useState(null) // angle string
   const fileRefs = useRef({})
 
-  function handleFile(angle, file) {
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = (e) => setPhotos((prev) => ({ ...prev, [angle]: e.target.result }))
-    reader.readAsDataURL(file)
+  // Selecting several photos at once fills the clicked angle first, then
+  // whichever angles are still empty, in order — no need to open the picker
+  // once per angle.
+  function handleFiles(angle, fileList) {
+    const files = Array.from(fileList || [])
+    if (!files.length) return
+    const startIdx = ANGLES.indexOf(angle)
+    const rest = ANGLES.filter((a, i) => i !== startIdx && !photos[a])
+    const targets = [angle, ...rest].slice(0, files.length)
+    targets.forEach((targetAngle, i) => {
+      const reader = new FileReader()
+      reader.onload = (e) => setPhotos((prev) => ({ ...prev, [targetAngle]: e.target.result }))
+      reader.readAsDataURL(files[i])
+    })
   }
 
   function remove(angle) {
@@ -30,12 +41,14 @@ export default function PhotoCapture({ label = 'before', onSubmit }) {
 
   const captured = ANGLES.filter((a) => photos[a])
   const allDone = captured.length === ANGLES.length
+  const canSubmit = captured.length >= MIN_PHOTOS
 
   return (
     <div className="mt-3 space-y-3">
       <p className="text-xs text-slate-500">
-        Capture all 5 angles — front, rear, left side, right side, and interior. All required before{' '}
-        {label === 'before' ? 'starting' : 'completing'} the job.
+        At least 1 photo unlocks {label === 'before' ? 'the job' : 'payout'} — front, rear, left
+        side, right side, and interior give the fullest documentation. Pick several at once from
+        your library if you like.
       </p>
 
       <div className="grid grid-cols-5 gap-2">
@@ -73,10 +86,10 @@ export default function PhotoCapture({ label = 'before', onSubmit }) {
                 ref={(el) => { if (el) fileRefs.current[angle] = el }}
                 type="file"
                 accept="image/*"
-                capture="environment"
+                multiple
                 className="sr-only"
                 aria-hidden="true"
-                onChange={(e) => handleFile(angle, e.target.files[0])}
+                onChange={(e) => { handleFiles(angle, e.target.files); e.target.value = '' }}
               />
             </div>
           )
@@ -100,14 +113,17 @@ export default function PhotoCapture({ label = 'before', onSubmit }) {
       <motion.button
         type="button"
         whileTap={{ scale: 0.97 }}
-        disabled={!allDone}
-        onClick={() => onSubmit(ANGLES.map((a) => ({ area: a, photo: photos[a] })))}
+        disabled={!canSubmit}
+        onClick={() => onSubmit(captured.map((a) => ({ area: a, photo: photos[a] })))}
         className="btn btn-brand h-10 w-full text-sm disabled:opacity-40"
       >
-        {allDone ? (
-          <><CheckIcon className="h-4 w-4" /> Submit {label} photos</>
+        {canSubmit ? (
+          <>
+            <CheckIcon className="h-4 w-4" /> Submit {captured.length} {label} photo
+            {captured.length !== 1 ? 's' : ''}
+          </>
         ) : (
-          `${ANGLES.length - captured.length} photo${ANGLES.length - captured.length !== 1 ? 's' : ''} remaining`
+          'Add at least 1 photo to continue'
         )}
       </motion.button>
 

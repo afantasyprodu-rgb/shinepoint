@@ -20,6 +20,8 @@ import {
 } from '../components/icons'
 import { useStore } from '../context/StoreContext'
 
+const MIN_PHOTOS = 1
+
 // Blueprint 5.3–5.5 — the detailer's gated job flow:
 // en route → arrived → damage report → before photos → start →
 // in progress → after photos → complete. Photos are mandatory gates.
@@ -89,9 +91,9 @@ export default function DetailerJob() {
     {
       key: 'before',
       title: 'Before photos',
-      desc: 'Front, rear, both sides, interior — all five required to unlock the job.',
-      done: b.beforePhotos >= 5,
-      ready: b.status === 'arrived' && damageDone && b.beforePhotos < 5,
+      desc: 'Front, rear, both sides, interior — at least one unlocks the job, more is better documentation.',
+      done: b.beforePhotos >= MIN_PHOTOS,
+      ready: b.status === 'arrived' && damageDone && b.beforePhotos < MIN_PHOTOS,
     },
     {
       key: 'start',
@@ -100,23 +102,23 @@ export default function DetailerJob() {
         ? 'All gates passed — get to work.'
         : 'Locked until the customer confirms your damage report (admin can override after 30 min).',
       done: ['in_progress', 'complete'].includes(b.status),
-      ready: b.status === 'arrived' && b.beforePhotos >= 5 && damageAcked,
+      ready: b.status === 'arrived' && b.beforePhotos >= MIN_PHOTOS && damageAcked,
       action: () => patchBooking(b.id, { status: 'in_progress' }),
       cta: 'Start job',
     },
     {
       key: 'after',
       title: 'After photos',
-      desc: 'Same five angles. No photos, no payout.',
-      done: b.afterPhotos >= 5,
-      ready: b.status === 'in_progress' && b.afterPhotos < 5,
+      desc: 'Same angles — at least one required. No photos, no payout.',
+      done: b.afterPhotos >= MIN_PHOTOS,
+      ready: b.status === 'in_progress' && b.afterPhotos < MIN_PHOTOS,
     },
     {
       key: 'complete',
       title: 'Mark complete',
       desc: 'Customer gets the photos, tip prompt, and review request. Payout initiates.',
       done: b.status === 'complete',
-      ready: b.status === 'in_progress' && b.afterPhotos >= 5,
+      ready: b.status === 'in_progress' && b.afterPhotos >= MIN_PHOTOS,
       action: () => { patchBooking(b.id, { status: 'complete' }); setShowPayout(true) },
       cta: 'Mark job complete',
     },
@@ -222,7 +224,7 @@ export default function DetailerJob() {
                         label={g.key}
                         onSubmit={(photos) =>
                           patchBooking(b.id, {
-                            [g.key === 'before' ? 'beforePhotos' : 'afterPhotos']: 5,
+                            [g.key === 'before' ? 'beforePhotos' : 'afterPhotos']: photos.length,
                             [g.key === 'before' ? 'beforePhotoData' : 'afterPhotoData']: photos,
                           })
                         }

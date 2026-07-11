@@ -59,9 +59,18 @@ const STAGE_DETAIL = {
     prep: () => 'Unlock the car or leave the keys out, and clear space around it.',
   },
   arrived: {
-    what: (d) => `${d} is here and photographing any existing damage before touching the car.`,
-    eta: () => 'Takes 2–3 minutes. You\'ll get a photo report to approve.',
-    prep: () => 'Review the damage photos and tap "Approve" — work starts the moment you confirm.',
+    what: (d, b) =>
+      b?.damageReport?.acknowledged
+        ? `You approved the condition notes — ${d} is getting set up to start.`
+        : `${d} is here and noting the car's current condition before getting started.`,
+    eta: (d, b) =>
+      b?.damageReport?.acknowledged
+        ? 'Work begins any moment — nothing else needed from you.'
+        : 'Takes 2–3 minutes. You\'ll get a few condition notes to approve.',
+    prep: (d, b) =>
+      b?.damageReport?.acknowledged
+        ? 'Sit back — you\'ll see "In progress" the moment they start.'
+        : 'Review the notes and tap "Approve" — work starts the moment you confirm.',
   },
   in_progress: {
     what: () => 'Your detail is underway.',
@@ -112,6 +121,11 @@ const shownStage = openStage ?? stageIdx
   const detail = STAGE_DETAIL[shownKey]
   const detailerName = d?.name ?? 'Your detailer'
   const isPreview = openStage != null && openStage !== stageIdx
+  // Status only advances to "in_progress" once the detailer taps Start —
+  // once the client approves the condition notes, the "Arrived" bubble
+  // spins in place instead of looking stalled while that happens.
+  const awaitingDetailerStart =
+    b.status === 'arrived' && b.damageReport.submitted && b.damageReport.acknowledged
 
   // Demo helper: advance the job to showcase the full lifecycle.
   function advance() {
@@ -174,7 +188,18 @@ const shownStage = openStage ?? stageIdx
                           }}
                           className="flex h-7 w-7 items-center justify-center rounded-full text-white"
                         >
-                          {i < stageIdx ? <CheckIcon className="h-3.5 w-3.5" /> : <span className="h-2 w-2 rounded-full bg-white/80" />}
+                          {i < stageIdx ? (
+                            <CheckIcon className="h-3.5 w-3.5" />
+                          ) : i === stageIdx && awaitingDetailerStart ? (
+                            <motion.span
+                              aria-hidden="true"
+                              animate={{ rotate: 360 }}
+                              transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }}
+                              className="h-3.5 w-3.5 rounded-full border-2 border-white/40 border-t-white"
+                            />
+                          ) : (
+                            <span className="h-2 w-2 rounded-full bg-white/80" />
+                          )}
                         </motion.span>
                       </button>
                       <span className={`mt-1 hidden text-[10px] sm:block ${i === stageIdx ? 'font-bold text-brand-700' : 'text-slate-400'}`}>
@@ -184,7 +209,16 @@ const shownStage = openStage ?? stageIdx
                     {i < TIMELINE.length - 1 && (
                       <motion.div
                         initial={false}
-                        animate={{ backgroundColor: i < stageIdx ? '#7c3aed' : '#e9d5ff' }}
+                        animate={
+                          i === stageIdx && awaitingDetailerStart
+                            ? { backgroundColor: ['#e9d5ff', '#c4b5fd', '#e9d5ff'] }
+                            : { backgroundColor: i < stageIdx ? '#7c3aed' : '#e9d5ff' }
+                        }
+                        transition={
+                          i === stageIdx && awaitingDetailerStart
+                            ? { duration: 1.3, repeat: Infinity, ease: 'easeInOut' }
+                            : undefined
+                        }
                         className="mx-1 mb-4 h-1 flex-1 rounded-full sm:mb-0"
                       />
                     )}
@@ -231,7 +265,7 @@ const shownStage = openStage ?? stageIdx
                       {b.damageReport.items.length > 0 ? (
                         <>
                           <p className="mb-2 text-xs font-semibold text-amber-700 uppercase tracking-wide">
-                            Pre-existing damage — review &amp; approve
+                            Condition notes — review &amp; approve
                           </p>
                           <ul className="space-y-2">
                             {b.damageReport.items.map((item, i) => (
@@ -239,7 +273,7 @@ const shownStage = openStage ?? stageIdx
                                 {item.photo && (
                                   <img
                                     src={item.photo}
-                                    alt={`Damage at ${item.area || 'area ' + (i + 1)}`}
+                                    alt={`Condition note: ${item.area || 'area ' + (i + 1)}`}
                                     className="h-44 w-full object-cover"
                                   />
                                 )}
@@ -263,24 +297,30 @@ const shownStage = openStage ?? stageIdx
                                 onClick={() => patchBooking(b.id, { damageReport: { ...b.damageReport, acknowledged: true } })}
                                 className="btn btn-cta h-10 w-full text-sm"
                               >
-                                Approve — damage is pre-existing, proceed
+                                Looks right — proceed
                               </button>
                               <button
                                 onClick={() => setShowRejectDamage(true)}
                                 className="btn h-9 w-full text-xs bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-600"
                               >
-                                Reject &amp; cancel job
+                                Something's wrong &amp; cancel job
                               </button>
                             </div>
                           ) : (
-                            <p className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-cta-700">
-                              <CheckIcon className="h-3.5 w-3.5" /> Damage approved — work in progress
+                            <p className="mt-3 flex items-center gap-2 text-xs font-semibold text-cta-700">
+                              <motion.span
+                                aria-hidden="true"
+                                animate={{ rotate: 360 }}
+                                transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }}
+                                className="h-3.5 w-3.5 shrink-0 rounded-full border-2 border-cta-200 border-t-cta-700"
+                              />
+                              Confirmed — waiting for {detailerName} to start
                             </p>
                           )}
                         </>
                       ) : (
                         <p className="text-xs text-cta-700 font-medium flex items-center gap-1.5">
-                          <CheckIcon className="h-3.5 w-3.5" /> No pre-existing damage reported
+                          <CheckIcon className="h-3.5 w-3.5" /> Nothing noted — car looked great on arrival
                         </p>
                       )}
                     </div>
@@ -398,8 +438,8 @@ const shownStage = openStage ?? stageIdx
             Cancel this job?
           </h2>
           <p className="mt-2 text-center text-sm text-slate-600">
-            Rejecting the damage report will cancel the booking. The detailer will be notified
-            and no charge will be made.
+            Cancelling here will end the booking. The detailer will be notified and no charge
+            will be made.
           </p>
           <div className="mt-6 flex flex-col gap-2">
             <button
@@ -461,7 +501,7 @@ const shownStage = openStage ?? stageIdx
             rows={4}
             value={disputeReason}
             onChange={(e) => setDisputeReason(e.target.value)}
-            placeholder="e.g. New scratch on the hood that wasn't in the damage report…"
+            placeholder="e.g. New scratch on the hood that wasn't in the condition notes…"
             className="input mt-4 h-auto resize-none py-2"
           />
           <button
