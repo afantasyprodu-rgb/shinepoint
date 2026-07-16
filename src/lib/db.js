@@ -644,3 +644,22 @@ export async function adminOverrideDamage(bookingId, decision) {
   const { error } = await supabase.rpc('admin_override_damage', { p_booking_id: bookingId, p_decision: decision })
   if (error) console.error('adminOverrideDamage:', error.message)
 }
+
+// Every registered account (migration 012 lets admins read all of public.users).
+export async function fetchAllUsersForAdmin() {
+  const { data, error } = await supabase
+    .from('users')
+    .select('id, email, phone, role, full_name, created_at, is_suspended, is_banned')
+    .order('created_at', { ascending: false })
+  if (error) { console.error('fetchAllUsersForAdmin:', error.message); return [] }
+  return data
+}
+
+// Permanently deletes an account (edge function, needs the service-role key
+// to remove the auth.users row). Throws with the DB error message if the
+// account has bookings blocking the cascade — ban instead in that case.
+export async function adminDeleteUser(userId) {
+  const { data, error } = await supabase.functions.invoke('admin-delete-user', { body: { userId } })
+  if (error) throw new Error(error.message)
+  if (data?.error) throw new Error(data.error)
+}

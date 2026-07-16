@@ -331,3 +331,93 @@
     margin: 0;
   }
 }
+
+/* ── Admin claymorphism ─────────────────────────────────────────────────────
+   Scoped to .admin-clay (set once on AdminShell's root) so customer/detailer
+   UI is untouched. Puffy pastel surfaces: soft dual shadows instead of hard
+   borders, bigger radii, inputs read as pressed-in rather than outlined. */
+.admin-clay {
+  --clay-bg: #eef2fb;
+  --clay-shadow-1: rgba(163, 177, 214, 0.55);
+  --clay-shadow-2: rgba(255, 255, 255, 0.85);
+}
+
+.admin-clay .card {
+  border: none;
+  border-radius: 1.75rem;
+  background: var(--clay-bg);
+  box-shadow:
+    8px 8px 18px var(--clay-shadow-1),
+    -8px -8px 18px var(--clay-shadow-2);
+}
+
+.admin-clay .card-hover:hover {
+  box-shadow:
+    10px 10px 22px var(--clay-shadow-1),
+    -10px -10px 22px var(--clay-shadow-2);
+  transform: translateY(-2px);
+}
+
+.admin-clay .btn {
+  border-radius: 1.25rem;
+  box-shadow:
+    5px 5px 10px var(--clay-shadow-1),
+    -5px -5px 10px var(--clay-shadow-2);
+}
+.admin-clay .btn:hover {
+  box-shadow:
+    6px 6px 14px var(--clay-shadow-1),
+    -6px -6px 14px var(--clay-shadow-2);
+}
+.admin-clay .btn:active {
+  box-shadow:
+    inset 3px 3px 6px var(--clay-shadow-1),
+    inset -3px -3px 6px var(--clay-shadow-2);
+}
+
+.admin-clay .btn-outline {
+  border: none;
+  background: var(--clay-bg);
+  box-shadow:
+    inset 3px 3px 7px var(--clay-shadow-1),
+    inset -3px -3px 7px var(--clay-shadow-2);
+}
+.admin-clay .btn-outline:hover {
+  background: var(--clay-bg);
+}
+
+.admin-clay .input {
+  border: none;
+  border-radius: 1rem;
+  background: var(--clay-bg);
+  box-shadow:
+    inset 3px 3px 7px var(--clay-shadow-1),
+    inset -3px -3px 7px var(--clay-shadow-2);
+}
+.admin-clay .input:focus {
+  box-shadow:
+    inset 3px 3px 7px var(--clay-shadow-1),
+    inset -3px -3px 7px var(--clay-shadow-2),
+    0 0 0 3px var(--color-brand-200);
+}
+
+.admin-clay .chip {
+  border-radius: 999px;
+  box-shadow:
+    3px 3px 6px var(--clay-shadow-1),
+    -3px -3px 6px var(--clay-shadow-2);
+}
+
+.admin-clay aside,
+.admin-clay header {
+  background: var(--clay-bg) !important;
+  border: none !important;
+  box-shadow: 4px 0 14px var(--clay-shadow-1);
+  backdrop-filter: none !important;
+}
+
+.admin-clay nav a[class*='bg-brand-600'] {
+  box-shadow:
+    inset 3px 3px 7px rgba(0, 0, 0, 0.15),
+    inset -2px -2px 5px rgba(255, 255, 255, 0.25);
+}

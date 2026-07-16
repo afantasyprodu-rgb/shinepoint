@@ -19,6 +19,8 @@ const detailerRows = [
     completedJobs: 412,
     probationRemaining: 0,
     acceptsRewards: true,
+    photo: null,
+    gallery: [],
     services: [
       { id: 's1', name: 'Exterior Wash', price: 45, desc: 'Hand wash, wheels, tire shine' },
       { id: 's2', name: 'Interior Deep Clean', price: 95, desc: 'Vacuum, steam, leather care' },
@@ -227,6 +229,9 @@ export const DEMO_CUSTOMER = {
   name: 'Alex Rivera',
   zip: '90026',
   address: '2200 Sunset Blvd, Los Angeles',
+  photo: null,
+  bio: '',
+  vehicle: { make: '', model: '', type: '' },
   points: 4,
   pointsToNextReward: 5,
   unlockedMilestones: [],

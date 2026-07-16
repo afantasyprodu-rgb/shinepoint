@@ -63,7 +63,7 @@ export default function DetailerProfile() {
         <div className="card">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="flex items-center gap-4">
-              <Avatar name={d.name} size="lg" />
+              <Avatar name={d.name} photo={d.photo} size="lg" />
               <div>
                 <h1 className="font-display text-2xl font-bold text-slate-900">{d.name}</h1>
                 <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-600">
@@ -116,6 +116,19 @@ export default function DetailerProfile() {
             </StaggerItem>
           ))}
         </Stagger>
+
+        {d.gallery?.length > 0 && (
+          <>
+            <h2 className="mt-8 font-display text-lg font-semibold text-slate-900">Portfolio</h2>
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              {d.gallery.map((url, i) => (
+                <div key={url} className="aspect-square overflow-hidden rounded-xl">
+                  <img src={url} alt={`${d.name} work ${i + 1}`} className="h-full w-full object-cover" loading="lazy" />
+                </div>
+              ))}
+            </div>
+          </>
+        )}
 
         <h2 className="mt-8 font-display text-lg font-semibold text-slate-900">Reviews</h2>
         <Stagger className="mt-3 space-y-3">

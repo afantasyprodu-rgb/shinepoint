@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
     // Load booking + verify the caller owns it (customer side).
     const { data: booking, error: bErr } = await admin
       .from('bookings')
-      .select('id, total_price, paid_at, stripe_payment_intent, customer_id, detailer_id, customer_profiles!bookings_customer_id_fkey(user_id)')
+      .select('id, total_price, paid_at, stripe_payment_intent, customer_id, detailer_id, service_id, is_loyalty_redemption, customer_profiles!bookings_customer_id_fkey(user_id)')
       .eq('id', bookingId)
       .single()
     if (bErr || !booking) return json({ error: 'Booking not found' }, 404)
@@ -50,10 +50,55 @@ Deno.serve(async (req) => {
     }
     if (booking.paid_at) return json({ error: 'Already paid' }, 409)
 
-    const amount = Math.round(Number(booking.total_price) * 100)
+    // Never trust the client-written total_price — recompute the amount from
+    // the detailer's own service listing. The INSERT RLS policy only checks
+    // ownership, so total_price on the row is attacker-controlled.
+    // (Referral credits are demo-only with no server-side balance, so they
+    // are deliberately not honored here.)
+    const { data: service } = await admin
+      .from('services')
+      .select('id, price, detailer_id')
+      .eq('id', booking.service_id)
+      .single()
+    if (!service || service.detailer_id !== booking.detailer_id) {
+      return json({ error: 'Invalid service for this booking' }, 409)
+    }
+
+    let expected = Number(service.price)
+    let rewardId: string | null = null
+    if (booking.is_loyalty_redemption) {
+      // Free only against a real, unredeemed, unexpired reward.
+      const { data: reward } = await admin
+        .from('loyalty_rewards')
+        .select('id')
+        .eq('customer_id', booking.customer_id)
+        .is('redeemed_at', null)
+        .eq('is_expired', false)
+        .gt('expires_at', new Date().toISOString())
+        .limit(1)
+        .maybeSingle()
+      if (!reward) return json({ error: 'No valid loyalty reward to redeem' }, 409)
+      expected = 0
+      rewardId = reward.id
+    }
+
+    const amount = Math.round(expected * 100)
+    // Correct the row so downstream reads (detailer payout views, receipts)
+    // show the enforced price, not whatever the client inserted.
+    if (Number(booking.total_price) !== expected) {
+      await admin.from('bookings').update({ total_price: expected }).eq('id', booking.id)
+    }
+
     if (amount <= 0) {
-      // Free booking (full loyalty reward / credit) — nothing to charge.
+      // Server-validated loyalty redemption — nothing to charge. Burn the
+      // reward now so it can't be replayed on another booking.
       await admin.from('bookings').update({ paid_at: new Date().toISOString() }).eq('id', booking.id)
+      if (rewardId) {
+        await admin
+          .from('loyalty_rewards')
+          .update({ redeemed_at: new Date().toISOString(), redeemed_on_booking: booking.id })
+          .eq('id', rewardId)
+      }
       return json({ free: true })
     }
 

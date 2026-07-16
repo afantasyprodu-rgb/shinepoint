@@ -445,9 +445,11 @@ export function StoreProvider({ children }) {
         patchBooking(id, { status: 'cancelled', cancelledBy: by })
       },
 
-      fileDispute(bookingId, against, reason) {
+      async fileDispute(bookingId, against, reason) {
         if (!isDemo && profile?.id) {
-          insertDispute(bookingId, profile.id, reason)
+          // Only flip the booking to disputed if the dispute row actually
+          // persisted — otherwise the booking desyncs (disputed, no dispute).
+          await insertDispute(bookingId, profile.id, reason)
           patchBooking(bookingId, { status: 'disputed' })
           return
         }

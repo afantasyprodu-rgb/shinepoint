@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { homePathForRole } from '../context/AuthContext'
+import { needsMfaChallenge } from '../lib/mfa'
 import { markArrival } from '../lib/transition'
 import Logo from '../components/Logo'
 
@@ -48,10 +49,16 @@ export default function AuthCallback() {
         return
       }
 
+      const homePath = homePathForRole(userRow?.role)
+      if (await needsMfaChallenge()) {
+        navigate('/mfa-challenge', { state: { next: homePath }, replace: true })
+        return
+      }
+
       // Desktop gets the arrival reveal on the destination (Google login can't
       // show the in-page fly-through since it redirects off-page).
       markArrival(userRow?.role)
-      navigate(homePathForRole(userRow?.role), { replace: true })
+      navigate(homePath, { replace: true })
     }
 
     finish()

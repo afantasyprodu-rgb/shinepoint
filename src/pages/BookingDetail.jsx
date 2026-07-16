@@ -139,7 +139,7 @@ const shownStage = openStage ?? stageIdx
         <div className="card">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <Avatar name={d?.name ?? 'Detailer'} />
+              <Avatar name={d?.name ?? 'Detailer'} photo={d?.photo} />
               <div>
                 <h1 className="font-display text-xl font-bold text-slate-900">{b.service}</h1>
                 <p className="text-sm text-slate-500">

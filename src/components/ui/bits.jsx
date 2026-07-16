@@ -10,15 +10,29 @@ const AVATAR_GRADIENTS = [
   'from-rose-400 to-pink-600',
 ]
 
-export function Avatar({ name, size = 'md' }) {
-  const initials = name
+export function Avatar({ name, photo, size = 'md' }) {
+  const initials = (name ?? '')
     .split(' ')
     .map((w) => w[0])
     .slice(0, 2)
     .join('')
     .toUpperCase()
-  const grad = AVATAR_GRADIENTS[(name.charCodeAt(0) + name.length) % AVATAR_GRADIENTS.length]
-  const sz = size === 'lg' ? 'h-14 w-14 text-lg' : size === 'sm' ? 'h-8 w-8 text-xs' : 'h-10 w-10 text-sm'
+  const grad = AVATAR_GRADIENTS[((name?.charCodeAt(0) ?? 0) + (name?.length ?? 0)) % AVATAR_GRADIENTS.length]
+  const sz =
+    size === 'xl' ? 'h-24 w-24 text-3xl'
+    : size === 'lg' ? 'h-14 w-14 text-lg'
+    : size === 'sm' ? 'h-8 w-8 text-xs'
+    : 'h-10 w-10 text-sm'
+
+  if (photo) {
+    return (
+      <img
+        src={photo}
+        alt={name ?? 'Profile photo'}
+        className={`${sz} inline-block shrink-0 rounded-full object-cover`}
+      />
+    )
+  }
   return (
     <span
       aria-hidden="true"

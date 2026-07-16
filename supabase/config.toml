@@ -1,0 +1,13 @@
+# Supabase project config. The function blocks below matter for deployment:
+# the Stripe webhook must NOT require a Supabase JWT (Stripe signs it instead).
+
+project_id = "ggcfwwpmclypcexiprro"
+
+[functions.create-payment-intent]
+verify_jwt = true
+
+[functions.connect-onboarding]
+verify_jwt = true
+
+[functions.stripe-webhook]
+verify_jwt = false

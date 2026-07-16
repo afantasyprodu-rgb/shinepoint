@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import AdminShell from '../../components/AdminShell'
 import Modal from '../../components/ui/Modal'
@@ -13,10 +13,12 @@ import {
   ClockIcon,
   CameraIcon,
   CalendarIcon,
+  TrashIcon,
 } from '../../components/icons'
 import { useStore } from '../../context/StoreContext'
+import { fetchAllUsersForAdmin, adminDeleteUser } from '../../lib/db'
 
-const TABS = ['Applications', 'Detailers', 'Customers', 'Team']
+const TABS = ['Applications', 'Detailers', 'Customers', 'Accounts', 'Team']
 
 const DEMO_ADMINS = [
   { id: 'a1', name: 'Riley Park', email: 'riley@shinepoint.app', since: '2026-01-01' },
@@ -218,6 +220,32 @@ export default function AdminPeople() {
   const [toast, setToast] = useState(null)
   const { admin, detailers, decideApplication } = useStore()
 
+  const [accounts, setAccounts] = useState(null) // null = loading
+  const [deleting, setDeleting] = useState(null) // account being confirmed
+  const [deleteError, setDeleteError] = useState('')
+  const [deleteBusy, setDeleteBusy] = useState(false)
+
+  useEffect(() => {
+    if (tab === 'Accounts' && accounts === null) {
+      fetchAllUsersForAdmin().then(setAccounts)
+    }
+  }, [tab, accounts])
+
+  async function confirmDeleteAccount() {
+    setDeleteBusy(true)
+    setDeleteError('')
+    try {
+      await adminDeleteUser(deleting.id)
+      setAccounts((rows) => rows.filter((r) => r.id !== deleting.id))
+      setDeleting(null)
+      showToast('deleted', deleting.full_name || deleting.email || deleting.phone)
+    } catch (e) {
+      setDeleteError(e.message)
+    } finally {
+      setDeleteBusy(false)
+    }
+  }
+
   function showToast(type, name) {
     setToast({ type, name })
     setTimeout(() => setToast(null), 3000)
@@ -357,6 +385,44 @@ export default function AdminPeople() {
               </div>
             )}
 
+            {tab === 'Accounts' && (
+              <div className="space-y-3">
+                {accounts === null && (
+                  <p className="text-sm text-slate-500">Loading accounts…</p>
+                )}
+                {accounts?.length === 0 && (
+                  <p className="text-sm text-slate-500">No accounts registered.</p>
+                )}
+                {accounts?.map((a) => (
+                  <div key={a.id} className="card flex flex-wrap items-center justify-between gap-3 !p-5">
+                    <div className="flex items-center gap-3">
+                      <Avatar name={a.full_name || a.email || a.phone || '?'} />
+                      <div>
+                        <p className="font-semibold text-slate-900">
+                          {a.full_name || 'Unnamed'}
+                          {(a.is_banned || a.is_suspended) && (
+                            <span className={`ml-2 chip ${a.is_banned ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
+                              {a.is_banned ? 'banned' : 'suspended'}
+                            </span>
+                          )}
+                        </p>
+                        <p className="text-sm text-slate-500">
+                          {a.email || a.phone || 'no contact'} · {a.role} · joined{' '}
+                          {new Date(a.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => { setDeleting(a); setDeleteError('') }}
+                      className="btn btn-outline h-9 border-red-200 text-sm text-red-700 hover:bg-red-50"
+                    >
+                      <TrashIcon className="h-4 w-4" /> Delete
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {tab === 'Team' && (
               <div className="space-y-4">
                 {/* Current admins */}
@@ -432,6 +498,33 @@ export default function AdminPeople() {
         </div>
       </Modal>
 
+      {/* Delete account modal */}
+      <Modal open={!!deleting} onClose={() => setDeleting(null)} labelledBy="delete-title">
+        <h2 id="delete-title" className="font-display text-lg font-bold text-slate-900">
+          Delete {deleting?.full_name || deleting?.email || deleting?.phone}?
+        </h2>
+        <p className="mt-1 text-sm text-slate-500">
+          Permanently removes the account and everything tied to it. This can&apos;t be undone.
+        </p>
+        {deleteError && (
+          <p role="alert" className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+            {deleteError}
+          </p>
+        )}
+        <div className="mt-5 flex gap-2">
+          <button
+            disabled={deleteBusy}
+            onClick={confirmDeleteAccount}
+            className="btn h-11 flex-1 bg-red-600 text-sm text-white hover:bg-red-700 focus-visible:ring-red-600 disabled:opacity-40"
+          >
+            {deleteBusy ? 'Deleting…' : 'Delete permanently'}
+          </button>
+          <button onClick={() => setDeleting(null)} className="btn btn-outline h-11 flex-1 text-sm">
+            Cancel
+          </button>
+        </div>
+      </Modal>
+
       {/* Toast */}
       <AnimatePresence>
         {toast && (
@@ -453,6 +546,13 @@ export default function AdminPeople() {
                     <CheckIcon className="h-3.5 w-3.5" />
                   </span>
                   {toast.name} approved — they can start taking jobs
+                </>
+              ) : toast.type === 'deleted' ? (
+                <>
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/20">
+                    <TrashIcon className="h-3.5 w-3.5" />
+                  </span>
+                  {toast.name} deleted
                 </>
               ) : (
                 <>

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import { supabase } from '../lib/supabase'
 import { homePathForRole } from '../context/AuthContext'
+import { needsMfaChallenge } from '../lib/mfa'
 import Logo from './Logo'
 import { GoogleIcon, MailIcon, PhoneIcon, ChevronLeftIcon } from './icons'
 
@@ -83,6 +84,29 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
     return `${c.code}${localNumber.replace(/\D/g, '').replace(/^0+/, '')}`
   }
 
+  // Shared post-login step for every auth method: block banned/suspended
+  // accounts, step up to MFA if the account has a verified TOTP factor,
+  // otherwise hand off to the caller (fly-through) or navigate home.
+  async function finishLogin(userId) {
+    const { data: userRow } = await supabase
+      .from('users').select('role, is_suspended, is_banned').eq('id', userId).single()
+    if (userRow?.is_banned || userRow?.is_suspended) {
+      setBusy(false)
+      await supabase.auth.signOut()
+      setError(userRow.is_banned ? 'This account has been banned.' : 'This account is suspended.')
+      return
+    }
+    const homePath = homePathForRole(userRow?.role)
+    if (await needsMfaChallenge()) {
+      setBusy(false)
+      navigate('/mfa-challenge', { state: { next: homePath } })
+      return
+    }
+    setBusy(false)
+    if (onAuthenticated) { onAuthenticated(userRow?.role); return }
+    navigate(homePath)
+  }
+
   async function handleEmail(e) {
     e.preventDefault()
     setError('')
@@ -98,21 +122,35 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
       setBusy(false)
       if (err) { setError(err.message); return }
       if (!data.session) { navigate('/check-email', { state: { email } }); return }
-      navigate(role === 'customer' ? '/onboarding' : homePathForRole(role))
+      const homePath = role === 'customer' ? '/onboarding' : homePathForRole(role)
+      navigate('/mfa-setup', { state: { next: homePath } })
     } else {
       const { data, error: err } = await supabase.auth.signInWithPassword({ email, password })
       if (err) { setBusy(false); setError(err.message); return }
-      const { data: userRow } = await supabase
-        .from('users').select('role, is_suspended, is_banned').eq('id', data.user.id).single()
-      setBusy(false)
-      if (userRow?.is_banned || userRow?.is_suspended) {
-        await supabase.auth.signOut()
-        setError(userRow.is_banned ? 'This account has been banned.' : 'This account is suspended.')
-        return
-      }
-      if (onAuthenticated) { onAuthenticated(userRow?.role); return }
-      navigate(homePathForRole(userRow?.role))
+      await finishLogin(data.user.id)
     }
+  }
+
+  async function handleSendEmailCode(e) {
+    e?.preventDefault()
+    setError('')
+    setBusy(true)
+    const { error: err } = await supabase.auth.signInWithOtp({
+      email,
+      options: { shouldCreateUser: false },
+    })
+    setBusy(false)
+    if (err) { setError(err.message); return }
+    setView('emailOtp')
+  }
+
+  async function handleVerifyEmailCode(e) {
+    e.preventDefault()
+    setError('')
+    setBusy(true)
+    const { data, error: err } = await supabase.auth.verifyOtp({ email, token: otpCode, type: 'email' })
+    if (err) { setBusy(false); setError(err.message); return }
+    await finishLogin(data.user.id)
   }
 
   async function handleSendCode(e) {
@@ -145,17 +183,13 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
     setBusy(true)
     const { data, error: err } = await supabase.auth.verifyOtp({ phone: fullPhone, token: otpCode, type: 'sms' })
     if (err) { setBusy(false); setError(err.message); return }
-    if (mode === 'signup') { setBusy(false); navigate(role === 'customer' ? '/onboarding' : homePathForRole(role)); return }
-    const { data: userRow } = await supabase
-      .from('users').select('role, is_suspended, is_banned').eq('id', data.user.id).single()
-    setBusy(false)
-    if (userRow?.is_banned || userRow?.is_suspended) {
-      await supabase.auth.signOut()
-      setError(userRow.is_banned ? 'This account has been banned.' : 'This account is suspended.')
+    if (mode === 'signup') {
+      setBusy(false)
+      const homePath = role === 'customer' ? '/onboarding' : homePathForRole(role)
+      navigate('/mfa-setup', { state: { next: homePath } })
       return
     }
-    if (onAuthenticated) { onAuthenticated(userRow?.role); return }
-    navigate(homePathForRole(userRow?.role))
+    await finishLogin(data.user.id)
   }
 
   async function handleGoogle() {
@@ -314,6 +348,59 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
                 {busy
                   ? <span className="inline-flex items-center gap-2"><BtnSpinner />{isSignup ? 'Creating…' : 'Logging in…'}</span>
                   : isSignup ? 'Create account' : 'Log in'}
+              </button>
+            </Field>
+
+            {!isSignup && (
+              <Field index={3}>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => handleSendEmailCode()}
+                  className="w-full text-center text-sm font-medium text-white/60 hover:text-white transition-colors"
+                >
+                  Email me a code instead
+                </button>
+              </Field>
+            )}
+          </form>
+        </motion.div>
+      )}
+
+      {/* ── Email OTP verify (passwordless login) ───────────── */}
+      {view === 'emailOtp' && (
+        <motion.div
+          key="emailOtp"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0, y: 8 }}
+          transition={{ duration: 0.16, ease: EASE }}
+        >
+          <BackButton onClick={() => { setView('email'); setOtpCode(''); setError('') }} />
+
+          <form onSubmit={handleVerifyEmailCode} className="flex flex-col gap-3">
+            <Field index={0}>
+              <p className="pb-1 text-sm text-white/70">
+                Code sent to <span className="font-semibold text-white">{email}</span>
+              </p>
+            </Field>
+
+            <Field index={1}>
+              <div className="auth-field">
+                <label className="auth-label">Verification code</label>
+                <input type="text" inputMode="numeric" autoComplete="one-time-code" required
+                  value={otpCode} onChange={(e) => setOtpCode(e.target.value)}
+                  placeholder="123456" className="auth-input" autoFocus />
+              </div>
+            </Field>
+
+            {error && <p role="alert" className="auth-error">{error}</p>}
+
+            <Field index={2}>
+              <button type="submit" disabled={busy} className="auth-btn-primary w-full">
+                {busy
+                  ? <span className="inline-flex items-center gap-2"><BtnSpinner />Verifying…</span>
+                  : 'Verify & continue'}
               </button>
             </Field>
           </form>

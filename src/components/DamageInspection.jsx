@@ -21,7 +21,7 @@ export default function DamageInspection({ booking, onSubmit, onNoDamage }) {
   function handleFile(id, file) {
     if (!file) return
     const reader = new FileReader()
-    reader.onload = (e) => update(id, { photo: e.target.result })
+    reader.onload = (e) => update(id, { photo: e.target.result, file })
     reader.readAsDataURL(file)
   }
 

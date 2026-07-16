@@ -16,15 +16,18 @@ export default function PhotoCapture({ label = 'before', onSubmit }) {
   const [photos, setPhotos] = useState({}) // { angle: base64 }
   const [lightbox, setLightbox] = useState(null) // angle string
   const fileRefs = useRef({})
+  const fileObjs = useRef({}) // { angle: File } — kept for real uploads
 
   function handleFile(angle, file) {
     if (!file) return
+    fileObjs.current[angle] = file
     const reader = new FileReader()
     reader.onload = (e) => setPhotos((prev) => ({ ...prev, [angle]: e.target.result }))
     reader.readAsDataURL(file)
   }
 
   function remove(angle) {
+    delete fileObjs.current[angle]
     setPhotos((prev) => { const n = { ...prev }; delete n[angle]; return n })
   }
 
@@ -101,7 +104,7 @@ export default function PhotoCapture({ label = 'before', onSubmit }) {
         type="button"
         whileTap={{ scale: 0.97 }}
         disabled={!allDone}
-        onClick={() => onSubmit(ANGLES.map((a) => ({ area: a, photo: photos[a] })))}
+        onClick={() => onSubmit(ANGLES.map((a) => ({ area: a, photo: photos[a], file: fileObjs.current[a] })))}
         className="btn btn-brand h-10 w-full text-sm disabled:opacity-40"
       >
         {allDone ? (

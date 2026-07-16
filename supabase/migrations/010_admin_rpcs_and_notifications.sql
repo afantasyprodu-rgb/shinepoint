@@ -137,6 +137,15 @@ create trigger trg_notify_booking_change
 create policy "admins read messages" on public.messages
   for select using (public.is_admin());
 
+-- Client subscribes to its own notifications; add the table to the realtime
+-- publication (005 only added messages + bookings). Guarded like 005.
+do $$
+begin
+  alter publication supabase_realtime add table public.notifications;
+exception
+  when duplicate_object then null;
+end $$;
+
 -- ------------------------------------------------------------
 -- Widen the 009 column guards to also let admins through. The guards
 -- were meant to stop USERS from writing their own trust/economics
@@ -185,6 +194,7 @@ begin
      or new.is_probation        is distinct from old.is_probation
      or new.probation_jobs_remaining is distinct from old.probation_jobs_remaining
      or new.stripe_account_id   is distinct from old.stripe_account_id
+     or new.stripe_charges_enabled is distinct from old.stripe_charges_enabled
      or new.total_completed_jobs is distinct from old.total_completed_jobs
      or new.average_rating      is distinct from old.average_rating
      or new.is_founding_member  is distinct from old.is_founding_member

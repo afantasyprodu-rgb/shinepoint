@@ -80,6 +80,7 @@ begin
      or new.is_probation        is distinct from old.is_probation
      or new.probation_jobs_remaining is distinct from old.probation_jobs_remaining
      or new.stripe_account_id   is distinct from old.stripe_account_id
+     or new.stripe_charges_enabled is distinct from old.stripe_charges_enabled
      or new.total_completed_jobs is distinct from old.total_completed_jobs
      or new.average_rating      is distinct from old.average_rating
      or new.is_founding_member  is distinct from old.is_founding_member
@@ -138,8 +139,14 @@ begin
   new.paid_at               := null;
 
   if new.service_id is not null then
-    select price into base_price from public.services where id = new.service_id;
-    if base_price is not null and coalesce(new.total_price, 0) < base_price then
+    -- Bind the service to the booked detailer so a cheap service_id from a
+    -- different detailer can't lower the floor.
+    select price into base_price from public.services
+     where id = new.service_id and detailer_id = new.detailer_id;
+    if base_price is null then
+      raise exception 'service_id % does not belong to detailer %', new.service_id, new.detailer_id;
+    end if;
+    if coalesce(new.total_price, 0) < base_price then
       raise exception 'total_price (%) below service base price (%)', new.total_price, base_price;
     end if;
   end if;
@@ -163,6 +170,13 @@ create policy "file dispute as self" on public.disputes
     and refund_amount is null
     and admin_id is null
     and is_false_dispute = false
+    -- filer must be a party to the booking (blocks harassment / dispute spam
+    -- on bookings the caller isn't part of).
+    and booking_id in (
+      select b.id from public.bookings b
+      where b.customer_id in (select id from public.customer_profiles where user_id = auth.uid())
+         or b.detailer_id in (select id from public.detailer_profiles where user_id = auth.uid())
+    )
   );
 
 -- ------------------------------------------------------------

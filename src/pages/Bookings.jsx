@@ -38,7 +38,7 @@ export default function Bookings() {
                     to={`/bookings/${b.id}`}
                     className="card card-hover flex items-center gap-4 !p-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
                   >
-                    <Avatar name={d?.name ?? 'Detailer'} />
+                    <Avatar name={d?.name ?? 'Detailer'} photo={d?.photo} />
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-semibold text-slate-900">
                         {b.service} · {d?.name}

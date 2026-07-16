@@ -27,6 +27,8 @@ import AdminPeople from './pages/admin/AdminPeople'
 import AdminOps from './pages/admin/AdminOps'
 import AdminFinance from './pages/admin/AdminFinance'
 import ProfileSetup from './pages/ProfileSetup'
+import MfaSetup from './pages/MfaSetup'
+import MfaChallenge from './pages/MfaChallenge'
 import CustomerOnboarding from './pages/CustomerOnboarding'
 import { Terms, Privacy } from './pages/Legal'
 
@@ -69,6 +71,10 @@ export default function App() {
         <Route path="/privacy" element={<Privacy />} />
         {/* Post-signup profile setup — any signed-in role, no role gate. */}
         <Route path="/welcome" element={<ProtectedRoute><ProfileSetup /></ProtectedRoute>} />
+        {/* Optional 2FA enrollment prompt right after signup. */}
+        <Route path="/mfa-setup" element={<ProtectedRoute><MfaSetup /></ProtectedRoute>} />
+        {/* Login-time step-up for accounts with a verified TOTP factor. */}
+        <Route path="/mfa-challenge" element={<ProtectedRoute><MfaChallenge /></ProtectedRoute>} />
         {/* Customer post-signup onboarding (vehicle + address). */}
         <Route path="/onboarding" element={<ProtectedRoute role="customer"><CustomerOnboarding /></ProtectedRoute>} />
 

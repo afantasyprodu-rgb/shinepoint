@@ -25,7 +25,7 @@ import { useStore } from '../context/StoreContext'
 // in progress → after photos → complete. Photos are mandatory gates.
 export default function DetailerJob() {
   const { id } = useParams()
-  const { getBooking, getDetailer, patchBooking, rateCustomer } = useStore()
+  const { getBooking, getDetailer, patchBooking, rateCustomer, addBookingPhotos, submitDamageReport, markNoDamage } = useStore()
   const [custRating, setCustRating] = useState(0)
   const [hardToHandle, setHardToHandle] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -206,26 +206,13 @@ export default function DetailerJob() {
                     {g.ready && g.key === 'damage' ? (
                       <DamageInspection
                         booking={b}
-                        onSubmit={(items) =>
-                          patchBooking(b.id, {
-                            damageReport: { submitted: true, acknowledged: false, items },
-                          })
-                        }
-                        onNoDamage={() =>
-                          patchBooking(b.id, {
-                            damageReport: { submitted: true, acknowledged: true, items: [] },
-                          })
-                        }
+                        onSubmit={(items) => submitDamageReport(b.id, items)}
+                        onNoDamage={() => markNoDamage(b.id)}
                       />
                     ) : g.ready && (g.key === 'before' || g.key === 'after') ? (
                       <PhotoCapture
                         label={g.key}
-                        onSubmit={(photos) =>
-                          patchBooking(b.id, {
-                            [g.key === 'before' ? 'beforePhotos' : 'afterPhotos']: 5,
-                            [g.key === 'before' ? 'beforePhotoData' : 'afterPhotoData']: photos,
-                          })
-                        }
+                        onSubmit={(photos) => addBookingPhotos(b.id, g.key, photos)}
                       />
                     ) : g.ready && g.key === 'en_route' ? (
                       <div className="mt-3 rounded-2xl border border-brand-100 bg-brand-50/60 p-4">
