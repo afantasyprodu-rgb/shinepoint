@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import DemoMap from './DemoMap'
+import { useTheme } from '../context/ThemeContext'
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN
 
@@ -22,6 +23,7 @@ export function isMapboxConfigured() {
 export default function DetailerMap({ detailers, focus }) {
   const containerRef = useRef(null)
   const mapRef = useRef(null)
+  const { theme } = useTheme()
 
   useEffect(() => {
     if (!MAPBOX_TOKEN || !containerRef.current) return
@@ -29,7 +31,10 @@ export default function DetailerMap({ detailers, focus }) {
     mapboxgl.accessToken = MAPBOX_TOKEN
     const map = new mapboxgl.Map({
       container: containerRef.current,
-      style: 'mapbox://styles/mapbox/streets-v12',
+      style:
+        theme === 'dark'
+          ? 'mapbox://styles/mapbox/dark-v11'
+          : 'mapbox://styles/mapbox/streets-v12',
       center: LA_CENTER,
       zoom: 10.3,
     })
@@ -79,7 +84,7 @@ export default function DetailerMap({ detailers, focus }) {
       map.remove()
       mapRef.current = null
     }
-  }, [detailers])
+  }, [detailers, theme])
 
   useEffect(() => {
     if (focus && mapRef.current) {

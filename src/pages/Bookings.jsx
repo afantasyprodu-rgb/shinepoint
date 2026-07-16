@@ -1,29 +1,58 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import AppShell from '../components/AppShell'
 import { AnimatedPage, Stagger, StaggerItem } from '../components/ui/Motion'
-import { StatusPill, EmptyState, Avatar } from '../components/ui/bits'
-import { CalendarIcon } from '../components/icons'
+import { StatusPill, EmptyState, Avatar, Skeleton, CarWashIllustration } from '../components/ui/bits'
 import { useStore } from '../context/StoreContext'
+
+// Skeleton row — dimensions match the real booking card 1:1 so the swap to
+// loaded content never shifts the layout.
+function BookingSkeleton() {
+  return (
+    <div className="card flex items-center gap-4 !p-5">
+      <Skeleton className="h-10 w-10 shrink-0 rounded-full" />
+      <div className="min-w-0 flex-1">
+        <Skeleton className="h-4 w-2/3" />
+        <Skeleton className="mt-2 h-3 w-1/3" />
+      </div>
+      <Skeleton className="h-6 w-16 rounded-full" />
+    </div>
+  )
+}
 
 export default function Bookings() {
   const { bookings, customer, isDemo, getDetailer } = useStore()
   // Demo: filter from the shared demo pool. Real: all bookings loaded are already ours.
   const mine = isDemo ? bookings.filter((b) => b.customerName === customer.name) : bookings
 
+  // First-paint load shimmer. Real Supabase fetches flip this on their own
+  // resolve; here we simulate the round-trip so the pattern is visible in demo.
+  const [loading, setLoading] = useState(true)
+  useEffect(() => {
+    const t = setTimeout(() => setLoading(false), 900)
+    return () => clearTimeout(t)
+  }, [])
+
   return (
     <AppShell role="customer">
       <AnimatedPage className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
-        <h1 className="font-display text-2xl font-bold text-slate-900">My bookings</h1>
+        <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">My bookings</h1>
 
-        {mine.length === 0 ? (
+        {loading ? (
+          <div className="mt-6 space-y-3" aria-busy="true" aria-label="Loading bookings">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <BookingSkeleton key={i} />
+            ))}
+          </div>
+        ) : mine.length === 0 ? (
           <div className="mt-6">
             <EmptyState
-              icon={CalendarIcon}
+              illustration={<CarWashIllustration />}
               title="No bookings yet"
-              body="Find a detailer on the map and book your first shine."
+              body="Your car misses you. Find a detailer nearby and give it a shine."
               action={
                 <Link to="/home" className="btn btn-brand">
-                  Open the map
+                  Find a detailer
                 </Link>
               }
             />
@@ -36,14 +65,15 @@ export default function Bookings() {
                 <StaggerItem key={b.id}>
                   <Link
                     to={`/bookings/${b.id}`}
-                    className="card card-hover flex items-center gap-4 !p-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+                    className="card card-hover flex items-center gap-4 border-l-4 !p-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+                    style={{ borderLeftColor: 'var(--accent, #7c3aed)' }}
                   >
                     <Avatar name={d?.name ?? 'Detailer'} photo={d?.photo} />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate font-semibold text-slate-900">
+                      <p className="truncate font-semibold text-slate-900 dark:text-slate-100">
                         {b.service} · {d?.name}
                       </p>
-                      <p className="truncate text-sm text-slate-500">
+                      <p className="truncate text-sm text-slate-500 dark:text-slate-400">
                         {new Date(b.scheduledTime).toLocaleString('en-US', {
                           weekday: 'short',
                           month: 'short',

@@ -1,6 +1,16 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { StarIcon } from './icons'
+import { useTheme } from '../context/ThemeContext'
+
+// Terrain palette per theme. Dark mirrors Mapbox's dark-v11 tones so the
+// glass overlays sit on the same smoke ground whether or not a token is set.
+const PALETTES = {
+  light: { land: '#eae7df', hill: '#e3ddcf', park: '#cbe3c3', street: '#ffffff',
+    freeway: '#f0c386', bay: '#c3ddf0', wave: '#a8cce6', label: 'text-slate-400' },
+  dark: { land: '#141021', hill: '#1d1832', park: '#1c3327', street: '#2f2848',
+    freeway: '#6b5a2e', bay: '#152438', wave: '#24405c', label: 'text-slate-500' },
+}
 
 // Stylized LA map used when no Mapbox token is configured (demo mode).
 // Terrain is drawn in a 0..100 viewBox with preserveAspectRatio="none";
@@ -51,6 +61,8 @@ function statusLine(d) {
 
 export default function DemoMap({ detailers, focus }) {
   const [activeId, setActiveId] = useState(null)
+  const { theme } = useTheme()
+  const P = PALETTES[theme] ?? PALETTES.light
 
   const pinned = detailers.filter((d) => d.pin)
 
@@ -64,7 +76,11 @@ export default function DemoMap({ detailers, focus }) {
   }, [focus]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="relative h-full w-full overflow-hidden bg-[#eae7df]" onClick={() => setActiveId(null)}>
+    <div
+      className="relative h-full w-full overflow-hidden transition-colors duration-300"
+      style={{ background: P.land }}
+      onClick={() => setActiveId(null)}
+    >
       <svg
         viewBox="0 0 100 100"
         preserveAspectRatio="none"
@@ -72,7 +88,7 @@ export default function DemoMap({ detailers, focus }) {
         aria-hidden="true"
       >
         {/* Valley grid (north of the hills) */}
-        <g stroke="#ffffff" strokeWidth="1" vectorEffect="non-scaling-stroke" opacity="0.9">
+        <g stroke={P.street} strokeWidth="1" vectorEffect="non-scaling-stroke" opacity="0.9">
           {VALLEY_STREETS.map((y) => (
             <line key={`vs-${y}`} x1="10" y1={y} x2="62" y2={y} vectorEffect="non-scaling-stroke" />
           ))}
@@ -84,15 +100,15 @@ export default function DemoMap({ detailers, focus }) {
         {/* Santa Monica Mountains between the valley and the basin */}
         <path
           d="M -2 27 Q 12 19 28 22 Q 45 25 58 21 Q 66 18 74 22 Q 71 29 60 30 Q 42 33 24 31 Q 10 30 -2 33 Z"
-          fill="#e3ddcf"
+          fill={P.hill}
         />
         {/* Griffith Park */}
-        <ellipse cx="67.5" cy="25.5" rx="6" ry="4.5" fill="#cbe3c3" />
+        <ellipse cx="67.5" cy="25.5" rx="6" ry="4.5" fill={P.park} />
         {/* Baldwin Hills greenery */}
-        <ellipse cx="47.5" cy="58" rx="3.6" ry="2.6" fill="#cbe3c3" />
+        <ellipse cx="47.5" cy="58" rx="3.6" ry="2.6" fill={P.park} />
 
         {/* Basin street grid */}
-        <g stroke="#ffffff" strokeWidth="1.25" vectorEffect="non-scaling-stroke">
+        <g stroke={P.street} strokeWidth="1.25" vectorEffect="non-scaling-stroke">
           {BOULEVARDS.map((y) => (
             <line key={`b-${y}`} x1={y > 62 ? 36 : 24} y1={y} x2="100" y2={y - 2} vectorEffect="non-scaling-stroke" />
           ))}
@@ -104,7 +120,7 @@ export default function DemoMap({ detailers, focus }) {
         </g>
 
         {/* Freeways */}
-        <g stroke="#f0c386" strokeWidth="2" vectorEffect="non-scaling-stroke" fill="none" opacity="0.9">
+        <g stroke={P.freeway} strokeWidth="2" vectorEffect="non-scaling-stroke" fill="none" opacity="0.9">
           {/* I-405 */}
           <path d="M 27 0 Q 28 26 30 46 Q 32 70 34 100" vectorEffect="non-scaling-stroke" />
           {/* I-10 */}
@@ -118,9 +134,9 @@ export default function DemoMap({ detailers, focus }) {
         {/* Santa Monica Bay */}
         <path
           d="M 0 49 Q 8 51 15 57 Q 20 62 23 67 Q 28 76 33 85 Q 37 92 40 100 L 0 100 Z"
-          fill="#c3ddf0"
+          fill={P.bay}
         />
-        <g stroke="#a8cce6" strokeWidth="1" vectorEffect="non-scaling-stroke" opacity="0.7">
+        <g stroke={P.wave} strokeWidth="1" vectorEffect="non-scaling-stroke" opacity="0.7">
           <path d="M 4 66 Q 8 64 12 66" fill="none" vectorEffect="non-scaling-stroke" />
           <path d="M 10 80 Q 14 78 18 80" fill="none" vectorEffect="non-scaling-stroke" />
         </g>
@@ -130,7 +146,7 @@ export default function DemoMap({ detailers, focus }) {
       {LABELS.map(({ name, x, y }) => (
         <span
           key={name}
-          className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 text-[10px] font-semibold uppercase tracking-wider text-slate-400"
+          className={`pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 text-[10px] font-semibold uppercase tracking-wider ${P.label}`}
           style={{ left: `${x}%`, top: `${y}%` }}
         >
           {name}
@@ -175,12 +191,12 @@ export default function DemoMap({ detailers, focus }) {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 4, scale: 0.97 }}
                   transition={{ duration: 0.15, ease: 'easeOut' }}
-                  className={`absolute left-1/2 z-20 w-44 -translate-x-1/2 rounded-xl border border-brand-100 bg-white p-3 shadow-xl ${
+                  className={`absolute left-1/2 z-20 w-44 -translate-x-1/2 rounded-xl border border-brand-100 bg-white p-3 shadow-xl dark:border-white/10 dark:bg-[#1E1730] ${
                     y < 30 ? 'top-[calc(100%+8px)]' : 'bottom-[calc(100%+8px)]'
                   }`}
                 >
-                  <p className="truncate text-sm font-semibold text-slate-900">{d.name}</p>
-                  <p className="mt-0.5 flex items-center gap-1 text-xs text-slate-600">
+                  <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">{d.name}</p>
+                  <p className="mt-0.5 flex items-center gap-1 text-xs text-slate-600 dark:text-slate-300">
                     <StarIcon className="h-3 w-3 text-amber-500" />
                     {d.rating.toFixed(1)} ({d.reviews}) · {d.area}
                   </p>
@@ -195,7 +211,7 @@ export default function DemoMap({ detailers, focus }) {
       })}
 
       {/* Demo notice */}
-      <span className="absolute bottom-[11.5rem] left-4 z-10 rounded-full bg-white/90 px-3 py-1.5 text-xs text-slate-500 shadow-sm">
+      <span className="glass-panel absolute bottom-[11.5rem] left-4 z-10 rounded-full px-3 py-1.5 text-xs text-slate-600 dark:text-slate-300">
         Demo map — add <code className="font-mono">VITE_MAPBOX_TOKEN</code> for live tiles
       </span>
     </div>

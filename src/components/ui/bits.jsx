@@ -206,17 +206,125 @@ export function Bars({ data, labels, prefix = '$' }) {
   )
 }
 
-export function EmptyState({ icon: IconComp, title, body, action }) {
+export function EmptyState({ icon: IconComp, illustration, title, body, action }) {
   return (
     <div role="status" className="card text-center">
-      {IconComp && (
-        <span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-100 text-brand-600">
-          <IconComp className="h-7 w-7" />
-        </span>
+      {illustration ? (
+        <div className="mx-auto mb-5">{illustration}</div>
+      ) : (
+        IconComp && (
+          <span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-100 text-brand-600 dark:bg-brand-500/15 dark:text-brand-300">
+            <IconComp className="h-7 w-7" />
+          </span>
+        )
       )}
-      <h3 className="font-display font-semibold text-slate-900">{title}</h3>
-      <p className="mt-1 text-sm text-slate-600">{body}</p>
+      <h3 className="font-display font-semibold text-slate-900 dark:text-slate-100">{title}</h3>
+      <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{body}</p>
       {action && <div className="mt-4">{action}</div>}
     </div>
+  )
+}
+
+// ── Sparkline ──────────────────────────────────────────────────────────────
+// Tiny area+line chart for bento hero tiles. The line draws itself in on view
+// (stroke-dashoffset), the fill fades after, and the last point is emphasized.
+// Reduced-motion renders it complete instantly.
+export function Sparkline({ data, className = 'h-14 w-full', stroke = '#7c3aed', fill = true }) {
+  const reduce = useReducedMotion()
+  const ref = useRef(null)
+  const [shown, setShown] = useState(false)
+
+  useEffect(() => {
+    if (reduce) return setShown(true)
+    const el = ref.current
+    if (!el) return
+    const io = new IntersectionObserver(
+      ([e]) => e.isIntersecting && (setShown(true), io.disconnect()),
+      { threshold: 0.4 }
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [reduce])
+
+  const W = 280
+  const H = 58
+  const max = Math.max(...data)
+  const min = Math.min(...data)
+  const span = max - min || 1
+  const step = W / (data.length - 1)
+  const pts = data.map((v, i) => [i * step, H - 6 - ((v - min) / span) * (H - 14)])
+  const line = pts.map((p) => p.join(',')).join(' ')
+  const area = `M0,${H} L${pts.map((p) => p.join(',')).join(' L')} L${W},${H} Z`
+  const [lx, ly] = pts[pts.length - 1]
+
+  return (
+    <svg ref={ref} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className={className} aria-hidden="true">
+      {fill && (
+        <>
+          <defs>
+            <linearGradient id="spark-grad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor={stroke} stopOpacity="0.22" />
+              <stop offset="1" stopColor={stroke} stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <path
+            d={area}
+            fill="url(#spark-grad)"
+            style={{ opacity: shown ? 1 : 0, transition: 'opacity 0.6s ease 0.9s' }}
+          />
+        </>
+      )}
+      <polyline
+        points={line}
+        fill="none"
+        stroke={stroke}
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        vectorEffect="non-scaling-stroke"
+        style={{
+          strokeDasharray: 600,
+          strokeDashoffset: shown ? 0 : 600,
+          transition: reduce ? 'none' : 'stroke-dashoffset 1.4s ease',
+        }}
+      />
+      <circle
+        cx={lx}
+        cy={ly}
+        r="3.5"
+        fill="#22c55e"
+        style={{ opacity: shown ? 1 : 0, transition: 'opacity 0.3s ease 1.3s' }}
+      />
+    </svg>
+  )
+}
+
+// ── Skeleton bone ──────────────────────────────────────────────────────────
+// Shimmering placeholder. Callers size it to match the loaded content 1:1 so
+// the swap never shifts layout. Theme handled by .skeleton-bone in index.css.
+export function Skeleton({ className = '' }) {
+  return <div className={`skeleton-bone ${className}`} aria-hidden="true" />
+}
+
+// ── Spot illustration ──────────────────────────────────────────────────────
+// A line-drawn car under drifting soap bubbles for empty states. One stroke
+// weight, brand palette; bubbles float on a gentle loop (frozen when the user
+// prefers reduced motion, via the .il-bubble utility + global rule).
+export function CarWashIllustration({ className = 'h-32 w-52' }) {
+  return (
+    <svg viewBox="0 0 200 128" className={`mx-auto ${className}`} role="img" aria-label="A car with soap bubbles">
+      <g className="text-brand-500 dark:text-brand-400" stroke="currentColor" fill="none" strokeWidth="2.2" strokeLinecap="round">
+        <g className="il-bubble"><circle cx="58" cy="26" r="9" /></g>
+        <g className="il-bubble il-bubble-2"><circle cx="96" cy="14" r="6" /></g>
+        <g className="il-bubble il-bubble-3"><circle cx="130" cy="30" r="7.5" /></g>
+      </g>
+      <g className="text-brand-600 dark:text-brand-300" stroke="currentColor" fill="none" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="44" cy="92" r="10" />
+        <circle cx="156" cy="92" r="10" />
+        <path d="M56 92 h88" />
+        <path d="M22 92 c0-14 8-20 22-22 l14-14 c4-4 8-6 14-6 h32 c8 0 12 3 17 8 l11 12 c14 2 24 8 24 22" />
+        <path d="M76 56 l-10 12 h58 l-9-11 c-2-2.5-4-3.5-7-3.5 h-24 c-3.5 0-6 1-8 2.5z" />
+      </g>
+    </svg>
   )
 }

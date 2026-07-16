@@ -68,6 +68,17 @@ export default function Welcome() {
 
   const featured = DEMO_DETAILERS.filter((d) => d.status === 'available').slice(0, 3)
 
+  // Trust stats straight from the marketplace data — no invented numbers.
+  const totalJobs = DEMO_DETAILERS.reduce((n, d) => n + d.completedJobs, 0)
+  const avgRating = (
+    DEMO_DETAILERS.reduce((n, d) => n + d.rating, 0) / DEMO_DETAILERS.length
+  ).toFixed(1)
+  const stats = [
+    { value: `${totalJobs.toLocaleString()}+`, label: 'details done' },
+    { value: avgRating, label: 'avg rating' },
+    { value: '<2 min', label: 'to book' },
+  ]
+
   return (
     <div className="overflow-x-clip">
       {/* ===== Hero with scroll + mouse parallax ===== */}
@@ -89,6 +100,15 @@ export default function Welcome() {
             style={reduce ? undefined : { y: blobY }}
             className="absolute left-1/2 top-1/3 h-64 w-64 -translate-x-1/2 rounded-full bg-brand-400/20 blur-3xl"
           />
+          {/* Duotone geometry — crisp shapes against the soft blobs */}
+          <motion.div
+            style={reduce ? undefined : { x: sx, y: sy }}
+            className="absolute right-[10%] top-[18%] hidden h-24 w-24 rotate-12 rounded-3xl bg-cta-500/25 sm:block"
+          />
+          <motion.div
+            style={reduce ? undefined : { x: sy, y: sx }}
+            className="absolute bottom-[16%] left-[7%] hidden h-16 w-16 rounded-full border-4 border-brand-400/30 sm:block"
+          />
         </motion.div>
 
         {/* Radial vignette deepens the edges so the headline pops. */}
@@ -101,8 +121,13 @@ export default function Welcome() {
           <FadeIn y={18}>
             <Logo tone="light" size="lg" />
           </FadeIn>
+          <FadeIn delay={0.05}>
+            <span className="mt-7 inline-block rounded-lg bg-cta-600 px-3 py-1.5 font-display text-xs font-semibold uppercase tracking-[0.14em] text-white shadow-lg shadow-cta-600/40">
+              Mobile detailing · Los Angeles
+            </span>
+          </FadeIn>
           <FadeIn delay={0.1} y={22}>
-            <h1 className="mx-auto mt-8 max-w-2xl font-display text-5xl font-bold leading-tight text-white sm:text-6xl">
+            <h1 className="mx-auto mt-5 max-w-2xl font-display text-5xl font-bold leading-tight text-white sm:text-6xl">
               Your car, <span className="text-spectrum">detailed</span> at your door
             </h1>
           </FadeIn>
@@ -122,7 +147,17 @@ export default function Welcome() {
               </Link>
             </div>
           </FadeIn>
-          <FadeIn delay={0.45}>
+          <FadeIn delay={0.4}>
+            <div className="mx-auto mt-10 grid w-full max-w-md grid-cols-3 gap-2.5">
+              {stats.map(({ value, label }) => (
+                <div key={label} className="glass rounded-2xl px-3 py-3">
+                  <p className="font-display text-xl font-bold tabular-nums text-white">{value}</p>
+                  <p className="mt-0.5 text-[11px] text-brand-200">{label}</p>
+                </div>
+              ))}
+            </div>
+          </FadeIn>
+          <FadeIn delay={0.5}>
             <button
               onClick={() => document.getElementById('demo')?.scrollIntoView()}
               className="mt-8 cursor-pointer rounded text-sm text-brand-200 underline-offset-4 transition-colors duration-200 hover:text-white hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
