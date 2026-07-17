@@ -147,14 +147,15 @@ section.board{padding:72px 0;border-top:1px solid var(--line)}
 
 /* ═══ 3 · AURORA ═══ */
 .au{height:100%;position:relative;overflow:hidden;background:#2A1560;display:flex;flex-direction:column;justify-content:center;padding:0 26px}
+.au{--iri-h:262;animation:soapShift 9s ease-in-out infinite}
 .au-blob{position:absolute;border-radius:50%;filter:blur(46px);opacity:.85;z-index:0}
-.au-b1{width:340px;height:340px;background:#7C3AED;top:-70px;left:-90px;animation:drift1 11s ease-in-out infinite alternate}
-.au-b2{width:300px;height:300px;background:#A78BFA;bottom:-40px;right:-110px;animation:drift2 13s ease-in-out infinite alternate}
+.au-b1{width:340px;height:340px;background:hsl(var(--iri-h) 78% 58%);top:-70px;left:-90px;animation:drift1 11s ease-in-out infinite alternate}
+.au-b2{width:300px;height:300px;background:hsl(calc(var(--iri-h) + 60) 75% 70%);bottom:-40px;right:-110px;animation:drift2 13s ease-in-out infinite alternate}
 .au-b3{width:210px;height:210px;background:#22C55E;bottom:110px;left:-80px;opacity:.5;animation:drift3 9s ease-in-out infinite alternate}
 @keyframes drift1{to{transform:translate(50px,60px) scale(1.15)}}
 @keyframes drift2{to{transform:translate(-60px,-50px) scale(1.1)}}
 @keyframes drift3{to{transform:translate(70px,-40px)}}
-@media(prefers-reduced-motion:reduce){.au-blob{animation:none}}
+@media(prefers-reduced-motion:reduce){.au-blob{animation:none}.au{animation:none}}
 .au-inner{position:relative;z-index:1}
 .au-logo{display:flex;align-items:center;gap:10px;margin-bottom:26px}
 .au-mark{width:38px;height:38px;border-radius:12px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);
@@ -526,13 +527,14 @@ footer .wrap{border-top:1px solid var(--line);padding-top:24px}
       <h2 class="b-title">Aurora + Kinetic Motion</h2>
       <p class="b-role">Owns: auth, onboarding, empty states — screens with no data to show</p>
       <div class="b-copy">
-        <p>Auth and onboarding are the only screens where there's nothing to read and everything to feel — so this is where the brand gets to be atmospheric. A slow purple-to-green mesh drifts behind a full-bleed card (the direction your recent commits already started), and the form arrives in a <strong>staggered reveal</strong>: Google first, email second, exactly matching the button-first hierarchy you shipped.</p>
-        <p>Motion is the material here, not decoration: the drift says "alive," the stagger says "considered." Under <code style="font-family:var(--disp);font-size:.85em">prefers-reduced-motion</code> everything renders instantly and the blobs freeze.</p>
+        <p>Auth and onboarding are the only screens where there's nothing to read and everything to feel — so this is where the brand gets to be atmospheric. A slow mesh of three blobs drifts behind a full-bleed card (the direction your recent commits already started), and the form arrives in a <strong>staggered reveal</strong>: Google first, email second, exactly matching the button-first hierarchy you shipped.</p>
+        <p><strong>Experiment added:</strong> the two purple blobs now carry Study 11's soap-sheen arc — the same <code style="font-family:var(--disp);font-size:.85em">@property --iri-h</code> driving 262°→322°→208° (purple→pink→blue), with the second blob phase-offset +60° so the two never match, the way two overlapping soap films show different colors at once. The green blob stays fixed as the one deliberate brand anchor — everything drifting is desaturated-adjacent to purple, never crossing into yellow or red, so it still reads as "wet, soapy sheen" and not a startup rainbow.</p>
+        <p>Motion is the material here, not decoration: the drift says "alive," the color arc says "wet." Under <code style="font-family:var(--disp);font-size:.85em">prefers-reduced-motion</code> everything renders instantly, the blobs freeze, and the hue arc stops too.</p>
       </div>
       <ul class="specs">
-        <li>3 blurred brand blobs</li><li>drift 9–13s alternate</li><li>stagger 110ms/item</li><li>rise 500ms cubic-bezier</li><li>reduced-motion: static</li>
+        <li>3 blurred blobs, 2 hue-shifting + 1 fixed green</li><li>drift 9–13s alternate</li><li>soap-sheen arc 262°→322°→208°, +60° phase offset</li><li>stagger 110ms/item</li><li>rise 500ms cubic-bezier</li><li>reduced-motion: static, arc frozen</li>
       </ul>
-      <div class="watch"><b>Watch for</b>Crypto-startup drift. The gradient stays legitimate only while it's confined to auth, onboarding, and empty states — the moment it appears behind data, trust drops.</div>
+      <div class="watch"><b>Watch for</b>Crypto-startup drift. The gradient stays legitimate only while it's confined to auth, onboarding, and empty states — the moment it appears behind data, trust drops. The hue-shift raises that risk slightly (color motion reads as more "alive" than position drift alone) — keep the arc bounded and slow, never full-spectrum.</div>
       <button class="replay" id="auReplay">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
         Replay the entrance
