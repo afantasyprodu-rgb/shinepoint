@@ -2,35 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import Logo from './Logo'
-import { BellIcon, ClipboardCheckIcon, TrendingUpIcon, UsersIcon, SunIcon, MoonIcon } from './icons'
+import ThemeToggle from './ThemeToggle'
+import { BellIcon, ClipboardCheckIcon, TrendingUpIcon, UsersIcon } from './icons'
 import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
-import { useTheme } from '../context/ThemeContext'
-
-function ThemeToggle() {
-  const { theme, toggle } = useTheme()
-  const dark = theme === 'dark'
-  return (
-    <button
-      onClick={toggle}
-      aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
-      aria-pressed={dark}
-      className="press-spring flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-slate-600 hover:bg-brand-50 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-brand-200"
-    >
-      <AnimatePresence mode="wait" initial={false}>
-        <motion.span
-          key={dark ? 'moon' : 'sun'}
-          initial={{ scale: 0, rotate: -90 }}
-          animate={{ scale: 1, rotate: 0 }}
-          exit={{ scale: 0, rotate: 90 }}
-          transition={{ duration: 0.2 }}
-        >
-          {dark ? <MoonIcon className="h-5 w-5" /> : <SunIcon className="h-5 w-5" />}
-        </motion.span>
-      </AnimatePresence>
-    </button>
-  )
-}
 
 function NotificationBell({ role }) {
   const { notifications, markNotificationsRead } = useStore()
@@ -130,25 +105,47 @@ const NAVS = {
 // Fixed bottom tab bar, detailer-only, mobile only — matches the Stitch
 // dashboard mockup so detailers checking between jobs always have one-handed
 // nav within thumb reach instead of scrolling up to a top bar.
+//
+// Claymorphism: the active tab's icon sits in a raised neumorphic bubble that
+// pops up above the bar edge; layoutId makes it slide between tabs instead of
+// popping in fresh each time (the React equivalent of toggling an "active"
+// class — https://freefrontend.com/css-claymorphism/).
 function BottomNav({ items }) {
   return (
     <nav
       aria-label="Main mobile"
-      className="fixed inset-x-0 bottom-0 z-20 flex border-t border-slate-200 bg-white/95 backdrop-blur dark:border-white/10 dark:bg-[#1A1430]/95 sm:hidden"
+      className="fixed inset-x-0 bottom-0 z-20 flex bg-[var(--neu-bg)] shadow-[0_-8px_20px_-10px_var(--neu-sd)] sm:hidden"
     >
       {items.map(({ to, label, end, icon: ItemIcon }) => (
         <NavLink
           key={to}
           to={to}
           end={end}
-          className={({ isActive }) =>
-            `flex flex-1 flex-col items-center gap-0.5 py-2.5 text-xs font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
-              isActive ? 'text-brand-700 dark:text-brand-300' : 'text-slate-500 dark:text-slate-400'
-            }`
-          }
+          className="relative flex flex-1 flex-col items-center gap-1 py-3 text-xs font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
         >
-          {ItemIcon && <ItemIcon className="h-5 w-5" />}
-          {label}
+          {({ isActive }) => (
+            <>
+              <span className="relative flex h-9 w-9 items-center justify-center">
+                {isActive && (
+                  <motion.span
+                    layoutId="detailer-tab-bubble"
+                    transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+                    className="absolute -top-6 h-11 w-11 rounded-full bg-[var(--neu-bg)] shadow-[5px_5px_11px_var(--neu-sd),-5px_-5px_11px_var(--neu-sl)]"
+                  />
+                )}
+                {ItemIcon && (
+                  <ItemIcon
+                    className={`relative z-10 h-5 w-5 ${
+                      isActive ? 'text-cta-600' : 'text-slate-500 dark:text-slate-400'
+                    }`}
+                  />
+                )}
+              </span>
+              <span className={isActive ? 'text-brand-700 dark:text-brand-300' : 'text-slate-500 dark:text-slate-400'}>
+                {label}
+              </span>
+            </>
+          )}
         </NavLink>
       ))}
     </nav>

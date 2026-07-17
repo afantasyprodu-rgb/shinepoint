@@ -6,7 +6,7 @@ import ChatThread from '../components/ChatThread'
 import PhotoGrid from '../components/PhotoGrid'
 import Modal from '../components/ui/Modal'
 import EnRouteTracker from '../components/EnRouteTracker'
-import { InvoicePrintable } from '../components/InvoiceBuilder'
+import { InvoicePrintable, InvoiceReceipt } from '../components/InvoiceBuilder'
 import { AnimatedPage } from '../components/ui/Motion'
 import { Avatar, StatusPill, StarInput } from '../components/ui/bits'
 import {
@@ -381,7 +381,7 @@ const shownStage = openStage ?? stageIdx
 
         <Modal open={showInvoice} onClose={() => setShowInvoice(false)} labelledBy="invoice-title">
           <h2 id="invoice-title" className="sr-only">Invoice</h2>
-          <InvoicePrintable
+          <InvoiceReceipt
             invoice={b.invoice}
             booking={b}
             detailer={d}
@@ -390,6 +390,15 @@ const shownStage = openStage ?? stageIdx
           <button onClick={() => window.print()} className="btn btn-outline mt-4 w-full text-sm">
             <PrinterIcon className="h-4 w-4" /> Print / Save as PDF
           </button>
+          {/* Hidden — window.print() picks this clean doc up via #invoice-print,
+              not the decorative on-screen receipt above. */}
+          <InvoicePrintable
+            hidden
+            invoice={b.invoice}
+            booking={b}
+            detailer={d}
+            customerName={b.customerName}
+          />
         </Modal>
 
         <Modal open={showRejectDamage} onClose={() => setShowRejectDamage(false)} labelledBy="reject-damage-title">

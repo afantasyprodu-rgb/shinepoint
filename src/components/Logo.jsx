@@ -15,7 +15,7 @@ export default function Logo({ tone = 'dark', size = 'md' }) {
       </span>
       <span
         className={`${word} font-display font-semibold ${
-          tone === 'light' ? 'text-white' : 'text-brand-900'
+          tone === 'light' ? 'text-white' : 'text-brand-900 dark:text-brand-200'
         }`}
       >
         ShinePoint

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion, useAnimate, useReducedMotion } from 'motion/react'
 import Logo from '../components/Logo'
 import AuthCard from '../components/AuthCard'
+import ThemeToggle from '../components/ThemeToggle'
 import { useAuth, homePathForRole } from '../context/AuthContext'
 import { markArrival } from '../lib/transition'
 import { preloadRoute } from '../lib/preload'
@@ -212,7 +213,7 @@ export default function DesktopLanding() {
           hand-off into the destination. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 -z-10 bg-[#2e1065]"
+        className="pointer-events-none absolute inset-0 -z-10 bg-brand-900"
       />
 
       {/* ── Front layer: inline login, docked left ────────────────────────── */}
@@ -221,10 +222,20 @@ export default function DesktopLanding() {
         initial={reduce ? false : { opacity: 0, x: -24 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.5, ease: EASE_OUT_EXPO }}
-        style={{ background: 'linear-gradient(160deg in oklch, #3b0764 0%, #6d28d9 55%, #7c3aed 100%)' }}
+        style={{
+          background:
+            'linear-gradient(160deg in oklch, var(--color-brand-900) 0%, var(--color-brand-700) 55%, var(--color-brand-500) 100%)',
+          '--auth-bg': '#201033',
+          '--auth-sd': '#130a1f',
+          '--auth-sl': '#2f1a48',
+          '--auth-accent': '#ec4899',
+        }}
         className="relative z-10 flex h-screen w-full max-w-[460px] flex-col justify-center overflow-y-auto border-r border-white/10 px-12 py-10 shadow-2xl will-change-transform"
       >
-        <Logo tone="light" />
+        <div className="flex items-center justify-between">
+          <Logo tone="light" />
+          <ThemeToggle className="text-white/80 hover:bg-white/10 hover:text-white dark:text-white/80 dark:hover:bg-white/10 dark:hover:text-white" />
+        </div>
         <h1 className="mt-10 font-display text-3xl font-bold leading-tight text-white">
           Your car, detailed at your door
         </h1>

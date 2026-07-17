@@ -5,7 +5,8 @@ import { supabase } from '../lib/supabase'
 import { homePathForRole } from '../context/AuthContext'
 import { needsMfaChallenge } from '../lib/mfa'
 import Logo from './Logo'
-import { GoogleIcon, MailIcon, PhoneIcon, ChevronLeftIcon } from './icons'
+import OtpBoxInput from './OtpBoxInput'
+import { GoogleIcon, MailIcon, PhoneIcon, ChevronLeftIcon, LockIcon } from './icons'
 
 const COUNTRIES = [
   { code: '+1',   flag: '🇺🇸', name: 'United States' },
@@ -144,12 +145,11 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
     setView('emailOtp')
   }
 
-  async function handleVerifyEmailCode(e) {
-    e.preventDefault()
+  async function handleVerifyEmailCode(code) {
     setError('')
     setBusy(true)
-    const { data, error: err } = await supabase.auth.verifyOtp({ email, token: otpCode, type: 'email' })
-    if (err) { setBusy(false); setError(err.message); return }
+    const { data, error: err } = await supabase.auth.verifyOtp({ email, token: code, type: 'email' })
+    if (err) { setBusy(false); setError(err.message); setOtpCode(''); return }
     await finishLogin(data.user.id)
   }
 
@@ -177,12 +177,11 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
     setView('otp')
   }
 
-  async function handleVerifyCode(e) {
-    e.preventDefault()
+  async function handleVerifyCode(code) {
     setError('')
     setBusy(true)
-    const { data, error: err } = await supabase.auth.verifyOtp({ phone: fullPhone, token: otpCode, type: 'sms' })
-    if (err) { setBusy(false); setError(err.message); return }
+    const { data, error: err } = await supabase.auth.verifyOtp({ phone: fullPhone, token: code, type: 'sms' })
+    if (err) { setBusy(false); setError(err.message); setOtpCode(''); return }
     if (mode === 'signup') {
       setBusy(false)
       const homePath = role === 'customer' ? '/onboarding' : homePathForRole(role)
@@ -378,32 +377,36 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
         >
           <BackButton onClick={() => { setView('email'); setOtpCode(''); setError('') }} />
 
-          <form onSubmit={handleVerifyEmailCode} className="flex flex-col gap-3">
-            <Field index={0}>
-              <p className="pb-1 text-sm text-white/70">
-                Code sent to <span className="font-semibold text-white">{email}</span>
-              </p>
-            </Field>
-
-            <Field index={1}>
-              <div className="auth-field">
-                <label className="auth-label">Verification code</label>
-                <input type="text" inputMode="numeric" autoComplete="one-time-code" required
-                  value={otpCode} onChange={(e) => setOtpCode(e.target.value)}
-                  placeholder="123456" className="auth-input" autoFocus />
+          <Field index={0}>
+            <div className="mb-5 flex justify-center">
+              <div className="otp-lock-badge flex h-14 w-14 items-center justify-center rounded-full">
+                <LockIcon className="h-6 w-6" />
               </div>
-            </Field>
+            </div>
+          </Field>
 
-            {error && <p role="alert" className="auth-error">{error}</p>}
+          <Field index={1}>
+            <p className="pb-1 text-center text-sm text-white/70">
+              {busy ? 'Verifying code…' : 'Enter the code'}
+              <br />
+              sent to <span className="font-semibold text-white">{email}</span>
+            </p>
+          </Field>
 
-            <Field index={2}>
-              <button type="submit" disabled={busy} className="auth-btn-primary w-full">
-                {busy
-                  ? <span className="inline-flex items-center gap-2"><BtnSpinner />Verifying…</span>
-                  : 'Verify & continue'}
-              </button>
-            </Field>
-          </form>
+          <Field index={2}>
+            <div className="mt-3">
+              <OtpBoxInput
+                length={8}
+                value={otpCode}
+                onChange={setOtpCode}
+                onComplete={handleVerifyEmailCode}
+                error={Boolean(error)}
+                disabled={busy}
+              />
+            </div>
+          </Field>
+
+          {error && <p role="alert" className="auth-error mt-3 text-center">{error}</p>}
         </motion.div>
       )}
 
@@ -473,36 +476,40 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
           exit={{ opacity: 0, y: 8 }}
           transition={{ duration: 0.16, ease: EASE }}
         >
-          <form onSubmit={handleVerifyCode} className="flex flex-col gap-3">
-            <Field index={0}>
-              <p className="pb-1 text-sm text-white/70">
-                Code sent to <span className="font-semibold text-white">{fullPhone}</span>
-              </p>
-            </Field>
-
-            <Field index={1}>
-              <div className="auth-field">
-                <label className="auth-label">Verification code</label>
-                <input type="text" inputMode="numeric" autoComplete="one-time-code" required
-                  value={otpCode} onChange={(e) => setOtpCode(e.target.value)}
-                  placeholder="123456" className="auth-input" autoFocus />
+          <Field index={0}>
+            <div className="mb-5 flex justify-center">
+              <div className="otp-lock-badge flex h-14 w-14 items-center justify-center rounded-full">
+                <LockIcon className="h-6 w-6" />
               </div>
-            </Field>
+            </div>
+          </Field>
 
-            {error && <p role="alert" className="auth-error">{error}</p>}
+          <Field index={1}>
+            <p className="pb-1 text-center text-sm text-white/70">
+              {busy ? 'Verifying code…' : 'Enter the code'}
+              <br />
+              sent to <span className="font-semibold text-white">{fullPhone}</span>
+            </p>
+          </Field>
 
-            <Field index={2}>
-              <button type="submit" disabled={busy} className="auth-btn-primary w-full">
-                {busy
-                  ? <span className="inline-flex items-center gap-2"><BtnSpinner />Verifying…</span>
-                  : 'Verify & continue'}
-              </button>
-            </Field>
-          </form>
+          <Field index={2}>
+            <div className="mt-3">
+              <OtpBoxInput
+                length={6}
+                value={otpCode}
+                onChange={setOtpCode}
+                onComplete={handleVerifyCode}
+                error={Boolean(error)}
+                disabled={busy}
+              />
+            </div>
+          </Field>
+
+          {error && <p role="alert" className="auth-error mt-3 text-center">{error}</p>}
 
           <button type="button"
             onClick={() => { setView('phone'); setOtpCode(''); setError('') }}
-            className="mt-3 w-full py-1 text-center text-sm text-white/50 hover:text-white transition-colors">
+            className="mt-5 w-full py-1 text-center text-sm text-white/50 hover:text-white transition-colors">
             Use a different number
           </button>
         </motion.div>
