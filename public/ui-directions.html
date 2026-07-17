@@ -362,7 +362,15 @@ section.board{padding:72px 0;border-top:1px solid var(--line)}
 .ship{display:inline-block;margin-left:8px;font-family:var(--disp);font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#7BEBA4;border:1px solid rgba(34,197,94,.45);border-radius:999px;padding:2.5px 9px;vertical-align:1px}
 
 /* ═══ 11 · SOFT SYSTEM (neumorphism + clay + minimal) ═══ */
-.nm{height:100%;background:#F3EFFA;color:#2A1560;padding:58px 18px 22px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px}
+/* Soap-sheen hue arc: bounded purple→pink→blue→purple (thin-film interference), never a full rainbow */
+@property --iri-h{syntax:'<number>';inherits:true;initial-value:262}
+@keyframes soapShift{0%,100%{--iri-h:262}33%{--iri-h:322}66%{--iri-h:208}}
+.nm{height:100%;background:#F3EFFA;color:#2A1560;padding:58px 18px 22px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px;
+  --iri-h:262;animation:soapShift 9s ease-in-out infinite}
+@media(prefers-reduced-motion:reduce){.nm{animation:none}}
+.nm-sheen{height:5px;border-radius:99px;flex:none;
+  background:linear-gradient(90deg,hsl(calc(var(--iri-h) - 42) 82% 70%),hsl(var(--iri-h) 78% 62%),hsl(calc(var(--iri-h) + 58) 76% 66%));
+  box-shadow:0 1px 8px hsl(var(--iri-h) 70% 60% / .45)}
 .nm-hi{font-family:var(--disp);font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#8A7BB0;margin:0}
 .nm h3{font-family:var(--disp);font-weight:700;font-size:23px;margin:2px 0 0}
 .nm-toggle{background:#F3EFFA;border-radius:24px;padding:20px;display:flex;align-items:center;justify-content:space-between;gap:14px;
@@ -375,8 +383,8 @@ section.board{padding:72px 0;border-top:1px solid var(--line)}
   box-shadow:2px 2px 5px rgba(124,58,237,.25),-2px -2px 4px rgba(255,255,255,.9);
   transition:transform .35s cubic-bezier(.34,1.8,.5,1),background .35s,box-shadow .35s}
 .nm-switch:focus-visible{outline:3px solid var(--p);outline-offset:3px}
-.nm-switch.on{box-shadow:0 0 0 1px rgba(124,58,237,.15),0 6px 16px rgba(124,58,237,.4),inset 2px 2px 5px rgba(255,255,255,.35),inset -2px -2px 5px rgba(76,29,149,.4);
-  background:linear-gradient(160deg,#8B5CF6,#7C3AED)}
+.nm-switch.on{box-shadow:0 0 0 1px hsl(var(--iri-h) 70% 55% / .18),0 6px 16px hsl(var(--iri-h) 75% 55% / .45),inset 2px 2px 5px rgba(255,255,255,.35),inset -2px -2px 5px rgba(76,29,149,.4);
+  background:linear-gradient(160deg,hsl(calc(var(--iri-h) - 15) 85% 68%),hsl(var(--iri-h) 75% 58%));transition:background .3s,box-shadow .3s}
 .nm-switch.on::after{transform:translateX(26px);background:linear-gradient(160deg,#fff,#F3EFFA)}
 .nm-stats{display:flex;gap:12px}
 .nm-tile{flex:1;background:#F3EFFA;border-radius:20px;padding:16px;box-shadow:7px 7px 14px rgba(124,58,237,.13),-7px -7px 13px rgba(255,255,255,.9);
@@ -863,18 +871,20 @@ footer .wrap{border-top:1px solid var(--line);padding-top:24px}
       <div class="b-copy">
         <p>This isn't a fourth "look," it's a rule for how the existing minimal layer renders <strong>anything you press or flip</strong>. The screen stays flat and white — same ground, same hairlines as Study 01 — but a control that changes state gets a soft extrusion: two matched shadows, one lit (top-left, warm white) and one shadowed (bottom-right, tinted with the brand purple instead of generic grey) so the depth cue reads as "this product" rather than "neumorphism template."</p>
         <p>Shown on a screen none of the ten studies claim yet: the detailer's <strong>Today</strong> home — the online/offline switch, and the earnings/jobs tiles. Flip the switch: <strong>off</strong> is a pressed-in groove (inactive, matte), <strong>on</strong> pops convex with a purple glow — the same physical metaphor as a real light switch. Tap a stat tile and it takes the clay layer's spring squish (<code style="font-family:var(--disp);font-size:.85em">cubic-bezier(.34,1.8,.5,1)</code>), same as the Rewards stamps, so pressing anything in the app feels like one material.</p>
-        <p>Minimalism is what keeps this from turning into a 2021 dribbble neumorphism dashboard: no shadows on running text, no shadows on the job list rows below (still flat Study-01 rows), and exactly one accent color pair (brand purple + off-white) — never the pastel rainbow neumorphism usually reaches for.</p>
+        <p>Minimalism is what keeps this from turning into a 2021 dribbble neumorphism dashboard: no shadows on running text, no shadows on the job list rows below (still flat Study-01 rows), and depth stays monochrome purple — the only color motion in the frame is the sheen strip below the header.</p>
+        <p>That sheen is the color-theory add: real soap-film iridescence isn't a full rainbow, it's a <strong>bounded arc</strong> — thickness and viewing angle shift it through violet, magenta, and blue, never past into yellow or red. So instead of animating <code style="font-family:var(--disp);font-size:.85em">hue-rotate(0→360deg)</code> (the whole spectrum), a Houdini-typed custom property (<code style="font-family:var(--disp);font-size:.85em">@property --iri-h</code>) arcs one hue value 262°→322°→208°→262° — purple → pink → blue → purple — over 9 seconds. The "on" switch glow reads off the same variable, so the whole control breathes one soap-colored pulse instead of two unrelated animations.</p>
       </div>
       <ul class="specs">
-        <li>surface = ground (#F3EFFA on #F3EFFA)</li><li>dual shadow: light-white + purple-tint, not grey</li><li>controls only, never text or data rows</li><li>spring squish on press (clay's motion, not its shape)</li><li>one accent pair, no pastel rainbow</li>
+        <li>surface = ground (#F3EFFA on #F3EFFA)</li><li>dual shadow: light-white + purple-tint, not grey</li><li>controls only, never text or data rows</li><li>spring squish on press (clay's motion, not its shape)</li><li>sheen arc 262°→322°→208°, bounded not full-spectrum</li><li>@property --iri-h drives glow + sheen together</li>
       </ul>
-      <div class="watch"><b>Watch for</b>Contrast and legibility — same-color-on-same-color depends entirely on shadow, which fails for low-vision users and in bright sunlight (a detailer's actual environment). Ship it only with a visible focus ring (already here) and never as the sole signal of on/off — pair with the label text swap. If it doesn't survive an outdoor screenshot test, it's cut before Study 01 minimal.</div>
+      <div class="watch"><b>Watch for</b>Contrast and legibility — same-color-on-same-color depends entirely on shadow, which fails for low-vision users and in bright sunlight (a detailer's actual environment). Ship it only with a visible focus ring (already here) and never as the sole signal of on/off — pair with the label text swap. The sheen animation also needs the <code style="font-family:var(--disp);font-size:.85em">prefers-reduced-motion</code> pause it already has here (a slow color pulse can still trigger unease). If it doesn't survive an outdoor screenshot test, it's cut before Study 01 minimal.</div>
     </div>
     <div class="phone-col">
       <div class="phone ph-nm"><div class="notch"></div>
         <div class="screen nm">
           <p class="nm-hi">Good morning, Marco</p>
           <h3>Today</h3>
+          <div class="nm-sheen" aria-hidden="true"></div>
           <div class="nm-toggle">
             <div class="nm-toggle-txt"><b id="nmStatusLabel">You're offline</b><span id="nmStatusSub">Flip on to start receiving jobs nearby</span></div>
             <button class="nm-switch" id="nmSwitch" role="switch" aria-checked="false" aria-label="Toggle availability"></button>
