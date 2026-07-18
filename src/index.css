@@ -920,36 +920,21 @@
     inset -2px -2px 5px rgba(255, 255, 255, 0.25);
 }
 
-/* ── Analytics: dark neumorphism ──────────────────────────────────────────
-   Fixed-dark control-room panel for admin + detailer Analytics pages —
-   independent of the light/dark toggle, like .auth-card-shell. Local
-   --nx-* vars keep it self-contained; .nx-card gets its own dual shadow
-   pair so it reads neumorphic even though the rest of the app is light. */
-.nx-dark {
-  --nx-bg: #12141c;
-  --nx-card: #1c202c;
-  --nx-sd: #0a0b10;
-  --nx-sl: #262b3a;
-  background: var(--nx-bg);
-  color: #e6e8ef;
-  border-radius: 1.75rem;
-  padding: 1.25rem;
-}
-@media (min-width: 640px) {
-  .nx-dark {
-    padding: 1.75rem;
-  }
-}
-
+/* ── Analytics: neumorphism ────────────────────────────────────────────────
+   Admin + detailer Analytics cards, built on the same shared --neu-* tokens
+   as every other raised surface in the app (.bento-tile, .card, ...) so they
+   follow the light/dark toggle like everything else instead of staying
+   fixed-dark — unlike .auth-card-shell, this isn't a deliberately separate
+   world, it's a dashboard people expect to match their theme. */
 .nx-card {
-  background: var(--nx-card);
+  background: var(--neu-bg);
   border-radius: 1.25rem;
   padding: 1.1rem;
-  box-shadow: 6px 6px 14px var(--nx-sd), -6px -6px 14px var(--nx-sl);
+  box-shadow: 6px 6px 14px var(--neu-sd), -6px -6px 14px var(--neu-sl);
 }
 
 .nx-sub {
-  color: #8a8fa3;
+  @apply text-slate-500 dark:text-slate-400;
 }
 
 .nx-kicker {
@@ -957,7 +942,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #8a8fa3;
+  @apply text-slate-500 dark:text-slate-400;
 }
 
 .nx-icon-tile {

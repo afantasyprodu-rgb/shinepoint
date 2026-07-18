@@ -1,6 +1,9 @@
-// Dark neumorphism analytics charts — shared by admin and detailer Analytics
+// Neumorphism analytics charts — shared by admin and detailer Analytics
 // pages. Plain SVG, no chart library: the datasets here are small (a handful
 // of months/services), so hand-rolled paths are simpler than a dependency.
+// Admin never sets the dark class (its own theme is fixed-light), and
+// detailer follows the app-wide toggle — every color below is a light/dark
+// pair (or `currentColor` inheriting one) so both read correctly.
 
 const money = (n) => `$${Math.round(n).toLocaleString()}`
 
@@ -33,10 +36,10 @@ export function NxLineChart({
   return (
     <div>
       <div className="mb-3 flex items-center gap-4 text-xs font-medium">
-        <span className="flex items-center gap-1.5 text-slate-200">
+        <span className="flex items-center gap-1.5 text-slate-700 dark:text-slate-200">
           <span className="h-1.5 w-4 rounded-full" style={{ background: 'var(--color-cta-500)' }} /> {currentLabel}
         </span>
-        <span className="flex items-center gap-1.5 text-slate-400">
+        <span className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
           <span className="h-1.5 w-4 rounded-full" style={{ background: 'var(--color-brand-400)' }} /> {comparisonLabel}
         </span>
       </div>
@@ -48,7 +51,15 @@ export function NxLineChart({
           </linearGradient>
         </defs>
         {gridLines.map((f) => (
-          <line key={f} x1={0} x2={W} y1={H - padB - f * (H - padB - 14)} y2={H - padB - f * (H - padB - 14)} stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
+          <line
+            key={f}
+            x1={0}
+            x2={W}
+            y1={H - padB - f * (H - padB - 14)}
+            y2={H - padB - f * (H - padB - 14)}
+            className="stroke-slate-900/8 dark:stroke-white/8"
+            strokeWidth="1"
+          />
         ))}
         <path d={toArea(curPts)} fill="url(#nx-line-fill)" />
         <polyline points={toLine(cmpPts)} fill="none" stroke="var(--color-brand-400)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -62,14 +73,14 @@ export function NxLineChart({
             x={padL + i * step}
             y={H - 4}
             fontSize="11"
-            fill="rgba(255,255,255,0.45)"
+            className="fill-slate-900/45 dark:fill-white/45"
             textAnchor={i === 0 ? 'start' : i === labels.length - 1 ? 'end' : 'middle'}
           >
             {l}
           </text>
         ))}
       </svg>
-      <div className="mt-1 flex justify-between text-[11px] text-slate-500">
+      <div className="mt-1 flex justify-between text-[11px] text-slate-500 dark:text-slate-400">
         <span>0</span>
         <span>{formatValue(max)}</span>
       </div>
@@ -89,7 +100,7 @@ export function NxDonut({ segments, centerLabel, centerValue }) {
   return (
     <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-center sm:gap-8">
       <svg viewBox="0 0 160 160" className="h-40 w-40 shrink-0" role="img" aria-label={`Donut chart: ${segments.map((s) => `${s.label} ${Math.round((s.value / total) * 100)}%`).join(', ')}`}>
-        <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="20" />
+        <circle cx={cx} cy={cy} r={r} fill="none" className="stroke-slate-900/6 dark:stroke-white/6" strokeWidth="20" />
         {segments.map((seg, i) => {
           const len = (seg.value / total) * circumference
           const dasharray = `${len} ${circumference - len}`
@@ -112,7 +123,7 @@ export function NxDonut({ segments, centerLabel, centerValue }) {
           )
         })}
         {centerValue && (
-          <text x={cx} y={cy + 5} textAnchor="middle" fontSize="20" fontWeight="700" fill="#fff">
+          <text x={cx} y={cy + 5} textAnchor="middle" fontSize="20" fontWeight="700" className="fill-slate-900 dark:fill-white">
             {centerValue}
           </text>
         )}
@@ -121,8 +132,8 @@ export function NxDonut({ segments, centerLabel, centerValue }) {
         {segments.map((seg) => (
           <li key={seg.label} className="flex items-center gap-2 text-sm">
             <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: seg.color }} />
-            <span className="text-slate-300">{seg.label}</span>
-            <span className="ml-auto font-semibold text-white sm:ml-2">{Math.round((seg.value / total) * 100)}%</span>
+            <span className="text-slate-600 dark:text-slate-300">{seg.label}</span>
+            <span className="ml-auto font-semibold text-slate-900 dark:text-white sm:ml-2">{Math.round((seg.value / total) * 100)}%</span>
           </li>
         ))}
       </ul>

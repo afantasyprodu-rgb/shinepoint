@@ -34,7 +34,7 @@ export default function AdminAnalytics() {
       <AnimatedPage>
         <h1 className="font-display text-2xl font-bold text-slate-900">Analytics</h1>
 
-        <div className="nx-dark mt-6">
+        <div className="mt-6">
           <div className="grid gap-3 sm:grid-cols-2">
             <FadeIn>
               <div className="nx-card">
@@ -42,10 +42,10 @@ export default function AdminAnalytics() {
                   <p className="nx-kicker">Revenue this month</p>
                   <span className="nx-icon-tile"><TrendingUpIcon className="h-4 w-4" /></span>
                 </div>
-                <p className="mt-2 font-display text-3xl font-bold text-white">
+                <p className="mt-2 font-display text-3xl font-bold text-slate-900">
                   <CountUp value={f.month} prefix="$" />
                 </p>
-                <p className={`mt-1 text-sm font-medium ${revenueDelta >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                <p className={`mt-1 text-sm font-medium ${revenueDelta >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                   {revenueDelta >= 0 ? '+' : ''}{revenueDelta.toFixed(1)}% vs last month
                 </p>
               </div>
@@ -56,7 +56,7 @@ export default function AdminAnalytics() {
                   <p className="nx-kicker">Jobs completed</p>
                   <span className="nx-icon-tile"><PieChartIcon className="h-4 w-4" /></span>
                 </div>
-                <p className="mt-2 font-display text-3xl font-bold text-white">
+                <p className="mt-2 font-display text-3xl font-bold text-slate-900">
                   <CountUp value={admin.milestones.jobs.current} />
                 </p>
                 <p className="mt-1 text-sm nx-sub">of {admin.milestones.jobs.target.toLocaleString()} goal</p>
@@ -66,7 +66,7 @@ export default function AdminAnalytics() {
 
           <FadeIn delay={0.1}>
             <div className="nx-card mt-3">
-              <p className="mb-1 text-sm font-semibold text-white">Platform revenue by quarter</p>
+              <p className="mb-1 text-sm font-semibold text-slate-900">Platform revenue by quarter</p>
               <p className="nx-sub mb-4 text-xs">Apr–Jun vs Jan–Mar</p>
               <NxLineChart
                 labels={['Month 1', 'Month 2', 'Month 3']}
@@ -81,8 +81,8 @@ export default function AdminAnalytics() {
           <FadeIn delay={0.15}>
             <div className="nx-card mt-3">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold text-white">Revenue by service</p>
-                <p className="font-display text-lg font-bold text-white">${revenueTotal.toLocaleString()}</p>
+                <p className="text-sm font-semibold text-slate-900">Revenue by service</p>
+                <p className="font-display text-lg font-bold text-slate-900">${revenueTotal.toLocaleString()}</p>
               </div>
               <div className="mt-4">
                 {segments.length > 0 ? (
