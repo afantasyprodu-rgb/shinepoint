@@ -1,10 +1,17 @@
-import { useEffect, useRef } from 'react'
-import mapboxgl from 'mapbox-gl'
-import 'mapbox-gl/dist/mapbox-gl.css'
-import DemoMap from './DemoMap'
+import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 import { useTheme } from '../context/ThemeContext'
+import LiquidGlassDefs from './LiquidGlassDefs'
 
+// EnRouteTracker still uses Mapbox for live turn-by-turn; the main discovery
+// map switched to Leaflet + OpenStreetMap (no token needed), so this token
+// check stays here for EnRouteTracker to import.
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN
+export function isMapboxConfigured() {
+  return Boolean(MAPBOX_TOKEN)
+}
 
 // Pin colors per Blueprint screen 2.1:
 // green = available, yellow = busy but accepting, grey = offline.
@@ -14,88 +21,212 @@ const PIN_COLORS = {
   offline: '#94a3b8',
 }
 
-const LA_CENTER = [-118.33, 34.05]
+const LA_CENTER = [34.05, -118.33]
 
-export function isMapboxConfigured() {
-  return Boolean(MAPBOX_TOKEN)
+// OSM standard for light. Dark uses CartoDB's no-labels variant — the
+// labeled dark_all tiles crammed every street name and route shield onto
+// the map, which read as noisy/cluttered next to the pins; nolabels keeps
+// just the road/park/water shapes so the pins and popups stay the focus.
+const TILES = {
+  light: {
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  },
+  dark: {
+    url: 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+  },
+}
+
+function statusLine(d) {
+  if (d.status === 'available') return 'Available now'
+  if (d.status === 'busy' && d.acceptsWhenBusy) return 'Busy — accepting bookings'
+  if (d.status === 'busy') return 'Busy'
+  return 'Offline'
+}
+
+// A colored map pin as a divIcon (no image asset, so no Leaflet default-icon
+// 404 to patch). Anchored at the bottom tip.
+function pinIcon(status) {
+  const color = PIN_COLORS[status] ?? PIN_COLORS.offline
+  return L.divIcon({
+    className: '',
+    html: `<span class="nx-map-pin" style="--pin:${color}"></span>`,
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
+    popupAnchor: [0, -14],
+  })
+}
+
+const userIcon = L.divIcon({
+  className: '',
+  html: '<span class="nx-user-dot"><span class="nx-user-ping"></span></span>',
+  iconSize: [22, 22],
+  iconAnchor: [11, 11],
+})
+
+// Fuller info once the pin is centered and tapped — insurance/rewards
+// badges, travel radius, jobs done, and every service with its price
+// (not just "from $X") since there's now room for it.
+function popupHtml(d) {
+  const color = PIN_COLORS[d.status] ?? PIN_COLORS.offline
+  const badges = [
+    d.insurance !== 'none' ? `<span class="nx-pop-chip">🛡️ ${d.insurance} insured</span>` : '',
+    d.acceptsRewards ? '<span class="nx-pop-chip">🎁 Rewards</span>' : '',
+  ].join('')
+  const services = d.services
+    .map((s) => `<li><span>${s.name}</span><span>$${s.price}</span></li>`)
+    .join('')
+  return `
+    <div class="nx-pop">
+      <p class="nx-pop-name">${d.name}</p>
+      <p class="nx-pop-meta">★ ${d.rating.toFixed(1)} (${d.reviews}) · ${d.area} · ${d.travelMiles} mi radius</p>
+      <p class="nx-pop-status" style="color:${color}">${statusLine(d)} · ${d.completedJobs} jobs done</p>
+      ${badges ? `<div class="nx-pop-badges">${badges}</div>` : ''}
+      <ul class="nx-pop-services">${services}</ul>
+      <button type="button" data-view class="nx-pop-btn">View profile</button>
+    </div>`
 }
 
 export default function DetailerMap({ detailers, focus }) {
   const containerRef = useRef(null)
   const mapRef = useRef(null)
+  const tileRef = useRef(null)
+  const markersRef = useRef(new Map())
+  const userRef = useRef(null)
+  const navigate = useNavigate()
   const { theme } = useTheme()
+  const [locating, setLocating] = useState(false)
+  const [geoError, setGeoError] = useState('')
 
+  // Create the map once.
   useEffect(() => {
-    if (!MAPBOX_TOKEN || !containerRef.current) return
-
-    mapboxgl.accessToken = MAPBOX_TOKEN
-    const map = new mapboxgl.Map({
-      container: containerRef.current,
-      style:
-        theme === 'dark'
-          ? 'mapbox://styles/mapbox/dark-v11'
-          : 'mapbox://styles/mapbox/streets-v12',
+    if (!containerRef.current || mapRef.current) return
+    const map = L.map(containerRef.current, {
       center: LA_CENTER,
-      zoom: 10.3,
+      zoom: 11,
+      zoomControl: false,
+      attributionControl: true,
     })
-    map.addControl(new mapboxgl.NavigationControl(), 'top-right')
+    const zoomControl = L.control.zoom({ position: 'topright' }).addTo(map)
+    zoomControl.getContainer()?.classList.add('nx-map-btn-glass', 'nx-zoom-glass')
+    const t = TILES[theme] ?? TILES.light
+    tileRef.current = L.tileLayer(t.url, { attribution: t.attribution, maxZoom: 19 }).addTo(map)
     mapRef.current = map
-
-    const markers = detailers
-      .filter((d) => d.pin)
-      .map((d) => {
-        const el = document.createElement('button')
-        el.type = 'button'
-        el.setAttribute('aria-label', `${d.name} — ${d.status}`)
-        el.style.cssText = `
-          width: 22px; height: 22px; border-radius: 9999px; cursor: pointer;
-          background: ${PIN_COLORS[d.status] ?? PIN_COLORS.offline};
-          border: 3px solid white; box-shadow: 0 1px 4px rgba(0,0,0,0.4);
-        `
-
-        const popup = new mapboxgl.Popup({ offset: 16, closeButton: false }).setHTML(`
-          <div style="font-family: 'Source Sans 3', sans-serif; min-width: 160px;">
-            <strong style="font-size: 14px;">${d.name}</strong>
-            <div style="font-size: 13px; color: #475569;">
-              ★ ${d.rating.toFixed(1)} (${d.reviews}) · ${d.area}
-            </div>
-            <div style="font-size: 12px; margin-top: 2px; color: ${PIN_COLORS[d.status]};">
-              ${
-                d.status === 'available'
-                  ? 'Available now'
-                  : d.status === 'busy' && d.acceptsWhenBusy
-                    ? 'Busy — accepting bookings'
-                    : d.status === 'busy'
-                      ? 'Busy'
-                      : 'Offline'
-              }
-            </div>
-          </div>
-        `)
-
-        return new mapboxgl.Marker({ element: el })
-          .setLngLat([d.pin.lng, d.pin.lat])
-          .setPopup(popup)
-          .addTo(map)
-      })
-
     return () => {
-      markers.forEach((m) => m.remove())
       map.remove()
       mapRef.current = null
+      markersRef.current.clear()
     }
-  }, [detailers, theme])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Swap tiles when the theme flips.
   useEffect(() => {
-    if (focus && mapRef.current) {
-      mapRef.current.flyTo({ center: [focus.lng, focus.lat], zoom: 13, duration: 1200 })
-    }
+    if (!mapRef.current || !tileRef.current) return
+    const t = TILES[theme] ?? TILES.light
+    tileRef.current.setUrl(t.url)
+    tileRef.current.options.attribution = t.attribution
+  }, [theme])
+
+  // Rebuild markers when the filtered detailer list changes.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+    markersRef.current.forEach((m) => m.remove())
+    markersRef.current.clear()
+
+    detailers
+      .filter((d) => d.pin)
+      .forEach((d) => {
+        const marker = L.marker([d.pin.lat, d.pin.lng], {
+          icon: pinIcon(d.status),
+          keyboard: true,
+          title: `${d.name} — ${statusLine(d)}`,
+        })
+          .bindPopup(popupHtml(d), { closeButton: false, offset: [0, -4], className: 'nx-popup', autoPan: false })
+          .addTo(map)
+        // Tapping a pin centers it — same zoom, just re-centered — before
+        // Leaflet's own click handler opens the popup (autoPan is off above
+        // so the two pans don't fight). Shifted down from dead-center so the
+        // popup, which grows upward from the pin, clears the search/filter
+        // chrome pinned to the top of the map instead of running under it.
+        marker.on('click', () => {
+          const targetPoint = map.project([d.pin.lat, d.pin.lng], map.getZoom()).subtract([0, 90])
+          const targetLatLng = map.unproject(targetPoint, map.getZoom())
+          map.flyTo(targetLatLng, map.getZoom(), { duration: 0.5 })
+        })
+        // Wire the popup's "View profile" button to SPA navigation (a plain
+        // <a href> would hard-reload and drop demo state).
+        marker.on('popupopen', () => {
+          const el = marker.getPopup().getElement()
+          const btn = el?.querySelector('[data-view]')
+          if (btn) btn.onclick = () => navigate(`/detailers/${d.id}`)
+        })
+        markersRef.current.set(d.id, marker)
+      })
+  }, [detailers, navigate])
+
+  // "Locate" from a card (if still passed): fly to a pin and open its popup.
+  useEffect(() => {
+    if (!focus || !mapRef.current) return
+    mapRef.current.flyTo([focus.lat, focus.lng], 14, { duration: 1.1 })
+    markersRef.current.forEach((m) => {
+      const ll = m.getLatLng()
+      if (Math.abs(ll.lat - focus.lat) < 1e-6 && Math.abs(ll.lng - focus.lng) < 1e-6) m.openPopup()
+    })
   }, [focus])
 
-  // No token: fall back to the stylized demo map so the app still demos well.
-  if (!MAPBOX_TOKEN) {
-    return <DemoMap detailers={detailers} focus={focus} />
+  function locateMe() {
+    if (!navigator.geolocation) {
+      setGeoError('Location not supported on this device.')
+      return
+    }
+    setLocating(true)
+    setGeoError('')
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        setLocating(false)
+        const map = mapRef.current
+        if (!map) return
+        const ll = [coords.latitude, coords.longitude]
+        if (userRef.current) userRef.current.setLatLng(ll)
+        else userRef.current = L.marker(ll, { icon: userIcon, interactive: false, zIndexOffset: 500 }).addTo(map)
+        map.flyTo(ll, 14, { duration: 1.2 })
+      },
+      () => {
+        setLocating(false)
+        setGeoError('Could not get your location.')
+      },
+      { enableHighAccuracy: true, timeout: 8000 }
+    )
   }
 
-  return <div ref={containerRef} className="h-full w-full" />
+  return (
+    <div className="relative h-full w-full">
+      <LiquidGlassDefs />
+      <div ref={containerRef} className="h-full w-full" />
+
+      {/* Locate-me button — pulsing marker + fly-to on press. */}
+      <button
+        type="button"
+        onClick={locateMe}
+        aria-label="Show my location"
+        className="nx-map-btn-glass press-spring absolute bottom-24 right-4 z-[500] flex h-11 w-11 items-center justify-center rounded-full text-brand-700 hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-brand-300"
+      >
+        {locating ? (
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" />
+        ) : (
+          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+          </svg>
+        )}
+      </button>
+      {geoError && (
+        <p role="status" className="nx-liquid absolute bottom-36 right-4 z-[500] rounded-lg px-3 py-1.5 text-xs text-slate-700 dark:text-slate-200">
+          {geoError}
+        </p>
+      )}
+    </div>
+  )
 }

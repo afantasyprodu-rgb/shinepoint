@@ -14,7 +14,6 @@ import {
   ChevronLeftIcon,
   AlertTriangleIcon,
   FileTextIcon,
-  PrinterIcon,
   ClockIcon,
   LightbulbIcon,
   StarIcon,
@@ -153,44 +152,45 @@ const shownStage = openStage ?? stageIdx
           {/* Timeline — every dot is tappable to preview that stage's process */}
           {b.status !== 'cancelled' && b.status !== 'disputed' && (
             <>
-              <ol className="mt-6 flex items-center" aria-label="Job progress">
+              <div className="job-progress-track mt-8 mx-3.5" aria-label="Job progress">
+                <motion.div
+                  className="job-progress-fill"
+                  initial={false}
+                  animate={{ width: `${(stageIdx / (TIMELINE.length - 1)) * 100}%` }}
+                  transition={{ type: 'spring', stiffness: 140, damping: 20 }}
+                />
                 {TIMELINE.map((stage, i) => (
-                  <li key={stage} className={`flex items-center ${i < TIMELINE.length - 1 ? 'flex-1' : ''}`}>
-                    <div className="flex flex-col items-center">
-                      <button
-                        type="button"
-                        onClick={() => setOpenStage(i)}
-                        aria-label={`${TIMELINE_LABELS[stage]} — see what happens`}
-                        aria-expanded={shownStage === i}
-                        className={`cursor-pointer rounded-full transition-shadow duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
-                          shownStage === i ? 'ring-2 ring-brand-300 ring-offset-2' : ''
-                        }`}
-                      >
-                        <motion.span
-                          initial={false}
-                          animate={{
-                            backgroundColor: i <= stageIdx ? '#7c3aed' : '#e9d5ff',
-                            scale: i === stageIdx ? 1.15 : 1,
-                          }}
-                          className="flex h-7 w-7 items-center justify-center rounded-full text-white"
-                        >
-                          {i < stageIdx ? <CheckIcon className="h-3.5 w-3.5" /> : <span className="h-2 w-2 rounded-full bg-white/80" />}
-                        </motion.span>
-                      </button>
-                      <span className={`mt-1 hidden text-[10px] sm:block ${i === stageIdx ? 'font-bold text-brand-700' : 'text-slate-400'}`}>
-                        {TIMELINE_LABELS[stage]}
-                      </span>
-                    </div>
-                    {i < TIMELINE.length - 1 && (
-                      <motion.div
-                        initial={false}
-                        animate={{ backgroundColor: i < stageIdx ? '#7c3aed' : '#e9d5ff' }}
-                        className="mx-1 mb-4 h-1 flex-1 rounded-full sm:mb-0"
-                      />
-                    )}
-                  </li>
+                  <button
+                    key={stage}
+                    type="button"
+                    onClick={() => setOpenStage(i)}
+                    aria-label={`${TIMELINE_LABELS[stage]} — see what happens`}
+                    aria-expanded={shownStage === i}
+                    className="job-progress-tick"
+                    style={{ left: `${(i / (TIMELINE.length - 1)) * 100}%` }}
+                  >
+                    {i < stageIdx ? <CheckIcon className="h-3 w-3" /> : i + 1}
+                  </button>
                 ))}
-              </ol>
+                <motion.div
+                  className="job-progress-ball-wrap"
+                  initial={false}
+                  animate={{ left: `${(shownStage / (TIMELINE.length - 1)) * 100}%` }}
+                  transition={{ type: 'spring', stiffness: 140, damping: 20 }}
+                >
+                  <div className="job-progress-ball" />
+                </motion.div>
+              </div>
+              <div className="mt-1.5 flex justify-between px-1">
+                {TIMELINE.map((stage, i) => (
+                  <span
+                    key={stage}
+                    className={`hidden text-[10px] sm:block ${i === stageIdx ? 'font-bold text-brand-700' : 'text-slate-400'}`}
+                  >
+                    {TIMELINE_LABELS[stage]}
+                  </span>
+                ))}
+              </div>
 
               {/* Per-stage detail — auto-follows the current step, or a tapped preview */}
               <AnimatePresence mode="wait">
@@ -387,9 +387,6 @@ const shownStage = openStage ?? stageIdx
             detailer={d}
             customerName={b.customerName}
           />
-          <button onClick={() => window.print()} className="btn btn-outline mt-4 w-full text-sm">
-            <PrinterIcon className="h-4 w-4" /> Print / Save as PDF
-          </button>
           {/* Hidden — window.print() picks this clean doc up via #invoice-print,
               not the decorative on-screen receipt above. */}
           <InvoicePrintable

@@ -21,11 +21,13 @@ import DetailerDashboard from './pages/DetailerDashboard'
 import DetailerJob from './pages/DetailerJob'
 import DetailerOnboarding from './pages/DetailerOnboarding'
 import DetailerEarnings from './pages/DetailerEarnings'
+import DetailerAnalytics from './pages/DetailerAnalytics'
 import DetailerProfileEditor from './pages/DetailerProfileEditor'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminPeople from './pages/admin/AdminPeople'
 import AdminOps from './pages/admin/AdminOps'
 import AdminFinance from './pages/admin/AdminFinance'
+import AdminAnalytics from './pages/admin/AdminAnalytics'
 import ProfileSetup from './pages/ProfileSetup'
 import MfaSetup from './pages/MfaSetup'
 import MfaChallenge from './pages/MfaChallenge'
@@ -100,6 +102,7 @@ export default function App() {
         <Route path="/detailer/jobs/:id" element={guard('detailer', <DetailerJob />)} />
         <Route path="/detailer/onboarding" element={guard('detailer', <DetailerOnboarding />)} />
         <Route path="/detailer/earnings" element={guard('detailer', <DetailerEarnings />)} />
+        <Route path="/detailer/analytics" element={guard('detailer', <DetailerAnalytics />)} />
         <Route path="/detailer/profile" element={guard('detailer', <DetailerProfileEditor />)} />
 
         {/* Admin */}
@@ -107,6 +110,7 @@ export default function App() {
         <Route path="/admin/people" element={guard('admin', <AdminPeople />)} />
         <Route path="/admin/ops" element={guard('admin', <AdminOps />)} />
         <Route path="/admin/finance" element={guard('admin', <AdminFinance />)} />
+        <Route path="/admin/analytics" element={guard('admin', <AdminAnalytics />)} />
       </Routes>
     </ArrivalTransition>
     </ErrorBoundary>

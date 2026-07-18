@@ -1,13 +1,14 @@
 import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import AppShell from '../components/AppShell'
 import DetailerMap from '../components/DetailerMap'
-import { StarIcon, ShieldCheckIcon } from '../components/icons'
-import { Stagger, StaggerItem } from '../components/ui/Motion'
 import { useStore } from '../context/StoreContext'
 
+// Dot colors match DetailerMap's PIN_COLORS exactly (green-600/amber-500/
+// slate-400) so the legend and the actual pins never drift out of sync —
+// they drifted before when the cta token got recolored pink for the brand
+// refresh, leaving the "Available" dot pink while pins stayed green.
 const STATUS_BADGES = {
-  available: { dot: 'bg-cta-600', label: 'Available' },
+  available: { dot: 'bg-green-600', label: 'Available' },
   busy: { dot: 'bg-amber-500', label: 'Busy' },
   offline: { dot: 'bg-slate-400', label: 'Offline' },
 }
@@ -19,11 +20,10 @@ const FILTERS = [
   { key: 'now', label: 'Available now', test: (d) => d.status === 'available' },
 ]
 
-// Blueprint screen 2.1 — Customer Home (Map Screen).
+// Blueprint screen 2.1 — Customer Home (Map Screen). Fully map-driven: tap a
+// pin to grow a quick-info bubble, tap the map to dismiss it. No card strip.
 export default function CustomerHome() {
-  const navigate = useNavigate()
   const { detailers } = useStore()
-  const [focus, setFocus] = useState(null)
   const [query, setQuery] = useState('')
   const [active, setActive] = useState([])
 
@@ -44,17 +44,17 @@ export default function CustomerHome() {
     <AppShell role="customer">
       <main className="relative h-[calc(100vh-61px)]">
         <h1 className="sr-only">Find a detailer near you</h1>
-        <DetailerMap detailers={filtered} focus={focus} />
+        <DetailerMap detailers={filtered} />
 
         {/* Search + filters (2.1) */}
-        <div className="absolute inset-x-0 top-3 z-10 mx-auto w-full max-w-md px-4">
+        <div className="pointer-events-none absolute inset-x-0 top-3 z-[500] mx-auto w-full max-w-md px-4">
           <input
             type="search"
             aria-label="Search zip code or neighborhood"
             placeholder="Search zip code or neighborhood"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="input glass-panel h-11 w-full rounded-xl border-white/70 placeholder-slate-500"
+            className="input nx-liquid pointer-events-auto h-11 w-full rounded-xl placeholder-slate-500"
           />
           <div className="mt-2 flex flex-wrap justify-center gap-1.5">
             {FILTERS.map(({ key, label }) => (
@@ -63,86 +63,31 @@ export default function CustomerHome() {
                 type="button"
                 aria-pressed={active.includes(key)}
                 onClick={() => toggleFilter(key)}
-                className={`press-spring cursor-pointer rounded-full px-3 py-1.5 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
+                className={`press-spring pointer-events-auto cursor-pointer rounded-full px-3 py-1.5 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
                   active.includes(key)
                     ? 'bg-brand-600 text-white shadow-md'
-                    : 'glass-panel text-slate-700 hover:bg-white/80'
+                    : 'nx-liquid text-slate-700 hover:brightness-95'
                 }`}
               >
                 {label}
               </button>
             ))}
           </div>
+          {filtered.length === 0 && (
+            <p role="status" className="nx-liquid pointer-events-auto mx-auto mt-2 w-fit rounded-xl px-4 py-2 text-sm text-slate-700">
+              No detailers match — try clearing a filter.
+            </p>
+          )}
         </div>
 
-        <div className="glass-panel absolute bottom-56 right-4 flex flex-col gap-1.5 rounded-xl px-3 py-2 text-xs">
+        {/* Status legend */}
+        <div className="nx-liquid absolute bottom-4 left-4 z-[500] flex flex-col gap-1.5 rounded-xl px-3 py-2 text-xs">
           {Object.entries(STATUS_BADGES).map(([key, { dot, label }]) => (
             <span key={key} className="flex items-center gap-2 text-slate-700">
               <span className={`h-2.5 w-2.5 rounded-full ${dot}`} />
               {key === 'busy' ? 'Busy — may accept bookings' : label}
             </span>
           ))}
-        </div>
-
-        <div className="absolute inset-x-0 bottom-0 z-10 pb-4">
-          <h2 className="sr-only">Nearby detailers</h2>
-          {filtered.length === 0 && (
-            <p role="status" className="glass-panel mx-auto w-fit rounded-xl px-4 py-2 text-sm text-slate-700">
-              No detailers match — try clearing a filter.
-            </p>
-          )}
-          <Stagger
-            className="flex gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-            gap={0.05}
-          >
-            {filtered.map((d) => {
-              const badge = STATUS_BADGES[d.status]
-              return (
-                <StaggerItem key={d.id} className="shrink-0">
-                  <div className="glass-panel w-64 rounded-2xl p-4 transition-all duration-200 hover:-translate-y-1 hover:bg-white/75 hover:shadow-xl">
-                    <div className="flex items-center justify-between gap-2">
-                      <button
-                        onClick={() => navigate(`/detailers/${d.id}`)}
-                        className="cursor-pointer truncate text-left font-display font-semibold text-slate-900 transition-colors duration-200 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-slate-100 dark:hover:text-brand-300"
-                      >
-                        {d.name}
-                      </button>
-                      <span className="flex shrink-0 items-center gap-1 text-sm text-slate-700 dark:text-slate-200">
-                        <StarIcon className="h-3.5 w-3.5 text-amber-500" />
-                        {d.rating.toFixed(1)}
-                      </span>
-                    </div>
-                    <p className="mt-0.5 flex items-center gap-1.5 truncate text-sm text-slate-600 dark:text-slate-300">
-                      {d.insurance !== 'none' && (
-                        <ShieldCheckIcon className="h-3.5 w-3.5 shrink-0 text-brand-600 dark:text-brand-400" />
-                      )}
-                      {d.area} · from ${Math.min(...d.services.map((s) => s.price))}
-                    </p>
-                    <div className="mt-3 flex items-center justify-between">
-                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-300">
-                        <span className={`h-2 w-2 rounded-full ${badge.dot}`} />
-                        {d.status === 'busy' && d.acceptsWhenBusy ? 'Busy — accepting' : badge.label}
-                      </span>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => d.pin && setFocus({ ...d.pin })}
-                          className="press-spring cursor-pointer rounded-lg px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-white/70 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
-                        >
-                          Locate
-                        </button>
-                        <button
-                          onClick={() => navigate(`/detailers/${d.id}`)}
-                          className="press-spring cursor-pointer rounded-lg bg-brand-600 px-3 py-1 text-xs font-semibold text-white hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-1"
-                        >
-                          View
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </StaggerItem>
-              )
-            })}
-          </Stagger>
         </div>
       </main>
     </AppShell>

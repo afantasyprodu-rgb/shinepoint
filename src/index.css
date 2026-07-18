@@ -578,6 +578,70 @@
     @apply mb-2 inline-block text-xs font-semibold uppercase tracking-[0.2em] text-brand-600;
   }
 
+  /* ── Job progress: 3D ball tracker ───────────────────────────────────────
+     Glossy sphere that rides a pill track and pops above it (ball diameter
+     > track height). .job-progress-fill covers real progress (stageIdx);
+     the ball follows the preview cursor (shownStage), which can lead or
+     lag the fill when the customer taps an earlier/later stage to peek. */
+  .job-progress-track {
+    position: relative;
+    height: 1.75rem;
+    border-radius: 9999px;
+    background: var(--neu-bg);
+    box-shadow: inset 3px 3px 7px var(--neu-sd), inset -3px -3px 7px var(--neu-sl);
+  }
+  .job-progress-fill {
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    background: linear-gradient(90deg, var(--color-cta-600), var(--color-cta-500));
+    transform-origin: left center;
+  }
+  .job-progress-tick {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    translate: -50% -50%;
+    z-index: 2;
+    display: flex;
+    height: 1.75rem;
+    width: 1.75rem;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    background: transparent;
+    font-family: var(--font-display);
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #fff;
+    mix-blend-mode: difference;
+  }
+  .job-progress-ball-wrap {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    z-index: 3;
+    translate: -50% -50%;
+    pointer-events: none;
+  }
+  .job-progress-ball {
+    height: 2.25rem;
+    width: 2.25rem;
+    border-radius: 9999px;
+    background: radial-gradient(
+      circle at 32% 26%,
+      #ffffff 0%,
+      var(--color-cta-500) 30%,
+      var(--color-cta-600) 65%,
+      var(--color-cta-800) 100%
+    );
+    box-shadow:
+      0 10px 14px -4px color-mix(in srgb, var(--color-cta-800) 65%, transparent),
+      inset -4px -5px 8px rgba(0, 0, 0, 0.28),
+      inset 3px 4px 6px rgba(255, 255, 255, 0.65);
+  }
+
   /* ── Ambient glow ─────────────────────────────────────────────────────────
      Soft radial halo behind important elements. The glow lives on a blurred
      ::before so only opacity/transform animate (GPU-cheap, mobile-safe).
@@ -839,4 +903,322 @@
   box-shadow:
     inset 3px 3px 7px rgba(0, 0, 0, 0.15),
     inset -2px -2px 5px rgba(255, 255, 255, 0.25);
+}
+
+/* ── Analytics: dark neumorphism ──────────────────────────────────────────
+   Fixed-dark control-room panel for admin + detailer Analytics pages —
+   independent of the light/dark toggle, like .auth-card-shell. Local
+   --nx-* vars keep it self-contained; .nx-card gets its own dual shadow
+   pair so it reads neumorphic even though the rest of the app is light. */
+.nx-dark {
+  --nx-bg: #12141c;
+  --nx-card: #1c202c;
+  --nx-sd: #0a0b10;
+  --nx-sl: #262b3a;
+  background: var(--nx-bg);
+  color: #e6e8ef;
+  border-radius: 1.75rem;
+  padding: 1.25rem;
+}
+@media (min-width: 640px) {
+  .nx-dark {
+    padding: 1.75rem;
+  }
+}
+
+.nx-card {
+  background: var(--nx-card);
+  border-radius: 1.25rem;
+  padding: 1.1rem;
+  box-shadow: 6px 6px 14px var(--nx-sd), -6px -6px 14px var(--nx-sl);
+}
+
+.nx-sub {
+  color: #8a8fa3;
+}
+
+.nx-kicker {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #8a8fa3;
+}
+
+.nx-icon-tile {
+  display: inline-flex;
+  height: 2rem;
+  width: 2rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.65rem;
+  background: color-mix(in srgb, var(--color-cta-500) 22%, transparent);
+  color: var(--color-cta-500);
+}
+
+/* ── Bottom tab bar: sliding notch ────────────────────────────────────────
+   Shared by every role's mobile bottom bar (BottomTabBar.jsx). A circular
+   cutout in the bar's top edge slides to the active tab via a
+   radial-gradient mask keyed to --tab-notch-x (registered with @property so
+   the browser can animate it like a normal length/percentage). Pairs with
+   the layoutId bubble, which pops up through the hole. Same visual idea as
+   the classic "data-where" notch-nav codepen, driven by React Router's
+   active index instead of manual class toggling. */
+@property --tab-notch-x {
+  syntax: '<percentage>';
+  inherits: true;
+  initial-value: 12.5%;
+}
+.bottom-tabbar {
+  transition: --tab-notch-x 0.35s var(--ease-spring);
+  -webkit-mask-image: radial-gradient(circle 22px at var(--tab-notch-x) -4px, transparent 98%, black 100%);
+  mask-image: radial-gradient(circle 22px at var(--tab-notch-x) -4px, transparent 98%, black 100%);
+}
+
+/* ── Leaflet map: pins, user location, grow-in popups ─────────────────────
+   The discovery map (DetailerMap) is Leaflet + OpenStreetMap. Pins and the
+   user-location dot are divIcons styled here; the native popup grows in with
+   a springy scale (transform-origin bottom, so it appears to pop out of the
+   pin). Leaflet positions .leaflet-popup via transform, so the grow animates
+   the inner wrapper/tip instead to avoid fighting that. */
+.nx-map-pin {
+  display: block;
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+  background: var(--pin, #94a3b8);
+  border: 3px solid #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  transition: transform 0.15s var(--ease-spring);
+}
+.nx-map-pin:hover {
+  transform: scale(1.15);
+}
+
+.nx-user-dot {
+  position: relative;
+  display: block;
+  width: 16px;
+  height: 16px;
+  margin: 3px;
+  border-radius: 9999px;
+  background: #2563eb;
+  border: 3px solid #fff;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
+}
+.nx-user-ping {
+  position: absolute;
+  inset: -3px;
+  border-radius: 9999px;
+  background: #2563eb;
+  opacity: 0.45;
+  animation: nx-ping 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+@keyframes nx-ping {
+  0% { transform: scale(1); opacity: 0.5; }
+  75%, 100% { transform: scale(2.6); opacity: 0; }
+}
+
+/* Grow-in popup bubble */
+.nx-popup .leaflet-popup-content-wrapper,
+.nx-popup .leaflet-popup-tip {
+  animation: nx-bubble-grow 0.24s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.nx-popup .leaflet-popup-content-wrapper {
+  transform-origin: bottom center;
+  border-radius: 0.9rem;
+  box-shadow: 0 10px 30px -8px rgba(0, 0, 0, 0.35);
+}
+@keyframes nx-bubble-grow {
+  from { transform: scale(0.35); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+.nx-popup .leaflet-popup-content {
+  margin: 0;
+}
+.nx-pop {
+  min-width: 200px;
+  max-width: 240px;
+  padding: 0.85rem 0.9rem;
+  font-family: var(--font-sans);
+}
+.nx-pop-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #0f172a;
+}
+.nx-pop-meta {
+  margin-top: 2px;
+  font-size: 0.8rem;
+  color: #475569;
+}
+.nx-pop-status {
+  margin-top: 2px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.nx-pop-price {
+  margin-top: 2px;
+  font-size: 0.8rem;
+  color: #64748b;
+}
+.nx-pop-badges {
+  margin-top: 0.4rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+.nx-pop-chip {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-brand-600) 12%, transparent);
+  padding: 0.15rem 0.5rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--color-brand-700);
+  white-space: nowrap;
+}
+.nx-pop-services {
+  margin-top: 0.55rem;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+  padding-top: 0.4rem;
+  max-height: 110px;
+  overflow-y: auto;
+}
+.nx-pop-services li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.15rem 0;
+  font-size: 0.78rem;
+  color: #334155;
+}
+.nx-pop-services li span:last-child {
+  font-weight: 600;
+  color: #0f172a;
+}
+.nx-pop-btn {
+  margin-top: 0.6rem;
+  width: 100%;
+  cursor: pointer;
+  border-radius: 0.6rem;
+  background: var(--color-brand-600);
+  padding: 0.4rem 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #fff;
+  transition: background 0.15s ease;
+}
+.nx-pop-btn:hover {
+  background: var(--color-brand-700);
+}
+
+/* Dark popup surface to match the app's dark theme */
+.dark .nx-popup .leaflet-popup-content-wrapper,
+.dark .nx-popup .leaflet-popup-tip {
+  background: #1e1730;
+}
+.dark .nx-pop-name { color: #f1f5f9; }
+.dark .nx-pop-meta { color: #cbd5e1; }
+.dark .nx-pop-price { color: #94a3b8; }
+.dark .nx-pop-chip { background: color-mix(in srgb, var(--color-brand-400) 20%, transparent); color: var(--color-brand-200); }
+.dark .nx-pop-services { border-top-color: rgba(255, 255, 255, 0.1); }
+.dark .nx-pop-services li { color: #cbd5e1; }
+.dark .nx-pop-services li span:last-child { color: #f1f5f9; }
+
+/* ── Liquid glass — map chrome only ────────────────────────────────────────
+   The distorted/refractive glass look (LiquidGlassDefs.jsx) applied only to
+   floating UI on top of the map (search bar, filter pills, legend, locate
+   button) — never to the map tiles themselves, since backdrop-filter
+   re-samples its backdrop every repaint and doing that under something that
+   pans/zooms every frame would tank perf. Falls back to a plain frosted
+   blur where backdrop-filter: url() isn't supported (Firefox, older Safari). */
+.nx-liquid {
+  background: rgba(255, 255, 255, 0.35);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  backdrop-filter: blur(14px) saturate(1.4);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.6);
+}
+@supports (backdrop-filter: url(#a)) or (-webkit-backdrop-filter: url(#a)) {
+  .nx-liquid {
+    background: rgba(255, 255, 255, 0.14);
+    -webkit-backdrop-filter: url(#nx-liquid-glass);
+    backdrop-filter: url(#nx-liquid-glass);
+  }
+}
+:where(.dark) .nx-liquid {
+  background: rgba(20, 16, 35, 0.35);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+@supports (backdrop-filter: url(#a)) or (-webkit-backdrop-filter: url(#a)) {
+  :where(.dark) .nx-liquid {
+    background: rgba(20, 16, 35, 0.18);
+  }
+}
+
+/* ── Theme toggle: wave wipe ───────────────────────────────────────────────
+   ThemeToggle.jsx starts a View Transition and stamps the click point into
+   --theme-wave-*; the new-theme snapshot is clipped to a growing circle
+   anchored there so the theme change visibly washes across the screen from
+   the button instead of a flat cross-fade. Unsupported browsers/reduced-
+   motion just skip startViewTransition and swap instantly (see JS). */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-old(root) {
+  z-index: 1;
+}
+::view-transition-new(root) {
+  z-index: 2;
+  clip-path: circle(0px at var(--theme-wave-x, 50%) var(--theme-wave-y, 50%));
+  animation: nx-theme-wave 650ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+@keyframes nx-theme-wave {
+  to {
+    clip-path: circle(var(--theme-wave-r, 150%) at var(--theme-wave-x, 50%) var(--theme-wave-y, 50%));
+  }
+}
+
+/* ── Map button texture glass — light mode only ───────────────────────────
+   Locate-me + Leaflet zoom-control buttons get a fetched-image displacement
+   (see LiquidGlassDefs.jsx's #nx-map-btn-glass, built from the feImage
+   snippet) instead of the procedural liquid-glass filter. Dark mode keeps
+   the plain frosted look on purpose — the distortion read muddy over the
+   near-black tiles, so it's gated to `html:not(.dark)`. */
+.nx-map-btn-glass {
+  background: rgba(255, 255, 255, 0.55);
+  -webkit-backdrop-filter: blur(10px) saturate(1.3);
+  backdrop-filter: blur(10px) saturate(1.3);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 6px 18px -6px rgba(0, 0, 0, 0.3);
+}
+html:not(.dark) .nx-map-btn-glass {
+  -webkit-backdrop-filter: url(#nx-map-btn-glass) blur(2px);
+  backdrop-filter: url(#nx-map-btn-glass) blur(2px);
+}
+:where(.dark) .nx-map-btn-glass {
+  background: rgba(30, 23, 48, 0.65);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* Leaflet's default zoom control paints each +/- button with its own opaque
+   white background, which would sit on top of and hide .nx-map-btn-glass's
+   backdrop-filter (applied to the container). Strip those so the glass on
+   the container shows through, and drop Leaflet's own border/shadow since
+   .nx-map-btn-glass supplies its own. */
+.nx-zoom-glass.leaflet-bar {
+  border: none;
+  box-shadow: none;
+  overflow: hidden;
+}
+.nx-zoom-glass.leaflet-bar a {
+  background: transparent;
+  color: inherit;
+}
+:where(.dark) .nx-zoom-glass.leaflet-bar a {
+  color: #e2e8f0;
 }

@@ -109,6 +109,36 @@ export function ClockIcon(props) {
   )
 }
 
+export function GridIcon(props) {
+  return (
+    <Icon {...props}>
+      <rect x="3" y="3" width="7" height="7" rx="1.5" />
+      <rect x="14" y="3" width="7" height="7" rx="1.5" />
+      <rect x="3" y="14" width="7" height="7" rx="1.5" />
+      <rect x="14" y="14" width="7" height="7" rx="1.5" />
+    </Icon>
+  )
+}
+
+export function PieChartIcon(props) {
+  return (
+    <Icon {...props}>
+      <path d="M21.21 15.89A10 10 0 1 1 8 2.83" />
+      <path d="M22 12A10 10 0 0 0 12 2v10z" />
+    </Icon>
+  )
+}
+
+export function StampIcon(props) {
+  return (
+    <Icon {...props}>
+      <path d="M9 3.5a2.5 2.5 0 0 1 5 0V9h1a3 3 0 0 1 3 3v2H6v-2a3 3 0 0 1 3-3h1V3.5Z" />
+      <path d="M4 20h16" />
+      <path d="M5 20v-3a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3" />
+    </Icon>
+  )
+}
+
 export function ArrowRightIcon(props) {
   return (
     <Icon {...props}>

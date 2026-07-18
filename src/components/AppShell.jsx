@@ -3,9 +3,10 @@ import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import Logo from './Logo'
 import ThemeToggle from './ThemeToggle'
-import { BellIcon, ClipboardCheckIcon, TrendingUpIcon, UsersIcon } from './icons'
+import { BellIcon, ClipboardCheckIcon, TrendingUpIcon, UsersIcon, PieChartIcon, MapPinIcon } from './icons'
 import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
+import BottomTabBar from './ui/BottomTabBar'
 
 function NotificationBell({ role }) {
   const { notifications, markNotificationsRead } = useStore()
@@ -91,65 +92,16 @@ function NotificationBell({ role }) {
 
 const NAVS = {
   customer: [
-    { to: '/home', label: 'Map' },
-    { to: '/bookings', label: 'My Bookings' },
-    { to: '/settings', label: 'Account' },
+    { to: '/home', label: 'Map', end: true, icon: MapPinIcon },
+    { to: '/bookings', label: 'My Bookings', icon: ClipboardCheckIcon },
+    { to: '/settings', label: 'Account', icon: UsersIcon },
   ],
   detailer: [
     { to: '/detailer', label: 'Jobs', end: true, icon: ClipboardCheckIcon },
     { to: '/detailer/earnings', label: 'Earnings', icon: TrendingUpIcon },
+    { to: '/detailer/analytics', label: 'Analytics', icon: PieChartIcon },
     { to: '/detailer/profile', label: 'Account', icon: UsersIcon },
   ],
-}
-
-// Fixed bottom tab bar, detailer-only, mobile only — matches the Stitch
-// dashboard mockup so detailers checking between jobs always have one-handed
-// nav within thumb reach instead of scrolling up to a top bar.
-//
-// Claymorphism: the active tab's icon sits in a raised neumorphic bubble that
-// pops up above the bar edge; layoutId makes it slide between tabs instead of
-// popping in fresh each time (the React equivalent of toggling an "active"
-// class — https://freefrontend.com/css-claymorphism/).
-function BottomNav({ items }) {
-  return (
-    <nav
-      aria-label="Main mobile"
-      className="fixed inset-x-0 bottom-0 z-20 flex bg-[var(--neu-bg)] shadow-[0_-8px_20px_-10px_var(--neu-sd)] sm:hidden"
-    >
-      {items.map(({ to, label, end, icon: ItemIcon }) => (
-        <NavLink
-          key={to}
-          to={to}
-          end={end}
-          className="relative flex flex-1 flex-col items-center gap-1 py-3 text-xs font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
-        >
-          {({ isActive }) => (
-            <>
-              <span className="relative flex h-9 w-9 items-center justify-center">
-                {isActive && (
-                  <motion.span
-                    layoutId="detailer-tab-bubble"
-                    transition={{ type: 'spring', stiffness: 420, damping: 32 }}
-                    className="absolute -top-6 h-11 w-11 rounded-full bg-[var(--neu-bg)] shadow-[5px_5px_11px_var(--neu-sd),-5px_-5px_11px_var(--neu-sl)]"
-                  />
-                )}
-                {ItemIcon && (
-                  <ItemIcon
-                    className={`relative z-10 h-5 w-5 ${
-                      isActive ? 'text-cta-600' : 'text-slate-500 dark:text-slate-400'
-                    }`}
-                  />
-                )}
-              </span>
-              <span className={isActive ? 'text-brand-700 dark:text-brand-300' : 'text-slate-500 dark:text-slate-400'}>
-                {label}
-              </span>
-            </>
-          )}
-        </NavLink>
-      ))}
-    </nav>
-  )
 }
 
 export default function AppShell({ role, children }) {
@@ -206,31 +158,9 @@ export default function AppShell({ role, children }) {
             </button>
           </div>
         </div>
-        {/* Mobile nav: detailer gets a fixed bottom tab bar instead (thumb reach
-            between jobs); other roles keep this top scroller. */}
-        {role !== 'detailer' && (
-          <nav aria-label="Main mobile" className="flex gap-1 overflow-x-auto px-4 pb-2 sm:hidden">
-            {nav.map(({ to, label, end }) => (
-              <NavLink
-                key={to}
-                to={to}
-                end={end}
-                className={({ isActive }) =>
-                  `shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium ${
-                    isActive
-                      ? 'bg-brand-100 text-brand-800 dark:bg-brand-500/20 dark:text-brand-200'
-                      : 'text-slate-600 dark:text-slate-300'
-                  }`
-                }
-              >
-                {label}
-              </NavLink>
-            ))}
-          </nav>
-        )}
       </header>
-      <div className={`flex-1 ${role === 'detailer' ? 'pb-16 sm:pb-0' : ''}`}>{children}</div>
-      {role === 'detailer' && <BottomNav items={nav} />}
+      <div className="flex-1 pb-16 sm:pb-0">{children}</div>
+      <BottomTabBar items={nav} layoutId={`${role}-tab-bubble`} />
     </div>
   )
 }
