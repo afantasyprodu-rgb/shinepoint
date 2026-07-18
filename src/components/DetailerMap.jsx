@@ -22,14 +22,17 @@ const PIN_COLORS = {
 
 const LA_CENTER = [34.05, -118.33]
 
-// Both themes use CartoDB's no-labels variant, light and dark — plain OSM
-// tiles crammed every street name, route shield, and POI icon onto the map,
-// which read as noisy/cluttered next to the pins. nolabels keeps just the
-// road/park/water shapes so the pins and popups stay the focus, in both
-// themes equally instead of only in dark mode.
+// Both themes use CartoDB no-labels tiles — plain OSM tiles crammed every
+// street name, route shield, and POI icon onto the map, which read as
+// noisy/cluttered next to the pins. nolabels keeps just the road/park/water
+// shapes so the pins and popups stay the focus, in both themes equally.
+// Light uses Voyager (cream roads, green parks, blue water) rather than
+// Positron — Positron's near-white/grey read as washed out next to the
+// brand-colored pins; Voyager keeps the same no-labels restraint with
+// actual color so the map doesn't disappear into the page background.
 const TILES = {
   light: {
-    url: 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png',
+    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png',
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
   },
   dark: {
