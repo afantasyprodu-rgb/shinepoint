@@ -44,7 +44,7 @@ export default function CustomerHome() {
             placeholder="Search zip code or neighborhood"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="input nx-liquid pointer-events-auto h-11 w-full rounded-xl placeholder-slate-500"
+            className="input pointer-events-auto h-11 w-full placeholder-slate-500"
           />
           <div className="mt-2 flex flex-wrap justify-center gap-1.5">
             {FILTERS.map(({ key, label }) => (
@@ -53,10 +53,8 @@ export default function CustomerHome() {
                 type="button"
                 aria-pressed={active.includes(key)}
                 onClick={() => toggleFilter(key)}
-                className={`press-spring pointer-events-auto cursor-pointer rounded-full px-3 py-1.5 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
-                  active.includes(key)
-                    ? 'bg-brand-600 text-white shadow-md'
-                    : 'nx-liquid text-slate-700 hover:brightness-95'
+                className={`press-spring pointer-events-auto cursor-pointer rounded-full px-3 py-1.5 text-xs font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
+                  active.includes(key) ? 'nx-neu-active text-white' : 'nx-neu text-slate-700 dark:text-slate-300'
                 }`}
               >
                 {label}
@@ -64,7 +62,7 @@ export default function CustomerHome() {
             ))}
           </div>
           {filtered.length === 0 && (
-            <p role="status" className="nx-liquid pointer-events-auto mx-auto mt-2 w-fit rounded-xl px-4 py-2 text-sm text-slate-700">
+            <p role="status" className="nx-neu pointer-events-auto mx-auto mt-2 w-fit rounded-xl px-4 py-2 text-sm text-slate-700 dark:text-slate-300">
               No detailers match — try clearing a filter.
             </p>
           )}

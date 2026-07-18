@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useTheme } from '../context/ThemeContext'
-import LiquidGlassDefs from './LiquidGlassDefs'
 
 // EnRouteTracker still uses Mapbox for live turn-by-turn; the main discovery
 // map switched to Leaflet + OpenStreetMap (no token needed), so this token
@@ -204,7 +203,6 @@ export default function DetailerMap({ detailers, focus }) {
 
   return (
     <div className="relative h-full w-full">
-      <LiquidGlassDefs />
       <div ref={containerRef} className="h-full w-full" />
 
       {/* Locate-me button — pulsing marker + fly-to on press. */}
@@ -212,7 +210,7 @@ export default function DetailerMap({ detailers, focus }) {
         type="button"
         onClick={locateMe}
         aria-label="Show my location"
-        className="nx-map-btn-glass press-spring absolute bottom-24 right-4 z-[500] flex h-11 w-11 items-center justify-center rounded-full text-brand-700 hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-brand-300"
+        className="nx-neu press-spring absolute bottom-24 right-4 z-[500] flex h-11 w-11 items-center justify-center rounded-full text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-brand-300"
       >
         {locating ? (
           <span className="h-4 w-4 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" />
@@ -224,7 +222,7 @@ export default function DetailerMap({ detailers, focus }) {
         )}
       </button>
       {geoError && (
-        <p role="status" className="nx-liquid absolute bottom-36 right-4 z-[500] rounded-lg px-3 py-1.5 text-xs text-slate-700 dark:text-slate-200">
+        <p role="status" className="nx-neu absolute bottom-36 right-4 z-[500] rounded-lg px-3 py-1.5 text-xs text-slate-700 dark:text-slate-300">
           {geoError}
         </p>
       )}
