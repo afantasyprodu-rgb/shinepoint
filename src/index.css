@@ -1205,20 +1205,3 @@ html:not(.dark) .nx-map-btn-glass {
   border-color: rgba(255, 255, 255, 0.12);
 }
 
-/* Leaflet's default zoom control paints each +/- button with its own opaque
-   white background, which would sit on top of and hide .nx-map-btn-glass's
-   backdrop-filter (applied to the container). Strip those so the glass on
-   the container shows through, and drop Leaflet's own border/shadow since
-   .nx-map-btn-glass supplies its own. */
-.nx-zoom-glass.leaflet-bar {
-  border: none;
-  box-shadow: none;
-  overflow: hidden;
-}
-.nx-zoom-glass.leaflet-bar a {
-  background: transparent;
-  color: inherit;
-}
-:where(.dark) .nx-zoom-glass.leaflet-bar a {
-  color: #e2e8f0;
-}

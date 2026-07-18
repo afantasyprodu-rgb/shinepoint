@@ -105,11 +105,11 @@ export default function DetailerMap({ detailers, focus }) {
     const map = L.map(containerRef.current, {
       center: LA_CENTER,
       zoom: 11,
+      // No on-screen zoom buttons — pinch/scroll zoom still works, and one
+      // less floating control keeps the map itself the focus.
       zoomControl: false,
       attributionControl: true,
     })
-    const zoomControl = L.control.zoom({ position: 'topright' }).addTo(map)
-    zoomControl.getContainer()?.classList.add('nx-map-btn-glass', 'nx-zoom-glass')
     const t = TILES[theme] ?? TILES.light
     tileRef.current = L.tileLayer(t.url, { attribution: t.attribution, maxZoom: 19 }).addTo(map)
     mapRef.current = map

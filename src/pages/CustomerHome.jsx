@@ -3,16 +3,6 @@ import AppShell from '../components/AppShell'
 import DetailerMap from '../components/DetailerMap'
 import { useStore } from '../context/StoreContext'
 
-// Dot colors match DetailerMap's PIN_COLORS exactly (green-600/amber-500/
-// slate-400) so the legend and the actual pins never drift out of sync —
-// they drifted before when the cta token got recolored pink for the brand
-// refresh, leaving the "Available" dot pink while pins stayed green.
-const STATUS_BADGES = {
-  available: { dot: 'bg-green-600', label: 'Available' },
-  busy: { dot: 'bg-amber-500', label: 'Busy' },
-  offline: { dot: 'bg-slate-400', label: 'Offline' },
-}
-
 const FILTERS = [
   { key: 'top', label: '4.5+ stars', test: (d) => d.rating >= 4.5 },
   { key: 'insured', label: 'Insured', test: (d) => d.insurance !== 'none' },
@@ -78,16 +68,6 @@ export default function CustomerHome() {
               No detailers match — try clearing a filter.
             </p>
           )}
-        </div>
-
-        {/* Status legend */}
-        <div className="nx-liquid absolute bottom-4 left-4 z-[500] flex flex-col gap-1.5 rounded-xl px-3 py-2 text-xs">
-          {Object.entries(STATUS_BADGES).map(([key, { dot, label }]) => (
-            <span key={key} className="flex items-center gap-2 text-slate-700">
-              <span className={`h-2.5 w-2.5 rounded-full ${dot}`} />
-              {key === 'busy' ? 'Busy — may accept bookings' : label}
-            </span>
-          ))}
         </div>
       </main>
     </AppShell>
