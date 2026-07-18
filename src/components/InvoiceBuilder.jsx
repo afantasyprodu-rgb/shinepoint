@@ -10,6 +10,7 @@ import {
   TrashIcon,
   PrinterIcon,
   FileTextIcon,
+  StampIcon,
 } from './icons'
 import { listTemplates, saveTemplate, deleteTemplate } from '../lib/invoiceTemplates'
 
@@ -148,20 +149,51 @@ export function InvoiceReceipt({ invoice, booking, detailer, customerName }) {
           </ul>
         )}
 
-        <div className="mt-4 flex items-center justify-between rounded-xl border border-slate-200 px-3.5 py-2.5 dark:border-slate-700">
-          <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-            {issued.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
-          </span>
-          {paid ? (
-            <span className="chip bg-cta-700/10 text-cta-700">
-              <CheckIcon className="h-3.5 w-3.5" /> Paid
-            </span>
-          ) : (
-            <span className="chip bg-amber-500/15 text-amber-700">
-              <ClockIcon className="h-3.5 w-3.5" /> Pending
-            </span>
-          )}
+        <div className="mt-4 flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+          <span>Invoice date</span>
+          <span>{issued.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
         </div>
+
+        <div className="mt-4 rounded-2xl border border-slate-200 p-3.5 dark:border-slate-700">
+          <p className="flex items-center justify-between text-sm">
+            <span className="font-semibold text-slate-900 dark:text-slate-100">Payment status</span>
+            {paid ? (
+              <span className="chip bg-cta-700/10 text-cta-700">
+                <CheckIcon className="h-3.5 w-3.5" /> Paid
+              </span>
+            ) : (
+              <span className="chip bg-amber-500/15 text-amber-700">
+                <ClockIcon className="h-3.5 w-3.5" /> Pending
+              </span>
+            )}
+          </p>
+          <div className="job-progress-track mt-3.5 mx-1.5" aria-label="Payment status">
+            <motion.div
+              className="job-progress-fill"
+              initial={false}
+              animate={{ width: paid ? '100%' : '0%' }}
+              transition={{ type: 'spring', stiffness: 140, damping: 20 }}
+            />
+            <div className="job-progress-tick" style={{ left: '0%' }}>
+              <CheckIcon className="h-3 w-3" />
+            </div>
+            <div className="job-progress-tick" style={{ left: '100%' }}>
+              <StampIcon className="h-3.5 w-3.5" />
+            </div>
+            <motion.div
+              className="job-progress-ball-wrap"
+              initial={false}
+              animate={{ left: paid ? '100%' : '0%' }}
+              transition={{ type: 'spring', stiffness: 140, damping: 20 }}
+            >
+              <div className="job-progress-ball" />
+            </motion.div>
+          </div>
+        </div>
+
+        <button onClick={() => window.print()} className="btn btn-outline mt-4 h-10 w-full text-sm">
+          <PrinterIcon className="h-4 w-4" /> Download invoice
+        </button>
       </div>
     </div>
   )

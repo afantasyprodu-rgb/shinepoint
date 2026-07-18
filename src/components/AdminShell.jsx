@@ -1,6 +1,8 @@
 import { NavLink, Link, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import Logo from './Logo'
+import BottomTabBar from './ui/BottomTabBar'
+import { GridIcon, UsersIcon, AlertTriangleIcon, CreditCardIcon, PieChartIcon } from './icons'
 import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
 
@@ -55,10 +57,11 @@ export default function AdminShell({ children }) {
   const totalBadge = peopleBadge + opsBadge
 
   const LINKS = [
-    { to: '/admin',         label: 'Dashboard',  end: true, badge: 0 },
-    { to: '/admin/people',  label: 'People',               badge: peopleBadge },
-    { to: '/admin/ops',     label: 'Operations',            badge: opsBadge },
-    { to: '/admin/finance', label: 'Finance',               badge: 0 },
+    { to: '/admin',         label: 'Dashboard',  end: true, badge: 0,           icon: GridIcon },
+    { to: '/admin/people',  label: 'People',               badge: peopleBadge, icon: UsersIcon },
+    { to: '/admin/ops',     label: 'Operations',            badge: opsBadge,    icon: AlertTriangleIcon },
+    { to: '/admin/finance', label: 'Finance',               badge: 0,           icon: CreditCardIcon },
+    { to: '/admin/analytics', label: 'Analytics',           badge: 0,           icon: PieChartIcon },
   ]
 
   // Land on the public welcome page, not the /login redirect ProtectedRoute fires.
@@ -108,24 +111,8 @@ export default function AdminShell({ children }) {
             {isDemo ? 'Exit' : 'Sign out'}
           </button>
         </header>
-        <nav aria-label="Admin mobile" className="flex gap-1 overflow-x-auto border-b border-brand-100 bg-white px-4 py-2 sm:hidden">
-          {LINKS.map(({ to, label, end, badge }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={end}
-              className={({ isActive }) =>
-                `relative shrink-0 flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium ${
-                  isActive ? 'bg-brand-100 text-brand-800' : 'text-slate-600'
-                }`
-              }
-            >
-              {label}
-              <NavBadge count={badge} />
-            </NavLink>
-          ))}
-        </nav>
-        <main className="flex-1 px-4 py-8 sm:px-8">{children}</main>
+        <main className="flex-1 px-4 py-8 pb-20 sm:px-8 sm:pb-8">{children}</main>
+        <BottomTabBar items={LINKS} layoutId="admin-tab-bubble" />
       </div>
     </div>
   )
