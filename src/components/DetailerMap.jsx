@@ -23,14 +23,15 @@ const PIN_COLORS = {
 
 const LA_CENTER = [34.05, -118.33]
 
-// OSM standard for light. Dark uses CartoDB's no-labels variant — the
-// labeled dark_all tiles crammed every street name and route shield onto
-// the map, which read as noisy/cluttered next to the pins; nolabels keeps
-// just the road/park/water shapes so the pins and popups stay the focus.
+// Both themes use CartoDB's no-labels variant, light and dark — plain OSM
+// tiles crammed every street name, route shield, and POI icon onto the map,
+// which read as noisy/cluttered next to the pins. nolabels keeps just the
+// road/park/water shapes so the pins and popups stay the focus, in both
+// themes equally instead of only in dark mode.
 const TILES = {
   light: {
-    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    url: 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
   },
   dark: {
     url: 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png',
