@@ -4,6 +4,7 @@ import Logo from './Logo'
 import { useStore } from '../context/StoreContext'
 import {
   CheckIcon,
+  ClockIcon,
   PlusIcon,
   XIcon,
   TrashIcon,
@@ -95,6 +96,72 @@ export function InvoicePrintable({ invoice, booking, detailer, customerName, hid
         <p className="mt-8 text-center text-xs text-slate-400">
           Thank you for choosing ShinePoint. For viewing only — not a tax document.
         </p>
+      </div>
+    </div>
+  )
+}
+
+// On-screen "ticket sliding out of a slot" view — the presentation the
+// customer/detailer actually see when opening an invoice (print/PDF still
+// uses the plain InvoicePrintable doc above, via the hidden copy).
+export function InvoiceReceipt({ invoice, booking, detailer, customerName }) {
+  const items = invoice?.items ?? []
+  const total = invoice?.total ?? items.reduce((s, it) => s + (Number(it.amount) || 0), 0)
+  const issued = invoice?.issuedAt ? new Date(invoice.issuedAt) : new Date()
+  const paid = booking.status === 'complete'
+
+  return (
+    <div>
+      <div className="receipt-slot p-3">
+        <div className="receipt-slot-hole mx-auto h-5 w-[85%]" />
+      </div>
+      <div className="receipt-ticket relative z-10 -mt-6 mx-auto w-[92%] rounded-2xl p-5 sm:p-6">
+        <h2 className="receipt-title py-2.5 text-center font-display text-base font-semibold text-slate-900 dark:text-slate-100">
+          {booking.service || 'Detailing service'}
+        </h2>
+
+        <div className="mt-3 space-y-1.5">
+          <p className="flex items-center justify-between text-sm text-slate-500 dark:text-slate-400">
+            <span>Total</span>
+            <span className="font-display text-lg font-bold text-slate-900 dark:text-slate-100">
+              {money(total)}
+            </span>
+          </p>
+          <p className="flex items-center justify-between text-sm text-slate-500 dark:text-slate-400">
+            <span>Billed to</span>
+            <span className="font-medium text-slate-700 dark:text-slate-300">{customerName}</span>
+          </p>
+          <p className="flex items-center justify-between text-sm text-slate-500 dark:text-slate-400">
+            <span>Detailer</span>
+            <span className="font-medium text-slate-700 dark:text-slate-300">{detailer?.name ?? '—'}</span>
+          </p>
+        </div>
+
+        {items.length > 0 && (
+          <ul className="mt-4 divide-y divide-slate-200 border-y border-slate-200 text-sm dark:divide-slate-700 dark:border-slate-700">
+            {items.map((it, i) => (
+              <li key={i} className="flex items-center justify-between py-2">
+                <span className="text-slate-700 dark:text-slate-300">{it.label || '—'}</span>
+                <span className="font-medium text-slate-900 dark:text-slate-100">{money(it.amount)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <div className="mt-4 flex items-center justify-between rounded-xl border border-slate-200 px-3.5 py-2.5 dark:border-slate-700">
+          <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            {issued.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+          </span>
+          {paid ? (
+            <span className="chip bg-cta-700/10 text-cta-700">
+              <CheckIcon className="h-3.5 w-3.5" /> Paid
+            </span>
+          ) : (
+            <span className="chip bg-amber-500/15 text-amber-700">
+              <ClockIcon className="h-3.5 w-3.5" /> Pending
+            </span>
+          )}
+        </div>
       </div>
     </div>
   )
