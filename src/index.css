@@ -986,6 +986,13 @@
    a springy scale (transform-origin bottom, so it appears to pop out of the
    pin). Leaflet positions .leaflet-popup via transform, so the grow animates
    the inner wrapper/tip instead to avoid fighting that. */
+/* Leaflet's own default is a hardcoded light grey (#ddd), which briefly
+   flashes through on slow connections before tiles finish loading — reads
+   as "wrong theme" against a dark UI. Match it to --neu-bg so the loading
+   flash is at least the right shade regardless of network speed. */
+.leaflet-container {
+  background: var(--neu-bg);
+}
 .nx-map-pin {
   display: block;
   width: 22px;
