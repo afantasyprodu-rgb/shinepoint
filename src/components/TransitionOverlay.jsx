@@ -16,8 +16,19 @@ import { consumeArrival } from '../lib/transition'
 // Every run randomizes its own settings (points, foam height, bubble count/
 // size, duration, hue) — no two wipes look the same. Bounded purple->pink
 // ->blue hue arc (same idea as the soap-sheen accents elsewhere), not a
-// full rainbow — thin-film soap really does stay in one band.
-const HUE_ARC = [262, 322, 208] // purple, pink, blue
+// full rainbow — thin-film soap really does stay in one band. The arc has
+// two segments (purple->pink, purple->blue going the other way through
+// the wheel) — walk continuously along it instead of three fixed stops so
+// consecutive logins rarely land on the same shade.
+const HUE_STOPS = [322, 262, 208] // pink -> purple -> blue, in wheel order
+
+function randomHue() {
+  const span = HUE_STOPS.length - 1
+  const pos = Math.random() * span
+  const i = Math.min(Math.floor(pos), span - 1)
+  const f = pos - i
+  return HUE_STOPS[i] + (HUE_STOPS[i + 1] - HUE_STOPS[i]) * f
+}
 
 function lerp(a, b, t) {
   return a + (b - a) * t
@@ -38,10 +49,12 @@ function buildSettings() {
     noiseAmp: randRange(26, 46), // px of noise wobble on the edge
     noiseFreq: randRange(0.006, 0.011),
     timeFreq: randRange(0.9, 1.6), // how fast the noise crawls sideways
+    rippleFreq: randRange(0.03, 0.05), // fine secondary ripple layered on the edge
+    rippleAmp: randRange(4, 9),
     bubbleRate: randRange(28, 45), // ms between spawns
     bubbleMin: randRange(3, 6),
     bubbleMax: randRange(9, 18),
-    hue: HUE_ARC[Math.floor(Math.random() * HUE_ARC.length)],
+    hue: randomHue(),
   }
 }
 
@@ -49,6 +62,7 @@ function FoamOverlay({ onDone }) {
   const canvasRef = useRef(null)
   const pathRef = useRef(null)
   const clipId = useRef(`foam-clip-${Math.random().toString(36).slice(2)}`)
+  const [settings] = useState(buildSettings)
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -57,7 +71,7 @@ function FoamOverlay({ onDone }) {
 
     const ctx = canvas.getContext('2d')
     const noise2D = createNoise2D()
-    const settings = buildSettings()
+    const noise2DFine = createNoise2D()
     const dpr = Math.min(window.devicePixelRatio || 1, 2)
     let width = window.innerWidth
     let height = window.innerHeight
@@ -82,9 +96,14 @@ function FoamOverlay({ onDone }) {
     let lastSpawn = 0
     let raf
 
+    // Two noise octaves: a slow broad wave (the main foam swell) plus a
+    // faster, smaller ripple riding on top — a single octave reads as a
+    // smooth sine wave, the second breaks that up into something more
+    // organic and non-repeating, per real foam's constant fine motion.
     function edgeYAt(x, baseY, t) {
       const n = noise2D(x * settings.noiseFreq, t * settings.timeFreq)
-      return baseY + n * settings.noiseAmp
+      const ripple = noise2DFine(x * settings.rippleFreq, t * settings.timeFreq * 2.2)
+      return baseY + n * settings.noiseAmp + ripple * settings.rippleAmp
     }
 
     // Covers from above the top of the screen DOWN to the wavy edge, leaving
@@ -133,14 +152,22 @@ function FoamOverlay({ onDone }) {
 
       ctx.clearRect(0, 0, width, height)
 
-      // Foam texture: soft white blobs clustered along the current edge so
-      // the boundary reads as foam, not a hard vector line.
+      // Foam texture: soft blobs clustered along the current edge, blurred
+      // together so neighboring blobs fuse into one cohesive foam mass
+      // instead of reading as a string of separate dots (a cheap stand-in
+      // for real metaball blending). Tinted with the run's hue, not pure
+      // white, so the foam itself carries the color, not just the shine
+      // and bubbles.
       ctx.save()
-      for (const [x, y] of pts) {
-        const r = settings.noiseAmp * 0.55
+      ctx.filter = 'blur(7px)'
+      for (let i = 0; i < pts.length; i++) {
+        const [x, y] = pts[i]
+        const jitter = Math.sin(i * 12.9898 + elapsed * 0.0015) * 0.15 + 1
+        const r = settings.noiseAmp * 0.62 * jitter
         const grad = ctx.createRadialGradient(x, y, 0, x, y, r)
-        grad.addColorStop(0, 'rgba(255,255,255,0.9)')
-        grad.addColorStop(1, 'rgba(255,255,255,0)')
+        grad.addColorStop(0, `hsla(${settings.hue}, 45%, 97%, 0.95)`)
+        grad.addColorStop(0.7, `hsla(${settings.hue}, 55%, 94%, 0.55)`)
+        grad.addColorStop(1, `hsla(${settings.hue}, 60%, 92%, 0)`)
         ctx.fillStyle = grad
         ctx.beginPath()
         ctx.arc(x, y, r, 0, Math.PI * 2)
@@ -165,12 +192,29 @@ function FoamOverlay({ onDone }) {
       }
       bubbles = bubbles.filter((b) => {
         const age = now - b.born
-        if (age > b.life || b.y < -40) return false
-        b.y -= b.vy
-        b.vy *= 0.992
+        const popping = age > b.life
+        const popAge = age - b.life
+        if ((popping && popAge > 220) || b.y < -60) return false
+        if (!popping) {
+          b.y -= b.vy
+          b.vy *= 0.992
+        }
         const x = b.x + Math.sin(elapsed * 0.001 * b.wobbleFreq + b.seed) * (b.wobbleAmp * 0.02)
         const lifeT = age / b.life
         const alpha = lifeT < 0.15 ? lifeT / 0.15 : 1 - Math.max(0, (lifeT - 0.6) / 0.4)
+
+        if (popping) {
+          // Pop flourish: a thin ring quickly expanding and fading, instead
+          // of the bubble just blinking out — reads as it bursting.
+          const popT = popAge / 220
+          ctx.beginPath()
+          ctx.arc(x, b.y, b.r * (1 + popT * 1.8), 0, Math.PI * 2)
+          ctx.lineWidth = 1.4
+          ctx.strokeStyle = `hsla(${settings.hue}, 70%, 90%, ${(1 - popT) * 0.7})`
+          ctx.stroke()
+          return true
+        }
+
         ctx.beginPath()
         ctx.arc(x, b.y, b.r, 0, Math.PI * 2)
         ctx.fillStyle = `hsla(${settings.hue}, 85%, 96%, ${Math.max(alpha, 0) * 0.85})`
@@ -178,6 +222,12 @@ function FoamOverlay({ onDone }) {
         ctx.lineWidth = 1
         ctx.strokeStyle = `hsla(${settings.hue}, 70%, 88%, ${Math.max(alpha, 0) * 0.6})`
         ctx.stroke()
+        // Specular highlight — a small bright dot offset up-left, the
+        // classic glossy-sphere cue that reads as "wet."
+        ctx.beginPath()
+        ctx.arc(x - b.r * 0.32, b.y - b.r * 0.32, Math.max(b.r * 0.28, 0.6), 0, Math.PI * 2)
+        ctx.fillStyle = `rgba(255,255,255,${Math.max(alpha, 0) * 0.8})`
+        ctx.fill()
         return true
       })
 
@@ -194,7 +244,7 @@ function FoamOverlay({ onDone }) {
       cancelAnimationFrame(raf)
       window.removeEventListener('resize', resize)
     }
-  }, [onDone])
+  }, [onDone, settings])
 
   return (
     <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-[9999] overflow-hidden">
@@ -206,8 +256,11 @@ function FoamOverlay({ onDone }) {
         </defs>
       </svg>
       <div
-        className="absolute inset-0 bg-[#f3effa]"
-        style={{ clipPath: `url(#${clipId.current})` }}
+        className="absolute inset-0"
+        style={{
+          clipPath: `url(#${clipId.current})`,
+          background: `hsl(${settings.hue} 45% 95%)`,
+        }}
       />
       <canvas ref={canvasRef} className="absolute inset-0" />
     </div>
