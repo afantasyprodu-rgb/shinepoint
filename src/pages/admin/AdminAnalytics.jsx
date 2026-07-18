@@ -7,11 +7,11 @@ import { TrendingUpIcon, PieChartIcon } from '../../components/icons'
 
 const SEGMENT_COLORS = ['var(--color-cta-500)', 'var(--color-brand-400)', '#2dd4bf']
 
-// Analytics — dark neumorphism control-room panel, independent of the
-// claymorphism theme around it (same idea as the auth shell staying dark
-// regardless of the light/dark toggle). Every number here comes from the
-// same admin.finance / bookings data AdminFinance already uses — no
-// fabricated series, just reshaped for a period-over-period view.
+// Analytics — same neumorphism as the rest of the claymorphism admin
+// section, following the light/dark toggle like every other admin page.
+// Every number here comes from the same admin.finance / bookings data
+// AdminFinance already uses — no fabricated series, just reshaped for a
+// period-over-period view.
 export default function AdminAnalytics() {
   const { admin, bookings } = useStore()
   const f = admin.finance
@@ -32,7 +32,7 @@ export default function AdminAnalytics() {
   return (
     <AdminShell>
       <AnimatedPage>
-        <h1 className="font-display text-2xl font-bold text-slate-900">Analytics</h1>
+        <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">Analytics</h1>
 
         <div className="mt-6">
           <div className="grid gap-3 sm:grid-cols-2">
@@ -42,10 +42,10 @@ export default function AdminAnalytics() {
                   <p className="nx-kicker">Revenue this month</p>
                   <span className="nx-icon-tile"><TrendingUpIcon className="h-4 w-4" /></span>
                 </div>
-                <p className="mt-2 font-display text-3xl font-bold text-slate-900">
+                <p className="mt-2 font-display text-3xl font-bold text-slate-900 dark:text-white">
                   <CountUp value={f.month} prefix="$" />
                 </p>
-                <p className={`mt-1 text-sm font-medium ${revenueDelta >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                <p className={`mt-1 text-sm font-medium ${revenueDelta >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                   {revenueDelta >= 0 ? '+' : ''}{revenueDelta.toFixed(1)}% vs last month
                 </p>
               </div>
@@ -56,7 +56,7 @@ export default function AdminAnalytics() {
                   <p className="nx-kicker">Jobs completed</p>
                   <span className="nx-icon-tile"><PieChartIcon className="h-4 w-4" /></span>
                 </div>
-                <p className="mt-2 font-display text-3xl font-bold text-slate-900">
+                <p className="mt-2 font-display text-3xl font-bold text-slate-900 dark:text-white">
                   <CountUp value={admin.milestones.jobs.current} />
                 </p>
                 <p className="mt-1 text-sm nx-sub">of {admin.milestones.jobs.target.toLocaleString()} goal</p>
@@ -66,7 +66,7 @@ export default function AdminAnalytics() {
 
           <FadeIn delay={0.1}>
             <div className="nx-card mt-3">
-              <p className="mb-1 text-sm font-semibold text-slate-900">Platform revenue by quarter</p>
+              <p className="mb-1 text-sm font-semibold text-slate-900 dark:text-white">Platform revenue by quarter</p>
               <p className="nx-sub mb-4 text-xs">Apr–Jun vs Jan–Mar</p>
               <NxLineChart
                 labels={['Month 1', 'Month 2', 'Month 3']}
@@ -81,8 +81,8 @@ export default function AdminAnalytics() {
           <FadeIn delay={0.15}>
             <div className="nx-card mt-3">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold text-slate-900">Revenue by service</p>
-                <p className="font-display text-lg font-bold text-slate-900">${revenueTotal.toLocaleString()}</p>
+                <p className="text-sm font-semibold text-slate-900 dark:text-white">Revenue by service</p>
+                <p className="font-display text-lg font-bold text-slate-900 dark:text-white">${revenueTotal.toLocaleString()}</p>
               </div>
               <div className="mt-4">
                 {segments.length > 0 ? (

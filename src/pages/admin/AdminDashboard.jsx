@@ -21,14 +21,14 @@ export default function AdminDashboard() {
   return (
     <AdminShell>
       <AnimatedPage>
-        <h1 className="font-display text-2xl font-bold text-slate-900">Mission control</h1>
+        <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">Mission control</h1>
 
         <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
           {cards.map(({ label, value, prefix }, i) => (
             <FadeIn key={label} delay={i * 0.07}>
               <div className="card !p-4">
-                <p className="text-xs font-medium text-slate-500">{label}</p>
-                <p className="mt-1 font-display text-3xl font-bold text-brand-800">
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{label}</p>
+                <p className="mt-1 font-display text-3xl font-bold text-brand-800 dark:text-brand-300">
                   <CountUp value={value} prefix={prefix ?? ''} />
                 </p>
               </div>
@@ -38,10 +38,10 @@ export default function AdminDashboard() {
 
         {(openDisputes > 0 || admin.flagged.length > 0 || admin.overrides.length > 0) && (
           <FadeIn delay={0.2}>
-            <div role="alert" className="card mt-4 flex flex-wrap items-center justify-between gap-3 border-red-200 bg-red-50 !p-5">
+            <div role="alert" className="card mt-4 flex flex-wrap items-center justify-between gap-3 border-red-200 bg-red-50 !p-5 dark:border-red-500/20 dark:!bg-red-500/10">
               <div className="flex items-center gap-3">
-                <AlertTriangleIcon className="h-6 w-6 text-red-600" />
-                <p className="text-sm font-medium text-red-800">
+                <AlertTriangleIcon className="h-6 w-6 text-red-600 dark:text-red-400" />
+                <p className="text-sm font-medium text-red-800 dark:text-red-300">
                   Needs attention: {openDisputes} open dispute{openDisputes !== 1 && 's'} ·{' '}
                   {admin.flagged.length} flagged message{admin.flagged.length !== 1 && 's'} ·{' '}
                   {admin.overrides.length} damage-report override{admin.overrides.length !== 1 && 's'}
@@ -57,7 +57,7 @@ export default function AdminDashboard() {
         <div className="mt-6 grid gap-4 lg:grid-cols-2">
           <FadeIn delay={0.25}>
             <div className="card">
-              <h2 className="mb-4 font-display text-lg font-semibold text-slate-900">
+              <h2 className="mb-4 font-display text-lg font-semibold text-slate-900 dark:text-slate-100">
                 Platform revenue
               </h2>
               <Bars data={admin.finance.monthly} labels={admin.finance.monthLabels} />
@@ -66,7 +66,7 @@ export default function AdminDashboard() {
 
           <FadeIn delay={0.3}>
             <div className="card">
-              <h2 className="mb-4 font-display text-lg font-semibold text-slate-900">
+              <h2 className="mb-4 font-display text-lg font-semibold text-slate-900 dark:text-slate-100">
                 Milestone tracker
               </h2>
               <div className="space-y-4">

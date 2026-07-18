@@ -839,6 +839,11 @@
   --clay-shadow-1: rgba(163, 177, 214, 0.55);
   --clay-shadow-2: rgba(255, 255, 255, 0.85);
 }
+:where(.dark) .admin-clay {
+  --clay-bg: #101828;
+  --clay-shadow-1: rgba(0, 0, 0, 0.5);
+  --clay-shadow-2: rgba(71, 105, 165, 0.22);
+}
 
 .admin-clay .card {
   border: none;

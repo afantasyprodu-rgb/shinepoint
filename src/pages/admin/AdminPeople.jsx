@@ -64,7 +64,7 @@ function ApplicationCard({ app, onApprove, onReject }) {
     <motion.div
       layout
       exit={{ opacity: 0, x: 120, transition: { duration: 0.3 } }}
-      className={`card overflow-hidden !p-0 ${hasHighRisk ? 'border-red-200' : ''}`}
+      className={`card overflow-hidden !p-0 ${hasHighRisk ? 'border-red-200 dark:border-red-500/30' : ''}`}
     >
       {/* Header — tap to expand */}
       <button
@@ -74,8 +74,8 @@ function ApplicationCard({ app, onApprove, onReject }) {
         <div className="flex items-center gap-3">
           <Avatar name={app.name} />
           <div>
-            <p className="font-semibold text-slate-900">{app.name}</p>
-            <p className="flex items-center gap-1.5 text-sm text-slate-500">
+            <p className="font-semibold text-slate-900 dark:text-slate-100">{app.name}</p>
+            <p className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
               <ClockIcon className="h-3.5 w-3.5" /> Applied {hoursAgo(app.applied)} · {app.experience} exp
             </p>
           </div>
@@ -84,7 +84,7 @@ function ApplicationCard({ app, onApprove, onReject }) {
           {flags.length > 0 && (
             <span
               className={`hidden shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold sm:flex ${
-                hasHighRisk ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
+                hasHighRisk ? 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'
               }`}
             >
               <AlertTriangleIcon className="h-3 w-3" /> {flags.length} flag{flags.length !== 1 && 's'}
@@ -93,7 +93,7 @@ function ApplicationCard({ app, onApprove, onReject }) {
           <motion.span
             animate={{ rotate: open ? 90 : 0 }}
             transition={{ duration: 0.2 }}
-            className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400"
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 dark:text-slate-500"
             aria-hidden="true"
           >
             ›
@@ -109,7 +109,7 @@ function ApplicationCard({ app, onApprove, onReject }) {
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.25, ease: 'easeOut' }}
-            className="overflow-hidden border-t border-brand-100"
+            className="overflow-hidden border-t border-brand-100 dark:border-white/10"
           >
             <div className="space-y-4 p-5">
               {/* Risk flags */}
@@ -119,7 +119,7 @@ function ApplicationCard({ app, onApprove, onReject }) {
                     <div
                       key={f.label}
                       className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium ${
-                        f.level === 'high' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'
+                        f.level === 'high' ? 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300' : 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300'
                       }`}
                     >
                       <AlertTriangleIcon className="h-4 w-4 shrink-0" /> {f.label}
@@ -131,64 +131,64 @@ function ApplicationCard({ app, onApprove, onReject }) {
               {/* Detail grid */}
               <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
                 <div>
-                  <dt className="text-xs font-medium uppercase tracking-wide text-slate-400">Insurance</dt>
-                  <dd className="mt-0.5 flex items-center gap-1 font-medium text-slate-900">
+                  <dt className="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">Insurance</dt>
+                  <dd className="mt-0.5 flex items-center gap-1 font-medium text-slate-900 dark:text-slate-100">
                     {app.insurance === 'none' ? (
-                      <span className="flex items-center gap-1 text-red-600">
+                      <span className="flex items-center gap-1 text-red-600 dark:text-red-400">
                         <AlertTriangleIcon className="h-3.5 w-3.5" /> Uninsured
                       </span>
                     ) : (
                       <span className="flex items-center gap-1">
-                        <ShieldCheckIcon className="h-3.5 w-3.5 text-brand-600" />
+                        <ShieldCheckIcon className="h-3.5 w-3.5 text-brand-600 dark:text-brand-400" />
                         {app.insurance.charAt(0).toUpperCase() + app.insurance.slice(1)}
                       </span>
                     )}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-xs font-medium uppercase tracking-wide text-slate-400">ID check</dt>
-                  <dd className="mt-0.5 font-medium text-slate-900">
+                  <dt className="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">ID check</dt>
+                  <dd className="mt-0.5 font-medium text-slate-900 dark:text-slate-100">
                     {app.idCheck === 'passed' ? '✓ Passed' : '⚠ Manual review'}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-xs font-medium uppercase tracking-wide text-slate-400">Background</dt>
-                  <dd className="mt-0.5 font-medium text-slate-900">
+                  <dt className="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">Background</dt>
+                  <dd className="mt-0.5 font-medium text-slate-900 dark:text-slate-100">
                     {app.bgCheck === 'passed' ? '✓ Passed' : '⏳ Pending'}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-xs font-medium uppercase tracking-wide text-slate-400">Service area</dt>
-                  <dd className="mt-0.5 flex items-center gap-1 font-medium text-slate-900">
-                    <MapPinIcon className="h-3.5 w-3.5 text-slate-400" /> {app.area}
+                  <dt className="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">Service area</dt>
+                  <dd className="mt-0.5 flex items-center gap-1 font-medium text-slate-900 dark:text-slate-100">
+                    <MapPinIcon className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500" /> {app.area}
                   </dd>
                 </div>
                 <div className="col-span-2">
-                  <dt className="text-xs font-medium uppercase tracking-wide text-slate-400">Rig</dt>
-                  <dd className="mt-0.5 font-medium text-slate-900">{app.vehicle}</dd>
+                  <dt className="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">Rig</dt>
+                  <dd className="mt-0.5 font-medium text-slate-900 dark:text-slate-100">{app.vehicle}</dd>
                 </div>
               </dl>
 
               {/* Services offered */}
               <div>
-                <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-slate-400">Services</p>
+                <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">Services</p>
                 <div className="flex flex-wrap gap-1.5">
                   {app.services.map((s) => (
-                    <span key={s} className="chip bg-brand-100 text-brand-700">{s}</span>
+                    <span key={s} className="chip bg-brand-100 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">{s}</span>
                   ))}
                 </div>
               </div>
 
               {/* Portfolio */}
               <div>
-                <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-slate-400">
+                <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">
                   Portfolio ({app.portfolio} photos)
                 </p>
                 <div className="grid grid-cols-4 gap-2">
                   {Array.from({ length: Math.min(app.portfolio, 4) }).map((_, i) => (
                     <div
                       key={i}
-                      className="flex aspect-square items-center justify-center rounded-lg bg-gradient-to-br from-slate-200 to-slate-300 text-slate-400"
+                      className="flex aspect-square items-center justify-center rounded-lg bg-gradient-to-br from-slate-200 to-slate-300 text-slate-400 dark:from-slate-700 dark:to-slate-800 dark:text-slate-500"
                     >
                       <CameraIcon className="h-4 w-4" />
                     </div>
@@ -201,7 +201,7 @@ function ApplicationCard({ app, onApprove, onReject }) {
       </AnimatePresence>
 
       {/* Actions */}
-      <div className="flex gap-2 border-t border-brand-100 bg-slate-50/50 p-4">
+      <div className="flex gap-2 border-t border-brand-100 bg-slate-50/50 p-4 dark:border-white/10 dark:bg-white/[0.02]">
         <button onClick={onApprove} className="btn btn-cta h-10 flex-1 text-sm">
           <CheckIcon className="h-4 w-4" /> Approve
         </button>
@@ -266,9 +266,9 @@ export default function AdminPeople() {
   return (
     <AdminShell>
       <AnimatedPage>
-        <h1 className="font-display text-2xl font-bold text-slate-900">People</h1>
+        <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">People</h1>
 
-        <div role="tablist" aria-label="People sections" className="mt-5 flex gap-1 rounded-xl bg-brand-100/60 p-1 sm:w-fit">
+        <div role="tablist" aria-label="People sections" className="mt-5 flex gap-1 rounded-xl bg-brand-100/60 p-1 sm:w-fit dark:bg-white/5">
           {TABS.map((t) => (
             <button
               key={t}
@@ -276,7 +276,7 @@ export default function AdminPeople() {
               aria-selected={tab === t}
               onClick={() => setTab(t)}
               className={`flex-1 cursor-pointer rounded-lg px-4 py-2 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 sm:flex-none ${
-                tab === t ? 'bg-white text-brand-800 shadow-sm' : 'text-slate-600 hover:text-brand-800'
+                tab === t ? 'bg-white text-brand-800 shadow-sm dark:bg-white/10 dark:text-brand-300' : 'text-slate-600 dark:text-slate-400 hover:text-brand-800 dark:hover:text-brand-300'
               }`}
             >
               {t}
@@ -302,11 +302,11 @@ export default function AdminPeople() {
               <div className="space-y-3">
                 {admin.applications.length === 0 && (
                   <div className="card flex flex-col items-center py-10 text-center">
-                    <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cta-700/10 text-cta-700">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cta-700/10 text-cta-700 dark:text-cta-500">
                       <CheckIcon className="h-6 w-6" />
                     </span>
-                    <p className="mt-3 font-semibold text-slate-900">Queue clear</p>
-                    <p className="text-sm text-slate-500">No applications waiting — nice work.</p>
+                    <p className="mt-3 font-semibold text-slate-900 dark:text-slate-100">Queue clear</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">No applications waiting — nice work.</p>
                   </div>
                 )}
                 <AnimatePresence>
@@ -330,12 +330,12 @@ export default function AdminPeople() {
                       <div className="flex items-center gap-3">
                         <Avatar name={d.name} photo={d.photo} />
                         <div>
-                          <p className="font-semibold text-slate-900">{d.name}</p>
-                          <p className="flex items-center gap-2 text-sm text-slate-500">
+                          <p className="font-semibold text-slate-900 dark:text-slate-100">{d.name}</p>
+                          <p className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
                             <Stars rating={d.rating} className="h-3 w-3" /> {d.rating.toFixed(1)} ·{' '}
                             {d.completedJobs} jobs · {d.area}
                             {d.probationRemaining > 0 && (
-                              <span className="chip bg-amber-500/15 text-amber-700">probation</span>
+                              <span className="chip bg-amber-500/15 text-amber-700 dark:text-amber-300">probation</span>
                             )}
                           </p>
                         </div>
@@ -345,9 +345,9 @@ export default function AdminPeople() {
                     {d.services?.length > 0 && (
                       <div className="flex flex-wrap gap-1.5">
                         {d.services.map((s) => (
-                          <span key={s.id ?? s.name} className="chip bg-brand-50 text-brand-700 border border-brand-100">
+                          <span key={s.id ?? s.name} className="chip bg-brand-50 text-brand-700 border border-brand-100 dark:bg-brand-500/10 dark:text-brand-300 dark:border-white/10">
                             {s.name}
-                            <span className="ml-1 font-normal text-brand-500">${s.price}</span>
+                            <span className="ml-1 font-normal text-brand-500 dark:text-brand-400">${s.price}</span>
                           </span>
                         ))}
                       </div>
@@ -364,22 +364,22 @@ export default function AdminPeople() {
                     <div className="flex items-center gap-3">
                       <Avatar name={c.name} />
                       <div>
-                        <p className="font-semibold text-slate-900">{c.name}</p>
-                        <p className="text-sm text-slate-500">
+                        <p className="font-semibold text-slate-900 dark:text-slate-100">{c.name}</p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">
                           {c.bookings} bookings · {c.disputes} disputes
                         </p>
                       </div>
                     </div>
                     <span
                       className={`chip ${
-                        c.reliability >= 4 ? 'bg-cta-700/10 text-cta-700' : 'bg-red-100 text-red-700'
+                        c.reliability >= 4 ? 'bg-cta-700/10 text-cta-700 dark:text-cta-500' : 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300'
                       }`}
                     >
                       Reliability {c.reliability.toFixed(1)}
                     </span>
                   </div>
                 ))}
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-400 dark:text-slate-500">
                   Reliability scores are internal — never shown to customers.
                 </p>
               </div>
@@ -388,25 +388,25 @@ export default function AdminPeople() {
             {tab === 'Accounts' && (
               <div className="space-y-3">
                 {accounts === null && (
-                  <p className="text-sm text-slate-500">Loading accounts…</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Loading accounts…</p>
                 )}
                 {accounts?.length === 0 && (
-                  <p className="text-sm text-slate-500">No accounts registered.</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">No accounts registered.</p>
                 )}
                 {accounts?.map((a) => (
                   <div key={a.id} className="card flex flex-wrap items-center justify-between gap-3 !p-5">
                     <div className="flex items-center gap-3">
                       <Avatar name={a.full_name || a.email || a.phone || '?'} />
                       <div>
-                        <p className="font-semibold text-slate-900">
+                        <p className="font-semibold text-slate-900 dark:text-slate-100">
                           {a.full_name || 'Unnamed'}
                           {(a.is_banned || a.is_suspended) && (
-                            <span className={`ml-2 chip ${a.is_banned ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
+                            <span className={`ml-2 chip ${a.is_banned ? 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'}`}>
                               {a.is_banned ? 'banned' : 'suspended'}
                             </span>
                           )}
                         </p>
-                        <p className="text-sm text-slate-500">
+                        <p className="text-sm text-slate-500 dark:text-slate-400">
                           {a.email || a.phone || 'no contact'} · {a.role} · joined{' '}
                           {new Date(a.created_at).toLocaleDateString()}
                         </p>
@@ -414,7 +414,7 @@ export default function AdminPeople() {
                     </div>
                     <button
                       onClick={() => { setDeleting(a); setDeleteError('') }}
-                      className="btn btn-outline h-9 border-red-200 text-sm text-red-700 hover:bg-red-50"
+                      className="btn btn-outline h-9 border-red-200 text-sm text-red-700 hover:bg-red-50 dark:border-red-500/30 dark:text-red-400 dark:hover:bg-red-500/10"
                     >
                       <TrashIcon className="h-4 w-4" /> Delete
                     </button>
@@ -427,17 +427,17 @@ export default function AdminPeople() {
               <div className="space-y-4">
                 {/* Current admins */}
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Current admins</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Current admins</p>
                   {DEMO_ADMINS.map((a) => (
                     <div key={a.id} className="card flex items-center gap-3 !p-4">
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-brand-700">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">
                         <ShieldCheckIcon className="h-5 w-5" />
                       </span>
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-slate-900">{a.name}</p>
-                        <p className="text-sm text-slate-500">{a.email}</p>
+                        <p className="font-semibold text-slate-900 dark:text-slate-100">{a.name}</p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">{a.email}</p>
                       </div>
-                      <span className="chip bg-brand-100 text-brand-700">Admin</span>
+                      <span className="chip bg-brand-100 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">Admin</span>
                     </div>
                   ))}
                 </div>
@@ -445,12 +445,12 @@ export default function AdminPeople() {
                 {/* Adding an admin is an ops action, not a self-service flow.
                     Promote a signed-up user in Supabase:
                     update public.users set role='admin' where email='...'; */}
-                <div className="card !p-5 border-brand-200">
-                  <p className="font-semibold text-slate-900">Add a team member</p>
-                  <p className="mt-0.5 text-sm text-slate-500">
+                <div className="card !p-5 border-brand-200 dark:border-white/10">
+                  <p className="font-semibold text-slate-900 dark:text-slate-100">Add a team member</p>
+                  <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
                     Have them sign up normally, then grant admin in the Supabase SQL editor:
                   </p>
-                  <code className="mt-3 block overflow-x-auto rounded-xl border border-brand-100 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 font-mono">
+                  <code className="mt-3 block overflow-x-auto rounded-xl border border-brand-100 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 dark:text-slate-300 font-mono dark:border-white/10 dark:bg-white/5">
                     update public.users set role='admin' where email='them@example.com';
                   </code>
                 </div>
@@ -462,10 +462,10 @@ export default function AdminPeople() {
 
       {/* Reject reason modal */}
       <Modal open={!!rejecting} onClose={() => setRejecting(null)} labelledBy="reject-title">
-        <h2 id="reject-title" className="font-display text-lg font-bold text-slate-900">
+        <h2 id="reject-title" className="font-display text-lg font-bold text-slate-900 dark:text-slate-100">
           Reject {rejecting?.name}?
         </h2>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
           Pick a reason — the applicant is notified and can re-apply in 30 days.
         </p>
         <div className="mt-4 space-y-2">
@@ -475,12 +475,12 @@ export default function AdminPeople() {
               onClick={() => setRejectReason(r)}
               className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left text-sm font-medium transition-colors ${
                 rejectReason === r
-                  ? 'border-red-300 bg-red-50 text-red-800'
-                  : 'border-brand-100 text-slate-700 hover:border-brand-200 hover:bg-brand-50/50'
+                  ? 'border-red-300 bg-red-50 text-red-800 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300'
+                  : 'border-brand-100 text-slate-700 dark:text-slate-300 hover:border-brand-200 hover:bg-brand-50/50 dark:border-white/10 dark:hover:border-brand-500/40 dark:hover:bg-brand-500/10'
               }`}
             >
               {r}
-              {rejectReason === r && <CheckIcon className="h-4 w-4 text-red-600" />}
+              {rejectReason === r && <CheckIcon className="h-4 w-4 text-red-600 dark:text-red-400" />}
             </button>
           ))}
         </div>
@@ -500,14 +500,14 @@ export default function AdminPeople() {
 
       {/* Delete account modal */}
       <Modal open={!!deleting} onClose={() => setDeleting(null)} labelledBy="delete-title">
-        <h2 id="delete-title" className="font-display text-lg font-bold text-slate-900">
+        <h2 id="delete-title" className="font-display text-lg font-bold text-slate-900 dark:text-slate-100">
           Delete {deleting?.full_name || deleting?.email || deleting?.phone}?
         </h2>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
           Permanently removes the account and everything tied to it. This can&apos;t be undone.
         </p>
         {deleteError && (
-          <p role="alert" className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+          <p role="alert" className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-300">
             {deleteError}
           </p>
         )}

@@ -2,6 +2,7 @@ import { NavLink, Link, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import Logo from './Logo'
 import BottomTabBar from './ui/BottomTabBar'
+import ThemeToggle from './ThemeToggle'
 import { GridIcon, UsersIcon, AlertTriangleIcon, CreditCardIcon, PieChartIcon } from './icons'
 import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
@@ -71,11 +72,14 @@ export default function AdminShell({ children }) {
   }
 
   return (
-    <div style={ADMIN_BLUE} className="admin-clay flex min-h-screen bg-[#eef2fb]">
-      <aside className="hidden w-56 shrink-0 flex-col border-r border-brand-100 bg-white/80 px-4 py-5 backdrop-blur-sm sm:flex">
-        <Link to="/admin" className="rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600">
-          <Logo />
-        </Link>
+    <div style={ADMIN_BLUE} className="admin-clay flex min-h-screen bg-[var(--clay-bg)]">
+      <aside className="hidden w-56 shrink-0 flex-col px-4 py-5 sm:flex">
+        <div className="flex items-center justify-between">
+          <Link to="/admin" className="rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600">
+            <Logo />
+          </Link>
+          <ThemeToggle />
+        </div>
         <nav aria-label="Admin" className="mt-8 flex flex-col gap-1">
           {LINKS.map(({ to, label, end, badge }) => (
             <NavLink
@@ -86,7 +90,7 @@ export default function AdminShell({ children }) {
                 `flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
                   isActive
                     ? 'bg-brand-600 text-white shadow-md'
-                    : 'text-slate-600 hover:bg-brand-50 hover:text-brand-800'
+                    : 'text-slate-600 hover:bg-brand-50 hover:text-brand-800 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-brand-200'
                 }`
               }
             >
@@ -96,7 +100,7 @@ export default function AdminShell({ children }) {
           ))}
         </nav>
         <div className="mt-auto">
-          {isDemo && <span className="chip mb-3 bg-amber-500/15 text-amber-700">Demo mode</span>}
+          {isDemo && <span className="chip mb-3 bg-amber-500/15 text-amber-700 dark:text-amber-300">Demo mode</span>}
           <button onClick={handleSignOut} className="btn btn-outline h-9 w-full text-sm">
             {isDemo ? 'Exit demo' : 'Sign out'}
           </button>
@@ -105,11 +109,14 @@ export default function AdminShell({ children }) {
 
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Mobile header */}
-        <header className="flex items-center justify-between border-b border-brand-100 bg-white px-4 py-3 sm:hidden">
+        <header className="flex items-center justify-between px-4 py-3 sm:hidden">
           <Logo />
-          <button onClick={handleSignOut} className="btn btn-outline h-9 px-3 text-sm">
-            {isDemo ? 'Exit' : 'Sign out'}
-          </button>
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            <button onClick={handleSignOut} className="btn btn-outline h-9 px-3 text-sm">
+              {isDemo ? 'Exit' : 'Sign out'}
+            </button>
+          </div>
         </header>
         <main className="flex-1 px-4 py-8 pb-20 sm:px-8 sm:pb-8">{children}</main>
         <BottomTabBar items={LINKS} layoutId="admin-tab-bubble" />
