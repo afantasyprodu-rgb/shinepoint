@@ -152,7 +152,11 @@ const shownStage = openStage ?? stageIdx
           {/* Timeline — every dot is tappable to preview that stage's process */}
           {b.status !== 'cancelled' && b.status !== 'disputed' && (
             <>
-              <div className="job-progress-track mt-8 mx-3.5" aria-label="Job progress">
+              {/* mx-1 (was mx-3.5): tick 1/tick 6 center exactly on the
+                  track's edge, so the end numbers sat half on the bar, half
+                  off it. Shrinking the side margin stretches the bar out to
+                  where those numbers actually sit instead. */}
+              <div className="job-progress-track mt-8 mx-1" aria-label="Job progress">
                 <motion.div
                   className="job-progress-fill"
                   initial={false}
@@ -166,7 +170,7 @@ const shownStage = openStage ?? stageIdx
                     onClick={() => setOpenStage(i)}
                     aria-label={`${TIMELINE_LABELS[stage]} — see what happens`}
                     aria-expanded={shownStage === i}
-                    className="job-progress-tick"
+                    className={`job-progress-tick ${i <= stageIdx ? 'text-white' : 'text-slate-600 dark:text-slate-300'}`}
                     style={{ left: `${(i / (TIMELINE.length - 1)) * 100}%` }}
                   >
                     {i < stageIdx ? <CheckIcon className="h-3 w-3" /> : i + 1}

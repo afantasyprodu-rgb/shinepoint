@@ -5,7 +5,7 @@ import { NxLineChart, NxDonut } from '../../components/ui/AnalyticsCharts'
 import { useStore } from '../../context/StoreContext'
 import { TrendingUpIcon, PieChartIcon } from '../../components/icons'
 
-const SEGMENT_COLORS = ['var(--color-cta-500)', 'var(--color-brand-400)', '#2dd4bf']
+const SEGMENT_COLORS = ['var(--color-cta-500)', 'var(--color-brand-400)', 'var(--color-accent-teal)']
 
 // Analytics — same neumorphism as the rest of the claymorphism admin
 // section, following the light/dark toggle like every other admin page.
@@ -64,35 +64,41 @@ export default function AdminAnalytics() {
             </FadeIn>
           </div>
 
-          <FadeIn delay={0.1}>
-            <div className="nx-card mt-3">
-              <p className="mb-1 text-sm font-semibold text-slate-900 dark:text-white">Platform revenue by quarter</p>
-              <p className="nx-sub mb-4 text-xs">Apr–Jun vs Jan–Mar</p>
-              <NxLineChart
-                labels={['Month 1', 'Month 2', 'Month 3']}
-                current={currentQuarter}
-                comparison={comparisonQuarter}
-                currentLabel="Apr–Jun"
-                comparisonLabel="Jan–Mar"
-              />
-            </div>
-          </FadeIn>
+          {/* lg:grid-cols-2 matches AdminFinance/AdminDashboard's convention for
+              paired cards — a wide desktop viewport (sidebar + full-width main)
+              left these two stacked full-width forever otherwise, wasting the
+              same horizontal space the rest of the admin section already uses. */}
+          <div className="mt-3 grid gap-3 lg:grid-cols-2">
+            <FadeIn delay={0.1}>
+              <div className="nx-card h-full">
+                <p className="mb-1 text-sm font-semibold text-slate-900 dark:text-white">Platform revenue by quarter</p>
+                <p className="nx-sub mb-4 text-xs">Apr–Jun vs Jan–Mar</p>
+                <NxLineChart
+                  labels={['Month 1', 'Month 2', 'Month 3']}
+                  current={currentQuarter}
+                  comparison={comparisonQuarter}
+                  currentLabel="Apr–Jun"
+                  comparisonLabel="Jan–Mar"
+                />
+              </div>
+            </FadeIn>
 
-          <FadeIn delay={0.15}>
-            <div className="nx-card mt-3">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold text-slate-900 dark:text-white">Revenue by service</p>
-                <p className="font-display text-lg font-bold text-slate-900 dark:text-white">${revenueTotal.toLocaleString()}</p>
+            <FadeIn delay={0.15}>
+              <div className="nx-card h-full">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white">Revenue by service</p>
+                  <p className="font-display text-lg font-bold text-slate-900 dark:text-white">${revenueTotal.toLocaleString()}</p>
+                </div>
+                <div className="mt-4">
+                  {segments.length > 0 ? (
+                    <NxDonut segments={segments} />
+                  ) : (
+                    <p className="nx-sub text-sm">No bookings yet.</p>
+                  )}
+                </div>
               </div>
-              <div className="mt-4">
-                {segments.length > 0 ? (
-                  <NxDonut segments={segments} />
-                ) : (
-                  <p className="nx-sub text-sm">No bookings yet.</p>
-                )}
-              </div>
-            </div>
-          </FadeIn>
+            </FadeIn>
+          </div>
         </div>
       </AnimatedPage>
     </AdminShell>

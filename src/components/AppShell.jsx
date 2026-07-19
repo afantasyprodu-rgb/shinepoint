@@ -67,7 +67,14 @@ function NotificationBell({ role }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.98 }}
             transition={{ duration: 0.18, ease: 'easeOut' }}
-            className="absolute right-0 top-11 z-30 w-80 rounded-2xl border border-brand-100 bg-white p-2 shadow-xl dark:border-white/10 dark:bg-[#1E1730] dark:shadow-black/40"
+            // z-[1000]: the header is position:static, so its z-20 does
+            // nothing (z-index only applies to positioned elements) and this
+            // panel's z-index was competing directly against the map's
+            // overlay chrome (search bar, locate button) at z-[500] in the
+            // same root stacking context — 30 lost, so the dropdown opened
+            // behind the map. Comfortably above that and Leaflet's own
+            // internal panes (popups top out around z-700).
+            className="absolute right-0 top-11 z-[1000] w-80 rounded-2xl border border-brand-100 bg-white p-2 shadow-xl dark:border-white/10 dark:bg-[#1E1730] dark:shadow-black/40"
           >
             <h2 className="px-3 pt-2 font-display text-sm font-semibold text-slate-900 dark:text-slate-100">
               Notifications
@@ -117,7 +124,13 @@ export default function AppShell({ role, children }) {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="z-20 border-b border-brand-100 bg-white/90 backdrop-blur dark:border-white/10 dark:bg-[#1A1430]/90">
+      {/* relative + z-[600]: backdrop-blur alone forces a stacking context
+          here (independent of z-index/position), and without a `position`
+          the old bare z-20 never applied — so this whole header, notification
+          panel included, was stacking in plain DOM order below <main>'s map
+          overlay chrome (z-[500]), regardless of the panel's own z-index.
+          Now header's context outranks it directly. */}
+      <header className="relative z-[600] border-b border-brand-100 bg-white/90 backdrop-blur dark:border-white/10 dark:bg-[#1A1430]/90">
         <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="flex items-center gap-4">
             <Link
@@ -159,7 +172,9 @@ export default function AppShell({ role, children }) {
           </div>
         </div>
       </header>
-      <div className="flex-1 pb-16 sm:pb-0">{children}</div>
+      {/* pb-16 plus the same safe-area inset the bar itself now reserves,
+          so content never sits underneath the taller notch-device bar. */}
+      <div className="flex-1 pb-[calc(4rem+env(safe-area-inset-bottom))] sm:pb-0">{children}</div>
       <BottomTabBar items={nav} layoutId={`${role}-tab-bubble`} />
     </div>
   )

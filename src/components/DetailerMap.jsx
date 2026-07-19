@@ -146,7 +146,21 @@ export default function DetailerMap({ detailers, focus }) {
           keyboard: true,
           title: `${d.name} — ${statusLine(d)}`,
         })
-          .bindPopup(popupHtml(d), { closeButton: false, offset: [0, -4], className: 'nx-popup', autoPan: false })
+          .bindPopup(popupHtml(d), {
+            closeButton: false,
+            offset: [0, -4],
+            className: 'nx-popup',
+            // The manual vertical-offset centering below already keeps the
+            // popup clear of the top chrome in the common case, and always
+            // keeps the pin (and so the popup) horizontally centered — but
+            // autoPan stays on as a safety net for edge cases the manual
+            // math doesn't cover (very narrow viewports, popup content that
+            // grows past its current max-width later). It only engages when
+            // the popup genuinely doesn't fit, so it's a no-op the rest of
+            // the time.
+            autoPan: true,
+            autoPanPadding: [16, 90],
+          })
           .addTo(map)
         // Tapping a pin centers it — same zoom, just re-centered — before
         // Leaflet's own click handler opens the popup (autoPan is off above
