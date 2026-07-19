@@ -152,7 +152,11 @@ const shownStage = openStage ?? stageIdx
           {/* Timeline — every dot is tappable to preview that stage's process */}
           {b.status !== 'cancelled' && b.status !== 'disputed' && (
             <>
-              <div className="job-progress-track mt-8 mx-3.5" aria-label="Job progress">
+              {/* mx-1 (was mx-3.5): tick 1/tick 6 center exactly on the
+                  track's edge, so the end numbers sat half on the bar, half
+                  off it. Shrinking the side margin stretches the bar out to
+                  where those numbers actually sit instead. */}
+              <div className="job-progress-track mt-8 mx-1" aria-label="Job progress">
                 <motion.div
                   className="job-progress-fill"
                   initial={false}
