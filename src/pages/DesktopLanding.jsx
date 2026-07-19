@@ -135,7 +135,7 @@ export default function DesktopLanding() {
   }
 
   // On login success: run the gated transition, then land on the role's home,
-  // where the ArrivalTransition pops the already-loaded page in.
+  // where the TransitionOverlay washes the foam wipe over the already-loaded page.
   async function handleAuthed(role) {
     const dest = homePathForRole(role)
     if (reduce) {
@@ -228,7 +228,7 @@ export default function DesktopLanding() {
           '--auth-bg': '#201033',
           '--auth-sd': '#130a1f',
           '--auth-sl': '#2f1a48',
-          '--auth-accent': '#ec4899',
+          '--auth-accent': 'var(--color-cta-500)',
         }}
         className="relative z-10 flex h-screen w-full max-w-[460px] flex-col justify-center overflow-y-auto border-r border-white/10 px-12 py-10 shadow-2xl will-change-transform"
       >

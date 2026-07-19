@@ -19,7 +19,7 @@ export default function NativeBridge() {
       try {
         const { StatusBar, Style } = await import('@capacitor/status-bar')
         StatusBar.setStyle({ style: Style.Light }).catch(() => {})
-        StatusBar.setBackgroundColor({ color: '#32496a' }).catch(() => {})
+        StatusBar.setBackgroundColor({ color: '#6d28d9' }).catch(() => {})
       } catch { /* plugin missing on this platform */ }
       try {
         const { SplashScreen } = await import('@capacitor/splash-screen')

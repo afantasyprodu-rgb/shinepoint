@@ -35,7 +35,7 @@ function DisputeCard({ dispute, onResolve }) {
   const options = resolutionOptions(dispute.amount ?? 0)
 
   return (
-    <motion.div layout className={`card overflow-hidden !p-0 ${dispute.status === 'open' ? 'border-red-200' : ''}`}>
+    <motion.div layout className={`card overflow-hidden !p-0 ${dispute.status === 'open' ? 'border-red-200 dark:border-red-500/30' : ''}`}>
       {/* Header */}
       <button
         onClick={() => setOpen((o) => !o)}
@@ -43,12 +43,12 @@ function DisputeCard({ dispute, onResolve }) {
       >
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="font-semibold text-slate-900">{dispute.bookingId}</p>
-            <span className="text-sm text-slate-400">·</span>
-            <p className="text-sm text-slate-600">{dispute.service}</p>
+            <p className="font-semibold text-slate-900 dark:text-slate-100">{dispute.bookingId}</p>
+            <span className="text-sm text-slate-400 dark:text-slate-500">·</span>
+            <p className="text-sm text-slate-600 dark:text-slate-400">{dispute.service}</p>
           </div>
-          <p className="mt-0.5 text-sm text-slate-500">{dispute.filedBy} vs {dispute.against}</p>
-          <p className="mt-1 flex items-center gap-1.5 text-xs text-slate-400">
+          <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">{dispute.filedBy} vs {dispute.against}</p>
+          <p className="mt-1 flex items-center gap-1.5 text-xs text-slate-400 dark:text-slate-500">
             <ClockIcon className="h-3.5 w-3.5" /> Opened {hoursAgo(dispute.openedAt)} · ${dispute.amount} at stake
           </p>
         </div>
@@ -62,29 +62,29 @@ function DisputeCard({ dispute, onResolve }) {
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.25, ease: 'easeOut' }}
-            className="overflow-hidden border-t border-brand-100"
+            className="overflow-hidden border-t border-brand-100 dark:border-white/10"
           >
             <div className="space-y-4 p-5">
               {/* Both sides */}
               <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-xl bg-sky-50 p-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-sky-700">Customer says</p>
-                  <p className="mt-1 text-sm text-slate-700">{dispute.customerStatement}</p>
+                <div className="rounded-xl bg-sky-50 p-3 dark:bg-sky-500/10">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-sky-700 dark:text-sky-300">Customer says</p>
+                  <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">{dispute.customerStatement}</p>
                   {dispute.evidence?.customer?.length > 0 && (
                     <>
-                      <p className="mb-1.5 mt-2.5 flex items-center gap-1 text-xs font-medium text-slate-500">
+                      <p className="mb-1.5 mt-2.5 flex items-center gap-1 text-xs font-medium text-slate-500 dark:text-slate-400">
                         <CameraIcon className="h-3.5 w-3.5" /> {dispute.evidence.customer.length} photos — tap to view
                       </p>
                       <EvidencePhotos items={dispute.evidence.customer} columns={3} />
                     </>
                   )}
                 </div>
-                <div className="rounded-xl bg-brand-50 p-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-brand-700">Detailer says</p>
-                  <p className="mt-1 text-sm text-slate-700">{dispute.detailerStatement}</p>
+                <div className="rounded-xl bg-brand-50 p-3 dark:bg-brand-500/10">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-brand-700 dark:text-brand-300">Detailer says</p>
+                  <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">{dispute.detailerStatement}</p>
                   {dispute.evidence?.detailer?.length > 0 && (
                     <>
-                      <p className="mb-1.5 mt-2.5 flex items-center gap-1 text-xs font-medium text-slate-500">
+                      <p className="mb-1.5 mt-2.5 flex items-center gap-1 text-xs font-medium text-slate-500 dark:text-slate-400">
                         <CameraIcon className="h-3.5 w-3.5" /> {dispute.evidence.detailer.length} photos — tap to view
                       </p>
                       <EvidencePhotos items={dispute.evidence.detailer} columns={3} />
@@ -94,22 +94,22 @@ function DisputeCard({ dispute, onResolve }) {
               </div>
 
               {isResolved ? (
-                <p className="flex items-center gap-1.5 text-sm font-medium text-cta-700">
+                <p className="flex items-center gap-1.5 text-sm font-medium text-cta-700 dark:text-cta-500">
                   <CheckIcon className="h-4 w-4" /> Resolved:{' '}
                   {options.find((o) => o.key === dispute.resolution)?.label ?? dispute.resolution?.replace('_', ' ')}
                 </p>
               ) : (
                 <div>
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Resolve</p>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Resolve</p>
                   <div className="grid gap-2 sm:grid-cols-2">
                     {options.map((opt) => (
                       <button
                         key={opt.key}
                         onClick={() => setConfirming(opt)}
-                        className="rounded-xl border border-brand-100 px-3 py-2.5 text-left transition-colors hover:border-brand-300 hover:bg-brand-50/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+                        className="rounded-xl border border-brand-100 px-3 py-2.5 text-left transition-colors hover:border-brand-300 hover:bg-brand-50/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:border-white/10 dark:hover:border-brand-500/40 dark:hover:bg-brand-500/10"
                       >
-                        <p className="text-sm font-semibold text-slate-900">{opt.label}</p>
-                        <p className="mt-0.5 text-xs text-slate-500">{opt.consequence}</p>
+                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{opt.label}</p>
+                        <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{opt.consequence}</p>
                       </button>
                     ))}
                   </div>
@@ -122,13 +122,13 @@ function DisputeCard({ dispute, onResolve }) {
 
       {/* Resolution confirm modal */}
       <Modal open={!!confirming} onClose={() => setConfirming(null)} labelledBy="resolve-title">
-        <h2 id="resolve-title" className="font-display text-lg font-bold text-slate-900">
+        <h2 id="resolve-title" className="font-display text-lg font-bold text-slate-900 dark:text-slate-100">
           {confirming?.label}?
         </h2>
-        <div className="mt-3 rounded-xl bg-amber-50 px-4 py-3">
-          <p className="text-sm font-medium text-amber-900">{confirming?.consequence}</p>
+        <div className="mt-3 rounded-xl bg-amber-50 px-4 py-3 dark:bg-amber-500/10">
+          <p className="text-sm font-medium text-amber-900 dark:text-amber-300">{confirming?.consequence}</p>
         </div>
-        <p className="mt-3 text-sm text-slate-500">
+        <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
           Both parties are notified of the outcome. This cannot be undone.
         </p>
         <div className="mt-5 flex gap-2">
@@ -160,22 +160,22 @@ function OverrideCard({ override, booking, onApprove, onCancel }) {
     <motion.div
       layout
       exit={{ opacity: 0, x: 100, transition: { duration: 0.25 } }}
-      className="card border-amber-200 !p-5"
+      className="card border-amber-200 dark:border-amber-500/30 !p-5"
     >
       <div className="flex items-start gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400">
           <AlertTriangleIcon className="h-5 w-5" />
         </span>
         <div className="flex-1">
-          <p className="font-semibold text-slate-900">{override.bookingId} · {override.detailer}</p>
-          <p className="mt-0.5 text-sm text-slate-500">
+          <p className="font-semibold text-slate-900 dark:text-slate-100">{override.bookingId} · {override.detailer}</p>
+          <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
             Customer hasn't confirmed the damage report.
           </p>
           <div className="mt-2 flex flex-wrap gap-2">
-            <span className="chip bg-amber-500/15 text-amber-700">
+            <span className="chip bg-amber-500/15 text-amber-700 dark:text-amber-300">
               <ClockIcon className="mr-1 h-3 w-3" /> waiting {override.waitingMins} min
             </span>
-            <span className="chip bg-brand-100 text-brand-700">
+            <span className="chip bg-brand-100 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">
               <CameraIcon className="mr-1 h-3 w-3" /> {items.length} damage photos
             </span>
           </div>
@@ -185,7 +185,7 @@ function OverrideCard({ override, booking, onApprove, onCancel }) {
       {/* Damage photos — review before deciding */}
       {items.length > 0 && (
         <div className="mt-4">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
             Detailer's damage photos — review before approving
           </p>
           <EvidencePhotos items={items} columns={3} />
@@ -217,9 +217,9 @@ export default function AdminOps() {
   return (
     <AdminShell>
       <AnimatedPage>
-        <h1 className="font-display text-2xl font-bold text-slate-900">Operations</h1>
+        <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">Operations</h1>
 
-        <div role="tablist" aria-label="Operations sections" className="mt-5 flex gap-1 overflow-x-auto rounded-xl bg-brand-100/60 p-1 sm:w-fit">
+        <div role="tablist" aria-label="Operations sections" className="mt-5 flex gap-1 overflow-x-auto rounded-xl bg-brand-100/60 p-1 sm:w-fit dark:bg-white/5">
           {TABS.map((t) => (
             <button
               key={t}
@@ -227,7 +227,7 @@ export default function AdminOps() {
               aria-selected={tab === t}
               onClick={() => setTab(t)}
               className={`shrink-0 cursor-pointer rounded-lg px-4 py-2 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
-                tab === t ? 'bg-white text-brand-800 shadow-sm' : 'text-slate-600 hover:text-brand-800'
+                tab === t ? 'bg-white text-brand-800 shadow-sm dark:bg-white/10 dark:text-brand-300' : 'text-slate-600 dark:text-slate-400 hover:text-brand-800 dark:hover:text-brand-300'
               }`}
             >
               {t}
@@ -251,10 +251,10 @@ export default function AdminOps() {
               bookings.map((b) => (
                 <div key={b.id} className="card flex flex-wrap items-center justify-between gap-3 !p-5">
                   <div>
-                    <p className="font-semibold text-slate-900">
+                    <p className="font-semibold text-slate-900 dark:text-slate-100">
                       {b.id} · {b.service}
                     </p>
-                    <p className="text-sm text-slate-500">
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
                       {b.customerName} ↔ {getDetailer(b.detailerId)?.name} · ${b.price}
                     </p>
                   </div>
@@ -271,11 +271,11 @@ export default function AdminOps() {
               <>
                 {admin.overrides.length === 0 && (
                   <div className="card flex flex-col items-center py-10 text-center">
-                    <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cta-700/10 text-cta-700">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cta-700/10 text-cta-700 dark:text-cta-500">
                       <CheckIcon className="h-6 w-6" />
                     </span>
-                    <p className="mt-3 font-semibold text-slate-900">All clear</p>
-                    <p className="text-sm text-slate-500">No jobs waiting on damage-report overrides.</p>
+                    <p className="mt-3 font-semibold text-slate-900 dark:text-slate-100">All clear</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">No jobs waiting on damage-report overrides.</p>
                   </div>
                 )}
                 <AnimatePresence>
@@ -296,11 +296,11 @@ export default function AdminOps() {
               <>
                 {admin.flagged.length === 0 && (
                   <div className="card flex flex-col items-center py-10 text-center">
-                    <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cta-700/10 text-cta-700">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cta-700/10 text-cta-700 dark:text-cta-500">
                       <CheckIcon className="h-6 w-6" />
                     </span>
-                    <p className="mt-3 font-semibold text-slate-900">No flagged messages</p>
-                    <p className="text-sm text-slate-500">Chat is clean — nothing to review.</p>
+                    <p className="mt-3 font-semibold text-slate-900 dark:text-slate-100">No flagged messages</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Chat is clean — nothing to review.</p>
                   </div>
                 )}
                 <AnimatePresence>
@@ -309,18 +309,18 @@ export default function AdminOps() {
                       key={f.id}
                       layout
                       exit={{ opacity: 0, x: 100, transition: { duration: 0.25 } }}
-                      className="card border-red-200 !p-5"
+                      className="card border-red-200 dark:border-red-500/30 !p-5"
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-semibold text-slate-900">
+                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                           {f.bookingId} · {f.sender}
                         </p>
-                        <span className="chip bg-red-100 text-red-700">{hoursAgo(f.at)}</span>
+                        <span className="chip bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300">{hoursAgo(f.at)}</span>
                       </div>
-                      <blockquote className="mt-2 rounded-xl bg-red-50 px-4 py-2.5 text-sm italic text-red-900">
+                      <blockquote className="mt-2 rounded-xl bg-red-50 px-4 py-2.5 text-sm italic text-red-900 dark:bg-red-500/10 dark:text-red-300">
                         “{f.text}”
                       </blockquote>
-                      <p className="mt-1.5 flex items-center gap-1 text-xs font-medium text-red-600">
+                      <p className="mt-1.5 flex items-center gap-1 text-xs font-medium text-red-600 dark:text-red-400">
                         <AlertTriangleIcon className="h-3.5 w-3.5" /> {f.reason}
                       </p>
                       <div className="mt-3 flex flex-wrap gap-2">

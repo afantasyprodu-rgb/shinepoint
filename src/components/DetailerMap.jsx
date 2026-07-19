@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useTheme } from '../context/ThemeContext'
-import LiquidGlassDefs from './LiquidGlassDefs'
 
 // EnRouteTracker still uses Mapbox for live turn-by-turn; the main discovery
 // map switched to Leaflet + OpenStreetMap (no token needed), so this token
@@ -23,14 +22,18 @@ const PIN_COLORS = {
 
 const LA_CENTER = [34.05, -118.33]
 
-// OSM standard for light. Dark uses CartoDB's no-labels variant — the
-// labeled dark_all tiles crammed every street name and route shield onto
-// the map, which read as noisy/cluttered next to the pins; nolabels keeps
-// just the road/park/water shapes so the pins and popups stay the focus.
+// Both themes use CartoDB no-labels tiles — plain OSM tiles crammed every
+// street name, route shield, and POI icon onto the map, which read as
+// noisy/cluttered next to the pins. nolabels keeps just the road/park/water
+// shapes so the pins and popups stay the focus, in both themes equally.
+// Light uses Voyager (cream roads, green parks, blue water) rather than
+// Positron — Positron's near-white/grey read as washed out next to the
+// brand-colored pins; Voyager keeps the same no-labels restraint with
+// actual color so the map doesn't disappear into the page background.
 const TILES = {
   light: {
-    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
   },
   dark: {
     url: 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png',
@@ -105,11 +108,11 @@ export default function DetailerMap({ detailers, focus }) {
     const map = L.map(containerRef.current, {
       center: LA_CENTER,
       zoom: 11,
+      // No on-screen zoom buttons — pinch/scroll zoom still works, and one
+      // less floating control keeps the map itself the focus.
       zoomControl: false,
       attributionControl: true,
     })
-    const zoomControl = L.control.zoom({ position: 'topright' }).addTo(map)
-    zoomControl.getContainer()?.classList.add('nx-map-btn-glass', 'nx-zoom-glass')
     const t = TILES[theme] ?? TILES.light
     tileRef.current = L.tileLayer(t.url, { attribution: t.attribution, maxZoom: 19 }).addTo(map)
     mapRef.current = map
@@ -217,7 +220,6 @@ export default function DetailerMap({ detailers, focus }) {
 
   return (
     <div className="relative h-full w-full">
-      <LiquidGlassDefs />
       <div ref={containerRef} className="h-full w-full" />
 
       {/* Locate-me button — pulsing marker + fly-to on press. */}
@@ -225,7 +227,7 @@ export default function DetailerMap({ detailers, focus }) {
         type="button"
         onClick={locateMe}
         aria-label="Show my location"
-        className="nx-map-btn-glass press-spring absolute bottom-24 right-4 z-[500] flex h-11 w-11 items-center justify-center rounded-full text-brand-700 hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-brand-300"
+        className="nx-neu press-spring absolute bottom-24 right-4 z-[500] flex h-11 w-11 items-center justify-center rounded-full text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-brand-300"
       >
         {locating ? (
           <span className="h-4 w-4 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" />
@@ -237,7 +239,7 @@ export default function DetailerMap({ detailers, focus }) {
         )}
       </button>
       {geoError && (
-        <p role="status" className="nx-liquid absolute bottom-36 right-4 z-[500] rounded-lg px-3 py-1.5 text-xs text-slate-700 dark:text-slate-200">
+        <p role="status" className="nx-neu absolute bottom-36 right-4 z-[500] rounded-lg px-3 py-1.5 text-xs text-slate-700 dark:text-slate-300">
           {geoError}
         </p>
       )}

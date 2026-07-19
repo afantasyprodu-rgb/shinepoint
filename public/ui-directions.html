@@ -67,6 +67,7 @@ section.board{padding:72px 0;border-top:1px solid var(--line)}
 .ph-glass{box-shadow:0 30px 80px -20px rgba(34,197,94,.22)}
 .ph-aur{box-shadow:0 30px 90px -18px rgba(124,58,237,.5)}
 .ph-duo{box-shadow:0 30px 80px -20px rgba(167,139,250,.32)}
+.ph-nm{box-shadow:0 30px 80px -20px rgba(124,58,237,.24)}
 
 /* ═══ 1 · MINIMAL ═══ */
 .mn{background:#fff;color:var(--brand-ink);font-family:var(--body);height:100%;display:flex;flex-direction:column}
@@ -146,14 +147,15 @@ section.board{padding:72px 0;border-top:1px solid var(--line)}
 
 /* ═══ 3 · AURORA ═══ */
 .au{height:100%;position:relative;overflow:hidden;background:#2A1560;display:flex;flex-direction:column;justify-content:center;padding:0 26px}
+.au{--iri-h:262;animation:soapShift 9s ease-in-out infinite}
 .au-blob{position:absolute;border-radius:50%;filter:blur(46px);opacity:.85;z-index:0}
-.au-b1{width:340px;height:340px;background:#7C3AED;top:-70px;left:-90px;animation:drift1 11s ease-in-out infinite alternate}
-.au-b2{width:300px;height:300px;background:#A78BFA;bottom:-40px;right:-110px;animation:drift2 13s ease-in-out infinite alternate}
+.au-b1{width:340px;height:340px;background:hsl(var(--iri-h) 78% 58%);top:-70px;left:-90px;animation:drift1 11s ease-in-out infinite alternate}
+.au-b2{width:300px;height:300px;background:hsl(calc(var(--iri-h) + 60) 75% 70%);bottom:-40px;right:-110px;animation:drift2 13s ease-in-out infinite alternate}
 .au-b3{width:210px;height:210px;background:#22C55E;bottom:110px;left:-80px;opacity:.5;animation:drift3 9s ease-in-out infinite alternate}
 @keyframes drift1{to{transform:translate(50px,60px) scale(1.15)}}
 @keyframes drift2{to{transform:translate(-60px,-50px) scale(1.1)}}
 @keyframes drift3{to{transform:translate(70px,-40px)}}
-@media(prefers-reduced-motion:reduce){.au-blob{animation:none}}
+@media(prefers-reduced-motion:reduce){.au-blob{animation:none}.au{animation:none}}
 .au-inner{position:relative;z-index:1}
 .au-logo{display:flex;align-items:center;gap:10px;margin-bottom:26px}
 .au-mark{width:38px;height:38px;border-radius:12px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);
@@ -360,6 +362,49 @@ section.board{padding:72px 0;border-top:1px solid var(--line)}
 .pt-track b{font-family:var(--disp);color:#2A1560}
 .ship{display:inline-block;margin-left:8px;font-family:var(--disp);font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#7BEBA4;border:1px solid rgba(34,197,94,.45);border-radius:999px;padding:2.5px 9px;vertical-align:1px}
 
+/* ═══ 11 · SOFT SYSTEM (neumorphism + clay + minimal) ═══ */
+/* Soap-sheen hue arc: bounded purple→pink→blue→purple (thin-film interference), never a full rainbow */
+@property --iri-h{syntax:'<number>';inherits:true;initial-value:262}
+@keyframes soapShift{0%,100%{--iri-h:262}33%{--iri-h:322}66%{--iri-h:208}}
+.nm{height:100%;background:#F3EFFA;color:#2A1560;padding:58px 18px 22px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px;
+  --iri-h:262;animation:soapShift 9s ease-in-out infinite}
+@media(prefers-reduced-motion:reduce){.nm{animation:none}}
+.nm-sheen{height:5px;border-radius:99px;flex:none;
+  background:linear-gradient(90deg,hsl(calc(var(--iri-h) - 42) 82% 70%),hsl(var(--iri-h) 78% 62%),hsl(calc(var(--iri-h) + 58) 76% 66%));
+  box-shadow:0 1px 8px hsl(var(--iri-h) 70% 60% / .45)}
+.nm-hi{font-family:var(--disp);font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#8A7BB0;margin:0}
+.nm h3{font-family:var(--disp);font-weight:700;font-size:23px;margin:2px 0 0}
+.nm-toggle{background:#F3EFFA;border-radius:24px;padding:20px;display:flex;align-items:center;justify-content:space-between;gap:14px;
+  box-shadow:9px 9px 18px rgba(124,58,237,.14),-9px -9px 16px rgba(255,255,255,.9);transition:box-shadow .3s}
+.nm-toggle-txt b{font-family:var(--disp);font-weight:600;font-size:16px;display:block}
+.nm-toggle-txt span{font-size:13px;color:#7A6E9B}
+.nm-switch{width:60px;height:34px;border-radius:20px;border:none;cursor:pointer;position:relative;flex:none;background:#F3EFFA;
+  box-shadow:inset 5px 5px 10px rgba(124,58,237,.18),inset -5px -5px 9px rgba(255,255,255,.85);transition:box-shadow .35s}
+.nm-switch::after{content:'';position:absolute;top:4px;left:4px;width:26px;height:26px;border-radius:50%;background:linear-gradient(160deg,#fff,#EDE6FA);
+  box-shadow:2px 2px 5px rgba(124,58,237,.25),-2px -2px 4px rgba(255,255,255,.9);
+  transition:transform .35s cubic-bezier(.34,1.8,.5,1),background .35s,box-shadow .35s}
+.nm-switch:focus-visible{outline:3px solid var(--p);outline-offset:3px}
+.nm-switch.on{box-shadow:0 0 0 1px hsl(var(--iri-h) 70% 55% / .18),0 6px 16px hsl(var(--iri-h) 75% 55% / .45),inset 2px 2px 5px rgba(255,255,255,.35),inset -2px -2px 5px rgba(76,29,149,.4);
+  background:linear-gradient(160deg,hsl(calc(var(--iri-h) - 15) 85% 68%),hsl(var(--iri-h) 75% 58%));transition:background .3s,box-shadow .3s}
+.nm-switch.on::after{transform:translateX(26px);background:linear-gradient(160deg,#fff,#F3EFFA)}
+.nm-stats{display:flex;gap:12px}
+.nm-tile{flex:1;background:#F3EFFA;border-radius:20px;padding:16px;box-shadow:7px 7px 14px rgba(124,58,237,.13),-7px -7px 13px rgba(255,255,255,.9);
+  transition:transform .3s cubic-bezier(.34,1.8,.5,1),box-shadow .3s;cursor:pointer;border:none;text-align:left;font-family:var(--body)}
+.nm-tile:active{transform:scale(.96);box-shadow:inset 5px 5px 10px rgba(124,58,237,.16),inset -5px -5px 9px rgba(255,255,255,.85)}
+.nm-tile:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.nm-tile .k{font-family:var(--disp);font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#8A7BB0}
+.nm-tile .v{font-family:var(--disp);font-weight:700;font-size:22px;margin-top:4px;font-variant-numeric:tabular-nums;transition:opacity .2s}
+.nm-tile.dim .v{opacity:.35}
+.nm-lab{font-family:var(--disp);font-size:11.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#8A7BB0;margin:2px 0 0}
+.nm-row{display:flex;align-items:center;gap:12px;padding:13px 2px;border-bottom:1px solid #E6DEF7}
+.nm-row:last-child{border-bottom:none}
+.nm-ava{width:38px;height:38px;border-radius:12px;flex:none;display:flex;align-items:center;justify-content:center;
+  font-family:var(--disp);font-weight:700;font-size:14px;color:#fff;background:linear-gradient(135deg,var(--p),var(--p2))}
+.nm-row-name{font-family:var(--disp);font-weight:600;font-size:14.5px}
+.nm-row-sub{font-size:12.5px;color:#7A6E9B;margin-top:1px}
+.nm-row-time{margin-left:auto;font-family:var(--disp);font-weight:600;font-size:13px;color:#5B21B6}
+.nm-empty{text-align:center;padding:20px 4px;color:#8A7BB0;font-size:14px}
+
 /* ── system map ───────────────────────────── */
 section.sysmap{padding:72px 0 40px;border-top:1px solid var(--line)}
 .sys-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:30px}
@@ -377,7 +422,7 @@ footer .wrap{border-top:1px solid var(--line);padding-top:24px}
 <header class="hero">
   <div class="wrap">
     <p class="eyebrow">ShinePoint · Design Direction Studies</p>
-    <h1>Ten studies, one product — five shipped, five proposed.</h1>
+    <h1>Eleven studies, one product — five shipped, six proposed.</h1>
     <p class="lede">Every mockup below is built from the repo's actual tokens — trust purple <strong>#7C3AED</strong>, transaction green <strong>#22C55E</strong>, <strong>Lexend</strong> / <strong>Source Sans 3</strong> — and real demo data (Marco's Mobile Shine, Crown Auto Spa, real prices). The proposal isn't "pick one everywhere": it's a layered system where each treatment owns the screens it's best at. The mockups are interactive — tap around.</p>
   </div>
 </header>
@@ -394,6 +439,7 @@ footer .wrap{border-top:1px solid var(--line);padding-top:24px}
     <a href="#skeleton"><span class="dot" style="background:linear-gradient(100deg,#EFE9FA,#fff,#EFE9FA)"></span>Skeleton</a>
     <a href="#illus"><span class="dot" style="background:#fff;border:1.5px solid #7C3AED"></span>Illustration</a>
     <a href="#paint"><span class="dot" style="background:conic-gradient(#3B5BA5,#B3383E,#9BA3AD,#3E7C5B,#3B5BA5)"></span>Paint Theming</a>
+    <a href="#soft"><span class="dot" style="background:#F3EFFA;border:1px solid #C9B8EE"></span>Soft System</a>
     <a href="#system"><span class="dot" style="background:#22C55E"></span>The System</a>
   </div>
 </nav>
@@ -481,13 +527,14 @@ footer .wrap{border-top:1px solid var(--line);padding-top:24px}
       <h2 class="b-title">Aurora + Kinetic Motion</h2>
       <p class="b-role">Owns: auth, onboarding, empty states — screens with no data to show</p>
       <div class="b-copy">
-        <p>Auth and onboarding are the only screens where there's nothing to read and everything to feel — so this is where the brand gets to be atmospheric. A slow purple-to-green mesh drifts behind a full-bleed card (the direction your recent commits already started), and the form arrives in a <strong>staggered reveal</strong>: Google first, email second, exactly matching the button-first hierarchy you shipped.</p>
-        <p>Motion is the material here, not decoration: the drift says "alive," the stagger says "considered." Under <code style="font-family:var(--disp);font-size:.85em">prefers-reduced-motion</code> everything renders instantly and the blobs freeze.</p>
+        <p>Auth and onboarding are the only screens where there's nothing to read and everything to feel — so this is where the brand gets to be atmospheric. A slow mesh of three blobs drifts behind a full-bleed card (the direction your recent commits already started), and the form arrives in a <strong>staggered reveal</strong>: Google first, email second, exactly matching the button-first hierarchy you shipped.</p>
+        <p><strong>Experiment added:</strong> the two purple blobs now carry Study 11's soap-sheen arc — the same <code style="font-family:var(--disp);font-size:.85em">@property --iri-h</code> driving 262°→322°→208° (purple→pink→blue), with the second blob phase-offset +60° so the two never match, the way two overlapping soap films show different colors at once. The green blob stays fixed as the one deliberate brand anchor — everything drifting is desaturated-adjacent to purple, never crossing into yellow or red, so it still reads as "wet, soapy sheen" and not a startup rainbow.</p>
+        <p>Motion is the material here, not decoration: the drift says "alive," the color arc says "wet." Under <code style="font-family:var(--disp);font-size:.85em">prefers-reduced-motion</code> everything renders instantly, the blobs freeze, and the hue arc stops too.</p>
       </div>
       <ul class="specs">
-        <li>3 blurred brand blobs</li><li>drift 9–13s alternate</li><li>stagger 110ms/item</li><li>rise 500ms cubic-bezier</li><li>reduced-motion: static</li>
+        <li>3 blurred blobs, 2 hue-shifting + 1 fixed green</li><li>drift 9–13s alternate</li><li>soap-sheen arc 262°→322°→208°, +60° phase offset</li><li>stagger 110ms/item</li><li>rise 500ms cubic-bezier</li><li>reduced-motion: static, arc frozen</li>
       </ul>
-      <div class="watch"><b>Watch for</b>Crypto-startup drift. The gradient stays legitimate only while it's confined to auth, onboarding, and empty states — the moment it appears behind data, trust drops.</div>
+      <div class="watch"><b>Watch for</b>Crypto-startup drift. The gradient stays legitimate only while it's confined to auth, onboarding, and empty states — the moment it appears behind data, trust drops. The hue-shift raises that risk slightly (color motion reads as more "alive" than position drift alone) — keep the arc bounded and slow, never full-spectrum.</div>
       <button class="replay" id="auReplay">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
         Replay the entrance
@@ -816,6 +863,49 @@ footer .wrap{border-top:1px solid var(--line);padding-top:24px}
   </div>
 </section>
 
+<!-- ════ 11 · SOFT SYSTEM ════ -->
+<section class="board" id="soft">
+  <div class="wrap">
+    <div>
+      <p class="b-no">Study 11 · The Touchpoint — proposed, draft</p>
+      <h2 class="b-title">Soft System — neumorphism + clay + minimal</h2>
+      <p class="b-role">Owns: interactive controls only — toggles, stat tiles, segmented switches — never full screens</p>
+      <div class="b-copy">
+        <p>This isn't a fourth "look," it's a rule for how the existing minimal layer renders <strong>anything you press or flip</strong>. The screen stays flat and white — same ground, same hairlines as Study 01 — but a control that changes state gets a soft extrusion: two matched shadows, one lit (top-left, warm white) and one shadowed (bottom-right, tinted with the brand purple instead of generic grey) so the depth cue reads as "this product" rather than "neumorphism template."</p>
+        <p>Shown on a screen none of the ten studies claim yet: the detailer's <strong>Today</strong> home — the online/offline switch, and the earnings/jobs tiles. Flip the switch: <strong>off</strong> is a pressed-in groove (inactive, matte), <strong>on</strong> pops convex with a purple glow — the same physical metaphor as a real light switch. Tap a stat tile and it takes the clay layer's spring squish (<code style="font-family:var(--disp);font-size:.85em">cubic-bezier(.34,1.8,.5,1)</code>), same as the Rewards stamps, so pressing anything in the app feels like one material.</p>
+        <p>Minimalism is what keeps this from turning into a 2021 dribbble neumorphism dashboard: no shadows on running text, no shadows on the job list rows below (still flat Study-01 rows), and depth stays monochrome purple — the only color motion in the frame is the sheen strip below the header.</p>
+        <p>That sheen is the color-theory add: real soap-film iridescence isn't a full rainbow, it's a <strong>bounded arc</strong> — thickness and viewing angle shift it through violet, magenta, and blue, never past into yellow or red. So instead of animating <code style="font-family:var(--disp);font-size:.85em">hue-rotate(0→360deg)</code> (the whole spectrum), a Houdini-typed custom property (<code style="font-family:var(--disp);font-size:.85em">@property --iri-h</code>) arcs one hue value 262°→322°→208°→262° — purple → pink → blue → purple — over 9 seconds. The "on" switch glow reads off the same variable, so the whole control breathes one soap-colored pulse instead of two unrelated animations.</p>
+      </div>
+      <ul class="specs">
+        <li>surface = ground (#F3EFFA on #F3EFFA)</li><li>dual shadow: light-white + purple-tint, not grey</li><li>controls only, never text or data rows</li><li>spring squish on press (clay's motion, not its shape)</li><li>sheen arc 262°→322°→208°, bounded not full-spectrum</li><li>@property --iri-h drives glow + sheen together</li>
+      </ul>
+      <div class="watch"><b>Watch for</b>Contrast and legibility — same-color-on-same-color depends entirely on shadow, which fails for low-vision users and in bright sunlight (a detailer's actual environment). Ship it only with a visible focus ring (already here) and never as the sole signal of on/off — pair with the label text swap. The sheen animation also needs the <code style="font-family:var(--disp);font-size:.85em">prefers-reduced-motion</code> pause it already has here (a slow color pulse can still trigger unease). If it doesn't survive an outdoor screenshot test, it's cut before Study 01 minimal.</div>
+    </div>
+    <div class="phone-col">
+      <div class="phone ph-nm"><div class="notch"></div>
+        <div class="screen nm">
+          <p class="nm-hi">Good morning, Marco</p>
+          <h3>Today</h3>
+          <div class="nm-sheen" aria-hidden="true"></div>
+          <div class="nm-toggle">
+            <div class="nm-toggle-txt"><b id="nmStatusLabel">You're offline</b><span id="nmStatusSub">Flip on to start receiving jobs nearby</span></div>
+            <button class="nm-switch" id="nmSwitch" role="switch" aria-checked="false" aria-label="Toggle availability"></button>
+          </div>
+          <div class="nm-stats">
+            <button class="nm-tile dim" id="nmEarnings"><div class="k">Today's earnings</div><div class="v">$0</div></button>
+            <button class="nm-tile dim" id="nmJobs"><div class="k">Jobs today</div><div class="v">0</div></button>
+          </div>
+          <p class="nm-lab">Next up</p>
+          <div id="nmSchedule">
+            <p class="nm-empty">Go online to see today's queue.</p>
+          </div>
+        </div>
+      </div>
+      <p class="hint">Tap the switch to go online — then tap a stat tile.</p>
+    </div>
+  </div>
+</section>
+
 <!-- ════ SYSTEM MAP ════ -->
 <section class="sysmap" id="system">
   <div class="wrap">
@@ -865,6 +955,10 @@ footer .wrap{border-top:1px solid var(--line);padding-top:24px}
       <div class="sys-card" style="--card-accent:#3B5BA5">
         <h4>5 · Paint Theming</h4><div class="where">Vehicle card · bookings · tracker</div>
         <p>The customer's car color tints their personal surfaces. Un-copyable; personal-only, never chrome.</p>
+      </div>
+      <div class="sys-card" style="--card-accent:#C9B8EE">
+        <h4>6 · Soft System (draft)</h4><div class="where">Toggles · stat tiles · switches, app-wide</div>
+        <p>Neumorphic depth + clay's spring press, minimal's restraint. A control rule, not a screen — needs an outdoor-legibility pass before it ships.</p>
       </div>
     </div>
     <div class="motion-note">
@@ -1010,6 +1104,33 @@ document.getElementById('clCopy').onclick=e=>{
   if(navigator.vibrate)navigator.vibrate(10);
   setTimeout(()=>e.target.textContent='Copy code',1400);
 };
+
+// ── 11 · soft system: availability switch + stat squish ─
+const nmSwitch=document.getElementById('nmSwitch'),nmLabel=document.getElementById('nmStatusLabel'),
+      nmSub=document.getElementById('nmStatusSub'),nmEarnings=document.getElementById('nmEarnings'),
+      nmJobs=document.getElementById('nmJobs'),nmSchedule=document.getElementById('nmSchedule');
+const nmQueue=[
+  {name:'Alex Rivera',svc:'Full Detail · Tesla Model 3',time:'11:30 AM'},
+  {name:'Priya Nair',svc:'Exterior Wash',time:'1:15 PM'},
+  {name:'Sam Osei',svc:'Interior Deep Clean',time:'3:00 PM'},
+];
+let nmOnline=false;
+nmSwitch.onclick=()=>{
+  nmOnline=!nmOnline;
+  nmSwitch.classList.toggle('on',nmOnline);
+  nmSwitch.setAttribute('aria-checked',nmOnline);
+  nmLabel.textContent=nmOnline?"You're online":"You're offline";
+  nmSub.textContent=nmOnline?'Nearby customers can book you now':'Flip on to start receiving jobs nearby';
+  nmEarnings.classList.toggle('dim',!nmOnline);
+  nmJobs.classList.toggle('dim',!nmOnline);
+  nmEarnings.querySelector('.v').textContent=nmOnline?'$186':'$0';
+  nmJobs.querySelector('.v').textContent=nmOnline?String(nmQueue.length):'0';
+  nmSchedule.innerHTML=nmOnline
+    ?nmQueue.map(j=>`<div class="nm-row"><span class="nm-ava">${j.name[0]}</span><span><span class="nm-row-name">${j.name}</span><br><span class="nm-row-sub">${j.svc}</span></span><span class="nm-row-time">${j.time}</span></div>`).join('')
+    :'<p class="nm-empty">Go online to see today\'s queue.</p>';
+  if(navigator.vibrate)navigator.vibrate(nmOnline?[12,30,12]:10);
+};
+[nmEarnings,nmJobs].forEach(t=>t.onclick=()=>{if(navigator.vibrate)navigator.vibrate(8);});
 
 // ── 6 · dark: themed canvas map + toggle ────────────────
 const dkCv=document.getElementById('dkMap'),dkCx=dkCv.getContext('2d');

@@ -32,7 +32,7 @@ export default function DetailerAnalytics() {
       <AnimatedPage className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
         <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">Analytics</h1>
 
-        <div className="nx-dark mt-6">
+        <div className="mt-6">
           <div className="grid gap-3 sm:grid-cols-2">
             <FadeIn>
               <div className="nx-card">
@@ -40,10 +40,10 @@ export default function DetailerAnalytics() {
                   <p className="nx-kicker">Net this week</p>
                   <span className="nx-icon-tile"><TrendingUpIcon className="h-4 w-4" /></span>
                 </div>
-                <p className="mt-2 font-display text-3xl font-bold text-white">
+                <p className="mt-2 font-display text-3xl font-bold text-slate-900 dark:text-white">
                   <CountUp value={WEEKLY[5]} prefix="$" />
                 </p>
-                <p className={`mt-1 text-sm font-medium ${weekDelta >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                <p className={`mt-1 text-sm font-medium ${weekDelta >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                   {weekDelta >= 0 ? '+' : ''}{weekDelta.toFixed(1)}% vs last week
                 </p>
               </div>
@@ -54,7 +54,7 @@ export default function DetailerAnalytics() {
                   <p className="nx-kicker">Jobs completed</p>
                   <span className="nx-icon-tile"><PieChartIcon className="h-4 w-4" /></span>
                 </div>
-                <p className="mt-2 font-display text-3xl font-bold text-white">
+                <p className="mt-2 font-display text-3xl font-bold text-slate-900 dark:text-white">
                   <CountUp value={complete.length} />
                 </p>
                 <p className="nx-sub mt-1 text-sm">this session</p>
@@ -68,7 +68,7 @@ export default function DetailerAnalytics() {
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <FadeIn delay={0.1}>
               <div className="nx-card h-full">
-                <p className="mb-1 text-sm font-semibold text-white">Net earnings by week</p>
+                <p className="mb-1 text-sm font-semibold text-slate-900 dark:text-white">Net earnings by week</p>
                 <p className="nx-sub mb-4 text-xs">Last 3 weeks vs the 3 before that</p>
                 <NxLineChart
                   labels={['Week 1', 'Week 2', 'Week 3']}
@@ -82,7 +82,7 @@ export default function DetailerAnalytics() {
 
             <FadeIn delay={0.15}>
               <div className="nx-card h-full">
-                <p className="mb-4 text-sm font-semibold text-white">Earnings by service</p>
+                <p className="mb-4 text-sm font-semibold text-slate-900 dark:text-white">Earnings by service</p>
                 {segments.length > 0 ? (
                   <NxDonut segments={segments} />
                 ) : (

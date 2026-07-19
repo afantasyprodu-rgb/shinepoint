@@ -29,7 +29,7 @@ export default function AdminFinance() {
     <AdminShell>
       <AnimatedPage>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="font-display text-2xl font-bold text-slate-900">Finance</h1>
+          <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">Finance</h1>
           <button onClick={exportCsv} className="btn btn-outline h-10 text-sm">
             Export CSV
           </button>
@@ -39,8 +39,8 @@ export default function AdminFinance() {
           {stats.map(({ label, value, prefix }, i) => (
             <FadeIn key={label} delay={i * 0.07}>
               <div className="card !p-4">
-                <p className="text-xs font-medium text-slate-500">{label}</p>
-                <p className="mt-1 font-display text-2xl font-bold text-brand-800">
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{label}</p>
+                <p className="mt-1 font-display text-2xl font-bold text-brand-800 dark:text-brand-300">
                   <CountUp value={value} prefix={prefix} />
                 </p>
               </div>
@@ -50,7 +50,7 @@ export default function AdminFinance() {
 
         <FadeIn delay={0.2}>
           <div className="card mt-6">
-            <h2 className="mb-4 font-display text-lg font-semibold text-slate-900">
+            <h2 className="mb-4 font-display text-lg font-semibold text-slate-900 dark:text-slate-100">
               Monthly platform revenue
             </h2>
             <Bars data={f.monthly} labels={f.monthLabels} />
@@ -60,20 +60,20 @@ export default function AdminFinance() {
         <div className="mt-6 grid gap-4 lg:grid-cols-2">
           <FadeIn delay={0.25}>
             <div className="card !p-5">
-              <h2 className="font-display font-semibold text-slate-900">Refunds issued</h2>
-              <p className="mt-1 font-display text-2xl font-bold text-brand-800">
+              <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">Refunds issued</h2>
+              <p className="mt-1 font-display text-2xl font-bold text-brand-800 dark:text-brand-300">
                 <CountUp value={f.refundsIssued} prefix="$" />
               </p>
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                 Across {f.refundsCount} resolved disputes this month — deducted from platform earnings.
               </p>
             </div>
           </FadeIn>
           <FadeIn delay={0.3}>
             <div className="card !p-5">
-              <h2 className="font-display font-semibold text-slate-900">1099 tracker</h2>
-              <p className="mt-1 font-display text-2xl font-bold text-brand-800">3 detailers</p>
-              <p className="mt-1 text-sm text-slate-500">
+              <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">1099 tracker</h2>
+              <p className="mt-1 font-display text-2xl font-bold text-brand-800 dark:text-brand-300">3 detailers</p>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                 Crossed $600 in annual earnings — 1099 forms required at year end.
               </p>
             </div>

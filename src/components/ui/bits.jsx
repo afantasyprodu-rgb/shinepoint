@@ -45,20 +45,20 @@ export function Avatar({ name, photo, size = 'md' }) {
 
 export function StatusPill({ status, acceptsWhenBusy }) {
   const styles = {
-    available: 'bg-cta-700/10 text-cta-700',
-    busy: 'bg-amber-500/15 text-amber-700',
-    offline: 'bg-slate-200 text-slate-600',
-    pending: 'bg-amber-500/15 text-amber-700',
-    accepted: 'bg-sky-100 text-sky-700',
-    en_route: 'bg-sky-100 text-sky-700',
-    arrived: 'bg-brand-100 text-brand-700',
-    in_progress: 'bg-brand-100 text-brand-700',
-    complete: 'bg-cta-700/10 text-cta-700',
-    cancelled: 'bg-slate-200 text-slate-600',
-    disputed: 'bg-red-100 text-red-700',
-    open: 'bg-red-100 text-red-700',
-    under_review: 'bg-amber-500/15 text-amber-700',
-    resolved: 'bg-cta-700/10 text-cta-700',
+    available: 'bg-cta-700/10 text-cta-700 dark:text-cta-500',
+    busy: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
+    offline: 'bg-slate-200 text-slate-600 dark:bg-white/10 dark:text-slate-400',
+    pending: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
+    accepted: 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300',
+    en_route: 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300',
+    arrived: 'bg-brand-100 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300',
+    in_progress: 'bg-brand-100 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300',
+    complete: 'bg-cta-700/10 text-cta-700 dark:text-cta-500',
+    cancelled: 'bg-slate-200 text-slate-600 dark:bg-white/10 dark:text-slate-400',
+    disputed: 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300',
+    open: 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300',
+    under_review: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
+    resolved: 'bg-cta-700/10 text-cta-700 dark:text-cta-500',
   }
   const labels = {
     busy: acceptsWhenBusy ? 'Busy — accepting' : 'Busy',
@@ -156,7 +156,7 @@ export function ProgressBar({ value, max, label }) {
   return (
     <div>
       {label && (
-        <div className="mb-1 flex justify-between text-xs font-medium text-slate-600">
+        <div className="mb-1 flex justify-between text-xs font-medium text-slate-600 dark:text-slate-400">
           <span>{label}</span>
           <span>
             {value} / {max}
@@ -168,7 +168,7 @@ export function ProgressBar({ value, max, label }) {
         aria-valuenow={value}
         aria-valuemax={max}
         aria-valuemin={0}
-        className="h-2.5 overflow-hidden rounded-full bg-brand-100"
+        className="h-2.5 overflow-hidden rounded-full bg-brand-100 dark:bg-white/10"
       >
         <motion.div
           initial={{ width: 0 }}
@@ -188,7 +188,7 @@ export function Bars({ data, labels, prefix = '$' }) {
     <div className="flex h-40 items-end gap-2" role="img" aria-label={`Bar chart: ${labels.map((l, i) => `${l} ${prefix}${data[i]}`).join(', ')}`}>
       {data.map((v, i) => (
         <div key={labels[i]} className="group flex flex-1 flex-col items-center gap-1">
-          <span className="text-[10px] font-semibold text-brand-700 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+          <span className="text-[10px] font-semibold text-brand-700 opacity-0 transition-opacity duration-200 group-hover:opacity-100 dark:text-brand-300">
             {prefix}
             {v.toLocaleString()}
           </span>
@@ -197,9 +197,9 @@ export function Bars({ data, labels, prefix = '$' }) {
             whileInView={{ height: Math.max((v / max) * 110, 4) }}
             viewport={{ once: true }}
             transition={{ duration: 0.7, delay: i * 0.07, ease: 'easeOut' }}
-            className="w-full rounded-t-lg bg-gradient-to-t from-brand-600 to-brand-400 transition-colors duration-200 group-hover:from-brand-700 group-hover:to-brand-500"
+            className="w-full rounded-t-lg bg-gradient-to-t from-brand-600 to-brand-400 transition-colors duration-200 group-hover:from-brand-700 group-hover:to-brand-500 dark:from-brand-500 dark:to-brand-300"
           />
-          <span className="text-[10px] text-slate-500">{labels[i]}</span>
+          <span className="text-[10px] text-slate-500 dark:text-slate-400">{labels[i]}</span>
         </div>
       ))}
     </div>

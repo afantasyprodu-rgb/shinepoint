@@ -4,6 +4,7 @@ import { motion, useScroll, useTransform, useReducedMotion } from 'motion/react'
 import Logo from '../components/Logo'
 import ThemeToggle from '../components/ThemeToggle'
 import { useAuth, homePathForRole } from '../context/AuthContext'
+import { markArrival } from '../lib/transition'
 import { FadeIn, Stagger, StaggerItem } from '../components/ui/Motion'
 import { Stars } from '../components/ui/bits'
 import {
@@ -46,6 +47,7 @@ export default function Welcome() {
 
   function startDemo(role) {
     enterDemo(role)
+    markArrival(role)
     navigate(homePathForRole(role))
   }
 

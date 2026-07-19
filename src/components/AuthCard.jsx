@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react'
 import { supabase } from '../lib/supabase'
 import { homePathForRole } from '../context/AuthContext'
 import { needsMfaChallenge } from '../lib/mfa'
+import { markArrival } from '../lib/transition'
 import Logo from './Logo'
 import OtpBoxInput from './OtpBoxInput'
 import { GoogleIcon, MailIcon, PhoneIcon, ChevronLeftIcon, LockIcon } from './icons'
@@ -105,6 +106,7 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
     }
     setBusy(false)
     if (onAuthenticated) { onAuthenticated(userRow?.role); return }
+    markArrival(userRow?.role)
     navigate(homePath)
   }
 

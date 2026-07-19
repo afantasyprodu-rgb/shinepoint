@@ -2,7 +2,7 @@ import { lazy, Suspense } from 'react'
 import { Routes, Route, useLocation } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute'
 import ErrorBoundary from './components/ErrorBoundary'
-import ArrivalTransition from './components/ArrivalTransition'
+import TransitionOverlay from './components/TransitionOverlay'
 import NativeBridge from './components/NativeBridge'
 import { loadCustomerHome } from './lib/preload'
 import Landing from './pages/Landing'
@@ -60,7 +60,7 @@ export default function App() {
   // AnimatePresence proved wedge-prone with rapid history changes.)
   return (
     <ErrorBoundary>
-    <ArrivalTransition>
+    <TransitionOverlay>
       <NativeBridge />
       <Routes location={location} key={location.pathname}>
         <Route path="/" element={<Landing />} />
@@ -112,7 +112,7 @@ export default function App() {
         <Route path="/admin/finance" element={guard('admin', <AdminFinance />)} />
         <Route path="/admin/analytics" element={guard('admin', <AdminAnalytics />)} />
       </Routes>
-    </ArrivalTransition>
+    </TransitionOverlay>
     </ErrorBoundary>
   )
 }
