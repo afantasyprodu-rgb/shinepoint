@@ -5,25 +5,22 @@ const ThemeContext = createContext(null)
 const STORAGE_KEY = 'shinepoint-theme'
 const hueKey = (mode) => `shinepoint-hue-${mode}`
 
-// Bounded purple->pink->blue arc — same one the login wipe and the map's
+// Bounded purple->pink->blue arc — same range the login wipe and the map's
 // "you are here" pulse ride (see TransitionOverlay.jsx / DetailerMap.jsx),
 // so a rotated hue always still reads as "the brand," never an arbitrary
 // color from anywhere on the wheel.
-const HUE_STOPS = [322, 262, 208]
+const ARC_MIN = 208
+const ARC_MAX = 322
 const DEFAULT_HUE = 262
 
-function randomHueOnArc() {
-  const span = HUE_STOPS.length - 1
-  const pos = Math.random() * span
-  const i = Math.min(Math.floor(pos), span - 1)
-  const f = pos - i
-  return HUE_STOPS[i] + (HUE_STOPS[i + 1] - HUE_STOPS[i]) * f
-}
+// How far a fresh hue must land from the mode's last one. The transition's
+// mid-animation shimmer (nx-theme-hue in index.css) is a wide, saturated
+// sweep — if the *settled* colors were only nudged a little, the switch
+// felt like it changed more mid-flight than it actually kept. 45° is
+// close to half the 114°-wide arc, so back-to-back presses land on
+// clearly distinct colors, not neighbors.
+const MIN_GAP = 45
 
-// cta (the "book it" / positive-action green) stays a fixed triadic partner
-// of brand, -120° round the wheel — 262 (violet) - 120 = 142, the original
-// green, so it rotates in lockstep with brand but never drifts into a hue
-// that reads as a warning/error color instead of "go."
 function ctaHueFor(brandHue) {
   return (brandHue - 120 + 360) % 360
 }
@@ -33,15 +30,20 @@ function storedHue(mode) {
   return Number.isFinite(v) && v ? v : DEFAULT_HUE
 }
 
-// A fresh hue for `mode`, guaranteed to land at least 25° away from
-// whatever that mode used last time — so flipping back and forth never
-// just bounces between the same two colors.
+// A fresh hue for `mode`, constructed (not rejection-sampled) to guarantee
+// at least MIN_GAP° from whatever that mode used last time — so flipping
+// back and forth never just bounces between the same two colors. Picks
+// uniformly from whichever side(s) of the arc still have room at that gap;
+// if the previous hue sat too close to the arc's center for either side to
+// have room, jumps to whichever end is farther away.
 function nextHueFor(mode) {
   const prev = storedHue(mode)
-  let hue = randomHueOnArc()
-  let guard = 0
-  while (Math.abs(hue - prev) < 25 && guard++ < 8) hue = randomHueOnArc()
-  return hue
+  const belowLen = Math.max(0, prev - MIN_GAP - ARC_MIN)
+  const aboveLen = Math.max(0, ARC_MAX - (prev + MIN_GAP))
+  const total = belowLen + aboveLen
+  if (total <= 0) return prev - ARC_MIN > ARC_MAX - prev ? ARC_MIN : ARC_MAX
+  const r = Math.random() * total
+  return r < belowLen ? ARC_MIN + r : prev + MIN_GAP + (r - belowLen)
 }
 
 function applyHue(hue) {

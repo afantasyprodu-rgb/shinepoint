@@ -12,25 +12,27 @@
   --font-display: "Lexend", ui-sans-serif, system-ui, sans-serif;
 
   /* Brand/cta ramps are generated from --brand-h/--cta-h (defined below)
-     via relative-color syntax: each step keeps the lightness/chroma of its
+     via relative-color syntax: each step keeps the lightness of its
      original hex (so the ramp's shape is unchanged) but takes its hue from
-     the live variable. ThemeContext.jsx rotates that variable — see the
-     comment above the :root block below for why. */
-  --color-brand-50: oklch(from #faf5ff L C var(--brand-h));
-  --color-brand-100: oklch(from #f3e8ff L C var(--brand-h));
-  --color-brand-200: oklch(from #e9d5ff L C var(--brand-h));
-  --color-brand-300: oklch(from #d8b4fe L C var(--brand-h));
-  --color-brand-400: oklch(from #c084fc L C var(--brand-h));
-  --color-brand-500: oklch(from #a78bfa L C var(--brand-h));
-  --color-brand-600: oklch(from #7c3aed L C var(--brand-h));
-  --color-brand-700: oklch(from #6d28d9 L C var(--brand-h));
-  --color-brand-800: oklch(from #5b21b6 L C var(--brand-h));
-  --color-brand-900: oklch(from #4c1d95 L C var(--brand-h));
+     the live variable, chroma boosted ~15% so the settled result reads as
+     vividly as the saturated mid-transition sheen instead of looking flat
+     by comparison. ThemeContext.jsx rotates the hue — see the comment
+     above the :root block below for why. */
+  --color-brand-50: oklch(from #faf5ff L calc(C * 1.15) var(--brand-h));
+  --color-brand-100: oklch(from #f3e8ff L calc(C * 1.15) var(--brand-h));
+  --color-brand-200: oklch(from #e9d5ff L calc(C * 1.15) var(--brand-h));
+  --color-brand-300: oklch(from #d8b4fe L calc(C * 1.15) var(--brand-h));
+  --color-brand-400: oklch(from #c084fc L calc(C * 1.15) var(--brand-h));
+  --color-brand-500: oklch(from #a78bfa L calc(C * 1.15) var(--brand-h));
+  --color-brand-600: oklch(from #7c3aed L calc(C * 1.15) var(--brand-h));
+  --color-brand-700: oklch(from #6d28d9 L calc(C * 1.15) var(--brand-h));
+  --color-brand-800: oklch(from #5b21b6 L calc(C * 1.15) var(--brand-h));
+  --color-brand-900: oklch(from #4c1d95 L calc(C * 1.15) var(--brand-h));
 
-  --color-cta-500: oklch(from #22c55e L C var(--cta-h));
-  --color-cta-600: oklch(from #16a34a L C var(--cta-h));
-  --color-cta-700: oklch(from #15803d L C var(--cta-h));
-  --color-cta-800: oklch(from #166534 L C var(--cta-h));
+  --color-cta-500: oklch(from #22c55e L calc(C * 1.15) var(--cta-h));
+  --color-cta-600: oklch(from #16a34a L calc(C * 1.15) var(--cta-h));
+  --color-cta-700: oklch(from #15803d L calc(C * 1.15) var(--cta-h));
+  --color-cta-800: oklch(from #166534 L calc(C * 1.15) var(--cta-h));
 
   /* Third analytics accent — donut/chart segments beyond brand+cta (revenue
      and earnings breakdowns need a 3rd hue that isn't a full extra ramp). */
@@ -1241,7 +1243,7 @@
    because view-transition pseudo-elements paint in the browser's top
    layer, above all normal DOM (including high z-index fixed elements). */
 @keyframes nx-theme-hue {
-  from { filter: hue-rotate(var(--theme-wave-hue, 60deg)) saturate(1.5); }
+  from { filter: hue-rotate(var(--theme-wave-hue, 60deg)) saturate(1.2); }
   to   { filter: hue-rotate(0deg) saturate(1); }
 }
 
