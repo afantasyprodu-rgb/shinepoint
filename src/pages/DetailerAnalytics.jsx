@@ -9,7 +9,7 @@ const ME = 'det-1'
 // Same six-week net-earnings trend as the Earnings hero sparkline, split
 // into two three-week windows so it reads as a period-over-period chart.
 const WEEKLY = [240, 310, 285, 390, 364, 412]
-const SEGMENT_COLORS = ['var(--color-cta-500)', 'var(--color-brand-400)', '#2dd4bf']
+const SEGMENT_COLORS = ['var(--color-cta-500)', 'var(--color-brand-400)', 'var(--color-accent-teal)']
 
 export default function DetailerAnalytics() {
   const { bookings } = useStore()
@@ -62,30 +62,35 @@ export default function DetailerAnalytics() {
             </FadeIn>
           </div>
 
-          <FadeIn delay={0.1}>
-            <div className="nx-card mt-3">
-              <p className="mb-1 text-sm font-semibold text-white">Net earnings by week</p>
-              <p className="nx-sub mb-4 text-xs">Last 3 weeks vs the 3 before that</p>
-              <NxLineChart
-                labels={['Week 1', 'Week 2', 'Week 3']}
-                current={currentWeeks}
-                comparison={comparisonWeeks}
-                currentLabel="Recent 3wk"
-                comparisonLabel="Prior 3wk"
-              />
-            </div>
-          </FadeIn>
+          {/* sm:grid-cols-2 — the page shell is already width-capped
+              (max-w-3xl), so side-by-side kicks in earlier than the admin
+              analytics page's lg: breakpoint. */}
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <FadeIn delay={0.1}>
+              <div className="nx-card h-full">
+                <p className="mb-1 text-sm font-semibold text-white">Net earnings by week</p>
+                <p className="nx-sub mb-4 text-xs">Last 3 weeks vs the 3 before that</p>
+                <NxLineChart
+                  labels={['Week 1', 'Week 2', 'Week 3']}
+                  current={currentWeeks}
+                  comparison={comparisonWeeks}
+                  currentLabel="Recent 3wk"
+                  comparisonLabel="Prior 3wk"
+                />
+              </div>
+            </FadeIn>
 
-          <FadeIn delay={0.15}>
-            <div className="nx-card mt-3">
-              <p className="mb-4 text-sm font-semibold text-white">Earnings by service</p>
-              {segments.length > 0 ? (
-                <NxDonut segments={segments} />
-              ) : (
-                <p className="nx-sub text-sm">Complete jobs to see the breakdown here.</p>
-              )}
-            </div>
-          </FadeIn>
+            <FadeIn delay={0.15}>
+              <div className="nx-card h-full">
+                <p className="mb-4 text-sm font-semibold text-white">Earnings by service</p>
+                {segments.length > 0 ? (
+                  <NxDonut segments={segments} />
+                ) : (
+                  <p className="nx-sub text-sm">Complete jobs to see the breakdown here.</p>
+                )}
+              </div>
+            </FadeIn>
+          </div>
         </div>
       </AnimatedPage>
     </AppShell>

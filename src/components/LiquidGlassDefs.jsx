@@ -1,6 +1,49 @@
 import { useEffect, useRef } from 'react'
 
-const BUTTON_TEXTURE_URL = 'https://essykings.github.io/JavaScript/map.png'
+// Deterministically-seeded blob texture, generated locally on a throwaway
+// <canvas> instead of fetched from a remote URL. The original build of this
+// pulled a PNG from an unrelated third-party GitHub Pages site as the
+// button-glass displacement source — decorative button chrome shouldn't
+// have a hard runtime dependency on someone else's uptime, and a fetch
+// failure there degraded silently with no fallback. Generating it locally
+// removes the dependency and the failure mode entirely; same visual role
+// (a soft, irregular luminance field) as the original PNG.
+let cachedTextureUrl = null
+function buttonTexture() {
+  if (cachedTextureUrl) return cachedTextureUrl
+  const size = 96
+  const canvas = document.createElement('canvas')
+  canvas.width = size
+  canvas.height = size
+  const ctx = canvas.getContext('2d')
+  ctx.fillStyle = '#000'
+  ctx.fillRect(0, 0, size, size)
+  // Small xorshift PRNG so the blob layout is stable across reloads instead
+  // of re-randomizing (and thus re-shifting the button distortion) every mount.
+  let seed = 0x9e3779b9
+  function rand() {
+    seed ^= seed << 13
+    seed ^= seed >>> 17
+    seed ^= seed << 5
+    return ((seed >>> 0) % 10000) / 10000
+  }
+  for (let i = 0; i < 14; i++) {
+    const x = rand() * size
+    const y = rand() * size
+    const r = 14 + rand() * 26
+    const grad = ctx.createRadialGradient(x, y, 0, x, y, r)
+    const v = Math.round(80 + rand() * 175)
+    grad.addColorStop(0, `rgb(${v},${v},${v})`)
+    grad.addColorStop(1, 'rgb(0,0,0)')
+    ctx.globalCompositeOperation = 'lighter'
+    ctx.fillStyle = grad
+    ctx.beginPath()
+    ctx.arc(x, y, r, 0, Math.PI * 2)
+    ctx.fill()
+  }
+  cachedTextureUrl = canvas.toDataURL('image/png')
+  return cachedTextureUrl
+}
 
 // SVG filter defs for the "liquid glass" backdrop effect — ported from
 // https://codepen.io/Cubiq/pen/yyYYRzP (Cubiq, MIT-style codepen license).
@@ -12,32 +55,19 @@ const BUTTON_TEXTURE_URL = 'https://essykings.github.io/JavaScript/map.png'
 // frame would be a performance trap; static overlay chrome repaints rarely.
 //
 // A second, lighter filter (#nx-map-btn-glass) is for the map's own button
-// controls (locate + zoom) — it displaces the backdrop using an actual
-// fetched image as the displacement map, not a procedural normal map, per
-// the feImage snippet. Fetched as a blob (not a plain `href` to the remote
-// URL) so it isn't blocked by the filter's implicit cross-origin taint
-// check. `.nx-map-btn-glass` in index.css only wires this up in light mode.
+// controls (locate + zoom) — it displaces the backdrop using the locally
+// generated texture above as the displacement map, not a procedural normal
+// map, per the feImage snippet the request was built from. `.nx-map-btn-glass`
+// in index.css only wires this up in light mode.
 export default function LiquidGlassDefs() {
   const textureRef = useRef(null)
 
   useEffect(() => {
-    let objectUrl
-    let cancelled = false
-    fetch(BUTTON_TEXTURE_URL)
-      .then((res) => res.blob())
-      .then((blob) => {
-        if (cancelled) return
-        objectUrl = URL.createObjectURL(blob)
-        const el = textureRef.current
-        if (el) {
-          el.setAttribute('href', objectUrl)
-          el.setAttributeNS('http://www.w3.org/1999/xlink', 'href', objectUrl)
-        }
-      })
-      .catch(() => {}) // texture is decorative — silently skip if the fetch fails
-    return () => {
-      cancelled = true
-      if (objectUrl) URL.revokeObjectURL(objectUrl)
+    const url = buttonTexture()
+    const el = textureRef.current
+    if (el) {
+      el.setAttribute('href', url)
+      el.setAttributeNS('http://www.w3.org/1999/xlink', 'href', url)
     }
   }, [])
 

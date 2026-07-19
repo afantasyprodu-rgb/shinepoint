@@ -166,7 +166,7 @@ const shownStage = openStage ?? stageIdx
                     onClick={() => setOpenStage(i)}
                     aria-label={`${TIMELINE_LABELS[stage]} — see what happens`}
                     aria-expanded={shownStage === i}
-                    className="job-progress-tick"
+                    className={`job-progress-tick ${i <= stageIdx ? 'text-white' : 'text-slate-600 dark:text-slate-300'}`}
                     style={{ left: `${(i / (TIMELINE.length - 1)) * 100}%` }}
                   >
                     {i < stageIdx ? <CheckIcon className="h-3 w-3" /> : i + 1}

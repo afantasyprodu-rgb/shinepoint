@@ -17,12 +17,22 @@ export default function BottomTabBar({ items, layoutId }) {
   const notchX = `${((activeIndex + 0.5) / items.length) * 100}%`
 
   return (
-    <nav
-      aria-label="Main mobile"
+    // pb-[env(safe-area-inset-bottom)]: the Capacitor native build (per
+    // CLAUDE.md's Capacitor + PWA target) renders this bar flush against the
+    // iOS home-indicator gesture strip with no clearance otherwise. Adds
+    // nothing on devices without a safe-area inset (env() falls back to 0).
+    <div
+      className="fixed inset-x-0 bottom-0 z-20 pb-[env(safe-area-inset-bottom)] sm:hidden"
       style={{ '--tab-notch-x': notchX }}
-      className="bottom-tabbar fixed inset-x-0 bottom-0 z-20 flex bg-[var(--neu-bg)] shadow-[0_-8px_20px_-10px_var(--neu-sd)] sm:hidden"
     >
-      {items.map(({ to, label, end, icon: ItemIcon, badge }) => (
+      {/* Visual layer only — the notch cutout lives here so it never masks
+          the bubble/icons in the nav layer above it (see index.css). */}
+      <div
+        aria-hidden="true"
+        className="bottom-tabbar-bg absolute inset-0 bg-[var(--neu-bg)] shadow-[0_-8px_20px_-10px_var(--neu-sd)]"
+      />
+      <nav aria-label="Main mobile" className="relative flex">
+        {items.map(({ to, label, end, icon: ItemIcon, badge }) => (
         <NavLink
           key={to}
           to={to}
@@ -40,18 +50,24 @@ export default function BottomTabBar({ items, layoutId }) {
                   />
                 )}
                 {ItemIcon && (
-                  <ItemIcon
-                    className={`relative z-10 h-5 w-5 ${
-                      isActive ? 'text-cta-600' : 'text-slate-500 dark:text-slate-400'
-                    }`}
-                  />
+                  <motion.span
+                    animate={{ y: isActive ? -24 : 0 }}
+                    transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+                    className="relative z-10 flex items-center justify-center"
+                  >
+                    <ItemIcon
+                      className={`h-5 w-5 ${isActive ? 'text-cta-600' : 'text-slate-500 dark:text-slate-400'}`}
+                    />
+                  </motion.span>
                 )}
                 <AnimatePresence>
                   {badge > 0 && (
                     <motion.span
+                      aria-hidden="true"
                       initial={{ scale: 0, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
+                      animate={{ scale: 1, opacity: 1, y: isActive ? -24 : 0 }}
                       exit={{ scale: 0, opacity: 0 }}
+                      transition={{ type: 'spring', stiffness: 420, damping: 32 }}
                       className="absolute -right-0.5 -top-1 z-20 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white tabular-nums"
                     >
                       {badge > 9 ? '9+' : badge}
@@ -61,11 +77,13 @@ export default function BottomTabBar({ items, layoutId }) {
               </span>
               <span className={isActive ? 'text-brand-700 dark:text-brand-300' : 'text-slate-500 dark:text-slate-400'}>
                 {label}
+                {badge > 0 && <span className="sr-only">, {badge} pending</span>}
               </span>
             </>
           )}
-        </NavLink>
-      ))}
-    </nav>
+          </NavLink>
+        ))}
+      </nav>
+    </div>
   )
 }

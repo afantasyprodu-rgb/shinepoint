@@ -111,7 +111,9 @@ export default function AdminShell({ children }) {
             {isDemo ? 'Exit' : 'Sign out'}
           </button>
         </header>
-        <main className="flex-1 px-4 py-8 pb-20 sm:px-8 sm:pb-8">{children}</main>
+        {/* pb-20 plus the same safe-area inset the bar itself now reserves,
+            so content never sits underneath the taller notch-device bar. */}
+        <main className="flex-1 px-4 py-8 pb-[calc(5rem+env(safe-area-inset-bottom))] sm:px-8 sm:pb-8">{children}</main>
         <BottomTabBar items={LINKS} layoutId="admin-tab-bubble" />
       </div>
     </div>
