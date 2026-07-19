@@ -169,11 +169,7 @@ const shownStage = openStage ?? stageIdx
                     className={`job-progress-tick ${i <= stageIdx ? 'text-white' : 'text-slate-600 dark:text-slate-300'}`}
                     style={{ left: `${(i / (TIMELINE.length - 1)) * 100}%` }}
                   >
-                    <span
-                      className={`job-progress-tick-dot ${i <= stageIdx ? 'job-progress-tick-dot--filled' : 'job-progress-tick-dot--upcoming'}`}
-                    >
-                      {i < stageIdx ? <CheckIcon className="h-3 w-3" /> : i + 1}
-                    </span>
+                    {i < stageIdx ? <CheckIcon className="h-3 w-3" /> : i + 1}
                   </button>
                 ))}
                 <motion.div
@@ -185,26 +181,11 @@ const shownStage = openStage ?? stageIdx
                   <div className="job-progress-ball" />
                 </motion.div>
               </div>
-              {/* Same left-percentage math as the ticks above (and the same
-                  mx-3.5 gutter), so each label sits under its own tick
-                  instead of drifting apart the way a plain flex row did —
-                  that row used a different coordinate space (full-width,
-                  justify-between) than the track's absolutely-positioned
-                  ticks, so only the middle ones ever lined up. First/last
-                  labels anchor outward (not centered) so they don't overhang
-                  past the track edge the way a centered tick can. */}
-              <div className="relative mt-1.5 h-4 mx-3.5">
+              <div className="mt-1.5 flex justify-between px-1">
                 {TIMELINE.map((stage, i) => (
                   <span
                     key={stage}
-                    className={`absolute top-0 hidden whitespace-nowrap text-[10px] sm:block ${
-                      i === stageIdx ? 'font-bold text-brand-700' : 'text-slate-400'
-                    }`}
-                    style={{
-                      left: `${(i / (TIMELINE.length - 1)) * 100}%`,
-                      transform:
-                        i === 0 ? 'translateX(0)' : i === TIMELINE.length - 1 ? 'translateX(-100%)' : 'translateX(-50%)',
-                    }}
+                    className={`hidden text-[10px] sm:block ${i === stageIdx ? 'font-bold text-brand-700' : 'text-slate-400'}`}
                   >
                     {TIMELINE_LABELS[stage]}
                   </span>
