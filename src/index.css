@@ -980,6 +980,14 @@
   mask-image: radial-gradient(circle 22px at var(--tab-notch-x) -4px, transparent 98%, black 100%);
 }
 
+/* Water-droplet tab bubble: classic pin/teardrop recipe — three round
+   corners and one sharp corner, then rotated -45deg so the sharp corner
+   points straight down into the notch (icon sits unrotated on top, it's a
+   sibling, not nested inside this shape). */
+.nx-tab-drop {
+  border-radius: 50% 50% 50% 4px;
+}
+
 /* ── Leaflet map: pins, user location, grow-in popups ─────────────────────
    The discovery map (DetailerMap) is Leaflet + OpenStreetMap. Pins and the
    user-location dot are divIcons styled here; the native popup grows in with

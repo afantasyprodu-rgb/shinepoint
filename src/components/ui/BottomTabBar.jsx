@@ -36,8 +36,15 @@ export default function BottomTabBar({ items, layoutId }) {
                   <motion.span
                     layoutId={layoutId}
                     transition={{ type: 'spring', stiffness: 420, damping: 32 }}
-                    className="absolute -top-6 h-11 w-11 rounded-full bg-[var(--neu-bg)] shadow-[5px_5px_11px_var(--neu-sd),-5px_-5px_11px_var(--neu-sl)]"
-                  />
+                    className="absolute -top-6 flex h-11 w-11 items-center justify-center"
+                  >
+                    <motion.span
+                      initial={{ scale: 0.5 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: 'spring', stiffness: 380, damping: 22, mass: 0.7 }}
+                      className="nx-tab-drop h-11 w-11 -rotate-45 bg-[var(--neu-bg)] shadow-[5px_5px_11px_var(--neu-sd),-5px_-5px_11px_var(--neu-sl)]"
+                    />
+                  </motion.span>
                 )}
                 {ItemIcon && (
                   <ItemIcon
