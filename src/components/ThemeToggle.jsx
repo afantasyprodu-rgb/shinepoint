@@ -6,9 +6,15 @@ import { useTheme } from '../context/ThemeContext'
 // cover the viewport, revealing the new theme as it grows (CSS View
 // Transitions, so it's a real screen-wide reveal, not a decorative overlay
 // painted on top of already-swapped colors). Falls back to an instant swap
-// where unsupported (Firefox/Safari today) or reduced-motion is on.
+// where unsupported (Firefox/Safari today) or reduced-motion is on. The
+// incoming snapshot also carries a randomized hue-rotate (--theme-wave-hue,
+// consumed by the nx-theme-hue keyframe in index.css) that settles to 0 as
+// the wipe completes, so each press reveals the new theme through a
+// different passing tint rather than a flat color swap — same soap-film
+// idea as the login wipe and the map's "you are here" pulse.
 function waveToggle(e, toggle) {
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  const root = document.documentElement
   if (!document.startViewTransition || reduce) {
     toggle()
     return
@@ -17,10 +23,12 @@ function waveToggle(e, toggle) {
   const x = rect.left + rect.width / 2
   const y = rect.top + rect.height / 2
   const endRadius = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y))
-  const root = document.documentElement
+  const hueSign = Math.random() < 0.5 ? 1 : -1
+  const hueMag = 50 + Math.random() * 130
   root.style.setProperty('--theme-wave-x', `${x}px`)
   root.style.setProperty('--theme-wave-y', `${y}px`)
   root.style.setProperty('--theme-wave-r', `${endRadius}px`)
+  root.style.setProperty('--theme-wave-hue', `${hueSign * hueMag}deg`)
   document.startViewTransition(() => toggle())
 }
 

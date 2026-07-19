@@ -53,6 +53,28 @@
   --neu-sl: #262e3a;
 }
 
+/* Dark mode gets its own hue, not just the light palette dimmed — a flat
+   lightness-invert of a violet/green pair reads muddy (brand) or neon
+   (cta) on a near-black surface. Instead each ramp leans a few degrees
+   toward its cooler neighbor — brand toward indigo, cta toward teal —
+   the same "shift hue, don't just darken" move used by most dark themes
+   for colors that otherwise vibrate against black. Light mode keeps the
+   warmer originals from the @theme block above untouched. */
+:root.dark {
+  --color-brand-300: color-mix(in oklch, #d8b4fe 85%, #818cf8 15%);
+  --color-brand-400: color-mix(in oklch, #c084fc 85%, #818cf8 15%);
+  --color-brand-500: color-mix(in oklch, #a78bfa 80%, #6366f1 20%);
+  --color-brand-600: color-mix(in oklch, #7c3aed 80%, #6366f1 20%);
+  --color-brand-700: color-mix(in oklch, #6d28d9 80%, #4f46e5 20%);
+  --color-brand-800: color-mix(in oklch, #5b21b6 80%, #4338ca 20%);
+  --color-brand-900: color-mix(in oklch, #4c1d95 80%, #3730a3 20%);
+
+  --color-cta-500: color-mix(in oklch, #22c55e 82%, #14b8a6 18%);
+  --color-cta-600: color-mix(in oklch, #16a34a 82%, #0d9488 18%);
+  --color-cta-700: color-mix(in oklch, #15803d 82%, #0f766e 18%);
+  --color-cta-800: color-mix(in oklch, #166534 82%, #115e59 18%);
+}
+
 /* Soap-sheen hue arc — bounded purple→pink→blue→purple (real soap-film
    interference stays in one band, never a full rainbow). Registered once,
    globally, so any surface can ride it via hsl(var(--iri-h) ...) and pick
@@ -1205,11 +1227,24 @@
 ::view-transition-new(root) {
   z-index: 2;
   clip-path: circle(0px at var(--theme-wave-x, 50%) var(--theme-wave-y, 50%));
-  animation: nx-theme-wave 650ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: nx-theme-wave 650ms cubic-bezier(0.4, 0, 0.2, 1) forwards, nx-theme-hue 650ms ease-out forwards;
 }
 @keyframes nx-theme-wave {
   to {
     clip-path: circle(var(--theme-wave-r, 150%) at var(--theme-wave-x, 50%) var(--theme-wave-y, 50%));
   }
+}
+
+/* The incoming theme starts visibly hue-rotated (a random point on the arc,
+   set by ThemeToggle.jsx via --theme-wave-hue) and settles to its true
+   colors as the wipe finishes, so the reveal itself carries a passing
+   iridescent sheen — same soap-film idea as the login wipe and the map's
+   "you are here" pulse — instead of swapping flatly to the new palette.
+   Lives on ::view-transition-new(root) rather than a regular element
+   because view-transition pseudo-elements paint in the browser's top
+   layer, above all normal DOM (including high z-index fixed elements). */
+@keyframes nx-theme-hue {
+  from { filter: hue-rotate(var(--theme-wave-hue, 60deg)) saturate(1.5); }
+  to   { filter: hue-rotate(0deg) saturate(1); }
 }
 
