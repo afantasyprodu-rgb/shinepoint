@@ -642,6 +642,28 @@
     font-size: 0.65rem;
     font-weight: 700;
   }
+  /* The tick button itself is a transparent 44px tap target (see above), so
+     upcoming stages had nothing actually sitting on the track — just a bare
+     number floating near it, which read as misaligned even though the box
+     was pixel-centered on the bar. This inner dot is the real visible
+     marker: a small pip that sits exactly on the track for every stage,
+     filled ticks get a subtle ring on the gradient, upcoming ticks get a
+     raised neumorphic dot so the number visibly belongs to the bar. */
+  .job-progress-tick-dot {
+    display: flex;
+    height: 1.35rem;
+    width: 1.35rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+  }
+  .job-progress-tick-dot--filled {
+    background: rgba(255, 255, 255, 0.22);
+  }
+  .job-progress-tick-dot--upcoming {
+    background: var(--neu-bg);
+    box-shadow: 2px 2px 4px var(--neu-sd), -2px -2px 4px var(--neu-sl);
+  }
   .job-progress-ball-wrap {
     position: absolute;
     top: 50%;
