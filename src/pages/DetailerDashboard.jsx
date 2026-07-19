@@ -31,10 +31,10 @@ function PayoutSetup() {
     <div className="card mt-4 !p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="font-semibold text-slate-900">
-            Payouts {done && <span className="text-cta-700">· setup returned</span>}
+          <p className="font-semibold text-slate-900 dark:text-slate-100">
+            Payouts {done && <span className="text-cta-700 dark:text-cta-500">· setup returned</span>}
           </p>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
             Connect your bank with Stripe to get paid after each job. Tips are 100% yours.
           </p>
         </div>
@@ -43,7 +43,7 @@ function PayoutSetup() {
         </button>
       </div>
       {error && (
-        <p role="alert" className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p role="alert" className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-400">
           {error}
         </p>
       )}
@@ -78,7 +78,7 @@ export default function DetailerDashboard() {
   return (
     <AppShell role="detailer">
       <AnimatedPage className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
-        <h1 className="font-display text-2xl font-bold text-slate-900">
+        <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">
           Welcome back{profile?.full_name ? `, ${profile.full_name.split(' ')[0]}` : ''}
         </h1>
 
@@ -86,8 +86,8 @@ export default function DetailerDashboard() {
           {stats.map(({ label, value, prefix, suffix }, i) => (
             <FadeIn key={label} delay={i * 0.08}>
               <div className="card !p-4">
-                <p className="text-xs font-medium text-slate-500">{label}</p>
-                <p className="mt-1 font-display text-2xl font-bold text-brand-800">
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{label}</p>
+                <p className="mt-1 font-display text-2xl font-bold text-brand-800 dark:text-brand-300">
                   <CountUp value={value} prefix={prefix ?? ''} suffix={suffix ?? ''} />
                 </p>
               </div>
@@ -118,21 +118,21 @@ export default function DetailerDashboard() {
           className="card card-hover mt-4 flex items-center justify-between !p-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
         >
           <div>
-            <p className="font-semibold text-slate-900">New-detailer onboarding</p>
-            <p className="text-sm text-slate-500">
+            <p className="font-semibold text-slate-900 dark:text-slate-100">New-detailer onboarding</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
               ID verification, insurance, services, schedule, payout — preview the wizard
             </p>
           </div>
-          <span className="text-sm font-semibold text-brand-600">Open →</span>
+          <span className="text-sm font-semibold text-brand-600 dark:text-brand-300">Open →</span>
         </Link>
 
         {/* Incoming requests (5.2) */}
-        <h2 className="mt-8 font-display text-lg font-semibold text-slate-900">
+        <h2 className="mt-8 font-display text-lg font-semibold text-slate-900 dark:text-slate-100">
           Incoming requests
         </h2>
         <AnimatePresence>
           {incoming.length === 0 && (
-            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-3 text-sm text-slate-500">
+            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-3 text-sm text-slate-500 dark:text-slate-400">
               Nothing waiting — new requests appear here with a 30-minute response window.
             </motion.p>
           )}
@@ -143,16 +143,16 @@ export default function DetailerDashboard() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, x: 80, transition: { duration: 0.25 } }}
-              className="card mt-3 border-brand-300 ring-2 ring-brand-100"
+              className="card mt-3 border-brand-300 ring-2 ring-brand-100 dark:border-brand-500/40 dark:ring-brand-500/20"
             >
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <Avatar name={b.customerName} />
                   <div>
-                    <p className="font-semibold text-slate-900">
+                    <p className="font-semibold text-slate-900 dark:text-slate-100">
                       {b.service} · {b.vehicle}
                     </p>
-                    <p className="text-sm text-slate-500">
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
                       {b.customerName} · zip {b.zip} ·{' '}
                       {new Date(b.scheduledTime).toLocaleString('en-US', {
                         weekday: 'short',
@@ -161,7 +161,7 @@ export default function DetailerDashboard() {
                     </p>
                   </div>
                 </div>
-                <p className="font-display text-lg font-bold text-cta-700">
+                <p className="font-display text-lg font-bold text-cta-700 dark:text-cta-400">
                   +${(b.price * 0.85).toFixed(0)}
                 </p>
               </div>
@@ -184,9 +184,9 @@ export default function DetailerDashboard() {
         </AnimatePresence>
 
         {/* Today's jobs */}
-        <h2 className="mt-8 font-display text-lg font-semibold text-slate-900">Active jobs</h2>
+        <h2 className="mt-8 font-display text-lg font-semibold text-slate-900 dark:text-slate-100">Active jobs</h2>
         {active.length === 0 ? (
-          <p className="mt-3 text-sm text-slate-500">No active jobs.</p>
+          <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">No active jobs.</p>
         ) : (
           <div className="mt-3 space-y-3">
             {active.map((b) => (
@@ -198,10 +198,10 @@ export default function DetailerDashboard() {
                 <div className="flex items-center gap-3">
                   <Avatar name={b.customerName} />
                   <div>
-                    <p className="font-semibold text-slate-900">
+                    <p className="font-semibold text-slate-900 dark:text-slate-100">
                       {b.service} · {b.customerName}
                     </p>
-                    <p className="text-sm text-slate-500">${b.price} + tips</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">${b.price} + tips</p>
                   </div>
                 </div>
                 <StatusPill status={b.status} />

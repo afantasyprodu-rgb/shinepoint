@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import AppShell from '../components/AppShell'
 import MarketingTip from '../components/MarketingTip'
 import { useStore } from '../context/StoreContext'
+import { useTheme } from '../context/ThemeContext'
 import { CheckIcon, ShieldCheckIcon, CreditCardIcon, ClipboardCheckIcon, UsersIcon, ChevronLeftIcon, PlusIcon, XIcon, LightbulbIcon } from '../components/icons'
 
 const SERVICE_MENU = [
@@ -32,6 +33,8 @@ const STEPS = ['Identity', 'Insurance', 'Profile', 'Services', 'Schedule', 'Payo
 export default function DetailerOnboarding() {
   const navigate = useNavigate()
   const { isDemo, saveOnboarding } = useStore()
+  const { theme } = useTheme()
+  const pipOff = theme === 'dark' ? '#3f2d6e' : '#e9d5ff'
   const [step, setStep] = useState(0)
   const [submitted, setSubmitted] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -138,10 +141,10 @@ export default function DetailerOnboarding() {
           >
             <ClipboardCheckIcon className="h-10 w-10" />
           </motion.span>
-          <h1 className="mt-6 font-display text-3xl font-bold text-slate-900">
+          <h1 className="mt-6 font-display text-3xl font-bold text-slate-900 dark:text-slate-100">
             Application submitted
           </h1>
-          <p className="mt-2 text-slate-600">Here&apos;s what happens next:</p>
+          <p className="mt-2 text-slate-600 dark:text-slate-400">Here&apos;s what happens next:</p>
           <ol className="mt-6 space-y-3 text-left">
             {[
               ['Insurance docs reviewed', '1–2 business days'],
@@ -155,12 +158,12 @@ export default function DetailerOnboarding() {
                 transition={{ delay: 0.3 + i * 0.15 }}
                 className="card flex items-center gap-3 !p-4"
               >
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-100 font-display text-sm font-bold text-brand-700">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-100 font-display text-sm font-bold text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">
                   {i + 1}
                 </span>
                 <div>
-                  <p className="font-semibold text-slate-900">{title}</p>
-                  <p className="text-xs text-slate-500">{sub}</p>
+                  <p className="font-semibold text-slate-900 dark:text-slate-100">{title}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">{sub}</p>
                 </div>
               </motion.li>
             ))}
@@ -178,23 +181,23 @@ export default function DetailerOnboarding() {
       <div className="mx-auto max-w-xl px-4 py-8 sm:px-6">
         <Link
           to="/detailer"
-          className="mb-3 inline-flex items-center gap-1 rounded text-sm font-medium text-slate-600 transition-colors duration-200 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+          className="mb-3 inline-flex items-center gap-1 rounded text-sm font-medium text-slate-600 transition-colors duration-200 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-slate-400 dark:hover:text-brand-300"
         >
           <ChevronLeftIcon className="h-4 w-4" /> Dashboard
         </Link>
-        <h1 className="font-display text-2xl font-bold text-slate-900">Detailer onboarding</h1>
+        <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">Detailer onboarding</h1>
 
         {/* Step rail */}
         <div className="mt-4 flex items-center gap-1.5" aria-label={`Step ${step + 1} of ${STEPS.length}: ${STEPS[step]}`}>
           {STEPS.map((s, i) => (
             <motion.div
               key={s}
-              animate={{ backgroundColor: i <= step ? '#7c3aed' : '#e9d5ff' }}
+              animate={{ backgroundColor: i <= step ? '#7c3aed' : pipOff }}
               className="h-1.5 flex-1 rounded-full"
             />
           ))}
         </div>
-        <p className="mt-1.5 text-xs font-semibold text-brand-700">
+        <p className="mt-1.5 text-xs font-semibold text-brand-700 dark:text-brand-300">
           {step + 1}/{STEPS.length} · {STEPS[step]}
         </p>
 
@@ -214,11 +217,11 @@ export default function DetailerOnboarding() {
                   trust before they&apos;ve read a single review. It takes two minutes.
                 </MarketingTip>
                 <div className="card text-center">
-                <UsersIcon className="mx-auto h-10 w-10 text-brand-600" />
-                <h2 className="mt-3 font-display text-lg font-semibold text-slate-900">
+                <UsersIcon className="mx-auto h-10 w-10 text-brand-600 dark:text-brand-300" />
+                <h2 className="mt-3 font-display text-lg font-semibold text-slate-900 dark:text-slate-100">
                   Verify your identity
                 </h2>
-                <p className="mt-1 text-sm text-slate-600">
+                <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
                   Government photo ID + selfie match, handled by Stripe Identity.
                 </p>
                 {idStatus === 'idle' && (
@@ -231,9 +234,9 @@ export default function DetailerOnboarding() {
                     <motion.div
                       animate={{ rotate: 360 }}
                       transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
-                      className="mx-auto h-10 w-10 rounded-full border-4 border-brand-200 border-t-brand-600"
+                      className="mx-auto h-10 w-10 rounded-full border-4 border-brand-200 border-t-brand-600 dark:border-brand-500/20 dark:border-t-brand-400"
                     />
-                    <p className="mt-3 text-sm text-slate-500">Matching selfie to ID…</p>
+                    <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">Matching selfie to ID…</p>
                   </div>
                 )}
                 {idStatus === 'passed' && (
@@ -241,7 +244,7 @@ export default function DetailerOnboarding() {
                     <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-cta-700 text-white">
                       <CheckIcon className="h-6 w-6" />
                     </span>
-                    <p className="mt-2 font-semibold text-cta-700">Verified</p>
+                    <p className="mt-2 font-semibold text-cta-700 dark:text-cta-400">Verified</p>
                   </motion.div>
                 )}
                 </div>
@@ -267,13 +270,13 @@ export default function DetailerOnboarding() {
                     aria-checked={insurance === value}
                     onClick={() => setInsurance(value)}
                     className={`card flex w-full cursor-pointer items-start gap-3 !p-5 text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
-                      insurance === value ? 'border-brand-600 ring-2 ring-brand-200' : 'hover:border-brand-300'
+                      insurance === value ? 'border-brand-600 ring-2 ring-brand-200 dark:ring-brand-500/20' : 'hover:border-brand-300'
                     }`}
                   >
-                    <ShieldCheckIcon className={`mt-0.5 h-5 w-5 shrink-0 ${value === 'none' ? 'text-red-500' : 'text-brand-600'}`} />
+                    <ShieldCheckIcon className={`mt-0.5 h-5 w-5 shrink-0 ${value === 'none' ? 'text-red-500 dark:text-red-400' : 'text-brand-600 dark:text-brand-300'}`} />
                     <div>
-                      <p className="font-semibold text-slate-900">{title}</p>
-                      <p className="text-sm text-slate-600">{sub}</p>
+                      <p className="font-semibold text-slate-900 dark:text-slate-100">{title}</p>
+                      <p className="text-sm text-slate-600 dark:text-slate-400">{sub}</p>
                     </div>
                   </button>
                 ))}
@@ -281,12 +284,12 @@ export default function DetailerOnboarding() {
                 {(insurance === 'premium' || insurance === 'standard') && (
                   <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="card !p-5">
                     <label className="label" htmlFor="cert">Certificate upload (provider, policy #, expiry)</label>
-                    <input id="cert" type="file" className="text-sm text-slate-600 file:btn file:btn-outline file:mr-3 file:h-9 file:px-3 file:text-xs" />
-                    <p className="mt-2 text-xs text-slate-400">Docs go to the admin review queue.</p>
+                    <input id="cert" type="file" className="text-sm text-slate-600 file:btn file:btn-outline file:mr-3 file:h-9 file:px-3 file:text-xs dark:text-slate-400" />
+                    <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">Docs go to the admin review queue.</p>
                   </motion.div>
                 )}
                 {insurance === 'none' && (
-                  <motion.label initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="card flex cursor-pointer items-start gap-2 !p-5 text-sm text-slate-700">
+                  <motion.label initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="card flex cursor-pointer items-start gap-2 !p-5 text-sm text-slate-700 dark:text-slate-300">
                     <input type="checkbox" checked={noInsuranceAck} onChange={(e) => setNoInsuranceAck(e.target.checked)} className="mt-0.5 h-4 w-4 cursor-pointer accent-brand-600" />
                     I confirm I have no business insurance and understand customers see a warning before booking me.
                   </motion.label>
@@ -309,7 +312,7 @@ export default function DetailerOnboarding() {
                 <div>
                   <label htmlFor="ob-zip" className="label">Home zip code</label>
                   <input id="ob-zip" inputMode="numeric" maxLength={5} value={zip} onChange={(e) => setZip(e.target.value.replace(/\D/g, ''))} className="input w-32" placeholder="90026" />
-                  <p className="mt-1 text-xs text-slate-400">
+                  <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
                     Used to place your map pin at a random spot in your zip — your exact address is never shown.
                   </p>
                 </div>
@@ -319,7 +322,7 @@ export default function DetailerOnboarding() {
                     {VEHICLES.map((v) => (
                       <button key={v} type="button" aria-pressed={vehicles.includes(v)} onClick={() => toggle(vehicles, setVehicles, v)}
                         className={`cursor-pointer rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
-                          vehicles.includes(v) ? 'bg-brand-600 text-white shadow-md' : 'bg-brand-50 text-slate-600 hover:bg-brand-100'
+                          vehicles.includes(v) ? 'bg-brand-600 text-white shadow-md' : 'bg-brand-50 text-slate-600 hover:bg-brand-100 dark:bg-white/5 dark:text-slate-400 dark:hover:bg-white/10'
                         }`}>
                         {v}
                       </button>
@@ -342,18 +345,18 @@ export default function DetailerOnboarding() {
                   const on = name in services
                   const advice = SERVICE_ADVICE[name]
                   return (
-                    <div key={name} className={`card !p-4 transition-colors duration-200 ${on ? 'border-brand-400' : ''}`}>
+                    <div key={name} className={`card !p-4 transition-colors duration-200 ${on ? 'border-brand-400 dark:border-brand-400/60' : ''}`}>
                       <div className="flex items-center justify-between gap-3">
                         <button type="button" aria-pressed={on} onClick={() => toggleService(name)}
                           className="flex cursor-pointer items-center gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600">
-                          <motion.span animate={{ backgroundColor: on ? '#7c3aed' : '#e9d5ff' }} className="flex h-6 w-10 items-center rounded-full p-0.5">
+                          <motion.span animate={{ backgroundColor: on ? '#7c3aed' : pipOff }} className="flex h-6 w-10 items-center rounded-full p-0.5">
                             <motion.span animate={{ x: on ? 16 : 0 }} transition={{ type: 'spring', stiffness: 400, damping: 25 }} className="h-5 w-5 rounded-full bg-white shadow" />
                           </motion.span>
-                          <span className={`font-medium ${on ? 'text-slate-900' : 'text-slate-500'}`}>{name}</span>
+                          <span className={`font-medium ${on ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}`}>{name}</span>
                         </button>
                         {on && (
                           <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-1">
-                            <span className="text-slate-500">$</span>
+                            <span className="text-slate-500 dark:text-slate-400">$</span>
                             <input type="number" min={10} aria-label={`${name} price`} value={services[name]}
                               onChange={(e) => setServices((s) => ({ ...s, [name]: Number(e.target.value) }))}
                               className="input h-9 w-20" />
@@ -362,7 +365,7 @@ export default function DetailerOnboarding() {
                       </div>
                       {on && advice && (
                         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                          className="mt-2 flex gap-1.5 border-t border-brand-100 pt-2 text-xs text-brand-700">
+                          className="mt-2 flex gap-1.5 border-t border-brand-100 pt-2 text-xs text-brand-700 dark:border-white/10 dark:text-brand-300">
                           <LightbulbIcon className="h-3.5 w-3.5 shrink-0" />
                           {advice}
                         </motion.p>
@@ -383,11 +386,11 @@ export default function DetailerOnboarding() {
                           animate={{ opacity: 1, scale: 1 }}
                           exit={{ opacity: 0, scale: 0.8 }}
                           transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-                          className="inline-flex items-center gap-2 rounded-full border border-brand-300 bg-brand-100 py-1.5 pl-3 pr-1.5 text-sm font-medium text-brand-800"
+                          className="inline-flex items-center gap-2 rounded-full border border-brand-300 bg-brand-100 py-1.5 pl-3 pr-1.5 text-sm font-medium text-brand-800 dark:border-brand-500/30 dark:bg-brand-500/15 dark:text-brand-300"
                         >
                           {name} · ${services[name]}
                           <button type="button" aria-label={`Remove ${name}`} onClick={() => removeService(name)}
-                            className="flex h-5 w-5 cursor-pointer items-center justify-center rounded-full text-brand-600 transition-colors duration-200 hover:bg-brand-200 hover:text-brand-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600">
+                            className="flex h-5 w-5 cursor-pointer items-center justify-center rounded-full text-brand-600 transition-colors duration-200 hover:bg-brand-200 hover:text-brand-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-brand-300 dark:hover:bg-brand-500/25 dark:hover:text-brand-100">
                             <XIcon className="h-3.5 w-3.5" />
                           </button>
                         </motion.span>
@@ -410,7 +413,7 @@ export default function DetailerOnboarding() {
                       className="input h-10 min-w-0 flex-1"
                     />
                     <div className="flex items-center gap-1">
-                      <span className="text-slate-500">$</span>
+                      <span className="text-slate-500 dark:text-slate-400">$</span>
                       <input
                         type="number"
                         min={1}
@@ -431,7 +434,7 @@ export default function DetailerOnboarding() {
                       <PlusIcon className="h-4 w-4" /> Add
                     </button>
                   </div>
-                  <p className="mt-2 text-xs text-slate-400">
+                  <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
                     Offer something unique — clay bar, headlight tint, RV detailing — and name your price.
                   </p>
                 </div>
@@ -452,7 +455,7 @@ export default function DetailerOnboarding() {
                     {DAYS.map((day) => (
                       <button key={day} type="button" aria-pressed={days.includes(day)} onClick={() => toggle(days, setDays, day)}
                         className={`cursor-pointer rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
-                          days.includes(day) ? 'bg-brand-600 text-white shadow-md' : 'bg-brand-50 text-slate-600 hover:bg-brand-100'
+                          days.includes(day) ? 'bg-brand-600 text-white shadow-md' : 'bg-brand-50 text-slate-600 hover:bg-brand-100 dark:bg-white/5 dark:text-slate-400 dark:hover:bg-white/10'
                         }`}>
                         {day}
                       </button>
@@ -462,17 +465,17 @@ export default function DetailerOnboarding() {
                 <div>
                   <label htmlFor="ob-travel" className="label">Free travel radius: {travel} miles</label>
                   <input id="ob-travel" type="range" min={1} max={30} value={travel} onChange={(e) => setTravel(Number(e.target.value))} className="w-full cursor-pointer accent-brand-600" />
-                  <p className="mt-1 text-xs text-slate-400">Jobs within {travel} miles pay no travel fee.</p>
+                  <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">Jobs within {travel} miles pay no travel fee.</p>
                 </div>
                 <div>
                   <label htmlFor="ob-mile" className="label">Charge per extra mile (beyond {travel} mi)</label>
                   <div className="flex items-center gap-1">
-                    <span className="text-slate-500">$</span>
+                    <span className="text-slate-500 dark:text-slate-400">$</span>
                     <input id="ob-mile" type="number" min={0} step={0.5} value={chargePerMile}
                       onChange={(e) => setChargePerMile(Number(e.target.value))} className="input h-10 w-24" />
-                    <span className="text-sm text-slate-500">/ mile</span>
+                    <span className="text-sm text-slate-500 dark:text-slate-400">/ mile</span>
                   </div>
-                  <p className="mt-1 text-xs text-slate-400">
+                  <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
                     Covers gas + wear. $1.50–$3 per mile is typical for mobile detailing.
                   </p>
                 </div>
@@ -489,17 +492,17 @@ export default function DetailerOnboarding() {
                 </MarketingTip>
                 <div className="card space-y-4">
                 <div className="flex items-center gap-3">
-                  <CreditCardIcon className="h-8 w-8 text-brand-600" />
+                  <CreditCardIcon className="h-8 w-8 text-brand-600 dark:text-brand-300" />
                   <div>
-                    <h2 className="font-display font-semibold text-slate-900">Payout setup</h2>
-                    <p className="text-sm text-slate-600">Stripe Connect — bank + W-9 for 1099 reporting.</p>
+                    <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">Payout setup</h2>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">Stripe Connect — bank + W-9 for 1099 reporting.</p>
                   </div>
                 </div>
                 <div>
                   <label htmlFor="ob-bank" className="label">Bank account (last 4 digits — demo)</label>
                   <input id="ob-bank" inputMode="numeric" maxLength={4} value={bank} onChange={(e) => setBank(e.target.value.replace(/\D/g, ''))} className="input w-32" placeholder="4242" />
                 </div>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-400 dark:text-slate-500">
                   Real flow collects legal name, address, and SSN/EIN through Stripe&apos;s hosted
                   onboarding — never stored on our servers. Simulated in demo.
                 </p>
@@ -510,7 +513,7 @@ export default function DetailerOnboarding() {
         </AnimatePresence>
 
         {saveError && (
-          <p role="alert" className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+          <p role="alert" className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-400">
             {saveError}
           </p>
         )}

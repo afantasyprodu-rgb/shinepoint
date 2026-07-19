@@ -69,7 +69,7 @@ export default function ProfileSetup() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-brand-50 via-white to-cta-50/40">
+    <div className="min-h-screen bg-gradient-to-br from-brand-50 via-white to-cta-50/40 dark:from-slate-900 dark:via-slate-900 dark:to-brand-900/20">
       <AnimatedPage className="mx-auto flex min-h-screen max-w-lg flex-col px-4 py-10 sm:px-6">
         <div className="mb-8 flex justify-center">
           <Logo />
@@ -92,10 +92,10 @@ export default function ProfileSetup() {
               >
                 <SparklesIcon className="h-8 w-8" />
               </motion.span>
-              <h1 className="font-display text-2xl font-bold text-slate-900">
+              <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">
                 Welcome{name ? `, ${name.split(' ')[0]}` : ''}! 🎉
               </h1>
-              <p className="mt-2 max-w-sm text-slate-600">
+              <p className="mt-2 max-w-sm text-slate-600 dark:text-slate-400">
                 Make your profile yours — add a photo and a few details so{' '}
                 {isDetailer ? 'customers know who they’re booking' : 'your detailer recognizes you'}.
                 Takes a minute.
@@ -110,7 +110,7 @@ export default function ProfileSetup() {
                 </button>
                 <button
                   onClick={done}
-                  className="text-sm font-semibold text-slate-500 hover:text-slate-700"
+                  className="text-sm font-semibold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
                 >
                   Skip for now — I’ll do it later
                 </button>
@@ -126,7 +126,7 @@ export default function ProfileSetup() {
               className="flex flex-1 flex-col"
             >
               <div className="card space-y-5">
-                <h2 className="text-center font-display text-lg font-bold text-slate-900">
+                <h2 className="text-center font-display text-lg font-bold text-slate-900 dark:text-slate-100">
                   Your profile
                 </h2>
 
@@ -150,7 +150,7 @@ export default function ProfileSetup() {
                 <div>
                   <label htmlFor="bio" className="label">
                     {isDetailer ? 'About your service' : 'About you'}{' '}
-                    <span className="font-normal text-slate-400">({250 - bio.length} left)</span>
+                    <span className="font-normal text-slate-400 dark:text-slate-500">({250 - bio.length} left)</span>
                   </label>
                   <textarea
                     id="bio" rows={3} maxLength={250} value={bio}
@@ -185,7 +185,7 @@ export default function ProfileSetup() {
                           className={`cursor-pointer rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
                             vehType === t
                               ? 'bg-brand-600 text-white shadow-sm'
-                              : 'bg-brand-50 text-slate-600 hover:bg-brand-100'
+                              : 'bg-brand-50 text-slate-600 hover:bg-brand-100 dark:bg-white/5 dark:text-slate-400 dark:hover:bg-white/10'
                           }`}
                         >
                           {t}
@@ -198,7 +198,7 @@ export default function ProfileSetup() {
                 {isDetailer && (
                   <div>
                     <p className="label">Portfolio gallery</p>
-                    <p className="-mt-1 mb-2 text-xs text-slate-400">
+                    <p className="-mt-1 mb-2 text-xs text-slate-400 dark:text-slate-500">
                       Show off your best work — these appear on your public profile.
                     </p>
                     <GalleryGrid gallery={gallery} setGallery={setGallery} onAdd={addGalleryPhoto} />
@@ -258,7 +258,7 @@ export function GalleryGrid({ gallery, setGallery, onAdd }) {
           </motion.div>
         ))}
       </AnimatePresence>
-      <label className="flex aspect-square cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-brand-200 bg-brand-50 text-brand-600 transition-colors hover:border-brand-400 hover:bg-brand-100">
+      <label className="flex aspect-square cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-brand-200 bg-brand-50 text-brand-600 transition-colors hover:border-brand-400 hover:bg-brand-100 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300 dark:hover:border-brand-400/50 dark:hover:bg-brand-500/15">
         {busy ? (
           <span className="h-5 w-5 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
         ) : (

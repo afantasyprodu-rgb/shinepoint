@@ -39,15 +39,15 @@ export default function Drawer({ open, onClose, title, children }) {
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', stiffness: 320, damping: 34 }}
-            className="absolute inset-y-0 right-0 flex w-full max-w-sm flex-col border-l border-brand-100 bg-white shadow-2xl focus-visible:outline-none"
+            className="absolute inset-y-0 right-0 flex w-full max-w-sm flex-col border-l border-brand-100 bg-[var(--neu-bg)] shadow-2xl focus-visible:outline-none dark:border-white/10"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-brand-100 bg-white/95 px-5 py-4 backdrop-blur">
-              <h2 className="font-display text-lg font-bold text-slate-900">{title}</h2>
+            <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-brand-100 bg-[var(--neu-bg)]/95 px-5 py-4 backdrop-blur dark:border-white/10">
+              <h2 className="font-display text-lg font-bold text-slate-900 dark:text-slate-100">{title}</h2>
               <button
                 onClick={onClose}
                 aria-label="Close menu"
-                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-slate-500 transition-colors duration-200 hover:bg-brand-100 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-slate-500 transition-colors duration-200 hover:bg-brand-100 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-brand-300"
               >
                 <XIcon className="h-5 w-5" />
               </button>

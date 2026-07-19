@@ -8,6 +8,7 @@ import PaymentForm from '../components/PaymentForm'
 import Modal from '../components/ui/Modal'
 import { CheckIcon, AlertTriangleIcon, ChevronLeftIcon, SparklesIcon } from '../components/icons'
 import { useStore } from '../context/StoreContext'
+import { useTheme } from '../context/ThemeContext'
 import { stripePromise, isStripeConfigured, createPaymentIntent } from '../lib/stripe'
 
 const VEHICLES = ['Sedan', 'SUV', 'Truck', 'Coupe', 'Van']
@@ -49,6 +50,9 @@ export default function BookingWizard() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { getDetailer, customer, createBooking, isDemo, customerProfile } = useStore()
+  const { theme } = useTheme()
+  const pipOff = theme === 'dark' ? '#3f2d6e' : '#e9d5ff'
+  const totalColors = theme === 'dark' ? ['#4ade80', '#f1f5f9'] : ['#15803d', '#0f172a']
   const d = getDetailer(id)
 
   const [step, setStep] = useState(0) // 0 service, 1 schedule, 2 review, 3 processing, 4 confirmed, 5 card
@@ -152,7 +156,7 @@ export default function BookingWizard() {
           <>
             <button
               onClick={() => (step === 0 ? navigate(-1) : setStep(step - 1))}
-              className="mb-2 inline-flex cursor-pointer items-center gap-1 rounded text-sm font-medium text-slate-600 transition-colors duration-200 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+              className="mb-2 inline-flex cursor-pointer items-center gap-1 rounded text-sm font-medium text-slate-600 transition-colors duration-200 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-slate-400 dark:hover:text-brand-300"
             >
               <ChevronLeftIcon className="h-4 w-4" /> Back
             </button>
@@ -160,10 +164,10 @@ export default function BookingWizard() {
               {stepTitles.map((t, i) => (
                 <div key={t} className="flex-1">
                   <motion.div
-                    animate={{ backgroundColor: i <= step ? '#7c3aed' : '#e9d5ff' }}
+                    animate={{ backgroundColor: i <= step ? '#7c3aed' : pipOff }}
                     className="h-1.5 rounded-full"
                   />
-                  <p className={`mt-1 text-xs ${i === step ? 'font-semibold text-brand-700' : 'text-slate-400'}`}>
+                  <p className={`mt-1 text-xs ${i === step ? 'font-semibold text-brand-700 dark:text-brand-300' : 'text-slate-400 dark:text-slate-500'}`}>
                     {t}
                   </p>
                 </div>
@@ -176,10 +180,10 @@ export default function BookingWizard() {
           {/* ===== Step 0: service + vehicle ===== */}
           {step === 0 && (
             <motion.div key="s0" variants={stepVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.25, ease: 'easeOut' }}>
-              <h1 className="font-display text-2xl font-bold text-slate-900">
+              <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">
                 What does your car need?
               </h1>
-              <p className="mt-1 text-sm text-slate-600">Booking with {d.name}</p>
+              <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">Booking with {d.name}</p>
 
               <div className="mt-5 space-y-3" role="radiogroup" aria-label="Service">
                 {d.services.map((s) => (
@@ -192,20 +196,20 @@ export default function BookingWizard() {
                     onClick={() => setService(s)}
                     className={`card flex w-full cursor-pointer items-center justify-between gap-4 !p-5 text-left transition-all duration-200 ${
                       service?.id === s.id
-                        ? 'border-brand-600 ring-2 ring-brand-200'
+                        ? 'border-brand-600 ring-2 ring-brand-200 dark:ring-brand-500/20'
                         : 'hover:border-brand-300'
                     } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600`}
                   >
                     <div>
-                      <p className="font-semibold text-slate-900">{s.name}</p>
-                      <p className="text-sm text-slate-600">{s.desc}</p>
+                      <p className="font-semibold text-slate-900 dark:text-slate-100">{s.name}</p>
+                      <p className="text-sm text-slate-600 dark:text-slate-400">{s.desc}</p>
                     </div>
-                    <span className="font-display text-lg font-bold text-brand-700">${s.price}</span>
+                    <span className="font-display text-lg font-bold text-brand-700 dark:text-brand-300">${s.price}</span>
                   </motion.button>
                 ))}
               </div>
 
-              <h2 className="mt-6 text-sm font-semibold text-slate-700">Vehicle type</h2>
+              <h2 className="mt-6 text-sm font-semibold text-slate-700 dark:text-slate-300">Vehicle type</h2>
               <div className="mt-2 flex flex-wrap gap-2" role="radiogroup" aria-label="Vehicle type">
                 {VEHICLES.map((v) => (
                   <button
@@ -217,7 +221,7 @@ export default function BookingWizard() {
                     className={`cursor-pointer rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
                       vehicle === v
                         ? 'bg-brand-600 text-white shadow-md'
-                        : 'bg-white text-slate-600 hover:bg-brand-100'
+                        : 'bg-white text-slate-600 hover:bg-brand-100 dark:bg-white/5 dark:text-slate-400 dark:hover:bg-white/10'
                     }`}
                   >
                     {v}
@@ -234,8 +238,8 @@ export default function BookingWizard() {
           {/* ===== Step 1: date + time ===== */}
           {step === 1 && (
             <motion.div key="s1" variants={stepVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.25, ease: 'easeOut' }}>
-              <h1 className="font-display text-2xl font-bold text-slate-900">When works for you?</h1>
-              <p className="mt-1 text-sm text-slate-600">
+              <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">When works for you?</h1>
+              <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
                 {service.name} · ${service.price} · at {customer.address}
               </p>
 
@@ -253,12 +257,12 @@ export default function BookingWizard() {
                     className={`flex w-16 shrink-0 cursor-pointer flex-col items-center rounded-2xl border py-3 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
                       date?.key === day.key
                         ? 'border-brand-600 bg-brand-600 text-white shadow-lg'
-                        : 'border-brand-100 bg-white text-slate-700 hover:border-brand-300'
+                        : 'border-brand-100 bg-white text-slate-700 hover:border-brand-300 dark:border-white/10 dark:bg-white/5 dark:text-slate-300'
                     }`}
                   >
                     <span className="text-xs font-medium opacity-80">{day.label}</span>
                     <span className="font-display text-xl font-bold">{day.day}</span>
-                    {day.rainy && <span className={`text-[10px] ${date?.key === day.key ? 'text-amber-200' : 'text-amber-600'}`}>rain</span>}
+                    {day.rainy && <span className={`text-[10px] ${date?.key === day.key ? 'text-amber-200' : 'text-amber-600 dark:text-amber-400'}`}>rain</span>}
                   </button>
                 ))}
               </div>
@@ -276,7 +280,7 @@ export default function BookingWizard() {
           {/* ===== Step 2: review ===== */}
           {step === 2 && (
             <motion.div key="s2" variants={stepVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.25, ease: 'easeOut' }}>
-              <h1 className="font-display text-2xl font-bold text-slate-900">Review your booking</h1>
+              <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">Review your booking</h1>
               <div className="card mt-5 space-y-3 !p-5 text-sm">
                 {[
                   ['Detailer', d.name],
@@ -285,12 +289,12 @@ export default function BookingWizard() {
                   ['Where', customer.address],
                 ].map(([k, v]) => (
                   <div key={k} className="flex justify-between gap-4">
-                    <span className="text-slate-500">{k}</span>
-                    <span className="text-right font-medium text-slate-900">{v}</span>
+                    <span className="text-slate-500 dark:text-slate-400">{k}</span>
+                    <span className="text-right font-medium text-slate-900 dark:text-slate-100">{v}</span>
                   </div>
                 ))}
                 {weatherAck && (
-                  <p className="flex items-center gap-1.5 text-xs text-amber-700">
+                  <p className="flex items-center gap-1.5 text-xs text-amber-700 dark:text-amber-400">
                     <AlertTriangleIcon className="h-3.5 w-3.5" /> Rain warning acknowledged
                   </p>
                 )}
@@ -306,50 +310,50 @@ export default function BookingWizard() {
                   }`}
                 >
                   <div>
-                    <p className="font-semibold text-slate-900">Use your reward: {reward.type}</p>
-                    <p className="text-xs text-slate-500">Expires in {reward.expiresDays} days</p>
+                    <p className="font-semibold text-slate-900 dark:text-slate-100">Use your reward: {reward.type}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Expires in {reward.expiresDays} days</p>
                   </div>
-                  <span className={`chip ${useReward ? 'bg-cta-700 text-white' : 'bg-brand-100 text-brand-700'}`}>
+                  <span className={`chip ${useReward ? 'bg-cta-700 text-white' : 'bg-brand-100 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300'}`}>
                     {useReward ? 'Applied' : 'Apply'}
                   </span>
                 </button>
               )}
 
               <div className="card mt-6 !p-5">
-                <div className="flex justify-between text-sm text-slate-600">
+                <div className="flex justify-between text-sm text-slate-600 dark:text-slate-400">
                   <span>{service.name}</span>
                   <span>${service.price}</span>
                 </div>
                 {useReward && reward && (
-                  <div className="flex justify-between text-sm font-medium text-cta-700">
+                  <div className="flex justify-between text-sm font-medium text-cta-700 dark:text-cta-400">
                     <span>Loyalty reward applied</span>
                     <span>−${service.price}</span>
                   </div>
                 )}
                 {creditUsed > 0 && (
-                  <div className="flex justify-between text-sm font-medium text-cta-700">
+                  <div className="flex justify-between text-sm font-medium text-cta-700 dark:text-cta-400">
                     <span>Referral credit</span>
                     <span>−${creditUsed}</span>
                   </div>
                 )}
-                <div className="mt-2 flex justify-between border-t border-brand-100 pt-2 font-display text-lg font-bold text-slate-900">
+                <div className="mt-2 flex justify-between border-t border-brand-100 pt-2 font-display text-lg font-bold text-slate-900 dark:border-white/10 dark:text-slate-100">
                   <span>Total</span>
-                  <motion.span key={total} initial={{ scale: 1.2, color: '#15803d' }} animate={{ scale: 1, color: '#0f172a' }}>
+                  <motion.span key={total} initial={{ scale: 1.2, color: totalColors[0] }} animate={{ scale: 1, color: totalColors[1] }}>
                     ${total}
                   </motion.span>
                 </div>
-                <p className="mt-1 text-xs text-slate-400">Tip your detailer after the job</p>
+                <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">Tip your detailer after the job</p>
               </div>
 
               {payError && (
-                <p role="alert" className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+                <p role="alert" className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-400">
                   {payError}
                 </p>
               )}
               <button onClick={pay} className="btn btn-cta-gradient glow-cta glow-pulse mt-6 w-full">
                 Pay ${total} · Book it
               </button>
-              <p className="mt-2 text-center text-xs text-slate-400">
+              <p className="mt-2 text-center text-xs text-slate-400 dark:text-slate-500">
                 {realPaid
                   ? 'Secure card payment on the next step, powered by Stripe.'
                   : 'Demo mode — no card is charged.'}
@@ -363,10 +367,10 @@ export default function BookingWizard() {
               <motion.div
                 animate={{ rotate: 360 }}
                 transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
-                className="mx-auto h-12 w-12 rounded-full border-4 border-brand-200 border-t-brand-600"
+                className="mx-auto h-12 w-12 rounded-full border-4 border-brand-200 border-t-brand-600 dark:border-brand-500/20 dark:border-t-brand-400"
               />
-              <p className="mt-6 font-display text-lg font-semibold text-slate-900">Processing payment…</p>
-              <p className="mt-1 text-sm text-slate-500">Securing your booking with {d.name}</p>
+              <p className="mt-6 font-display text-lg font-semibold text-slate-900 dark:text-slate-100">Processing payment…</p>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Securing your booking with {d.name}</p>
             </motion.div>
           )}
 
@@ -393,8 +397,8 @@ export default function BookingWizard() {
                   <SparklesIcon className="h-5 w-5" />
                 </motion.span>
               ))}
-              <h1 className="mt-6 font-display text-3xl font-bold text-slate-900">You&apos;re booked!</h1>
-              <p className="mt-2 text-slate-600">
+              <h1 className="mt-6 font-display text-3xl font-bold text-slate-900 dark:text-slate-100">You&apos;re booked!</h1>
+              <p className="mt-2 text-slate-600 dark:text-slate-400">
                 Ref <span className="font-mono font-semibold">{bookingId}</span> · {d.name} has
                 been notified and will confirm shortly.
               </p>
@@ -407,8 +411,8 @@ export default function BookingWizard() {
           {/* ===== Step 5: card payment (real Stripe flow) ===== */}
           {step === 5 && clientSecret && (
             <motion.div key="s5" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
-              <h1 className="font-display text-2xl font-bold text-slate-900">Payment</h1>
-              <p className="mt-1 text-sm text-slate-600">
+              <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">Payment</h1>
+              <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
                 {service.name} with {d.name} · ${total}
               </p>
               <div className="card mt-5">
@@ -426,10 +430,10 @@ export default function BookingWizard() {
         {/* Weather warning (2.4b) */}
         <Modal open={showWeather} onClose={() => setShowWeather(false)} labelledBy="weather-title">
           <AlertTriangleIcon className="mx-auto h-10 w-10 text-amber-500" />
-          <h2 id="weather-title" className="mt-3 text-center font-display text-xl font-bold text-slate-900">
+          <h2 id="weather-title" className="mt-3 text-center font-display text-xl font-bold text-slate-900 dark:text-slate-100">
             Rain is forecast that day
           </h2>
-          <p className="mt-2 text-center text-sm text-slate-600">
+          <p className="mt-2 text-center text-sm text-slate-600 dark:text-slate-400">
             Detailing in wet conditions may affect results. You can proceed anyway or pick
             another time.
           </p>
@@ -453,10 +457,10 @@ export default function BookingWizard() {
         {/* Uninsured acknowledgment (2.5) */}
         <Modal open={showUninsured} onClose={() => setShowUninsured(false)} labelledBy="unins-title">
           <AlertTriangleIcon className="mx-auto h-10 w-10 text-red-500" />
-          <h2 id="unins-title" className="mt-3 text-center font-display text-xl font-bold text-slate-900">
+          <h2 id="unins-title" className="mt-3 text-center font-display text-xl font-bold text-slate-900 dark:text-slate-100">
             This detailer is uninsured
           </h2>
-          <p className="mt-2 text-center text-sm text-slate-600">
+          <p className="mt-2 text-center text-sm text-slate-600 dark:text-slate-400">
             You are about to book an uninsured detailer. You accept full financial
             responsibility for any damage to your vehicle. This cannot be disputed through
             our platform.
@@ -467,7 +471,7 @@ export default function BookingWizard() {
             </button>
             <button
               onClick={() => setShowUninsured(false)}
-              className="cursor-pointer text-sm text-slate-500 underline-offset-2 hover:underline"
+              className="cursor-pointer text-sm text-slate-500 underline-offset-2 hover:underline dark:text-slate-400"
             >
               Go back
             </button>

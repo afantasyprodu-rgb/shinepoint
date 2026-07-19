@@ -36,8 +36,8 @@ export default function DetailerJob() {
   if (!b) {
     return (
       <AppShell role="detailer">
-        <div className="mx-auto max-w-xl px-6 py-16 text-center text-slate-600">
-          Job not found. <Link to="/detailer" className="font-semibold text-brand-600">Back</Link>
+        <div className="mx-auto max-w-xl px-6 py-16 text-center text-slate-600 dark:text-slate-400">
+          Job not found. <Link to="/detailer" className="font-semibold text-brand-600 dark:text-brand-300">Back</Link>
         </div>
       </AppShell>
     )
@@ -127,7 +127,7 @@ export default function DetailerJob() {
       <AnimatedPage className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
         <Link
           to="/detailer"
-          className="mb-4 inline-flex items-center gap-1 rounded text-sm font-medium text-slate-600 transition-colors duration-200 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+          className="mb-4 inline-flex items-center gap-1 rounded text-sm font-medium text-slate-600 transition-colors duration-200 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-slate-400 dark:hover:text-brand-300"
         >
           <ChevronLeftIcon className="h-4 w-4" /> Dashboard
         </Link>
@@ -135,24 +135,24 @@ export default function DetailerJob() {
         <div className="card">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h1 className="font-display text-xl font-bold text-slate-900">
+              <h1 className="font-display text-xl font-bold text-slate-900 dark:text-slate-100">
                 {b.service} · {b.customerName}
               </h1>
-              <p className="mt-1 flex items-center gap-1.5 text-sm text-slate-500">
+              <p className="mt-1 flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
                 <MapPinIcon className="h-4 w-4" /> {b.address}
               </p>
             </div>
             <div className="flex items-start gap-2">
               <div className="text-right">
                 <StatusPill status={b.status} />
-                <p className="mt-1 font-display text-lg font-bold text-cta-700">
+                <p className="mt-1 font-display text-lg font-bold text-cta-700 dark:text-cta-400">
                   +${(b.price * 0.85 + (b.tip ?? 0)).toFixed(0)}
                 </p>
               </div>
               <button
                 onClick={() => setMenuOpen(true)}
                 aria-label="Open job menu"
-                className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-brand-100 text-slate-600 transition-colors duration-200 hover:bg-brand-50 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+                className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-brand-100 text-slate-600 transition-colors duration-200 hover:bg-brand-50 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:border-white/10 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-brand-300"
               >
                 <MenuIcon className="h-5 w-5" />
               </button>
@@ -165,7 +165,7 @@ export default function DetailerJob() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             role="status"
-            className="mt-3 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800"
+            className="mt-3 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-500/10 dark:text-amber-300"
           >
             Waiting on customer to confirm the damage report… (15-min reminder, 30-min admin
             override available)
@@ -181,7 +181,7 @@ export default function DetailerJob() {
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.04 }}
-                className={`card !p-5 ${g.ready ? 'border-brand-400 ring-2 ring-brand-100' : ''} ${
+                className={`card !p-5 ${g.ready ? 'border-brand-400 ring-2 ring-brand-100 dark:border-brand-400/60 dark:ring-brand-500/20' : ''} ${
                   g.done ? 'opacity-80' : ''
                 }`}
               >
@@ -189,10 +189,11 @@ export default function DetailerJob() {
                   <motion.span
                     initial={false}
                     animate={{
-                      backgroundColor: g.done ? '#15803d' : g.ready ? '#7c3aed' : '#e9d5ff',
+                      backgroundColor: g.done ? '#15803d' : g.ready ? '#7c3aed' : 'var(--gate-pending-bg)',
                       scale: g.ready ? 1.05 : 1,
                     }}
                     className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white"
+                    style={{ '--gate-pending-bg': 'var(--neu-sd)' }}
                   >
                     {g.done ? (
                       <CheckIcon className="h-4 w-4" />
@@ -201,8 +202,8 @@ export default function DetailerJob() {
                     )}
                   </motion.span>
                   <div className="flex-1">
-                    <h2 className="font-display font-semibold text-slate-900">{g.title}</h2>
-                    <p className="mt-0.5 text-sm text-slate-600">{g.desc}</p>
+                    <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">{g.title}</h2>
+                    <p className="mt-0.5 text-sm text-slate-600 dark:text-slate-400">{g.desc}</p>
                     {g.ready && g.key === 'damage' ? (
                       <DamageInspection
                         booking={b}
@@ -215,9 +216,9 @@ export default function DetailerJob() {
                         onSubmit={(photos) => addBookingPhotos(b.id, g.key, photos)}
                       />
                     ) : g.ready && g.key === 'en_route' ? (
-                      <div className="mt-3 rounded-2xl border border-brand-100 bg-brand-50/60 p-4">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-brand-700">Heading to</p>
-                        <p className="mt-1 font-display text-base font-bold text-slate-900">{b.address}</p>
+                      <div className="mt-3 rounded-2xl border border-brand-100 bg-brand-50/60 p-4 dark:border-brand-500/20 dark:bg-brand-500/10">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-brand-700 dark:text-brand-300">Heading to</p>
+                        <p className="mt-1 font-display text-base font-bold text-slate-900 dark:text-slate-100">{b.address}</p>
                         <div className="mt-3 flex gap-2">
                           <button
                             onClick={g.action}
@@ -228,10 +229,10 @@ export default function DetailerJob() {
                         </div>
                       </div>
                     ) : g.ready && g.key === 'arrived' ? (
-                      <div className="mt-3 rounded-2xl border border-cta-200 bg-cta-50/60 p-4">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-cta-700">Full address</p>
-                        <p className="mt-1 font-display text-base font-bold text-slate-900">812 Lakeview Ter, Echo Park</p>
-                        <p className="mt-0.5 text-xs text-slate-500">Confirm you're at the right vehicle before proceeding.</p>
+                      <div className="mt-3 rounded-2xl border border-cta-200 bg-cta-50/60 p-4 dark:border-cta-500/20 dark:bg-cta-500/10">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-cta-700 dark:text-cta-400">Full address</p>
+                        <p className="mt-1 font-display text-base font-bold text-slate-900 dark:text-slate-100">812 Lakeview Ter, Echo Park</p>
+                        <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Confirm you're at the right vehicle before proceeding.</p>
                         <button
                           onClick={g.action}
                           className="btn btn-cta mt-3 h-10 w-full text-sm"
@@ -240,18 +241,18 @@ export default function DetailerJob() {
                         </button>
                       </div>
                     ) : g.ready && g.key === 'start' ? (
-                      <div className="mt-3 rounded-2xl border border-brand-200 bg-white p-4">
+                      <div className="mt-3 rounded-2xl border border-brand-200 bg-white p-4 dark:border-white/10 dark:bg-white/5">
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-slate-500">Service</span>
-                          <span className="font-semibold text-slate-900">{b.service}</span>
+                          <span className="text-slate-500 dark:text-slate-400">Service</span>
+                          <span className="font-semibold text-slate-900 dark:text-slate-100">{b.service}</span>
                         </div>
                         <div className="mt-2 flex items-center justify-between text-sm">
-                          <span className="text-slate-500">Vehicle</span>
-                          <span className="font-semibold text-slate-900">{b.vehicleType ?? 'SUV'}</span>
+                          <span className="text-slate-500 dark:text-slate-400">Vehicle</span>
+                          <span className="font-semibold text-slate-900 dark:text-slate-100">{b.vehicleType ?? 'SUV'}</span>
                         </div>
                         <div className="mt-2 flex items-center justify-between text-sm">
-                          <span className="text-slate-500">Your take</span>
-                          <span className="font-semibold text-cta-700">+${(b.price * 0.85).toFixed(0)}</span>
+                          <span className="text-slate-500 dark:text-slate-400">Your take</span>
+                          <span className="font-semibold text-cta-700 dark:text-cta-400">+${(b.price * 0.85).toFixed(0)}</span>
                         </div>
                         <button
                           onClick={g.action}
@@ -281,11 +282,11 @@ export default function DetailerJob() {
 
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <div className="card !p-5">
-            <h2 className="mb-3 font-display text-sm font-semibold text-slate-900">Before</h2>
+            <h2 className="mb-3 font-display text-sm font-semibold text-slate-900 dark:text-slate-100">Before</h2>
             <PhotoGrid count={b.beforePhotos} photos={b.beforePhotoData} label="before" />
           </div>
           <div className="card !p-5">
-            <h2 className="mb-3 font-display text-sm font-semibold text-slate-900">After</h2>
+            <h2 className="mb-3 font-display text-sm font-semibold text-slate-900 dark:text-slate-100">After</h2>
             <PhotoGrid count={b.afterPhotos} photos={b.afterPhotoData} label="after" />
           </div>
         </div>
@@ -294,11 +295,11 @@ export default function DetailerJob() {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="card mt-4 border-cta-600 text-center"
+            className="card mt-4 border-cta-600 text-center dark:border-cta-500/50"
           >
-            <CheckIcon className="mx-auto h-8 w-8 text-cta-700" />
-            <h2 className="mt-2 font-display text-lg font-bold text-slate-900">Job complete</h2>
-            <p className="mt-1 text-sm text-slate-600">
+            <CheckIcon className="mx-auto h-8 w-8 text-cta-700 dark:text-cta-400" />
+            <h2 className="mt-2 font-display text-lg font-bold text-slate-900 dark:text-slate-100">Job complete</h2>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
               Payout of ${(b.price * 0.85).toFixed(0)} initiated
               {b.tip ? ` · $${b.tip} tip (100% yours, paid instantly)` : ''}.
             </p>
@@ -308,16 +309,16 @@ export default function DetailerJob() {
         {/* Rate the customer — visible to detailers and admin only (blueprint rule) */}
         {b.status === 'complete' && !b.customerRated && (
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="card mt-4">
-            <h2 className="font-display font-semibold text-slate-900">
+            <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">
               Rate {b.customerName}
             </h2>
-            <p className="mt-0.5 text-xs text-slate-500">
+            <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
               Private — only other detailers and admins see customer ratings.
             </p>
             <div className="mt-3">
               <StarInput value={custRating} onChange={setCustRating} />
             </div>
-            <label className="mt-3 flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+            <label className="mt-3 flex cursor-pointer items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
               <input
                 type="checkbox"
                 checked={hardToHandle}
@@ -336,7 +337,7 @@ export default function DetailerJob() {
           </motion.div>
         )}
         {b.customerRated && (
-          <p className="mt-4 flex items-center justify-center gap-2 text-sm font-medium text-cta-700">
+          <p className="mt-4 flex items-center justify-center gap-2 text-sm font-medium text-cta-700 dark:text-cta-400">
             <CheckIcon className="h-4 w-4" /> Customer rated {b.customerRated.rating}/5
           </p>
         )}
@@ -355,14 +356,14 @@ export default function DetailerJob() {
                 className="card card-hover flex w-full items-center justify-between !p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
               >
                 <div>
-                  <p className="font-semibold text-slate-900">
+                  <p className="font-semibold text-slate-900 dark:text-slate-100">
                     {b.invoice ? 'Edit invoice' : 'Create invoice'}
                   </p>
-                  <p className="text-sm text-slate-500">
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
                     Itemize the service and share a full breakdown with {b.customerName}.
                   </p>
                 </div>
-                <span className="text-sm font-semibold text-brand-600">Open →</span>
+                <span className="text-sm font-semibold text-brand-600 dark:text-brand-300">Open →</span>
               </button>
             </li>
           </ul>
@@ -370,7 +371,7 @@ export default function DetailerJob() {
           <div>
             <button
               onClick={() => setShowInvoice(false)}
-              className="mb-4 inline-flex items-center gap-1 rounded text-sm font-medium text-slate-600 transition-colors duration-200 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+              className="mb-4 inline-flex items-center gap-1 rounded text-sm font-medium text-slate-600 transition-colors duration-200 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-slate-400 dark:hover:text-brand-300"
             >
               <ChevronLeftIcon className="h-4 w-4" /> More
             </button>

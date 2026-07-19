@@ -36,7 +36,7 @@ export default function PhotoCapture({ label = 'before', onSubmit }) {
 
   return (
     <div className="mt-3 space-y-3">
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-slate-500 dark:text-slate-400">
         Capture all 5 angles — front, rear, left side, right side, and interior. All required before{' '}
         {label === 'before' ? 'starting' : 'completing'} the job.
       </p>
@@ -71,7 +71,7 @@ export default function PhotoCapture({ label = 'before', onSubmit }) {
                   <CameraIcon className="h-5 w-5" />
                 </motion.button>
               )}
-              <span className="text-[10px] font-medium text-slate-500">{angle}</span>
+              <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">{angle}</span>
               <input
                 ref={(el) => { if (el) fileRefs.current[angle] = el }}
                 type="file"
@@ -88,14 +88,14 @@ export default function PhotoCapture({ label = 'before', onSubmit }) {
 
       {/* Progress bar */}
       <div className="flex items-center gap-2">
-        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-brand-100">
+        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-brand-100 dark:bg-white/10">
           <motion.div
             animate={{ width: `${(captured.length / ANGLES.length) * 100}%` }}
             transition={{ type: 'spring', stiffness: 200, damping: 22 }}
             className="h-full rounded-full bg-gradient-to-r from-brand-500 to-brand-700"
           />
         </div>
-        <span className="shrink-0 text-xs font-semibold tabular-nums text-brand-700">
+        <span className="shrink-0 text-xs font-semibold tabular-nums text-brand-700 dark:text-brand-300">
           {captured.length}/{ANGLES.length}
         </span>
       </div>

@@ -74,7 +74,7 @@ export default function DetailerProfileEditor() {
   return (
     <AppShell role="detailer">
       <AnimatedPage className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
-        <h1 className="font-display text-2xl font-bold text-slate-900">Your profile</h1>
+        <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">Your profile</h1>
 
         <form onSubmit={save} className="mt-6 space-y-6">
           {/* Identity */}
@@ -93,7 +93,7 @@ export default function DetailerProfileEditor() {
                 onChange={(e) => setName(e.target.value)} className="input" placeholder="Marco's Mobile Shine"
               />
               <label htmlFor="bio" className="label mt-4">
-                Bio <span className="font-normal text-slate-400">({250 - bio.length} left)</span>
+                Bio <span className="font-normal text-slate-400 dark:text-slate-500">({250 - bio.length} left)</span>
               </label>
               <textarea
                 id="bio" maxLength={250} rows={3} value={bio}
@@ -106,7 +106,7 @@ export default function DetailerProfileEditor() {
           {/* Services & pricing — editable */}
           <div className="card">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-slate-700">Services & pricing</h2>
+              <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Services & pricing</h2>
               <button type="button" onClick={addService} className="flex items-center gap-1 text-sm font-semibold text-brand-700 hover:text-brand-800">
                 <PlusIcon className="h-4 w-4" /> Add service
               </button>
@@ -127,7 +127,7 @@ export default function DetailerProfileEditor() {
                       className="input flex-1" placeholder="Service name"
                     />
                     <div className="relative w-24 shrink-0">
-                      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">$</span>
+                      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500">$</span>
                       <input
                         type="number" min={0} value={s.price} onChange={(e) => setService(i, 'price', e.target.value)}
                         className="input pl-6" placeholder="0"
@@ -135,7 +135,7 @@ export default function DetailerProfileEditor() {
                     </div>
                     <button
                       type="button" onClick={() => removeService(i)} aria-label={`Remove ${s.name || 'service'}`}
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:text-slate-500 dark:hover:bg-red-500/10 dark:hover:text-red-400"
                     >
                       <TrashIcon className="h-4 w-4" />
                     </button>
@@ -143,7 +143,7 @@ export default function DetailerProfileEditor() {
                 ))}
               </AnimatePresence>
               {services.length === 0 && (
-                <p className="rounded-xl bg-slate-50 px-4 py-6 text-center text-sm text-slate-400">
+                <p className="rounded-xl bg-slate-50 px-4 py-6 text-center text-sm text-slate-400 dark:bg-white/5 dark:text-slate-500">
                   No services yet — add your first above.
                 </p>
               )}
@@ -152,8 +152,8 @@ export default function DetailerProfileEditor() {
 
           {/* Portfolio gallery */}
           <div className="card">
-            <h2 className="text-sm font-semibold text-slate-700">Portfolio gallery</h2>
-            <p className="mb-3 mt-1 text-xs text-slate-400">Your best work — shown on your public profile.</p>
+            <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Portfolio gallery</h2>
+            <p className="mb-3 mt-1 text-xs text-slate-400 dark:text-slate-500">Your best work — shown on your public profile.</p>
             <GalleryGrid gallery={gallery} setGallery={setGallery} onAdd={addGalleryPhoto} />
           </div>
 
@@ -165,13 +165,13 @@ export default function DetailerProfileEditor() {
               onChange={(e) => setTravel(e.target.value)} className="input w-32"
             />
 
-            <h2 className="mt-5 text-sm font-semibold text-slate-700">Service days</h2>
+            <h2 className="mt-5 text-sm font-semibold text-slate-700 dark:text-slate-300">Service days</h2>
             <div className="mt-3 flex flex-wrap gap-2">
               {DAYS.map((day) => (
                 <button
                   key={day} type="button" aria-pressed={days.includes(day)} onClick={() => toggleDay(day)}
                   className={`cursor-pointer rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
-                    days.includes(day) ? 'bg-brand-600 text-white shadow-md' : 'bg-brand-50 text-slate-600 hover:bg-brand-100'
+                    days.includes(day) ? 'bg-brand-600 text-white shadow-md' : 'bg-brand-50 text-slate-600 hover:bg-brand-100 dark:bg-white/5 dark:text-slate-400 dark:hover:bg-white/10'
                   }`}
                 >
                   {day}
@@ -179,7 +179,7 @@ export default function DetailerProfileEditor() {
               ))}
             </div>
 
-            <label className="mt-5 flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+            <label className="mt-5 flex cursor-pointer items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
               <input
                 type="checkbox" checked={rewardsOptIn} onChange={(e) => setRewardsOptIn(e.target.checked)}
                 className="h-4 w-4 cursor-pointer rounded border-slate-300 accent-brand-600"

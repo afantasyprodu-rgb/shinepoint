@@ -36,7 +36,7 @@ export default function DamageInspection({ booking, onSubmit, onNoDamage }) {
 
   return (
     <div className="mt-3 space-y-3">
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-slate-500 dark:text-slate-400">
         Photograph and describe any existing damage before touching the vehicle. The client must
         confirm each item before work can start.
       </p>
@@ -49,10 +49,10 @@ export default function DamageInspection({ booking, onSubmit, onNoDamage }) {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="rounded-2xl border border-brand-100 bg-white p-3"
+            className="rounded-2xl border border-brand-100 bg-white p-3 dark:border-white/10 dark:bg-white/5"
           >
             <div className="flex items-center justify-between gap-2">
-              <span className="font-display text-xs font-semibold text-slate-500 uppercase tracking-wide">
+              <span className="font-display text-xs font-semibold text-slate-500 uppercase tracking-wide dark:text-slate-400">
                 Area {idx + 1}
               </span>
               {items.length > 1 && (
@@ -60,7 +60,7 @@ export default function DamageInspection({ booking, onSubmit, onNoDamage }) {
                   type="button"
                   onClick={() => remove(item.id)}
                   aria-label="Remove area"
-                  className="cursor-pointer text-slate-400 transition-colors duration-200 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                  className="cursor-pointer text-slate-400 transition-colors duration-200 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 dark:text-slate-500 dark:hover:text-red-400"
                 >
                   <TrashIcon className="h-4 w-4" />
                 </button>
@@ -120,7 +120,7 @@ export default function DamageInspection({ booking, onSubmit, onNoDamage }) {
               <button
                 type="button"
                 onClick={() => fileRefs.current[item.id]?.click()}
-                className="mt-2 flex h-24 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-brand-200 bg-brand-50/50 text-sm font-medium text-brand-700 transition-colors duration-200 hover:border-brand-400 hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+                className="mt-2 flex h-24 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-brand-200 bg-brand-50/50 text-sm font-medium text-brand-700 transition-colors duration-200 hover:border-brand-400 hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300 dark:hover:bg-brand-500/15"
               >
                 <CameraIcon className="h-5 w-5" /> Take or upload photo
               </button>
@@ -132,7 +132,7 @@ export default function DamageInspection({ booking, onSubmit, onNoDamage }) {
       <button
         type="button"
         onClick={() => setItems((prev) => [...prev, newItem()])}
-        className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-dashed border-brand-200 py-2.5 text-sm font-medium text-brand-700 transition-colors duration-200 hover:border-brand-400 hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+        className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-dashed border-brand-200 py-2.5 text-sm font-medium text-brand-700 transition-colors duration-200 hover:border-brand-400 hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:border-brand-500/30 dark:text-brand-300 dark:hover:bg-brand-500/10"
       >
         <PlusIcon className="h-4 w-4" /> Add another area
       </button>

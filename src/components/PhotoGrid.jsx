@@ -28,7 +28,7 @@ export default function PhotoGrid({ count, photos, label, emptyText = 'No photos
 
   if (items.length === 0) {
     return (
-      <div className="flex h-24 items-center justify-center rounded-xl border-2 border-dashed border-brand-200 bg-brand-50 text-sm text-slate-400">
+      <div className="flex h-24 items-center justify-center rounded-xl border-2 border-dashed border-brand-200 bg-brand-50 text-sm text-slate-400 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-slate-500">
         <CameraIcon className="mr-2 h-4 w-4" /> {emptyText}
       </div>
     )
