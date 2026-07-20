@@ -52,7 +52,7 @@ export default function BottomTabBar({ items, layoutId }) {
                       initial={{ scale: 0.5 }}
                       animate={{ scale: 1 }}
                       transition={{ type: 'spring', stiffness: 380, damping: 22, mass: 0.7 }}
-                      className="nx-tab-drop h-11 w-11 -rotate-45 bg-[var(--neu-bg)] shadow-[5px_5px_11px_var(--neu-sd),-5px_-5px_11px_var(--neu-sl)]"
+                      className="nx-tab-drop h-11 w-11 -rotate-45"
                     />
                   </motion.span>
                 )}
@@ -63,7 +63,7 @@ export default function BottomTabBar({ items, layoutId }) {
                     className="relative z-10 flex items-center justify-center"
                   >
                     <ItemIcon
-                      className={`h-5 w-5 ${isActive ? 'text-cta-600' : 'text-slate-500 dark:text-slate-400'}`}
+                      className={`h-5 w-5 ${isActive ? 'text-white' : 'text-slate-500 dark:text-slate-400'}`}
                     />
                   </motion.span>
                 )}

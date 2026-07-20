@@ -1023,8 +1023,17 @@
    corners and one sharp corner, then rotated -45deg so the sharp corner
    points straight down into the notch (icon sits unrotated on top, it's a
    sibling, not nested inside this shape). */
+/* Solid brand-tinted fill (rides --brand-h same as everything else, so it
+   re-colors with the mode-toggle rotation) instead of the old
+   same-as-background neumorphic surface, which was only visible via its
+   drop shadow and read as barely-there. */
 .nx-tab-drop {
   border-radius: 50% 50% 50% 4px;
+  background: linear-gradient(135deg in oklch, var(--color-brand-500), var(--color-brand-700));
+  box-shadow:
+    0 6px 14px -4px color-mix(in srgb, var(--color-brand-600) 60%, transparent),
+    inset 2px 2px 4px rgba(255, 255, 255, 0.3),
+    inset -2px -2px 4px rgba(0, 0, 0, 0.15);
 }
 
 /* ── Leaflet map: pins, user location, grow-in popups ─────────────────────
