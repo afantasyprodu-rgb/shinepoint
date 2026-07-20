@@ -220,6 +220,19 @@ export default function DetailerMap({ detailers, focus }) {
 
   return (
     <div className="relative h-full w-full">
+      {/* Filter def for the abstract-poster tile skin (.leaflet-tile-pane in
+          index.css). 0x0 + absolute so it takes no layout space; browsers
+          still resolve url(#nx-map-abstract) fine from an off-tree <svg>. */}
+      <svg width="0" height="0" className="absolute" aria-hidden="true">
+        <filter id="nx-map-abstract" color-interpolation-filters="sRGB">
+          <feColorMatrix type="saturate" values="2.4" result="sat" />
+          <feComponentTransfer in="sat">
+            <feFuncR type="discrete" tableValues="0.12 0.32 0.52 0.72 0.92" />
+            <feFuncG type="discrete" tableValues="0.12 0.32 0.52 0.72 0.92" />
+            <feFuncB type="discrete" tableValues="0.12 0.32 0.52 0.72 0.92" />
+          </feComponentTransfer>
+        </filter>
+      </svg>
       <div ref={containerRef} className="h-full w-full" />
 
       {/* Locate-me button — pulsing marker + fly-to on press. */}

@@ -165,9 +165,9 @@ function FoamOverlay({ onDone }) {
         const jitter = Math.sin(i * 12.9898 + elapsed * 0.0015) * 0.15 + 1
         const r = settings.noiseAmp * 0.62 * jitter
         const grad = ctx.createRadialGradient(x, y, 0, x, y, r)
-        grad.addColorStop(0, `hsla(${settings.hue}, 45%, 97%, 0.95)`)
-        grad.addColorStop(0.7, `hsla(${settings.hue}, 55%, 94%, 0.55)`)
-        grad.addColorStop(1, `hsla(${settings.hue}, 60%, 92%, 0)`)
+        grad.addColorStop(0, `hsla(${settings.hue}, 82%, 80%, 0.95)`)
+        grad.addColorStop(0.7, `hsla(${settings.hue}, 85%, 72%, 0.6)`)
+        grad.addColorStop(1, `hsla(${settings.hue}, 85%, 66%, 0)`)
         ctx.fillStyle = grad
         ctx.beginPath()
         ctx.arc(x, y, r, 0, Math.PI * 2)
@@ -179,7 +179,7 @@ function FoamOverlay({ onDone }) {
       const shineX = lerp(-width * 0.4, width * 1.4, eased)
       const shineGrad = ctx.createLinearGradient(shineX - 90, 0, shineX + 90, height)
       shineGrad.addColorStop(0, 'rgba(255,255,255,0)')
-      shineGrad.addColorStop(0.5, `hsla(${settings.hue}, 90%, 92%, 0.35)`)
+      shineGrad.addColorStop(0.5, `hsla(${settings.hue}, 95%, 80%, 0.45)`)
       shineGrad.addColorStop(1, 'rgba(255,255,255,0)')
       ctx.fillStyle = shineGrad
       ctx.fillRect(0, Math.max(baseY - 60, -60), width, 160)
@@ -210,17 +210,17 @@ function FoamOverlay({ onDone }) {
           ctx.beginPath()
           ctx.arc(x, b.y, b.r * (1 + popT * 1.8), 0, Math.PI * 2)
           ctx.lineWidth = 1.4
-          ctx.strokeStyle = `hsla(${settings.hue}, 70%, 90%, ${(1 - popT) * 0.7})`
+          ctx.strokeStyle = `hsla(${settings.hue}, 80%, 76%, ${(1 - popT) * 0.7})`
           ctx.stroke()
           return true
         }
 
         ctx.beginPath()
         ctx.arc(x, b.y, b.r, 0, Math.PI * 2)
-        ctx.fillStyle = `hsla(${settings.hue}, 85%, 96%, ${Math.max(alpha, 0) * 0.85})`
+        ctx.fillStyle = `hsla(${settings.hue}, 85%, 78%, ${Math.max(alpha, 0) * 0.85})`
         ctx.fill()
         ctx.lineWidth = 1
-        ctx.strokeStyle = `hsla(${settings.hue}, 70%, 88%, ${Math.max(alpha, 0) * 0.6})`
+        ctx.strokeStyle = `hsla(${settings.hue}, 78%, 68%, ${Math.max(alpha, 0) * 0.6})`
         ctx.stroke()
         // Specular highlight — a small bright dot offset up-left, the
         // classic glossy-sphere cue that reads as "wet."
@@ -259,7 +259,7 @@ function FoamOverlay({ onDone }) {
         className="absolute inset-0"
         style={{
           clipPath: `url(#${clipId.current})`,
-          background: `hsl(${settings.hue} 45% 95%)`,
+          background: `hsl(${settings.hue} 78% 84%)`,
         }}
       />
       <canvas ref={canvasRef} className="absolute inset-0" />

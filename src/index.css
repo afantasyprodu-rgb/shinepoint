@@ -1049,6 +1049,18 @@
 .leaflet-container {
   background: var(--neu-bg);
 }
+
+/* Abstract-poster map skin — real street tiles still drive panning/zoom/
+   pin placement, but the tile pane itself (never the marker/popup panes,
+   so pins stay crisp) runs through an SVG filter (#nx-map-abstract,
+   defined in DetailerMap.jsx) that boosts saturation then posterizes each
+   channel to a handful of flat steps. Smooth photographic gradients and
+   fiddly street detail collapse into big, bold color zones — reads as a
+   graphic illustration rather than a literal readable street map, in both
+   themes, whatever the underlying tile provider's actual palette is. */
+.leaflet-tile-pane {
+  filter: url(#nx-map-abstract);
+}
 .nx-map-pin {
   display: block;
   width: 22px;
