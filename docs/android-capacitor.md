@@ -1,5 +1,7 @@
 # Shipping ShinePoint as an Android app (Capacitor)
 
+See `docs/ios-capacitor.md` for the iOS side of this same setup.
+
 The web app is already wrapped for Capacitor in code:
 
 - `capacitor.config.ts` — appId `app.shinepoint`, `webDir: dist`
