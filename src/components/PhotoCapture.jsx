@@ -18,12 +18,22 @@ export default function PhotoCapture({ label = 'before', onSubmit }) {
   const fileRefs = useRef({})
   const fileObjs = useRef({}) // { angle: File } — kept for real uploads
 
-  function handleFile(angle, file) {
-    if (!file) return
+  function readOne(angle, file) {
     fileObjs.current[angle] = file
     const reader = new FileReader()
     reader.onload = (e) => setPhotos((prev) => ({ ...prev, [angle]: e.target.result }))
     reader.readAsDataURL(file)
+  }
+
+  // Picking from one angle's tile can hand back several files at once (photo
+  // library multi-select) — drop the first into that angle, then fill
+  // whichever angles are still empty, in order, with the rest, instead of
+  // forcing one photo per tap.
+  function handleFiles(angle, fileList) {
+    const files = Array.from(fileList ?? [])
+    if (!files.length) return
+    const empty = [angle, ...ANGLES.filter((a) => a !== angle && !photos[a])]
+    files.slice(0, empty.length).forEach((file, i) => readOne(empty[i], file))
   }
 
   function remove(angle) {
@@ -32,13 +42,14 @@ export default function PhotoCapture({ label = 'before', onSubmit }) {
   }
 
   const captured = ANGLES.filter((a) => photos[a])
-  const allDone = captured.length === ANGLES.length
+  const hasEnough = captured.length >= 1
 
   return (
     <div className="mt-3 space-y-3">
       <p className="text-xs text-slate-500 dark:text-slate-400">
-        Capture all 5 angles — front, rear, left side, right side, and interior. All required before{' '}
-        {label === 'before' ? 'starting' : 'completing'} the job.
+        Capture what you can — front, rear, left side, right side, and interior all help, but at
+        least one photo is enough to {label === 'before' ? 'start' : 'complete'} the job. Pick
+        several at once from your library and they'll fill the open angles.
       </p>
 
       <div className="grid grid-cols-5 gap-2">
@@ -76,10 +87,10 @@ export default function PhotoCapture({ label = 'before', onSubmit }) {
                 ref={(el) => { if (el) fileRefs.current[angle] = el }}
                 type="file"
                 accept="image/*"
-                capture="environment"
+                multiple
                 className="sr-only"
                 aria-hidden="true"
-                onChange={(e) => handleFile(angle, e.target.files[0])}
+                onChange={(e) => handleFiles(angle, e.target.files)}
               />
             </div>
           )
@@ -103,14 +114,16 @@ export default function PhotoCapture({ label = 'before', onSubmit }) {
       <motion.button
         type="button"
         whileTap={{ scale: 0.97 }}
-        disabled={!allDone}
-        onClick={() => onSubmit(ANGLES.map((a) => ({ area: a, photo: photos[a], file: fileObjs.current[a] })))}
+        disabled={!hasEnough}
+        onClick={() => onSubmit(captured.map((a) => ({ area: a, photo: photos[a], file: fileObjs.current[a] })))}
         className="btn btn-brand h-10 w-full text-sm disabled:opacity-40"
       >
-        {allDone ? (
-          <><CheckIcon className="h-4 w-4" /> Submit {label} photos</>
+        {hasEnough ? (
+          <>
+            <CheckIcon className="h-4 w-4" /> Submit {captured.length} {label} photo{captured.length !== 1 ? 's' : ''}
+          </>
         ) : (
-          `${ANGLES.length - captured.length} photo${ANGLES.length - captured.length !== 1 ? 's' : ''} remaining`
+          'Take at least 1 photo'
         )}
       </motion.button>
 
