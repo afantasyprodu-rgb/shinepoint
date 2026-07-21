@@ -37,6 +37,7 @@ const FILL_DURATION = 480 // bubbles growing in to full coverage
 const HOLD = 220 // beat at full coverage before the pop wave starts
 const POP_SPREAD = 620 // total time for the pop wave to radiate out
 const POP_DUR = 260 // how long a single bubble's burst takes
+const FADE_DUR = 380 // final fade for any wash the pop wave didn't clear
 
 function buildSettings() {
   return { hue: randomHue() }
@@ -45,6 +46,7 @@ function buildSettings() {
 function BubbleOverlay({ onDone }) {
   const canvasRef = useRef(null)
   const [settings] = useState(buildSettings)
+  const [fading, setFading] = useState(false)
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -75,8 +77,8 @@ function BubbleOverlay({ onDone }) {
     // blob shape. The opaque base wash painted every fill-phase frame means
     // this field doesn't need to geometrically tile the screen — it's free
     // to be gappy and irregular, like real foam.
-    const baseR = Math.max(22, Math.min(width, height) / 11)
-    const clusterSpacing = baseR * 3.4
+    const baseR = Math.max(14, Math.min(width, height) / 18)
+    const clusterSpacing = baseR * 2.6
     const bubbles = []
 
     function addBubble(x, y, r) {
@@ -97,7 +99,7 @@ function BubbleOverlay({ onDone }) {
         const centerX = gx + randRange(-clusterSpacing * 0.4, clusterSpacing * 0.4)
         const centerY = gy + randRange(-clusterSpacing * 0.4, clusterSpacing * 0.4)
         const clusterScale = baseR * randRange(0.55, 1.6) // some clumps run big, some tiny
-        const count = Math.round(randRange(3, 7))
+        const count = Math.round(randRange(5, 11))
         for (let i = 0; i < count; i++) {
           const ang = Math.random() * Math.PI * 2
           const dist = randRange(0, clusterScale * 1.2)
@@ -112,7 +114,7 @@ function BubbleOverlay({ onDone }) {
     // Stray fillers scattered independently of any cluster, sized much more
     // freely (some tiny, some big outliers) to keep the field from ever
     // reading as a repeated stamp.
-    const fillerCount = Math.round((width * height) / (baseR * baseR * 7))
+    const fillerCount = Math.round((width * height) / (baseR * baseR * 3.5))
     for (let i = 0; i < fillerCount; i++) {
       addBubble(randRange(0, width), randRange(0, height), baseR * randRange(0.2, 1.4))
     }
@@ -130,6 +132,7 @@ function BubbleOverlay({ onDone }) {
     const start = performance.now()
     let raf
     let filling = true
+    let finished = false
 
     // scale is the 0..1 grow-in progress; b.rx/b.ry are the bubble's settled
     // (irregular) radii, so the whole ellipse — not just a circle — scales
@@ -224,12 +227,14 @@ function BubbleOverlay({ onDone }) {
       if (allDone) {
         // Clustered/irregular placement doesn't geometrically tile the
         // screen the way a grid did, so a thin residual wash can survive
-        // between clumps — one final full clear guarantees a clean reveal
-        // instead of leaving color flecks behind. By this point almost
-        // everything has already popped away, so the snap reads as the last
-        // wisp clearing rather than a visible cut.
-        ctx.clearRect(0, 0, width, height)
-        onDone()
+        // between clumps. Rather than snap-clear it, fade the whole canvas
+        // out via CSS opacity — reads as the last bit of soap dissolving
+        // instead of an abrupt cut.
+        if (!finished) {
+          finished = true
+          setFading(true)
+          setTimeout(onDone, FADE_DUR)
+        }
         return
       }
 
@@ -246,7 +251,11 @@ function BubbleOverlay({ onDone }) {
 
   return (
     <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-[9999] overflow-hidden">
-      <canvas ref={canvasRef} className="absolute inset-0" />
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0"
+        style={{ opacity: fading ? 0 : 1, transition: `opacity ${FADE_DUR}ms ease-out` }}
+      />
     </div>
   )
 }
