@@ -9,6 +9,12 @@ native shell. The `ios/` project is already generated and committed:
   `shinepoint://auth/callback` deep link (shared)
 - `ios/App/App/Info.plist` — `CFBundleURLTypes` for the `shinepoint://` scheme, plus the
   camera/photo-library/location usage-description strings Apple requires
+- `ios/App/App/PrivacyInfo.xcprivacy` — the app-target privacy manifest Apple has required
+  since May 2024 (rejects submissions without one); declares the UserDefaults "required reason"
+  API most WKWebView apps trigger. **This file exists on disk but still needs to be added to
+  the Xcode project** — right-click the `App` group in Xcode → Add Files to "App"→ select it
+  (make sure "Copy items if needed" is off and it's added to the App target). Can't be done
+  from outside Xcode without hand-editing project.pbxproj, which is too easy to corrupt blind.
 - Plugins installed: app, browser, camera, geolocation, push-notifications, splash-screen, status-bar
 - npm scripts: `npm run cap:sync`, `npm run cap:ios`
 

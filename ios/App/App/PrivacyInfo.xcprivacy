@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Privacy manifest for the App target itself (required since May 2024 —
+  Apple rejects submissions without one, see docs/ios-capacitor.md). The
+  Capacitor/Cordova frameworks already ship their own manifests
+  (node_modules/@capacitor/ios/{Capacitor,CapacitorCordova}/.../PrivacyInfo.xcprivacy);
+  this one only needs to cover the app target's own "required reason" API
+  usage. UserDefaults is the one nearly every WKWebView-based app triggers
+  (session/theme/localStorage-adjacent persistence) — declared under the
+  most common legitimate reason (CA92.1, "access info from same-app
+  storage"). No tracking, and this app collects no data for the reasons
+  NSPrivacyCollectedDataTypes would otherwise cover here — the actual data
+  collected (name, email, address, photos) is declared in App Store
+  Connect's App Privacy questionnaire, not this file.
+
+  Before submitting: build an Archive in Xcode and check
+  Product > Archive > Distribute App's privacy report (or use
+  `xcrun` on the built binary) to confirm no other required-reason API is
+  used without a matching declaration here — a resolved Swift Package
+  version bump can add one silently.
+-->
+<plist version="1.0">
+<dict>
+	<key>NSPrivacyTracking</key>
+	<false/>
+	<key>NSPrivacyTrackingDomains</key>
+	<array/>
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array/>
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array>
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>CA92.1</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>
