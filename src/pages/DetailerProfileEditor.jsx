@@ -84,7 +84,7 @@ export default function DetailerProfileEditor() {
             <div className="nx-card-notch-shadow absolute inset-0 rounded-[1.25rem]" aria-hidden="true" />
             <div
               className="nx-card-notch-bg absolute inset-0 rounded-[1.25rem]"
-              style={{ '--notch-r': '58px' }}
+              style={{ '--notch-r': '76px' }}
               aria-hidden="true"
             />
             <div className="relative flex flex-col items-center gap-4 px-8 pb-8 pt-4 text-center">
