@@ -77,29 +77,41 @@ export default function DetailerProfileEditor() {
         <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">Your profile</h1>
 
         <form onSubmit={save} className="mt-6 space-y-6">
-          {/* Identity */}
-          <div className="card flex flex-col items-center gap-4 text-center">
-            <AvatarUpload
-              photo={photo}
-              name={name}
-              size="xl"
-              onFile={(file) => uploadImage(file, 'avatars')}
-              onChange={changePhoto}
+          {/* Identity — avatar straddles a notch carved into the card's top
+              edge (same masked-layer technique as the bottom tab bar's
+              notch), instead of just floating over an intact edge. */}
+          <div className="relative mt-12">
+            <div className="nx-card-notch-shadow absolute inset-0 rounded-[1.25rem]" aria-hidden="true" />
+            <div
+              className="nx-card-notch-bg absolute inset-0 rounded-[1.25rem]"
+              style={{ '--notch-r': '58px' }}
+              aria-hidden="true"
             />
-            <div className="w-full text-left">
-              <label htmlFor="name" className="label">Business / display name</label>
-              <input
-                id="name" type="text" value={name}
-                onChange={(e) => setName(e.target.value)} className="input" placeholder="Marco's Mobile Shine"
-              />
-              <label htmlFor="bio" className="label mt-4">
-                Bio <span className="font-normal text-slate-400 dark:text-slate-500">({250 - bio.length} left)</span>
-              </label>
-              <textarea
-                id="bio" maxLength={250} rows={3} value={bio}
-                onChange={(e) => setBio(e.target.value)} className="input h-auto resize-none py-2"
-                placeholder="Ceramic certified, 10 years on daily drivers and show cars…"
-              />
+            <div className="relative flex flex-col items-center gap-4 px-8 pb-8 pt-4 text-center">
+              <div className="-mt-16">
+                <AvatarUpload
+                  photo={photo}
+                  name={name}
+                  size="xl"
+                  onFile={(file) => uploadImage(file, 'avatars')}
+                  onChange={changePhoto}
+                />
+              </div>
+              <div className="w-full text-left">
+                <label htmlFor="name" className="label">Business / display name</label>
+                <input
+                  id="name" type="text" value={name}
+                  onChange={(e) => setName(e.target.value)} className="input-flat" placeholder="Marco's Mobile Shine"
+                />
+                <label htmlFor="bio" className="label mt-4">
+                  Bio <span className="font-normal text-slate-400 dark:text-slate-500">({250 - bio.length} left)</span>
+                </label>
+                <textarea
+                  id="bio" maxLength={250} rows={3} value={bio}
+                  onChange={(e) => setBio(e.target.value)} className="input-flat h-auto resize-none py-2"
+                  placeholder="Ceramic certified, 10 years on daily drivers and show cars…"
+                />
+              </div>
             </div>
           </div>
 
