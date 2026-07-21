@@ -19,6 +19,7 @@ import {
   NavigationIcon,
 } from '../components/icons'
 import { useStore } from '../context/StoreContext'
+import { MAP_APPS, openInMaps } from '../lib/navigation'
 
 // Blueprint 5.3–5.5 — the detailer's gated job flow:
 // en route → arrived → damage report → before photos → start →
@@ -141,6 +142,20 @@ export default function DetailerJob() {
               <p className="mt-1 flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
                 <MapPinIcon className="h-4 w-4" /> {b.address}
               </p>
+              {b.status !== 'pending' && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {MAP_APPS.map((app) => (
+                    <button
+                      key={app.id}
+                      type="button"
+                      onClick={() => openInMaps(app.id, b.address)}
+                      className="chip press-spring cursor-pointer bg-brand-50 text-brand-700 hover:bg-brand-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:bg-white/10 dark:text-brand-200 dark:hover:bg-white/15"
+                    >
+                      <NavigationIcon className="h-3 w-3" /> {app.label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="flex items-start gap-2">
               <div className="text-right">
