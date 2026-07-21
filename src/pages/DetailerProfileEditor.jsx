@@ -84,11 +84,11 @@ export default function DetailerProfileEditor() {
             <div className="nx-card-notch-shadow absolute inset-0 rounded-[1.25rem]" aria-hidden="true" />
             <div
               className="nx-card-notch-bg absolute inset-0 rounded-[1.25rem]"
-              style={{ '--notch-r': '76px' }}
+              style={{ '--notch-r': '50px' }}
               aria-hidden="true"
             />
             <div className="relative flex flex-col items-center gap-4 px-8 pb-8 pt-4 text-center">
-              <div className="-mt-16">
+              <div className="-mt-20">
                 <AvatarUpload
                   photo={photo}
                   name={name}
