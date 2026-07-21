@@ -253,6 +253,9 @@ export function StoreProvider({ children }) {
             model: customerProfile?.vehicle_model ?? '',
             type: customerProfile?.vehicle_type ?? '',
           },
+          // Additional cars beyond the primary one — demo-only for now, no
+          // DB column yet, so this never round-trips for real accounts.
+          vehicles: [],
           referralCode: customerProfile?.referral_code ?? '',
           referralCredits: 0,
           points: 0,

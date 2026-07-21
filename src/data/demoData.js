@@ -232,6 +232,7 @@ export const DEMO_CUSTOMER = {
   photo: null,
   bio: '',
   vehicle: { make: '', model: '', type: '' },
+  vehicles: [],
   points: 4,
   pointsToNextReward: 5,
   unlockedMilestones: [],

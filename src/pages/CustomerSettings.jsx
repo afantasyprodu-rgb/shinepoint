@@ -2,9 +2,10 @@ import { useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import AppShell from '../components/AppShell'
 import AvatarUpload from '../components/AvatarUpload'
+import CarPhotoUpload from '../components/CarPhotoUpload'
 import Combobox from '../components/ui/Combobox'
 import { AnimatedPage } from '../components/ui/Motion'
-import { CheckIcon, MapPinIcon } from '../components/icons'
+import { CheckIcon, MapPinIcon, PlusIcon, TrashIcon } from '../components/icons'
 import { useStore } from '../context/StoreContext'
 import { usePaint, PAINTS } from '../context/PaintContext'
 import { LA_ZIP_CENTROIDS } from '../lib/fuzzyPin'
@@ -77,6 +78,7 @@ export default function CustomerSettings() {
   const [vehMake, setVehMake] = useState(customer.vehicle?.make ?? '')
   const [vehModel, setVehModel] = useState(customer.vehicle?.model ?? '')
   const [vehType, setVehType] = useState(customer.vehicle?.type ?? '')
+  const [vehicles, setVehicles] = useState(customer.vehicles ?? [])
   const [address, setAddress] = useState(customer.address)
   const [zip, setZip] = useState(customer.zip)
   const [saved, setSaved] = useState(false)
@@ -90,6 +92,16 @@ export default function CustomerSettings() {
     await updateCustomer({ photo: url })
   }
 
+  function addVehicle() {
+    setVehicles((vs) => [...vs, { id: `veh-${Date.now()}`, make: '', model: '', type: '', photo: null }])
+  }
+  function patchVehicle(id, patch) {
+    setVehicles((vs) => vs.map((v) => (v.id === id ? { ...v, ...patch } : v)))
+  }
+  function removeVehicle(id) {
+    setVehicles((vs) => vs.filter((v) => v.id !== id))
+  }
+
   async function save(e) {
     e.preventDefault()
     setBusy(true)
@@ -98,6 +110,7 @@ export default function CustomerSettings() {
         name,
         bio,
         vehicle: { make: vehMake, model: vehModel, type: vehType },
+        vehicles,
         address,
         zip,
       })
@@ -167,9 +180,9 @@ export default function CustomerSettings() {
             </div>
           </div>
 
-          {/* Vehicle */}
+          {/* Primary vehicle */}
           <div className="card space-y-3">
-            <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">Your vehicle</h2>
+            <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">Primary vehicle</h2>
             <p className="-mt-1 text-sm text-slate-500 dark:text-slate-400">Pre-fills your booking details.</p>
             <div className="grid grid-cols-2 gap-2">
               <Combobox
@@ -198,6 +211,74 @@ export default function CustomerSettings() {
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Additional vehicles — same fields as the primary one plus a
+              photo, since a garage can hold more than one car. */}
+          <div className="card space-y-4">
+            <div>
+              <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">Other vehicles</h2>
+              <p className="-mt-0.5 text-sm text-slate-500 dark:text-slate-400">
+                Add every car you might book a detail for.
+              </p>
+            </div>
+
+            {vehicles.map((v) => (
+              <div key={v.id} className="flex gap-3 rounded-2xl bg-brand-50/60 p-3 dark:bg-white/5">
+                <CarPhotoUpload
+                  photo={v.photo}
+                  onFile={(file) => uploadImage(file, 'vehicles')}
+                  onChange={(url) => patchVehicle(v.id, { photo: url })}
+                />
+                <div className="min-w-0 flex-1 space-y-2">
+                  <Combobox
+                    value={v.make}
+                    onChange={(val) => patchVehicle(v.id, { make: val })}
+                    options={CAR_MAKES}
+                    placeholder="Make"
+                    inputClassName="input h-10"
+                  />
+                  <Combobox
+                    value={v.model}
+                    onChange={(val) => patchVehicle(v.id, { model: val })}
+                    options={CAR_MODELS[v.make] ?? ALL_MODELS}
+                    placeholder="Model"
+                    inputClassName="input h-10"
+                  />
+                  <div className="flex flex-wrap gap-1.5">
+                    {VEHICLE_TYPES.map((t) => (
+                      <button
+                        key={t} type="button"
+                        onClick={() => patchVehicle(v.id, { type: v.type === t ? '' : t })}
+                        className={`cursor-pointer rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                          v.type === t
+                            ? 'bg-brand-600 text-white shadow-sm'
+                            : 'bg-white text-slate-600 hover:bg-brand-100 dark:bg-white/10 dark:text-slate-400 dark:hover:bg-white/15'
+                        }`}
+                      >
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeVehicle(v.id)}
+                  aria-label="Remove vehicle"
+                  className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center self-start rounded-lg text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:text-slate-500 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+                >
+                  <TrashIcon className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+
+            <button
+              type="button"
+              onClick={addVehicle}
+              className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-dashed border-brand-200 py-2.5 text-sm font-medium text-brand-700 transition-colors duration-200 hover:border-brand-400 hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:border-brand-500/30 dark:text-brand-300 dark:hover:bg-brand-500/10"
+            >
+              <PlusIcon className="h-4 w-4" /> Add another car
+            </button>
           </div>
 
           {/* Home address */}
