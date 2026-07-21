@@ -1,5 +1,6 @@
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import AppShell from '../components/AppShell'
+import EvidencePhotos from '../components/EvidencePhotos'
 import { AnimatedPage, FadeIn, Stagger, StaggerItem } from '../components/ui/Motion'
 import { Avatar, Stars, StatusPill } from '../components/ui/bits'
 import {
@@ -11,10 +12,31 @@ import {
 } from '../components/icons'
 import { useStore } from '../context/StoreContext'
 
+// before/after photo is null (no real job photo in the demo) — EvidencePhotos
+// falls back to a labeled gradient tile, same as everywhere else in the app
+// that doesn't have a real photo to show, so nothing here is fabricated.
 const FAKE_REVIEWS = [
-  { id: 1, name: 'Dana M.', rating: 5, text: 'Truck looks brand new. Sent photos the whole time.' },
-  { id: 2, name: 'Chris P.', rating: 5, text: 'On time, fast, and the interior smells amazing.' },
-  { id: 3, name: 'Sam T.', rating: 4, text: 'Great wash. Booking again next month.' },
+  {
+    id: 1,
+    name: 'Dana M.',
+    rating: 5,
+    text: 'Truck looks brand new. Sent photos the whole time.',
+    photos: [{ area: 'Before', photo: null }, { area: 'After', photo: null }],
+  },
+  {
+    id: 2,
+    name: 'Chris P.',
+    rating: 5,
+    text: 'On time, fast, and the interior smells amazing.',
+    photos: [{ area: 'Before', photo: null }, { area: 'After', photo: null }],
+  },
+  {
+    id: 3,
+    name: 'Sam T.',
+    rating: 4,
+    text: 'Great wash. Booking again next month.',
+    photos: [{ area: 'Before', photo: null }, { area: 'After', photo: null }],
+  },
 ]
 
 // Blueprint screen 2.2 — Detailer Profile
@@ -141,6 +163,11 @@ export default function DetailerProfile() {
                   <Stars rating={r.rating} className="h-3 w-3" />
                 </div>
                 <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">{r.text}</p>
+                {r.photos && (
+                  <div className="mt-3 max-w-[168px]">
+                    <EvidencePhotos items={r.photos} columns={2} />
+                  </div>
+                )}
               </div>
             </StaggerItem>
           ))}
