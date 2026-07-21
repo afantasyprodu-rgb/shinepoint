@@ -66,27 +66,57 @@ function BubbleOverlay({ onDone }) {
     resize()
     window.addEventListener('resize', resize)
 
-    // Hex-packed bubble field, spaced tighter than 2x radius so neighbors
-    // overlap even at the smallest jittered size — guarantees full coverage
-    // with no visible gaps down to the page beneath.
+    // Loose foam clusters rather than a uniform grid: scatter clump centers
+    // across a jittered coarse grid (so clumps spread out roughly evenly
+    // without looking mechanical), then pile a handful of bubbles of wildly
+    // varying size around each center, plus stray fillers scattered
+    // independently to break up any remaining pattern. Each bubble is drawn
+    // as a rotated ellipse (not a perfect circle) for an organic, non-uniform
+    // blob shape. The opaque base wash painted every fill-phase frame means
+    // this field doesn't need to geometrically tile the screen — it's free
+    // to be gappy and irregular, like real foam.
     const baseR = Math.max(22, Math.min(width, height) / 11)
-    const spacing = baseR * 1.42
-    const rowH = spacing * 0.87
+    const clusterSpacing = baseR * 3.4
     const bubbles = []
-    let row = 0
-    for (let y = -baseR; y < height + baseR; y += rowH) {
-      const xOffset = row % 2 === 0 ? 0 : spacing / 2
-      for (let x = -baseR + xOffset; x < width + baseR; x += spacing) {
-        bubbles.push({
-          x: x + randRange(-4, 4),
-          y: y + randRange(-4, 4),
-          r: baseR * randRange(0.78, 1.18),
-          fillDelay: randRange(0, FILL_DURATION * 0.55),
-          popped: false,
-        })
-      }
-      row++
+
+    function addBubble(x, y, r) {
+      bubbles.push({
+        x,
+        y,
+        r,
+        rx: r * randRange(0.8, 1.25),
+        ry: r * randRange(0.8, 1.25),
+        rot: Math.random() * Math.PI,
+        fillDelay: randRange(0, FILL_DURATION * 0.55),
+        popped: false,
+      })
     }
+
+    for (let gy = -clusterSpacing; gy < height + clusterSpacing; gy += clusterSpacing) {
+      for (let gx = -clusterSpacing; gx < width + clusterSpacing; gx += clusterSpacing) {
+        const centerX = gx + randRange(-clusterSpacing * 0.4, clusterSpacing * 0.4)
+        const centerY = gy + randRange(-clusterSpacing * 0.4, clusterSpacing * 0.4)
+        const clusterScale = baseR * randRange(0.55, 1.6) // some clumps run big, some tiny
+        const count = Math.round(randRange(3, 7))
+        for (let i = 0; i < count; i++) {
+          const ang = Math.random() * Math.PI * 2
+          const dist = randRange(0, clusterScale * 1.2)
+          addBubble(
+            centerX + Math.cos(ang) * dist,
+            centerY + Math.sin(ang) * dist,
+            clusterScale * randRange(0.45, 1.2)
+          )
+        }
+      }
+    }
+    // Stray fillers scattered independently of any cluster, sized much more
+    // freely (some tiny, some big outliers) to keep the field from ever
+    // reading as a repeated stamp.
+    const fillerCount = Math.round((width * height) / (baseR * baseR * 7))
+    for (let i = 0; i < fillerCount; i++) {
+      addBubble(randRange(0, width), randRange(0, height), baseR * randRange(0.2, 1.4))
+    }
+
     // Pop wave radiates outward from the viewport center, with jitter so it
     // reads as organic bursting rather than a perfect ripple.
     const cx = width / 2
@@ -101,13 +131,22 @@ function BubbleOverlay({ onDone }) {
     let raf
     let filling = true
 
-    function drawBubble(x, y, r) {
-      const grad = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, 0, x, y, r)
+    // scale is the 0..1 grow-in progress; b.rx/b.ry are the bubble's settled
+    // (irregular) radii, so the whole ellipse — not just a circle — scales
+    // in together.
+    function drawBubble(b, scale) {
+      const rx = b.rx * scale
+      const ry = b.ry * scale
+      const rMax = Math.max(rx, ry)
+      ctx.save()
+      ctx.translate(b.x, b.y)
+      ctx.rotate(b.rot)
+      const grad = ctx.createRadialGradient(-rx * 0.3, -ry * 0.3, 0, 0, 0, rMax)
       grad.addColorStop(0, `hsla(${settings.hue}, 90%, 88%, 0.92)`)
       grad.addColorStop(0.6, `hsla(${settings.hue}, 85%, 76%, 0.88)`)
       grad.addColorStop(1, `hsla(${settings.hue}, 80%, 62%, 0.85)`)
       ctx.beginPath()
-      ctx.arc(x, y, r, 0, Math.PI * 2)
+      ctx.ellipse(0, 0, Math.max(rx, 0.1), Math.max(ry, 0.1), 0, 0, Math.PI * 2)
       ctx.fillStyle = grad
       ctx.fill()
       ctx.lineWidth = 1.25
@@ -115,9 +154,10 @@ function BubbleOverlay({ onDone }) {
       ctx.stroke()
       // Specular highlight — the classic glossy-sphere cue that reads "wet."
       ctx.beginPath()
-      ctx.arc(x - r * 0.32, y - r * 0.32, Math.max(r * 0.22, 1), 0, Math.PI * 2)
+      ctx.ellipse(-rx * 0.32, -ry * 0.32, Math.max(rx * 0.22, 1), Math.max(ry * 0.22, 1), 0, 0, Math.PI * 2)
       ctx.fillStyle = 'rgba(255,255,255,0.75)'
       ctx.fill()
+      ctx.restore()
     }
 
     function tick(now) {
@@ -132,8 +172,8 @@ function BubbleOverlay({ onDone }) {
         ctx.fillRect(0, 0, width, height)
         for (const b of bubbles) {
           const localT = Math.min(Math.max((elapsed - b.fillDelay) / (FILL_DURATION * 0.6), 0), 1)
-          const r = b.r * easeOutCubic(localT)
-          if (r > 0.5) drawBubble(b.x, b.y, r)
+          const scale = easeOutCubic(localT)
+          if (scale > 0.02) drawBubble(b, scale)
         }
         if (elapsed >= FILL_DURATION + HOLD) filling = false
         raf = requestAnimationFrame(tick)
@@ -153,19 +193,27 @@ function BubbleOverlay({ onDone }) {
         const popT = Math.min((popElapsed - b.popDelay) / POP_DUR, 1)
         if (popT < 1) allDone = false
 
-        // Thin expanding ring flourish so it reads as bursting, not blinking out.
-        const ringR = b.r * (1 + easeInCubic(popT) * 0.9)
+        // Thin expanding ring flourish (matching the bubble's own ellipse
+        // shape/rotation) so it reads as bursting, not blinking out.
+        const growth = 1 + easeInCubic(popT) * 0.9
+        ctx.save()
+        ctx.translate(b.x, b.y)
+        ctx.rotate(b.rot)
         ctx.beginPath()
-        ctx.arc(b.x, b.y, ringR, 0, Math.PI * 2)
+        ctx.ellipse(0, 0, b.rx * growth, b.ry * growth, 0, 0, Math.PI * 2)
         ctx.lineWidth = 2
         ctx.strokeStyle = `hsla(${settings.hue}, 85%, 85%, ${(1 - popT) * 0.8})`
         ctx.stroke()
+        ctx.restore()
 
         // Punch straight through the canvas, revealing the page beneath.
+        const eraseGrowth = 0.55 + popT * 0.75
         ctx.save()
+        ctx.translate(b.x, b.y)
+        ctx.rotate(b.rot)
         ctx.globalCompositeOperation = 'destination-out'
         ctx.beginPath()
-        ctx.arc(b.x, b.y, b.r * (0.55 + popT * 0.75), 0, Math.PI * 2)
+        ctx.ellipse(0, 0, b.rx * eraseGrowth, b.ry * eraseGrowth, 0, 0, Math.PI * 2)
         ctx.fillStyle = 'rgba(0,0,0,1)'
         ctx.fill()
         ctx.restore()
@@ -173,11 +221,19 @@ function BubbleOverlay({ onDone }) {
         if (popT >= 1) b.popped = true
       }
 
-      if (!allDone) {
-        raf = requestAnimationFrame(tick)
-      } else {
+      if (allDone) {
+        // Clustered/irregular placement doesn't geometrically tile the
+        // screen the way a grid did, so a thin residual wash can survive
+        // between clumps — one final full clear guarantees a clean reveal
+        // instead of leaving color flecks behind. By this point almost
+        // everything has already popped away, so the snap reads as the last
+        // wisp clearing rather than a visible cut.
+        ctx.clearRect(0, 0, width, height)
         onDone()
+        return
       }
+
+      raf = requestAnimationFrame(tick)
     }
 
     raf = requestAnimationFrame(tick)
