@@ -6,12 +6,14 @@ import { GalleryGrid } from './ProfileSetup'
 import { AnimatedPage } from '../components/ui/Motion'
 import { CheckIcon, TrashIcon, PlusIcon } from '../components/icons'
 import { useStore } from '../context/StoreContext'
+import { useTiltShadow } from '../hooks/useTiltShadow'
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
 export default function DetailerProfileEditor() {
   const { myDetailer, setAvailability, uploadImage, updateDetailerMe, updateMyServices } = useStore()
   const me = myDetailer ?? {}
+  const tiltRef = useTiltShadow()
 
   const [photo, setPhoto] = useState(me.photo ?? null)
   const [name, setName] = useState(me.name ?? '')
@@ -80,7 +82,7 @@ export default function DetailerProfileEditor() {
           {/* Identity — avatar straddles a notch carved into the card's top
               edge (same masked-layer technique as the bottom tab bar's
               notch), instead of just floating over an intact edge. */}
-          <div className="relative mt-12">
+          <div ref={tiltRef} className="relative mt-12">
             <div className="nx-card-notch-shadow absolute inset-0 rounded-[2rem]" aria-hidden="true" />
             <div
               className="nx-card-notch-bg absolute inset-0 rounded-[2rem]"

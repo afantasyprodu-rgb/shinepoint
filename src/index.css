@@ -1057,11 +1057,16 @@
    on top of both so they're never clipped by the hole. */
 /* Bubbly + floating: a big, soft, single-direction shadow (no counter-highlight
    on the opposite corner) reads as "hovering above the surface" rather than the
-   dual-direction neumorphic "pressed into the surface" look used elsewhere. */
+   dual-direction neumorphic "pressed into the surface" look used elsewhere.
+   --tilt-x/--tilt-y are set on the .relative ancestor by useTiltShadow() from
+   the phone's live orientation (they're inherited custom properties, hence no
+   fallback needed here beyond the hook's own `var(x, 0px)` default on desktop
+   where the hook never runs) — tilting the phone shifts both shadow layers so
+   the card reads as catching light from a fixed overhead source. */
 .nx-card-notch-shadow {
   box-shadow:
-    0 22px 45px -14px color-mix(in srgb, var(--neu-sd) 75%, transparent),
-    0 8px 18px -6px color-mix(in srgb, var(--neu-sd) 55%, transparent);
+    calc(var(--tilt-x, 0px) * -1) calc(22px + var(--tilt-y, 0px)) 45px -14px color-mix(in srgb, var(--neu-sd) 75%, transparent),
+    calc(var(--tilt-x, 0px) * -0.4) calc(8px + var(--tilt-y, 0px) * 0.4) 18px -6px color-mix(in srgb, var(--neu-sd) 55%, transparent);
 }
 .nx-card-notch-bg {
   background: var(--neu-bg);

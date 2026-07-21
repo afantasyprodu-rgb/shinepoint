@@ -10,6 +10,7 @@ import { useStore } from '../context/StoreContext'
 import { usePaint, PAINTS } from '../context/PaintContext'
 import { LA_ZIP_CENTROIDS } from '../lib/fuzzyPin'
 import { CAR_MAKES, CAR_MODELS } from '../lib/vehicleData'
+import { useTiltShadow } from '../hooks/useTiltShadow'
 
 const ALL_MODELS = Object.values(CAR_MODELS).flat()
 
@@ -71,6 +72,7 @@ function GarageCard({ make, model, type }) {
 
 export default function CustomerSettings() {
   const { customer, uploadImage, updateCustomer } = useStore()
+  const tiltRef = useTiltShadow()
 
   const [photo, setPhoto] = useState(customer.photo ?? null)
   const [name, setName] = useState(customer.name)
@@ -128,7 +130,7 @@ export default function CustomerSettings() {
 
         {/* Identity card — avatar straddles a notch carved into the card's
             top edge, same treatment as the detailer profile editor. */}
-        <div className="relative mt-16">
+        <div ref={tiltRef} className="relative mt-16">
           <div className="nx-card-notch-shadow absolute inset-0 rounded-[2rem]" aria-hidden="true" />
           <div
             className="nx-card-notch-bg absolute inset-0 rounded-[2rem]"
