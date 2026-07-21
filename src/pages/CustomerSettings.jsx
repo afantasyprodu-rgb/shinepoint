@@ -2,11 +2,15 @@ import { useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import AppShell from '../components/AppShell'
 import AvatarUpload from '../components/AvatarUpload'
+import Combobox from '../components/ui/Combobox'
 import { AnimatedPage } from '../components/ui/Motion'
 import { CheckIcon, MapPinIcon } from '../components/icons'
 import { useStore } from '../context/StoreContext'
 import { usePaint, PAINTS } from '../context/PaintContext'
 import { LA_ZIP_CENTROIDS } from '../lib/fuzzyPin'
+import { CAR_MAKES, CAR_MODELS } from '../lib/vehicleData'
+
+const ALL_MODELS = Object.values(CAR_MODELS).flat()
 
 const VEHICLE_TYPES = ['Sedan', 'SUV', 'Truck', 'Van', 'Coupe', 'EV']
 
@@ -152,13 +156,17 @@ export default function CustomerSettings() {
             <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">Your vehicle</h2>
             <p className="-mt-1 text-sm text-slate-500 dark:text-slate-400">Pre-fills your booking details.</p>
             <div className="grid grid-cols-2 gap-2">
-              <input
-                type="text" value={vehMake} onChange={(e) => setVehMake(e.target.value)}
-                className="input" placeholder="Make (Toyota)"
+              <Combobox
+                value={vehMake}
+                onChange={setVehMake}
+                options={CAR_MAKES}
+                placeholder="Make (Toyota)"
               />
-              <input
-                type="text" value={vehModel} onChange={(e) => setVehModel(e.target.value)}
-                className="input" placeholder="Model (RAV4)"
+              <Combobox
+                value={vehModel}
+                onChange={setVehModel}
+                options={CAR_MODELS[vehMake] ?? ALL_MODELS}
+                placeholder="Model (RAV4)"
               />
             </div>
             <div className="flex flex-wrap gap-2">

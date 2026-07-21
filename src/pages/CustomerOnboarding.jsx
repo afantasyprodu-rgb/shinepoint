@@ -2,11 +2,14 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import Logo from '../components/Logo'
+import Combobox from '../components/ui/Combobox'
 import { CarIcon, MapPinIcon } from '../components/icons'
 import { useStore } from '../context/StoreContext'
 import { LA_ZIP_CENTROIDS } from '../lib/fuzzyPin'
+import { CAR_MAKES, CAR_MODELS } from '../lib/vehicleData'
 
 const VEHICLE_TYPES = ['Sedan', 'SUV', 'Truck', 'Van', 'Coupe', 'EV']
+const ALL_MODELS = Object.values(CAR_MODELS).flat()
 
 const ease = [0.16, 1, 0.3, 1]
 
@@ -97,18 +100,28 @@ export default function CustomerOnboarding() {
               <div className="grid grid-cols-2 gap-2.5">
                 <div className="auth-field">
                   <label className="auth-label">Make</label>
-                  <input
-                    type="text" autoComplete="off" value={make}
-                    onChange={(e) => setMake(e.target.value)}
-                    placeholder="Toyota" className="auth-input"
+                  <Combobox
+                    value={make}
+                    onChange={setMake}
+                    options={CAR_MAKES}
+                    placeholder="Toyota"
+                    inputClassName="auth-input"
+                    panelClassName="bg-[var(--auth-bg)] shadow-[8px_8px_18px_var(--auth-sd),-8px_-8px_18px_var(--auth-sl)]"
+                    optionClassName="text-white/70"
+                    optionHighlightClassName="bg-white/10 text-white"
                   />
                 </div>
                 <div className="auth-field">
                   <label className="auth-label">Model</label>
-                  <input
-                    type="text" autoComplete="off" value={model}
-                    onChange={(e) => setModel(e.target.value)}
-                    placeholder="Camry" className="auth-input"
+                  <Combobox
+                    value={model}
+                    onChange={setModel}
+                    options={CAR_MODELS[make] ?? ALL_MODELS}
+                    placeholder="Camry"
+                    inputClassName="auth-input"
+                    panelClassName="bg-[var(--auth-bg)] shadow-[8px_8px_18px_var(--auth-sd),-8px_-8px_18px_var(--auth-sl)]"
+                    optionClassName="text-white/70"
+                    optionHighlightClassName="bg-white/10 text-white"
                   />
                 </div>
               </div>

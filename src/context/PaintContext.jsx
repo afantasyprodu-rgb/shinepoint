@@ -17,6 +17,14 @@ export const PAINTS = [
   { hex: '#3e7c5b', name: 'Racing Green' },
   { hex: '#7c5a2e', name: 'Desert Bronze' },
   { hex: '#2a2d34', name: 'Midnight Black' },
+  { hex: '#b9bcc0', name: 'Alpine Silver' },
+  { hex: '#c1622b', name: 'Sunset Orange' },
+  { hex: '#d1a125', name: 'Solar Yellow' },
+  { hex: '#1f2a44', name: 'Deep Navy' },
+  { hex: '#9c8a5e', name: 'Champagne Gold' },
+  { hex: '#5b3a66', name: 'Plum Purple' },
+  { hex: '#2a6f74', name: 'Coastal Teal' },
+  { hex: '#6e2430', name: 'Cherry Maroon' },
 ]
 
 // Relative luminance (WCAG) — used to clamp near-white/near-black paints so

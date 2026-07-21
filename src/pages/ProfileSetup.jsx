@@ -3,12 +3,15 @@ import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import Logo from '../components/Logo'
 import AvatarUpload from '../components/AvatarUpload'
+import Combobox from '../components/ui/Combobox'
 import { AnimatedPage } from '../components/ui/Motion'
 import { ArrowRightIcon, CheckIcon, SparklesIcon } from '../components/icons'
 import { useAuth, homePathForRole } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
+import { CAR_MAKES, CAR_MODELS } from '../lib/vehicleData'
 
 const VEHICLE_TYPES = ['Sedan', 'SUV', 'Truck', 'Van', 'Coupe', 'EV']
+const ALL_MODELS = Object.values(CAR_MODELS).flat()
 
 // Shown right after signup. Step 1 lets the user choose to customize now or
 // skip; step 2 is a role-aware photo + details form. Reachable any time at
@@ -168,13 +171,17 @@ export default function ProfileSetup() {
                   <div>
                     <p className="label">Your vehicle</p>
                     <div className="grid grid-cols-2 gap-2">
-                      <input
-                        type="text" value={vehMake} onChange={(e) => setVehMake(e.target.value)}
-                        className="input" placeholder="Make (Toyota)"
+                      <Combobox
+                        value={vehMake}
+                        onChange={setVehMake}
+                        options={CAR_MAKES}
+                        placeholder="Make (Toyota)"
                       />
-                      <input
-                        type="text" value={vehModel} onChange={(e) => setVehModel(e.target.value)}
-                        className="input" placeholder="Model (RAV4)"
+                      <Combobox
+                        value={vehModel}
+                        onChange={setVehModel}
+                        options={CAR_MODELS[vehMake] ?? ALL_MODELS}
+                        placeholder="Model (RAV4)"
                       />
                     </div>
                     <div className="mt-2 flex flex-wrap gap-2">
