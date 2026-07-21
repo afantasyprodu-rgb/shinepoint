@@ -129,9 +129,9 @@ export default function CustomerSettings() {
         {/* Identity card — avatar straddles a notch carved into the card's
             top edge, same treatment as the detailer profile editor. */}
         <div className="relative mt-16">
-          <div className="nx-card-notch-shadow absolute inset-0 rounded-[1.25rem]" aria-hidden="true" />
+          <div className="nx-card-notch-shadow absolute inset-0 rounded-[2rem]" aria-hidden="true" />
           <div
-            className="nx-card-notch-bg absolute inset-0 rounded-[1.25rem]"
+            className="nx-card-notch-bg absolute inset-0 rounded-[2rem]"
             style={{ '--notch-r': '50px' }}
             aria-hidden="true"
           />

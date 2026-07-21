@@ -81,9 +81,9 @@ export default function DetailerProfileEditor() {
               edge (same masked-layer technique as the bottom tab bar's
               notch), instead of just floating over an intact edge. */}
           <div className="relative mt-12">
-            <div className="nx-card-notch-shadow absolute inset-0 rounded-[1.25rem]" aria-hidden="true" />
+            <div className="nx-card-notch-shadow absolute inset-0 rounded-[2rem]" aria-hidden="true" />
             <div
-              className="nx-card-notch-bg absolute inset-0 rounded-[1.25rem]"
+              className="nx-card-notch-bg absolute inset-0 rounded-[2rem]"
               style={{ '--notch-r': '50px' }}
               aria-hidden="true"
             />

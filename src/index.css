@@ -1055,8 +1055,13 @@
    behind .nx-card-notch-bg (masked, carries the fill + cutout, no shadow
    of its own). The avatar and fields render in a normal unmasked sibling
    on top of both so they're never clipped by the hole. */
+/* Bubbly + floating: a big, soft, single-direction shadow (no counter-highlight
+   on the opposite corner) reads as "hovering above the surface" rather than the
+   dual-direction neumorphic "pressed into the surface" look used elsewhere. */
 .nx-card-notch-shadow {
-  box-shadow: 8px 8px 18px var(--neu-sd), -8px -8px 18px var(--neu-sl);
+  box-shadow:
+    0 22px 45px -14px color-mix(in srgb, var(--neu-sd) 75%, transparent),
+    0 8px 18px -6px color-mix(in srgb, var(--neu-sd) 55%, transparent);
 }
 .nx-card-notch-bg {
   background: var(--neu-bg);
