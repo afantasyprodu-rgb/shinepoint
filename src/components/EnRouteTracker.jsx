@@ -6,6 +6,11 @@ import { isMapboxConfigured } from './DetailerMap'
 import { LA_ZIP_CENTROIDS, milesBetween } from '../lib/fuzzyPin'
 import { ClockIcon, AlertTriangleIcon, MapPinIcon } from './icons'
 
+// mapboxgl throws immediately on `new mapboxgl.Map(...)` if this isn't set
+// first — nothing else in the app sets it (the main discovery map runs on
+// Leaflet/OSM, token-free), so this was the only place it was ever needed.
+if (isMapboxConfigured()) mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN
+
 // Simulated live tracking for the En route stage. No real GPS in demo, so the
 // detailer drives a deterministic line from ~2.5 mi out to the customer's zip
 // centroid. Renders real Mapbox tiles when a token is set, else a stylized box.
