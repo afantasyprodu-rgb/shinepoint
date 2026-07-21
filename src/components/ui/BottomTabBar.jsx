@@ -26,11 +26,13 @@ export default function BottomTabBar({ items, layoutId }) {
       style={{ '--tab-notch-x': notchX }}
     >
       {/* Visual layer only — the notch cutout lives here so it never masks
-          the bubble/icons in the nav layer above it (see index.css). */}
-      <div
-        aria-hidden="true"
-        className="bottom-tabbar-bg absolute inset-0 bg-[var(--neu-bg)] shadow-[0_-8px_20px_-10px_var(--neu-sd)]"
-      />
+          the bubble/icons in the nav layer above it (see index.css). Split
+          across two divs, not one: mask-image suppresses an element's own
+          box-shadow entirely in this engine, so the shadow needs its own
+          unmasked layer underneath the masked fill (see the profile card's
+          identical fix/comment in index.css for how this was found). */}
+      <div aria-hidden="true" className="absolute inset-0 shadow-[0_-8px_20px_-10px_var(--neu-sd)]" />
+      <div aria-hidden="true" className="bottom-tabbar-bg absolute inset-0 bg-[var(--neu-bg)]" />
       <nav aria-label="Main mobile" className="relative flex">
         {items.map(({ to, label, end, icon: ItemIcon, badge }) => (
         <NavLink
