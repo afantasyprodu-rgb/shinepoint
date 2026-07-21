@@ -20,6 +20,15 @@ import {
 } from '../components/icons'
 import { useStore } from '../context/StoreContext'
 
+// Half the tick hit-target (.job-progress-tick is 2.75rem) — insetting every
+// tick position by this amount keeps the end ticks' centers a full radius
+// inside the track, so tick 1 and tick 6 sit flush with the pill's rounded
+// caps instead of straddling half on / half off the edge.
+const TICK_R = '1.375rem'
+function tickPos(i, count) {
+  return `calc(${TICK_R} + (100% - ${TICK_R} * 2) * ${i} / ${count - 1})`
+}
+
 const TIMELINE = ['pending', 'accepted', 'en_route', 'arrived', 'in_progress', 'complete']
 const TIMELINE_LABELS = {
   pending: 'Booked',
@@ -152,15 +161,15 @@ const shownStage = openStage ?? stageIdx
           {/* Timeline — every dot is tappable to preview that stage's process */}
           {b.status !== 'cancelled' && b.status !== 'disputed' && (
             <>
-              {/* mx-1 (was mx-3.5): tick 1/tick 6 center exactly on the
-                  track's edge, so the end numbers sat half on the bar, half
-                  off it. Shrinking the side margin stretches the bar out to
-                  where those numbers actually sit instead. */}
-              <div className="job-progress-track mt-8 mx-1" aria-label="Job progress">
+              {/* Every tick position (and the fill/ball that ride the same
+                  track) is inset by TICK_R so tick 1 and tick 6 sit flush
+                  inside the pill's rounded caps instead of centered right on
+                  the edge, half hanging off. */}
+              <div className="job-progress-track mt-8" aria-label="Job progress">
                 <motion.div
                   className="job-progress-fill"
                   initial={false}
-                  animate={{ width: `${(stageIdx / (TIMELINE.length - 1)) * 100}%` }}
+                  animate={{ width: tickPos(stageIdx, TIMELINE.length) }}
                   transition={{ type: 'spring', stiffness: 140, damping: 20 }}
                 />
                 {TIMELINE.map((stage, i) => (
@@ -171,7 +180,7 @@ const shownStage = openStage ?? stageIdx
                     aria-label={`${TIMELINE_LABELS[stage]} — see what happens`}
                     aria-expanded={shownStage === i}
                     className={`job-progress-tick ${i <= stageIdx ? 'text-white' : 'text-slate-600 dark:text-slate-300'}`}
-                    style={{ left: `${(i / (TIMELINE.length - 1)) * 100}%` }}
+                    style={{ left: tickPos(i, TIMELINE.length) }}
                   >
                     {i < stageIdx ? <CheckIcon className="h-3 w-3" /> : i + 1}
                   </button>
@@ -179,7 +188,7 @@ const shownStage = openStage ?? stageIdx
                 <motion.div
                   className="job-progress-ball-wrap"
                   initial={false}
-                  animate={{ left: `${(shownStage / (TIMELINE.length - 1)) * 100}%` }}
+                  animate={{ left: tickPos(shownStage, TIMELINE.length) }}
                   transition={{ type: 'spring', stiffness: 140, damping: 20 }}
                 >
                   <div className="job-progress-ball" />
