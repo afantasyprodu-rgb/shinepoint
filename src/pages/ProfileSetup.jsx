@@ -128,89 +128,101 @@ export default function ProfileSetup() {
               onSubmit={handleSave}
               className="flex flex-1 flex-col"
             >
-              <div className="card space-y-5">
-                <h2 className="text-center font-display text-lg font-bold text-slate-900 dark:text-slate-100">
-                  Your profile
-                </h2>
+              <h2 className="text-center font-display text-lg font-bold text-slate-900 dark:text-slate-100">
+                Your profile
+              </h2>
 
-                <AvatarUpload
-                  photo={photo}
-                  name={name}
-                  size="xl"
-                  onFile={(file) => uploadImage(file, 'avatars')}
-                  onChange={setPhoto}
+              <div className="relative mt-12">
+                <div className="nx-card-notch-shadow absolute inset-0 rounded-[1.25rem]" aria-hidden="true" />
+                <div
+                  className="nx-card-notch-bg absolute inset-0 rounded-[1.25rem]"
+                  style={{ '--notch-r': '50px' }}
+                  aria-hidden="true"
                 />
-
-                <div>
-                  <label htmlFor="name" className="label">Display name</label>
-                  <input
-                    id="name" type="text" value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="input" placeholder="Your name"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="bio" className="label">
-                    {isDetailer ? 'About your service' : 'About you'}{' '}
-                    <span className="font-normal text-slate-400 dark:text-slate-500">({250 - bio.length} left)</span>
-                  </label>
-                  <textarea
-                    id="bio" rows={3} maxLength={250} value={bio}
-                    onChange={(e) => setBio(e.target.value)}
-                    className="input h-auto resize-none py-2"
-                    placeholder={
-                      isDetailer
-                        ? 'Ceramic certified, 10 years on daily drivers and show cars…'
-                        : 'Anything your detailer should know — gate codes, pets, parking…'
-                    }
-                  />
-                </div>
-
-                {!isDetailer && (
-                  <div>
-                    <p className="label">Your vehicle</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Combobox
-                        value={vehMake}
-                        onChange={setVehMake}
-                        options={CAR_MAKES}
-                        placeholder="Make (Toyota)"
-                      />
-                      <Combobox
-                        value={vehModel}
-                        onChange={setVehModel}
-                        options={CAR_MODELS[vehMake] ?? ALL_MODELS}
-                        placeholder="Model (RAV4)"
+                <div className="relative space-y-5 px-8 pb-8 pt-4">
+                  <div className="flex justify-center">
+                    <div className="-mt-20">
+                      <AvatarUpload
+                        photo={photo}
+                        name={name}
+                        size="xl"
+                        onFile={(file) => uploadImage(file, 'avatars')}
+                        onChange={setPhoto}
                       />
                     </div>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {VEHICLE_TYPES.map((t) => (
-                        <button
-                          key={t} type="button"
-                          onClick={() => setVehType(t)}
-                          className={`cursor-pointer rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
-                            vehType === t
-                              ? 'bg-brand-600 text-white shadow-sm'
-                              : 'bg-brand-50 text-slate-600 hover:bg-brand-100 dark:bg-white/5 dark:text-slate-400 dark:hover:bg-white/10'
-                          }`}
-                        >
-                          {t}
-                        </button>
-                      ))}
-                    </div>
                   </div>
-                )}
 
-                {isDetailer && (
                   <div>
-                    <p className="label">Portfolio gallery</p>
-                    <p className="-mt-1 mb-2 text-xs text-slate-400 dark:text-slate-500">
-                      Show off your best work — these appear on your public profile.
-                    </p>
-                    <GalleryGrid gallery={gallery} setGallery={setGallery} onAdd={addGalleryPhoto} />
+                    <label htmlFor="name" className="label">Display name</label>
+                    <input
+                      id="name" type="text" value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="input-flat" placeholder="Your name"
+                    />
                   </div>
-                )}
+
+                  <div>
+                    <label htmlFor="bio" className="label">
+                      {isDetailer ? 'About your service' : 'About you'}{' '}
+                      <span className="font-normal text-slate-400 dark:text-slate-500">({250 - bio.length} left)</span>
+                    </label>
+                    <textarea
+                      id="bio" rows={3} maxLength={250} value={bio}
+                      onChange={(e) => setBio(e.target.value)}
+                      className="input-flat h-auto resize-none py-2"
+                      placeholder={
+                        isDetailer
+                          ? 'Ceramic certified, 10 years on daily drivers and show cars…'
+                          : 'Anything your detailer should know — gate codes, pets, parking…'
+                      }
+                    />
+                  </div>
+
+                  {!isDetailer && (
+                    <div>
+                      <p className="label">Your vehicle</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Combobox
+                          value={vehMake}
+                          onChange={setVehMake}
+                          options={CAR_MAKES}
+                          placeholder="Make (Toyota)"
+                        />
+                        <Combobox
+                          value={vehModel}
+                          onChange={setVehModel}
+                          options={CAR_MODELS[vehMake] ?? ALL_MODELS}
+                          placeholder="Model (RAV4)"
+                        />
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {VEHICLE_TYPES.map((t) => (
+                          <button
+                            key={t} type="button"
+                            onClick={() => setVehType(t)}
+                            className={`cursor-pointer rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
+                              vehType === t
+                                ? 'bg-brand-600 text-white shadow-sm'
+                                : 'bg-brand-50 text-slate-600 hover:bg-brand-100 dark:bg-white/5 dark:text-slate-400 dark:hover:bg-white/10'
+                            }`}
+                          >
+                            {t}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {isDetailer && (
+                    <div>
+                      <p className="label">Portfolio gallery</p>
+                      <p className="-mt-1 mb-2 text-xs text-slate-400 dark:text-slate-500">
+                        Show off your best work — these appear on your public profile.
+                      </p>
+                      <GalleryGrid gallery={gallery} setGallery={setGallery} onAdd={addGalleryPhoto} />
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="mt-5 flex gap-2">

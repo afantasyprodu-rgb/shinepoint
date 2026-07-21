@@ -113,20 +113,31 @@ export default function CustomerSettings() {
       <AnimatedPage className="mx-auto max-w-xl px-4 py-8 sm:px-6">
         <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">Account</h1>
 
-        {/* Identity card */}
-        <div className="card mt-6 flex flex-col items-center gap-3 text-center">
-          <AvatarUpload
-            photo={photo}
-            name={name}
-            size="xl"
-            onFile={(file) => uploadImage(file, 'avatars')}
-            onChange={changePhoto}
+        {/* Identity card — avatar straddles a notch carved into the card's
+            top edge, same treatment as the detailer profile editor. */}
+        <div className="relative mt-16">
+          <div className="nx-card-notch-shadow absolute inset-0 rounded-[1.25rem]" aria-hidden="true" />
+          <div
+            className="nx-card-notch-bg absolute inset-0 rounded-[1.25rem]"
+            style={{ '--notch-r': '50px' }}
+            aria-hidden="true"
           />
-          <div>
-            <p className="font-display text-lg font-semibold text-slate-900 dark:text-slate-100">{name}</p>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              {customer.points} loyalty point{customer.points !== 1 && 's'} · ${customer.referralCredits} referral credit
-            </p>
+          <div className="relative flex flex-col items-center gap-3 px-8 pb-8 pt-4 text-center">
+            <div className="-mt-20">
+              <AvatarUpload
+                photo={photo}
+                name={name}
+                size="xl"
+                onFile={(file) => uploadImage(file, 'avatars')}
+                onChange={changePhoto}
+              />
+            </div>
+            <div>
+              <p className="font-display text-lg font-semibold text-slate-900 dark:text-slate-100">{name}</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                {customer.points} loyalty point{customer.points !== 1 && 's'} · ${customer.referralCredits} referral credit
+              </p>
+            </div>
           </div>
         </div>
 
