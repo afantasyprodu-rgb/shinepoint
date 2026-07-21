@@ -106,7 +106,7 @@ export async function fetchDetailers() {
 export async function fetchCustomerProfile(userId) {
   const { data, error } = await supabase
     .from('customer_profiles')
-    .select('id, referral_code, default_address, default_zip, profile_photo_url, bio, vehicle_make, vehicle_model, vehicle_type')
+    .select('id, referral_code, default_address, default_zip, profile_photo_url, bio, vehicle_make, vehicle_model, vehicle_type, vehicles')
     .eq('user_id', userId)
     .single()
   if (error) {

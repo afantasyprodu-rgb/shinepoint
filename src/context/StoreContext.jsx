@@ -253,9 +253,8 @@ export function StoreProvider({ children }) {
             model: customerProfile?.vehicle_model ?? '',
             type: customerProfile?.vehicle_type ?? '',
           },
-          // Additional cars beyond the primary one — demo-only for now, no
-          // DB column yet, so this never round-trips for real accounts.
-          vehicles: [],
+          // Additional cars beyond the primary one (013_customer_vehicles.sql).
+          vehicles: customerProfile?.vehicles ?? [],
           referralCode: customerProfile?.referral_code ?? '',
           referralCredits: 0,
           points: 0,
@@ -313,8 +312,9 @@ export function StoreProvider({ children }) {
       },
 
       // Update the customer profile. `patch` uses app-shaped keys (name, address,
-      // zip, photo, bio, vehicle:{make,model,type}); we map to DB columns for the
-      // real path and merge straight into demo state.
+      // zip, photo, bio, vehicle:{make,model,type}, vehicles:[{id,make,model,
+      // type,photo}]); we map to DB columns for the real path and merge
+      // straight into demo state.
       async updateCustomer(patch) {
         if (isDemo) { setDemoCustomer((c) => ({ ...c, ...patch })); return }
         if (!profile?.id) return
@@ -329,6 +329,7 @@ export function StoreProvider({ children }) {
           cols.vehicle_model = patch.vehicle.model ?? ''
           cols.vehicle_type = patch.vehicle.type ?? ''
         }
+        if (patch.vehicles) cols.vehicles = patch.vehicles
         if (Object.keys(cols).length) {
           await updateCustomerProfile(profile.id, cols)
           setCustomerProfile((cp) => ({ ...(cp ?? {}), ...cols }))
