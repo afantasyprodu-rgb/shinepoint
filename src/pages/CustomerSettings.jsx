@@ -17,9 +17,12 @@ const VEHICLE_TYPES = ['Sedan', 'SUV', 'Truck', 'Van', 'Coupe', 'EV']
 // "Your garage" — the paint accent is sampled from the customer's car photo
 // (on-device in production); the swatches are the manual override. Only these
 // personal surfaces read --accent — never the app chrome.
-function GarageCard() {
+function GarageCard({ make, model, type }) {
   const { accent, setAccent } = usePaint()
   const current = PAINTS.find((p) => p.hex.toLowerCase() === accent.toLowerCase())
+
+  const title = [make, model].filter(Boolean).join(' ') || type || 'Your vehicle'
+  const hasVehicle = Boolean(make || model || type)
 
   return (
     <div className="card mt-4">
@@ -29,13 +32,15 @@ function GarageCard() {
       </p>
 
       <div className="paint-surface mt-4 rounded-2xl p-5">
-        <p className="font-display text-lg font-bold">2021 Tesla Model 3</p>
+        <p className="font-display text-lg font-bold">{title}</p>
         <p className="mt-0.5 text-sm text-white/85">
-          {current?.name ?? 'Custom paint'} · 7,200 mi since last detail
+          {hasVehicle ? current?.name ?? 'Custom paint' : 'Add your make/model below to personalize this card'}
         </p>
-        <span className="mt-3 inline-block rounded-full border border-white/35 bg-white/20 px-3 py-1 text-xs font-semibold">
-          Accent sampled from your paint
-        </span>
+        {hasVehicle && (
+          <span className="mt-3 inline-block rounded-full border border-white/35 bg-white/20 px-3 py-1 text-xs font-semibold">
+            Accent sampled from your paint
+          </span>
+        )}
       </div>
 
       <p className="mt-4 mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
@@ -125,7 +130,7 @@ export default function CustomerSettings() {
           </div>
         </div>
 
-        <GarageCard />
+        <GarageCard make={vehMake} model={vehModel} type={vehType} />
 
         <form onSubmit={save} className="mt-4 space-y-4">
           {/* Basics */}
