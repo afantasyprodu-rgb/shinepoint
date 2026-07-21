@@ -77,8 +77,8 @@ function BubbleOverlay({ onDone }) {
     // blob shape. The opaque base wash painted every fill-phase frame means
     // this field doesn't need to geometrically tile the screen — it's free
     // to be gappy and irregular, like real foam.
-    const baseR = Math.max(14, Math.min(width, height) / 18)
-    const clusterSpacing = baseR * 2.6
+    const baseR = Math.max(18, Math.min(width, height) / 14)
+    const clusterSpacing = baseR * 3.1
     const bubbles = []
 
     function addBubble(x, y, r) {
@@ -99,7 +99,7 @@ function BubbleOverlay({ onDone }) {
         const centerX = gx + randRange(-clusterSpacing * 0.4, clusterSpacing * 0.4)
         const centerY = gy + randRange(-clusterSpacing * 0.4, clusterSpacing * 0.4)
         const clusterScale = baseR * randRange(0.55, 1.6) // some clumps run big, some tiny
-        const count = Math.round(randRange(5, 11))
+        const count = Math.round(randRange(4, 8))
         for (let i = 0; i < count; i++) {
           const ang = Math.random() * Math.PI * 2
           const dist = randRange(0, clusterScale * 1.2)
@@ -114,7 +114,7 @@ function BubbleOverlay({ onDone }) {
     // Stray fillers scattered independently of any cluster, sized much more
     // freely (some tiny, some big outliers) to keep the field from ever
     // reading as a repeated stamp.
-    const fillerCount = Math.round((width * height) / (baseR * baseR * 3.5))
+    const fillerCount = Math.round((width * height) / (baseR * baseR * 5.5))
     for (let i = 0; i < fillerCount; i++) {
       addBubble(randRange(0, width), randRange(0, height), baseR * randRange(0.2, 1.4))
     }
