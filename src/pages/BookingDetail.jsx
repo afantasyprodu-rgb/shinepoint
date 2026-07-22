@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import AppShell from '../components/AppShell'
 import ChatThread from '../components/ChatThread'
@@ -86,6 +86,7 @@ const STAGE_DETAIL = {
 // Blueprint 3.1–3.4 — booking status, damage review, chat, completion.
 export default function BookingDetail() {
   const { id } = useParams()
+  const [searchParams] = useSearchParams()
   const { getBooking, getDetailer, patchBooking, submitReview, cancelBooking, fileDispute } = useStore()
   const [rating, setRating] = useState(0)
   const [reviewNote, setReviewNote] = useState('')
@@ -100,7 +101,23 @@ export default function BookingDetail() {
   const [showDispute, setShowDispute] = useState(false)
   const [showInvoice, setShowInvoice] = useState(false)
   const [disputeReason, setDisputeReason] = useState('')
-  const [openStage, setOpenStage] = useState(null) // null = follow the current stage
+  // A notification bell link arrives as ?stage=en_route — jump straight to
+  // that stage's preview instead of following the booking's current status,
+  // so an older notification still opens the stage it was actually about.
+  const [openStage, setOpenStage] = useState(() => {
+    const stage = searchParams.get('stage')
+    const idx = TIMELINE.indexOf(stage)
+    return idx === -1 ? null : idx
+  })
+  const timelineRef = useRef(null)
+  const [highlightTimeline, setHighlightTimeline] = useState(() => searchParams.has('stage'))
+
+  useEffect(() => {
+    if (!highlightTimeline) return
+    timelineRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    const t = setTimeout(() => setHighlightTimeline(false), 1400)
+    return () => clearTimeout(t)
+  }, [highlightTimeline])
 
   const b = getBooking(id)
   const d = b && getDetailer(b.detailerId)
@@ -165,44 +182,51 @@ const shownStage = openStage ?? stageIdx
                   track) is inset by TICK_R so tick 1 and tick 6 sit flush
                   inside the pill's rounded caps instead of centered right on
                   the edge, half hanging off. */}
-              <div className="job-progress-track mt-8" aria-label="Job progress">
-                <motion.div
-                  className="job-progress-fill"
-                  initial={false}
-                  animate={{ width: tickPos(stageIdx, TIMELINE.length) }}
-                  transition={{ type: 'spring', stiffness: 140, damping: 20 }}
-                />
-                {TIMELINE.map((stage, i) => (
-                  <button
-                    key={stage}
-                    type="button"
-                    onClick={() => setOpenStage(i)}
-                    aria-label={`${TIMELINE_LABELS[stage]} — see what happens`}
-                    aria-expanded={shownStage === i}
-                    className={`job-progress-tick ${i <= stageIdx ? 'text-white' : 'text-slate-600 dark:text-slate-300'}`}
-                    style={{ left: tickPos(i, TIMELINE.length) }}
+              <div
+                ref={timelineRef}
+                className={`rounded-2xl transition-shadow duration-700 ${
+                  highlightTimeline ? 'shadow-[0_0_0_4px_var(--color-brand-300)]' : 'shadow-[0_0_0_0px_transparent]'
+                }`}
+              >
+                <div className="job-progress-track mt-8" aria-label="Job progress">
+                  <motion.div
+                    className="job-progress-fill"
+                    initial={false}
+                    animate={{ width: tickPos(stageIdx, TIMELINE.length) }}
+                    transition={{ type: 'spring', stiffness: 140, damping: 20 }}
+                  />
+                  {TIMELINE.map((stage, i) => (
+                    <button
+                      key={stage}
+                      type="button"
+                      onClick={() => setOpenStage(i)}
+                      aria-label={`${TIMELINE_LABELS[stage]} — see what happens`}
+                      aria-expanded={shownStage === i}
+                      className={`job-progress-tick ${i <= stageIdx ? 'text-white' : 'text-slate-600 dark:text-slate-300'}`}
+                      style={{ left: tickPos(i, TIMELINE.length) }}
+                    >
+                      {i < stageIdx ? <CheckIcon className="h-3 w-3" /> : i + 1}
+                    </button>
+                  ))}
+                  <motion.div
+                    className="job-progress-ball-wrap"
+                    initial={false}
+                    animate={{ left: tickPos(shownStage, TIMELINE.length) }}
+                    transition={{ type: 'spring', stiffness: 140, damping: 20 }}
                   >
-                    {i < stageIdx ? <CheckIcon className="h-3 w-3" /> : i + 1}
-                  </button>
-                ))}
-                <motion.div
-                  className="job-progress-ball-wrap"
-                  initial={false}
-                  animate={{ left: tickPos(shownStage, TIMELINE.length) }}
-                  transition={{ type: 'spring', stiffness: 140, damping: 20 }}
-                >
-                  <div className="job-progress-ball" />
-                </motion.div>
-              </div>
-              <div className="mt-1.5 flex justify-between px-1">
-                {TIMELINE.map((stage, i) => (
-                  <span
-                    key={stage}
-                    className={`hidden text-[10px] sm:block ${i === stageIdx ? 'font-bold text-brand-700' : 'text-slate-400'}`}
-                  >
-                    {TIMELINE_LABELS[stage]}
-                  </span>
-                ))}
+                    <div className="job-progress-ball" />
+                  </motion.div>
+                </div>
+                <div className="mt-1.5 flex justify-between px-1">
+                  {TIMELINE.map((stage, i) => (
+                    <span
+                      key={stage}
+                      className={`hidden text-[10px] sm:block ${i === stageIdx ? 'font-bold text-brand-700' : 'text-slate-400'}`}
+                    >
+                      {TIMELINE_LABELS[stage]}
+                    </span>
+                  ))}
+                </div>
               </div>
 
               {/* Per-stage detail — auto-follows the current step, or a tapped preview */}

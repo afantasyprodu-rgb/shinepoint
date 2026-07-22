@@ -511,7 +511,7 @@ export async function sendMessageToDB(bookingId, senderId, content) {
 export async function fetchNotifications(userId, role) {
   const { data, error } = await supabase
     .from('notifications')
-    .select('id, title, body, read_at, created_at')
+    .select('id, title, body, read_at, created_at, booking_id')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(50)
@@ -521,6 +521,7 @@ export async function fetchNotifications(userId, role) {
     audience: role,          // a user only ever sees their own; role drives the UI filter
     title: n.title,
     body: n.body ?? '',
+    bookingId: n.booking_id,
     read: n.read_at != null,
     at: n.created_at,
   }))

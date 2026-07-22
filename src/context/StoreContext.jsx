@@ -180,7 +180,18 @@ export function StoreProvider({ children }) {
           setRealNotifications((prev) =>
             prev.some((x) => x.id === n.id)
               ? prev
-              : [{ id: n.id, audience: profile.role, title: n.title, body: n.body ?? '', read: false, at: n.created_at }, ...prev]
+              : [
+                  {
+                    id: n.id,
+                    audience: profile.role,
+                    title: n.title,
+                    body: n.body ?? '',
+                    bookingId: n.booking_id,
+                    read: false,
+                    at: n.created_at,
+                  },
+                  ...prev,
+                ]
           )
         }
       )
@@ -218,9 +229,15 @@ export function StoreProvider({ children }) {
   }, [isDemo, profile?.role])
 
   const api = useMemo(() => {
-    function notify(audience, title, body) {
+    // bookingId/stage let the notification bell deep-link straight back to
+    // what changed — stage is the exact TIMELINE key so the customer lands on
+    // that stage's progress-bar detail even if the booking has since moved
+    // past it (e.g. tapping an old "en route" notification after the job's
+    // since completed still opens the en-route preview, not just "wherever
+    // the booking is now").
+    function notify(audience, title, body, bookingId, stage) {
       setNotifications((ns) => [
-        { id: `n-${idCounter++}`, audience, title, body, read: false, at: new Date().toISOString() },
+        { id: `n-${idCounter++}`, audience, title, body, bookingId, stage, read: false, at: new Date().toISOString() },
         ...ns,
       ])
     }
@@ -265,7 +282,7 @@ export function StoreProvider({ children }) {
     function demoPatchBooking(id, patch) {
       setDemoBookings((bs) => bs.map((b) => (b.id === id ? { ...b, ...patch } : b)))
       if (patch.status && STATUS_NOTIFICATIONS[patch.status]) {
-        notify(...STATUS_NOTIFICATIONS[patch.status])
+        notify(...STATUS_NOTIFICATIONS[patch.status], id, patch.status)
       }
     }
 
@@ -273,7 +290,7 @@ export function StoreProvider({ children }) {
       setRealBookings((bs) => bs.map((b) => (b.id === id ? { ...b, ...patch } : b)))
       updateBookingStatusInDB(id, patch)
       if (patch.status && STATUS_NOTIFICATIONS[patch.status]) {
-        notify(...STATUS_NOTIFICATIONS[patch.status])
+        notify(...STATUS_NOTIFICATIONS[patch.status], id, patch.status)
       }
     }
 
@@ -475,7 +492,7 @@ export function StoreProvider({ children }) {
           }))
         }
         patchBooking(bookingId, { status: 'disputed' })
-        notify('customer', 'Dispute filed', 'An admin will review your case within 24 hours.')
+        notify('customer', 'Dispute filed', 'An admin will review your case within 24 hours.', bookingId)
       },
 
       rateCustomer(bookingId, rating, hardToHandle) {
@@ -540,7 +557,7 @@ export function StoreProvider({ children }) {
           })
           const refreshed = await fetchBookingsForCustomer(customerProfile.id)
           setRealBookings(refreshed)
-          notify('detailer', 'New booking request', `${draft.service} — new request waiting`)
+          notify('detailer', 'New booking request', `${draft.service} — new request waiting`, bookingId)
           return bookingId
         }
 
@@ -563,7 +580,7 @@ export function StoreProvider({ children }) {
           ...draft,
         }
         setDemoBookings((bs) => [booking, ...bs])
-        notify('detailer', 'New booking request', `${booking.service} from ${booking.customerName}`)
+        notify('detailer', 'New booking request', `${booking.service} from ${booking.customerName}`, id)
         return id
       },
 
@@ -595,7 +612,7 @@ export function StoreProvider({ children }) {
         }
         patchBooking(bookingId, { reviewed: true, tip })
         if (isDemo) {
-          notify('detailer', 'New review', `${rating} stars from ${demoCustomer.name}`)
+          notify('detailer', 'New review', `${rating} stars from ${demoCustomer.name}`, bookingId)
           setDemoCustomer((c) => {
             const newPoints = c.points + 1
             const MILESTONES = [
@@ -643,7 +660,7 @@ export function StoreProvider({ children }) {
         // 'disputed' state and the customer sees the recorded outcome.
         if (dispute && bookings.some((b) => b.id === dispute.bookingId)) {
           patchBooking(dispute.bookingId, { status: 'complete', disputeResolution: resolution })
-          notify('customer', 'Dispute resolved', 'An admin has settled your case — see the booking.')
+          notify('customer', 'Dispute resolved', 'An admin has settled your case — see the booking.', dispute.bookingId)
         }
       },
 

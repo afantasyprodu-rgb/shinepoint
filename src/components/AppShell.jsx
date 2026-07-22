@@ -8,13 +8,38 @@ import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
 import BottomTabBar from './ui/BottomTabBar'
 
+// Where a notification should send the user when tapped. Customer booking
+// notifications carry the exact TIMELINE stage they're about (set at the
+// moment they fire — see STATUS_NOTIFICATIONS in StoreContext), so the link
+// opens straight to that stage's progress-bar detail via ?stage=, not just
+// whatever the booking's current status happens to be by the time it's
+// tapped. Detailer notifications (new booking, new review) just land on the
+// job itself — it has no equivalent stage picker.
+function notificationHref(role, n) {
+  if (!n.bookingId) return null
+  if (role === 'customer') {
+    return n.stage ? `/bookings/${n.bookingId}?stage=${n.stage}` : `/bookings/${n.bookingId}`
+  }
+  if (role === 'detailer') {
+    return `/detailer/jobs/${n.bookingId}`
+  }
+  return null
+}
+
 function NotificationBell({ role }) {
   const { notifications, markNotificationsRead } = useStore()
   const [open, setOpen] = useState(false)
   const panelRef = useRef(null)
+  const navigate = useNavigate()
 
   const mine = notifications.filter((n) => n.audience === role)
   const unread = mine.filter((n) => !n.read).length
+
+  function openNotification(n) {
+    const href = notificationHref(role, n)
+    setOpen(false)
+    if (href) navigate(href)
+  }
 
   useEffect(() => {
     if (!open) return
@@ -83,12 +108,25 @@ function NotificationBell({ role }) {
               {mine.length === 0 && (
                 <p className="px-3 py-6 text-center text-sm text-slate-400">All quiet.</p>
               )}
-              {mine.map((n) => (
-                <div key={n.id} className="rounded-xl px-3 py-2.5 transition-colors duration-150 hover:bg-brand-50 dark:hover:bg-white/5">
-                  <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{n.title}</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">{n.body}</p>
-                </div>
-              ))}
+              {mine.map((n) => {
+                const clickable = notificationHref(role, n) != null
+                return (
+                  <button
+                    key={n.id}
+                    type="button"
+                    onClick={() => openNotification(n)}
+                    disabled={!clickable}
+                    className={`w-full rounded-xl px-3 py-2.5 text-left transition-colors duration-150 ${
+                      clickable
+                        ? 'cursor-pointer hover:bg-brand-50 dark:hover:bg-white/5'
+                        : 'cursor-default'
+                    }`}
+                  >
+                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{n.title}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{n.body}</p>
+                  </button>
+                )
+              })}
             </div>
           </motion.div>
         )}
