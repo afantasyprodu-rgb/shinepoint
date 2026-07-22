@@ -1322,3 +1322,71 @@
   to   { filter: hue-rotate(0deg) saturate(1); }
 }
 
+/* ── Skeuomorphic Minimalist (Neumorphic) Utilities ──────────────────────── */
+.skeuo-card {
+  background: var(--neu-bg);
+  border-radius: 2rem;
+  box-shadow: 8px 8px 20px var(--neu-sd), -8px -8px 20px var(--neu-sl);
+  transition: all 0.3s var(--ease-spring);
+}
+.skeuo-card:hover {
+  transform: translateY(-2px);
+}
+.skeuo-card:active {
+  box-shadow: inset 4px 4px 10px var(--neu-sd), inset -4px -4px 10px var(--neu-sl);
+  transform: translateY(0) scale(0.98);
+}
+
+.skeuo-dial-outer {
+  position: relative;
+  width: 14rem;
+  height: 14rem;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, var(--neu-bg) 0%, var(--neu-sl) 25%, var(--neu-sd) 50%, var(--neu-sl) 75%, var(--neu-bg) 100%);
+  box-shadow: 12px 12px 28px var(--neu-sd), -12px -12px 28px var(--neu-sl);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s var(--ease-spring);
+}
+
+.skeuo-dial-inner {
+  width: 8rem;
+  height: 8rem;
+  border-radius: 50%;
+  background: var(--neu-bg);
+  box-shadow: inset 4px 4px 10px var(--neu-sd), inset -4px -4px 10px var(--neu-sl), 2px 2px 5px rgba(0,0,0,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s var(--ease-spring);
+}
+.skeuo-dial-inner:active {
+  box-shadow: inset 8px 8px 20px var(--neu-sd), inset -8px -8px 20px var(--neu-sl);
+  transform: scale(0.95);
+}
+
+.skeuo-nav-btn {
+  width: 3.8rem;
+  height: 3.8rem;
+  border-radius: 50%;
+  background: var(--neu-bg);
+  box-shadow: 5px 5px 12px var(--neu-sd), -5px -5px 12px var(--neu-sl);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s var(--ease-spring);
+  color: #64748b;
+}
+.skeuo-nav-btn:hover {
+  color: var(--color-brand-600);
+}
+.skeuo-nav-btn:active, .skeuo-nav-btn.active {
+  box-shadow: inset 3px 3px 8px var(--neu-sd), inset -3px -3px 8px var(--neu-sl);
+  color: var(--color-brand-600);
+}
+
+

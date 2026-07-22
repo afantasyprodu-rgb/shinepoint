@@ -84,56 +84,121 @@ export default function Welcome() {
 
         <motion.div
           style={reduce ? undefined : { opacity: heroOpacity }}
-          className="relative z-10 w-full max-w-2xl rounded-[2.5rem] bg-[var(--neu-bg)] px-8 py-14 shadow-[10px_10px_24px_var(--neu-sd),-10px_-10px_24px_var(--neu-sl)] sm:px-14"
+          className="relative z-10 w-full max-w-md rounded-[2.5rem] bg-[var(--neu-bg)] px-6 py-10 shadow-[10px_10px_24px_var(--neu-sd),-10px_-10px_24px_var(--neu-sl)] sm:px-10"
         >
+          {/* Skeuomorphic Header */}
           <FadeIn y={18}>
-            <Logo size="lg" />
+            <div className="flex flex-col items-center justify-center gap-2">
+              <div className="relative flex items-center justify-center">
+                {/* 3D Skeuomorphic Silver Star Logo */}
+                <svg className="h-14 w-16 drop-shadow-[2px_2px_4px_var(--neu-sd)]" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <defs>
+                    <linearGradient id="silver-grad-1" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#ffffff" />
+                      <stop offset="30%" stopColor="#cbd5e1" />
+                      <stop offset="70%" stopColor="#94a3b8" />
+                      <stop offset="100%" stopColor="#475569" />
+                    </linearGradient>
+                    <linearGradient id="silver-grad-2" x1="100%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stopColor="#ffffff" />
+                      <stop offset="50%" stopColor="#e2e8f0" />
+                      <stop offset="100%" stopColor="#64748b" />
+                    </linearGradient>
+                  </defs>
+                  <path d="M50 8 L63 38 L98 38 L70 59 L81 92 L50 72 L19 92 L30 59 L2 38 L37 38 Z" fill="url(#silver-grad-1)" stroke="url(#silver-grad-2)" strokeWidth="2" strokeLinejoin="round" />
+                  <circle cx="85" cy="20" r="2" fill="#ffffff" className="animate-pulse" />
+                  <circle cx="15" cy="30" r="1.5" fill="#ffffff" className="animate-pulse" />
+                </svg>
+              </div>
+              <span className="font-display text-3xl font-bold tracking-tight text-slate-700 dark:text-slate-300 drop-shadow-[1px_1px_1px_var(--neu-sl)]">
+                ShinePoint
+              </span>
+            </div>
           </FadeIn>
+
+          {/* Subtitle / Location */}
           <FadeIn delay={0.05}>
-            <span className="mt-7 inline-block rounded-lg bg-cta-600 px-3 py-1.5 font-display text-xs font-semibold uppercase tracking-[0.14em] text-white shadow-lg shadow-cta-600/40">
+            <span className="mt-4 inline-block rounded-full bg-slate-200/50 dark:bg-slate-800/50 px-4 py-1.5 font-display text-2xs font-bold uppercase tracking-[0.14em] text-slate-600 dark:text-slate-400 shadow-inner">
               Mobile detailing · Los Angeles
             </span>
           </FadeIn>
-          <FadeIn delay={0.1} y={22}>
-            <h1 className="mx-auto mt-5 max-w-2xl font-display text-5xl font-bold leading-tight text-slate-900 dark:text-slate-100 sm:text-6xl">
-              Your car, <span className="text-cta-600 dark:text-cta-400">detailed</span> at your door
-            </h1>
-          </FadeIn>
-          <FadeIn delay={0.2}>
-            <p className="mx-auto mt-4 max-w-md text-lg text-slate-600 dark:text-slate-400">
-              LA&apos;s vetted mobile detailers, booked in minutes. Photo-proofed,
-              insured options, zero phone tag.
-            </p>
-          </FadeIn>
-          <FadeIn delay={0.3}>
-            <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <Link to="/signup" onClick={haptic} className="btn btn-cta-gradient glow-cta press-spring w-64 sm:w-auto">
-                Book a detail <ArrowRightIcon className="h-4 w-4" />
-              </Link>
-              <Link to="/login" onClick={haptic} className="btn btn-brand press-spring w-64 sm:w-auto">
-                Log In
-              </Link>
+
+          {/* Two Soft Neumorphic Cards */}
+          <FadeIn delay={0.15}>
+            <div className="grid grid-cols-2 gap-4 mt-8">
+              <button
+                onClick={haptic}
+                className="skeuo-card p-4 text-left flex flex-col justify-between cursor-pointer focus-visible:outline-none"
+              >
+                <div className="h-10 w-10 rounded-2xl bg-[var(--neu-bg)] shadow-[3px_3px_8px_var(--neu-sd),-3px_-3px_8px_var(--neu-sl)] flex items-center justify-center">
+                  <CarIcon className="h-5 w-5 text-slate-500 dark:text-slate-300" />
+                </div>
+                <div className="mt-4">
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-bold">My Vehicle</p>
+                  <p className="font-display font-extrabold text-sm text-slate-700 dark:text-slate-300">Tesla Model S</p>
+                </div>
+              </button>
+              <button
+                onClick={haptic}
+                className="skeuo-card p-4 text-left flex flex-col justify-between cursor-pointer focus-visible:outline-none"
+              >
+                <div className="h-10 w-10 rounded-2xl bg-[var(--neu-bg)] shadow-[3px_3px_8px_var(--neu-sd),-3px_-3px_8px_var(--neu-sl)] flex items-center justify-center">
+                  <CalendarIcon className="h-5 w-5 text-slate-500 dark:text-slate-300" />
+                </div>
+                <div className="mt-4">
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-bold">Next Service</p>
+                  <p className="font-display font-extrabold text-xs text-slate-700 dark:text-slate-300">Oct 15, 10:00 AM</p>
+                </div>
+              </button>
             </div>
           </FadeIn>
-          <FadeIn delay={0.4}>
-            <div className="mx-auto mt-10 grid w-full max-w-md grid-cols-3 gap-2.5">
-              {stats.map(({ value, label }) => (
+
+          {/* Central Physical Dial Button */}
+          <FadeIn delay={0.25}>
+            <div className="flex justify-center mt-10 mb-8">
+              <div className="skeuo-dial-outer">
+                <div className="absolute inset-2 rounded-full border border-dashed border-slate-300 dark:border-slate-700 opacity-60 pointer-events-none animate-[spin_40s_linear_infinite]" />
+                <div className="absolute flex flex-col items-center justify-center text-center pointer-events-none">
+                  <span className="font-display text-sm font-black tracking-wider uppercase text-slate-500 dark:text-slate-400 select-none">
+                    Book a<br />detail
+                  </span>
+                </div>
                 <button
-                  key={label}
-                  type="button"
-                  onClick={haptic}
-                  className="press-spring rounded-2xl px-3 py-3 shadow-[3px_3px_7px_var(--neu-sd),-3px_-3px_7px_var(--neu-sl)] active:shadow-[inset_3px_3px_7px_var(--neu-sd),inset_-3px_-3px_7px_var(--neu-sl)]"
+                  onClick={() => { haptic(); navigate('/signup'); }}
+                  className="skeuo-dial-inner group z-10 focus-visible:outline-none"
+                  aria-label="Book a detail"
                 >
-                  <p className="font-display text-xl font-bold tabular-nums text-slate-900 dark:text-slate-100">{value}</p>
-                  <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">{label}</p>
+                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-slate-200 to-slate-400 dark:from-slate-700 dark:to-slate-900 shadow-md group-active:scale-90 transition-transform">
+                    <ArrowRightIcon className="h-6 w-6 text-slate-700 dark:text-slate-200" />
+                  </div>
                 </button>
-              ))}
+              </div>
             </div>
           </FadeIn>
-          <FadeIn delay={0.5}>
+
+          {/* Bottom Neumorphic Tab Bar */}
+          <FadeIn delay={0.35}>
+            <div className="flex justify-around items-center px-4 py-3 bg-slate-100/50 dark:bg-slate-950/20 rounded-full mt-8 shadow-inner border border-slate-200/20">
+              <button onClick={() => { haptic(); startDemo('customer'); }} className="skeuo-nav-btn active flex flex-col items-center justify-center focus-visible:outline-none" title="Home">
+                <CarIcon className="h-5 w-5" />
+                <span className="text-[9px] font-bold mt-1">Home</span>
+              </button>
+              <button onClick={() => { haptic(); document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' }); }} className="skeuo-nav-btn flex flex-col items-center justify-center focus-visible:outline-none" title="Services">
+                <MapPinIcon className="h-5 w-5" />
+                <span className="text-[9px] font-bold mt-1">Services</span>
+              </button>
+              <button onClick={() => { haptic(); navigate('/login'); }} className="skeuo-nav-btn flex flex-col items-center justify-center focus-visible:outline-none" title="Profile">
+                <UsersIcon className="h-5 w-5" />
+                <span className="text-[9px] font-bold mt-1">Profile</span>
+              </button>
+            </div>
+          </FadeIn>
+
+          {/* Bottom Explore link */}
+          <FadeIn delay={0.45}>
             <button
-              onClick={() => document.getElementById('demo')?.scrollIntoView()}
-              className="mt-8 cursor-pointer rounded text-sm text-slate-500 underline-offset-4 transition-colors duration-200 hover:text-brand-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-slate-400 dark:hover:text-brand-300"
+              onClick={() => document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' })}
+              className="mt-6 cursor-pointer rounded text-xs text-slate-500 underline-offset-4 transition-colors duration-200 hover:text-brand-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-slate-400 dark:hover:text-brand-300"
             >
               or explore the live demo ↓
             </button>
