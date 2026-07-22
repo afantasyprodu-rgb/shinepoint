@@ -525,6 +525,13 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
   return (
     <div className="auth-card-shell">
       <div className="auth-card">
+        <Link
+          to="/"
+          className="mb-2 inline-flex items-center gap-1 text-sm text-white/60 transition-colors hover:text-white"
+        >
+          <ChevronLeftIcon className="h-4 w-4" />
+          Back
+        </Link>
         <div className="auth-logo-block">
           <div className="relative">
             <div className="absolute inset-0 -z-10 scale-[2] rounded-full bg-white/15 blur-xl" />
@@ -533,6 +540,26 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
           <p className="auth-tagline">LA's mobile detailing marketplace</p>
         </div>
         {content}
+        {/* The signup/login card only ever renders for one role — this is
+            the only way to switch between "book a detail" and "apply as a
+            detailer" without leaving the page and losing what's typed. */}
+        {view === 'methods' && (
+          <p className="auth-terms mt-4 text-center">
+            {role === 'detailer' ? (
+              <>Looking to book a detail instead?{' '}
+                <Link to="/signup" className="underline underline-offset-2 hover:text-white">
+                  Sign up as a customer
+                </Link>
+              </>
+            ) : (
+              <>Want to detail cars for a living?{' '}
+                <Link to="/signup/detailer" className="underline underline-offset-2 hover:text-white">
+                  Apply as a detailer
+                </Link>
+              </>
+            )}
+          </p>
+        )}
       </div>
     </div>
   )
