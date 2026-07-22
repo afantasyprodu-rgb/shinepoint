@@ -6,6 +6,7 @@ import MarketingTip from '../components/MarketingTip'
 import { useStore } from '../context/StoreContext'
 import { useTheme } from '../context/ThemeContext'
 import { CheckIcon, ShieldCheckIcon, CreditCardIcon, ClipboardCheckIcon, UsersIcon, ChevronLeftIcon, PlusIcon, XIcon, LightbulbIcon } from '../components/icons'
+import { InfoPopover } from '../components/ui/bits'
 
 const SERVICE_MENU = [
   'Exterior Wash', 'Interior Deep Clean', 'Full Detail', 'Wax & Seal',
@@ -218,8 +219,15 @@ export default function DetailerOnboarding() {
                 </MarketingTip>
                 <div className="card text-center">
                 <UsersIcon className="mx-auto h-10 w-10 text-brand-600 dark:text-brand-300" />
-                <h2 className="mt-3 font-display text-lg font-semibold text-slate-900 dark:text-slate-100">
+                <h2 className="mt-3 flex items-center justify-center gap-1.5 font-display text-lg font-semibold text-slate-900 dark:text-slate-100">
                   Verify your identity
+                  <InfoPopover label="Why do you need my ID?">
+                    Confirms the person in your profile is really who shows up at the
+                    customer&apos;s door — it&apos;s the same reason a customer can trust the
+                    photo on your profile. It&apos;s also required by Stripe Connect
+                    before we can send you payouts, since payment processors are legally
+                    required to verify who they&apos;re paying.
+                  </InfoPopover>
                 </h2>
                 <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
                   Government photo ID + selfie match, handled by Stripe Identity.
@@ -257,6 +265,17 @@ export default function DetailerOnboarding() {
                   Insured detailers get a badge and priority placement, and many customers
                   filter to only insured pros. The paperwork pays for itself in bookings.
                 </MarketingTip>
+                <div className="flex items-center gap-1.5 px-1">
+                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Choose your coverage</p>
+                  <InfoPopover label="Why do you need insurance?">
+                    You&apos;re working on customers&apos; vehicles and property — insurance
+                    (garage keepers&apos; liability is the standard policy for this work)
+                    covers accidental damage so a scratch or a dent doesn&apos;t come out of
+                    your pocket. We verify your certificate&apos;s policy number and expiry
+                    against the carrier, not just take your word for it, which is also why
+                    insured pros get a trust badge customers can rely on.
+                  </InfoPopover>
+                </div>
                 <div className="space-y-3" role="radiogroup" aria-label="Insurance level">
                 {[
                   ['premium', 'Full business insurance', 'Gold badge · priority placement · instant payouts sooner'],
@@ -494,7 +513,18 @@ export default function DetailerOnboarding() {
                 <div className="flex items-center gap-3">
                   <CreditCardIcon className="h-8 w-8 text-brand-600 dark:text-brand-300" />
                   <div>
-                    <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">Payout setup</h2>
+                    <h2 className="flex items-center gap-1.5 font-display font-semibold text-slate-900 dark:text-slate-100">
+                      Payout setup
+                      <InfoPopover label="Why do you need my tax info?">
+                        As an independent contractor, we&apos;re required to report what we
+                        pay you to the IRS on a 1099 each year, so we need a valid
+                        taxpayer ID to file it under. That&apos;s an SSN for most people,
+                        or an EIN if you run your detailing business as an LLC — an ITIN
+                        works too if you don&apos;t have an SSN, since the IRS issues those
+                        specifically so anyone can file and pay taxes regardless of
+                        immigration status.
+                      </InfoPopover>
+                    </h2>
                     <p className="text-sm text-slate-600 dark:text-slate-400">Stripe Connect — bank + W-9 for 1099 reporting.</p>
                   </div>
                 </div>
@@ -503,8 +533,8 @@ export default function DetailerOnboarding() {
                   <input id="ob-bank" inputMode="numeric" maxLength={4} value={bank} onChange={(e) => setBank(e.target.value.replace(/\D/g, ''))} className="input w-32" placeholder="4242" />
                 </div>
                 <p className="text-xs text-slate-400 dark:text-slate-500">
-                  Real flow collects legal name, address, and SSN/EIN through Stripe&apos;s hosted
-                  onboarding — never stored on our servers. Simulated in demo.
+                  Real flow collects legal name, address, and SSN/EIN/ITIN through Stripe&apos;s
+                  hosted onboarding — never stored on our servers. Simulated in demo.
                 </p>
                 </div>
               </div>
