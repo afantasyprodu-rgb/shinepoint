@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useTheme } from '../context/ThemeContext'
+import { isNative } from '../lib/native'
 
 // EnRouteTracker still uses Mapbox for live turn-by-turn; the main discovery
 // map switched to Leaflet + OpenStreetMap (no token needed), so this token
@@ -219,10 +220,11 @@ export default function DetailerMap({ detailers, focus }) {
   }
 
   return (
-    <div className="relative h-full w-full">
+    <div className={`relative h-full w-full ${isNative ? 'nx-map-native' : ''}`}>
       {/* Filter def for the abstract-poster tile skin (.leaflet-tile-pane in
           index.css). 0x0 + absolute so it takes no layout space; browsers
-          still resolve url(#nx-map-abstract) fine from an off-tree <svg>. */}
+          still resolve url(#nx-map-abstract) fine from an off-tree <svg>.
+          Skipped on native — see the .nx-map-native rule in index.css. */}
       <svg width="0" height="0" className="absolute" aria-hidden="true">
         <filter id="nx-map-abstract" colorInterpolationFilters="sRGB">
           <feColorMatrix type="saturate" values="2.4" result="sat" />

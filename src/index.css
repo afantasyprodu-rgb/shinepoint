@@ -1104,7 +1104,14 @@
    channel to a handful of flat steps. Smooth photographic gradients and
    fiddly street detail collapse into big, bold color zones — reads as a
    graphic illustration rather than a literal readable street map, in both
-   themes, whatever the underlying tile provider's actual palette is. */
+   themes, whatever the underlying tile provider's actual palette is.
+   Skipped on native (.nx-map-native, see DetailerMap.jsx isNative) — Android
+   WebView's CSS filter:url(#svg) support clips this posterize+saturate
+   combo to blown-out white (light theme) or crushed black (dark theme)
+   instead of the flat color zones it produces in real browsers. */
+.nx-map-native .leaflet-tile-pane {
+  filter: none;
+}
 .leaflet-tile-pane {
   filter: url(#nx-map-abstract);
 }
