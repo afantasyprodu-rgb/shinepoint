@@ -4,6 +4,12 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useTheme } from '../context/ThemeContext'
 
+// The abstract-poster filter (#nx-map-abstract, applied in index.css) only
+// renders correctly on iOS Safari/WKWebView. Android WebView clips it to
+// blown-out white, and desktop Chrome/Firefox/Edge render it over-exposed
+// too — so it's gated to iOS only rather than "native vs web".
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+
 // EnRouteTracker still uses Mapbox for live turn-by-turn; the main discovery
 // map switched to Leaflet + OpenStreetMap (no token needed), so this token
 // check stays here for EnRouteTracker to import.
@@ -219,10 +225,11 @@ export default function DetailerMap({ detailers, focus }) {
   }
 
   return (
-    <div className="relative h-full w-full">
+    <div className={`relative h-full w-full ${isIOS ? '' : 'nx-map-native'}`}>
       {/* Filter def for the abstract-poster tile skin (.leaflet-tile-pane in
           index.css). 0x0 + absolute so it takes no layout space; browsers
-          still resolve url(#nx-map-abstract) fine from an off-tree <svg>. */}
+          still resolve url(#nx-map-abstract) fine from an off-tree <svg>.
+          Skipped on native — see the .nx-map-native rule in index.css. */}
       <svg width="0" height="0" className="absolute" aria-hidden="true">
         <filter id="nx-map-abstract" colorInterpolationFilters="sRGB">
           <feColorMatrix type="saturate" values="2.4" result="sat" />
