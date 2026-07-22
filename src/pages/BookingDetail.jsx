@@ -67,9 +67,9 @@ const STAGE_DETAIL = {
     prep: () => 'Unlock the car or leave the keys out, and clear space around it.',
   },
   arrived: {
-    what: (d) => `${d} is here and photographing any existing damage before touching the car.`,
+    what: (d) => `${d} is here and photographing the vehicle's existing condition before touching the car.`,
     eta: () => 'Takes 2–3 minutes. You\'ll get a photo report to approve.',
-    prep: () => 'Review the damage photos and tap "Approve" — work starts the moment you confirm.',
+    prep: () => 'Review the condition photos and tap "Approve" — work starts the moment you confirm.',
   },
   in_progress: {
     what: () => 'Your detail is underway.',
@@ -244,7 +244,7 @@ const shownStage = openStage ?? stageIdx
                       {b.damageReport.items.length > 0 ? (
                         <>
                           <p className="mb-2 text-xs font-semibold text-amber-700 uppercase tracking-wide">
-                            Pre-existing damage — review &amp; approve
+                            Pre-existing condition — review &amp; approve
                           </p>
                           <ul className="space-y-2">
                             {b.damageReport.items.map((item, i) => (
@@ -252,7 +252,7 @@ const shownStage = openStage ?? stageIdx
                                 {item.photo && (
                                   <img
                                     src={item.photo}
-                                    alt={`Damage at ${item.area || 'area ' + (i + 1)}`}
+                                    alt={`Condition at ${item.area || 'area ' + (i + 1)}`}
                                     className="h-44 w-full object-cover"
                                   />
                                 )}
@@ -276,7 +276,7 @@ const shownStage = openStage ?? stageIdx
                                 onClick={() => patchBooking(b.id, { damageReport: { ...b.damageReport, acknowledged: true } })}
                                 className="btn btn-cta h-10 w-full text-sm"
                               >
-                                Approve — damage is pre-existing, proceed
+                                Approve — condition is pre-existing, proceed
                               </button>
                               <button
                                 onClick={() => setShowRejectDamage(true)}
@@ -287,13 +287,13 @@ const shownStage = openStage ?? stageIdx
                             </div>
                           ) : (
                             <p className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-cta-700">
-                              <CheckIcon className="h-3.5 w-3.5" /> Damage approved — work in progress
+                              <CheckIcon className="h-3.5 w-3.5" /> Condition approved — work in progress
                             </p>
                           )}
                         </>
                       ) : (
                         <p className="text-xs text-cta-700 font-medium flex items-center gap-1.5">
-                          <CheckIcon className="h-3.5 w-3.5" /> No pre-existing damage reported
+                          <CheckIcon className="h-3.5 w-3.5" /> No pre-existing issues reported
                         </p>
                       )}
                     </div>
@@ -417,7 +417,7 @@ const shownStage = openStage ?? stageIdx
             Cancel this job?
           </h2>
           <p className="mt-2 text-center text-sm text-slate-600">
-            Rejecting the damage report will cancel the booking. The detailer will be notified
+            Rejecting the condition report will cancel the booking. The detailer will be notified
             and no charge will be made.
           </p>
           <div className="mt-6 flex flex-col gap-2">
@@ -480,7 +480,7 @@ const shownStage = openStage ?? stageIdx
             rows={4}
             value={disputeReason}
             onChange={(e) => setDisputeReason(e.target.value)}
-            placeholder="e.g. New scratch on the hood that wasn't in the damage report…"
+            placeholder="e.g. New scratch on the hood that wasn't in the condition report…"
             className="input mt-4 h-auto resize-none py-2"
           />
           <button
@@ -550,7 +550,7 @@ const shownStage = openStage ?? stageIdx
                       onClick={() => setRating(n)}
                       className="cursor-pointer rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
                     >
-                      <StarIcon className={`h-10 w-10 transition-colors duration-100 ${n <= (hoverStar || rating) ? 'text-amber-400' : 'text-slate-200'}`} />
+                      <StarIcon className={`h-10 w-10 transition-colors duration-100 ${n <= (hoverStar || rating) ? 'text-amber-400' : 'text-slate-300 dark:text-slate-600'}`} />
                     </motion.button>
                   ))}
                 </div>
