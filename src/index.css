@@ -387,17 +387,21 @@
     position: absolute;
     z-index: -1;
     border-radius: 50%;
-    filter: blur(70px);
     pointer-events: none;
   }
 
+  /* Position drift (aurora-drift-*) and color drift (aurora-hue-drift) are
+     separate animations on the same `filter`/`transform` properties so the
+     blobs keep moving *and* slowly cycle hue — the background never quite
+     repeats. Different durations (and one running in reverse) on the two
+     blobs so they drift out of phase with each other. */
   .auth-card-shell::before {
     width: 34rem;
     height: 34rem;
     top: -10rem;
     left: -12rem;
     background: radial-gradient(circle, rgba(167, 139, 250, 0.6), transparent 70%);
-    animation: aurora-drift-a 13s ease-in-out infinite alternate;
+    animation: aurora-drift-a 13s ease-in-out infinite alternate, aurora-hue-drift 42s linear infinite;
   }
 
   .auth-card-shell::after {
@@ -406,7 +410,7 @@
     bottom: -12rem;
     right: -10rem;
     background: radial-gradient(circle, rgba(34, 197, 94, 0.35), transparent 70%);
-    animation: aurora-drift-b 11s ease-in-out infinite alternate;
+    animation: aurora-drift-b 11s ease-in-out infinite alternate, aurora-hue-drift 35s linear infinite reverse;
   }
 
   /* No card bg — content floats directly on the gradient shell */
@@ -579,6 +583,11 @@
 
   @keyframes aurora-drift-b {
     to { transform: translate(-3rem, -4rem) scale(1.1); }
+  }
+
+  @keyframes aurora-hue-drift {
+    from { filter: blur(70px) hue-rotate(0deg); }
+    to   { filter: blur(70px) hue-rotate(360deg); }
   }
 
   @keyframes float-slow {
