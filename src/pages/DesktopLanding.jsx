@@ -6,7 +6,6 @@ import AuthCard from '../components/AuthCard'
 import ThemeToggle from '../components/ThemeToggle'
 import { useAuth, homePathForRole } from '../context/AuthContext'
 import { markArrival } from '../lib/transition'
-import { preloadRoute } from '../lib/preload'
 
 // Background video montage. Clips live in public/videos/. There are more clips
 // than grid cells, and they're shuffled per load, so the montage varies and has
@@ -71,7 +70,7 @@ export default function DesktopLanding() {
   const navigate = useNavigate()
   const { enterDemo } = useAuth()
   const reduce = useReducedMotion()
-  const [scope, animate] = useAnimate()
+  const [scope] = useAnimate()
 
   // Montage cycles between a full-bleed single clip and the grid, at random
   // intervals, with a fresh random selection each time.
@@ -99,60 +98,17 @@ export default function DesktopLanding() {
     return () => clearTimeout(timer)
   }, [reduce])
 
-  // The depth fly-through: login panel rushes toward the camera (scale + blur),
-  // the montage slides off to the side (camera doesn't pass through it), ending
-  // on a brand fill. Returns once done (or a safety timeout fires if rAF stalls
-  // while the tab is backgrounded, so login never strands the user).
-  // Automatic store doors, gated on load: the login door slides out immediately,
-  // then the video montage stays full-screen as a loading screen until the
-  // destination's code is ready, then the video door slides out to reveal the
-  // brand fill. The page is preloaded, so it lands already rendered.
-  // Anticipation + slam: a quick tug in the opposite direction (winding up,
-  // like a door pulled back before it's thrown) then a hard spring slam into
-  // the wall with a pronounced overshoot bounce.
-  async function slamDoor(selector, windUpX, slamX) {
-    await animate(selector, { x: windUpX }, { duration: 0.12, ease: 'easeOut' })
-    return animate(selector, { x: slamX }, { type: 'spring', bounce: 0.7, duration: 0.65 })
-  }
-
-  async function flyThrough(dest) {
-    // 1. Login door winds up then slams out (runs while we wait on the load).
-    slamDoor('[data-layer="panel"]', '4%', '-100%')
-
-    // 2. Hold the video as the loading screen until the page is ready. Min
-    //    display so a fast load doesn't flash; hard cap so a slow network can't
-    //    hang the transition forever.
-    const minShow = new Promise((r) => setTimeout(r, 700))
-    const maxWait = new Promise((r) => setTimeout(r, 6000))
-    await Promise.race([Promise.all([preloadRoute(dest), minShow]), maxWait])
-
-    // 3. Loaded: video door winds up then slams out, revealing the fill
-    //    (rAF-stall capped).
-    await Promise.race([
-      slamDoor('[data-layer="montage"]', '-4%', '100%'),
-      new Promise((r) => setTimeout(r, 1100)),
-    ])
-  }
-
-  // On login success: run the gated transition, then land on the role's home,
+  // On login success: land on the role's home,
   // where the TransitionOverlay washes the foam wipe over the already-loaded page.
   async function handleAuthed(role) {
     const dest = homePathForRole(role)
-    if (reduce) {
-      markArrival(role)
-      navigate(dest)
-      return
-    }
-    await flyThrough(dest)
     markArrival(role)
     navigate(dest)
   }
 
-  // Demo entry runs the same transition so the effect is viewable without
-  // credentials (lands on the customer map with seeded data).
+  // Demo entry: lands on the customer map with seeded data.
   async function startDemo() {
     const dest = homePathForRole('customer')
-    if (!reduce) await flyThrough(dest)
     enterDemo('customer')
     markArrival('customer')
     navigate(dest)
