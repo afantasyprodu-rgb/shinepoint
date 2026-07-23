@@ -4,7 +4,8 @@ The payment code is already written and wired into the app:
 
 - `supabase/functions/create-payment-intent` — destination charge, platform fee, returns `clientSecret`
 - `supabase/functions/connect-onboarding` — creates the detailer's Stripe Connect account + onboarding link
-- `supabase/functions/stripe-webhook` — marks bookings paid + syncs detailer payout-readiness
+- `supabase/functions/identity-verification` — creates a Stripe Identity VerificationSession for the detailer onboarding "Identity" step
+- `supabase/functions/stripe-webhook` — marks bookings paid, syncs detailer payout-readiness, and records ID verification outcome
 
 What's left is **deploying** them and **configuring Stripe**. Do this once.
 
@@ -14,6 +15,7 @@ What's left is **deploying** them and **configuring Stripe**. Do this once.
 
 - A Stripe account (start in **test mode**).
 - Stripe **Connect** enabled (Dashboard → Connect → Get started). Destination charges + Express dashboards are used.
+- Stripe **Identity** enabled (Dashboard → Identity → Get started) — no separate API key, just needs to be turned on for the account.
 - The Supabase CLI:
   ```bash
   npm i -g supabase
@@ -47,7 +49,13 @@ supabase secrets set PLATFORM_FEE_PERCENT=15
 ```bash
 supabase functions deploy create-payment-intent
 supabase functions deploy connect-onboarding
+supabase functions deploy identity-verification
 supabase functions deploy stripe-webhook
+```
+
+Also apply the new migration (adds `detailer_profiles.stripe_identity_session_id` / `identity_status`):
+```bash
+supabase db push
 ```
 
 (If your CLI ignores `config.toml`, deploy the webhook explicitly public:
@@ -65,6 +73,8 @@ supabase functions deploy stripe-webhook
 3. Select events:
    - `payment_intent.succeeded`
    - `account.updated`
+   - `identity.verification_session.verified`
+   - `identity.verification_session.requires_input`
 4. Create, then copy the **Signing secret** (`whsec_...`).
 
 ---
@@ -86,6 +96,7 @@ supabase functions deploy stripe-webhook
    - Booking row gets `paid_at`, `stripe_payment_intent`, `platform_cut`, `detailer_payout`.
    - Stripe Dashboard → Payments shows the charge with your application fee.
    - Stripe → Connect → the detailer's account shows the transfer.
+4. **ID verification:** sign in as a real detailer → onboarding wizard → Identity step → "Upload ID & take selfie" → complete Stripe's test-mode document flow (Stripe Identity's docs list specific test document numbers that simulate a pass vs. a rejection). Confirm `detailer_profiles.identity_status` flips to `verified` (or `failed` for a rejection test case) once the webhook fires.
 
 ---
 

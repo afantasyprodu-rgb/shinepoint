@@ -29,3 +29,15 @@ export async function startConnectOnboarding() {
   if (data?.error) throw new Error(data.error)
   return data.url
 }
+
+// Creates/reuses a Stripe Identity VerificationSession for the logged-in
+// detailer; returns the client secret to open with stripe.verifyIdentity().
+// The pass/fail result itself arrives later via the stripe-webhook function.
+export async function startIdentityVerification() {
+  const { data, error } = await supabase.functions.invoke('identity-verification', {
+    body: {},
+  })
+  if (error) throw new Error(error.message)
+  if (data?.error) throw new Error(data.error)
+  return data.clientSecret
+}

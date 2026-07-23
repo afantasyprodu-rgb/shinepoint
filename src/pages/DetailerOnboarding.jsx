@@ -5,8 +5,18 @@ import AppShell from '../components/AppShell'
 import MarketingTip from '../components/MarketingTip'
 import { useStore } from '../context/StoreContext'
 import { useTheme } from '../context/ThemeContext'
-import { CheckIcon, ShieldCheckIcon, CreditCardIcon, ClipboardCheckIcon, UsersIcon, ChevronLeftIcon, PlusIcon, XIcon, LightbulbIcon } from '../components/icons'
+import { CheckIcon, ShieldCheckIcon, CreditCardIcon, ClipboardCheckIcon, UsersIcon, ChevronLeftIcon, PlusIcon, XIcon, LightbulbIcon, ClockIcon } from '../components/icons'
 import { InfoPopover } from '../components/ui/bits'
+import { startIdentityVerification, isStripeConfigured, stripePromise } from '../lib/stripe'
+
+// Maps the real detailer_profiles.identity_status ('unverified' | 'pending' |
+// 'verified' | 'failed') to this screen's local idStatus vocabulary.
+function idStatusFromProfile(status) {
+  if (status === 'verified') return 'passed'
+  if (status === 'pending') return 'pending'
+  if (status === 'failed') return 'failed'
+  return 'idle'
+}
 
 // Two chunked groups of 4 (Miller's Law — easier to scan than one flat list
 // of 8), each ordered so the single most-wanted item leads and the next-most
@@ -40,7 +50,7 @@ const STEPS = ['Identity', 'Insurance', 'Profile', 'Services', 'Schedule', 'Payo
 // Stripe Identity / Connect calls are simulated until Phase 4 wiring.
 export default function DetailerOnboarding() {
   const navigate = useNavigate()
-  const { isDemo, saveOnboarding } = useStore()
+  const { isDemo, saveOnboarding, detailerProfile } = useStore()
   const { theme } = useTheme()
   const pipOff = theme === 'dark' ? '#3f2d6e' : '#e9d5ff'
   const [step, setStep] = useState(0)
@@ -49,7 +59,13 @@ export default function DetailerOnboarding() {
   const [saveError, setSaveError] = useState('')
 
   // Step state
-  const [idStatus, setIdStatus] = useState('idle') // idle | scanning | passed
+  // idle | scanning | pending (submitted to Stripe, awaiting the async
+  // webhook result) | passed | failed. Picks up wherever a real account left
+  // off (e.g. they started verification in an earlier session).
+  const [idStatus, setIdStatus] = useState(() =>
+    isDemo ? 'idle' : idStatusFromProfile(detailerProfile?.identity_status)
+  )
+  const [idError, setIdError] = useState('')
   const [insurance, setInsurance] = useState(null) // premium | standard | none
   const [noInsuranceAck, setNoInsuranceAck] = useState(false)
   const [bio, setBio] = useState('')
@@ -83,9 +99,36 @@ export default function DetailerOnboarding() {
     })
   }
 
-  function runIdCheck() {
+  async function runIdCheck() {
+    setIdError('')
+    // Demo has no real Stripe/Supabase behind it — keep the fast simulated
+    // pass so the blueprint walkthrough stays fully interactive.
+    if (isDemo) {
+      setIdStatus('scanning')
+      setTimeout(() => setIdStatus('passed'), 1800)
+      return
+    }
     setIdStatus('scanning')
-    setTimeout(() => setIdStatus('passed'), 1800)
+    try {
+      const clientSecret = await startIdentityVerification()
+      const stripe = await stripePromise
+      const { error } = await stripe.verifyIdentity(clientSecret)
+      if (error) {
+        // User closed the modal or it errored client-side — Stripe hasn't
+        // necessarily rejected them, just let them retry from idle.
+        setIdStatus('idle')
+        setIdError(error.message)
+        return
+      }
+      // Submitted successfully — Stripe reviews async (usually seconds to a
+      // couple minutes) and the real pass/fail lands via the stripe-webhook
+      // function, which flips detailer_profiles.identity_status. Nothing
+      // more to do here but wait; the wizard can proceed in the meantime.
+      setIdStatus('pending')
+    } catch (e) {
+      setIdStatus('idle')
+      setIdError(e.message || 'Could not start ID verification.')
+    }
   }
 
   async function handleSubmit() {
@@ -129,7 +172,7 @@ export default function DetailerOnboarding() {
   }
 
   const canContinue = [
-    idStatus === 'passed',
+    idStatus === 'passed' || idStatus === 'pending',
     insurance === 'premium' || insurance === 'standard' || (insurance === 'none' && noInsuranceAck),
     bio.length > 0 && zip.length === 5 && vehicles.length > 0,
     Object.keys(services).length > 0,
@@ -156,7 +199,10 @@ export default function DetailerOnboarding() {
           <ol className="mt-6 space-y-3 text-left">
             {[
               ['Insurance docs reviewed', '1–2 business days'],
-              ['ID verification processed', 'Done — passed'],
+              [
+                'ID verification processed',
+                idStatus === 'passed' ? 'Done — passed' : 'Stripe is confirming this — usually within a couple minutes',
+              ],
               ['Approval email sent', 'Then your first 5 jobs are quality-reviewed'],
             ].map(([title, sub], i) => (
               <motion.li
@@ -239,10 +285,28 @@ export default function DetailerOnboarding() {
                 <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
                   Government photo ID + selfie match, handled by Stripe Identity.
                 </p>
-                {idStatus === 'idle' && (
-                  <button onClick={runIdCheck} className="btn btn-brand mt-5">
-                    Upload ID & take selfie
-                  </button>
+                {(idStatus === 'idle' || idStatus === 'failed') && (
+                  <>
+                    {!isDemo && !isStripeConfigured ? (
+                      <p className="mt-5 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
+                        ID verification isn&apos;t configured yet — set VITE_STRIPE_PUBLISHABLE_KEY to enable it.
+                      </p>
+                    ) : (
+                      <>
+                        {idStatus === 'failed' && (
+                          <p className="mt-5 text-sm font-medium text-red-600 dark:text-red-400">
+                            Verification didn&apos;t go through — Stripe needs another attempt.
+                          </p>
+                        )}
+                        <button onClick={runIdCheck} className="btn btn-brand mt-3">
+                          {idStatus === 'failed' ? 'Try again' : 'Upload ID & take selfie'}
+                        </button>
+                      </>
+                    )}
+                    {idError && (
+                      <p role="alert" className="mt-3 text-sm text-red-600 dark:text-red-400">{idError}</p>
+                    )}
+                  </>
                 )}
                 {idStatus === 'scanning' && (
                   <div className="mt-5" role="status" aria-label="Verifying">
@@ -252,6 +316,18 @@ export default function DetailerOnboarding() {
                       className="mx-auto h-10 w-10 rounded-full border-4 border-brand-200 border-t-brand-600 dark:border-brand-500/20 dark:border-t-brand-400"
                     />
                     <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">Matching selfie to ID…</p>
+                  </div>
+                )}
+                {idStatus === 'pending' && (
+                  <div className="mt-5">
+                    <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">
+                      <ClockIcon className="h-6 w-6" />
+                    </span>
+                    <p className="mt-2 font-semibold text-amber-700 dark:text-amber-400">Submitted — under review</p>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                      Stripe usually confirms within a couple minutes. You can keep going —
+                      we&apos;ll update this automatically.
+                    </p>
                   </div>
                 )}
                 {idStatus === 'passed' && (

@@ -9,5 +9,8 @@ verify_jwt = true
 [functions.connect-onboarding]
 verify_jwt = true
 
+[functions.identity-verification]
+verify_jwt = true
+
 [functions.stripe-webhook]
 verify_jwt = false

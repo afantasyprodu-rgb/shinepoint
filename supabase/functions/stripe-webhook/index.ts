@@ -1,5 +1,6 @@
-// Stripe webhook: marks a booking paid on payment_intent.succeeded and keeps
-// the detailer's payout-readiness flag in sync on account.updated.
+// Stripe webhook: marks a booking paid on payment_intent.succeeded, keeps the
+// detailer's payout-readiness flag in sync on account.updated, and records
+// the outcome of ID verification on identity.verification_session.*.
 //
 // Deploy PUBLIC (no JWT — Stripe can't send one):
 //   supabase functions deploy stripe-webhook --no-verify-jwt
@@ -56,6 +57,22 @@ Deno.serve(async (req) => {
           .from('detailer_profiles')
           .update({ stripe_charges_enabled: acct.charges_enabled === true })
           .eq('stripe_account_id', acct.id)
+        break
+      }
+      case 'identity.verification_session.verified': {
+        const vs = event.data.object as Stripe.Identity.VerificationSession
+        await admin
+          .from('detailer_profiles')
+          .update({ identity_status: 'verified' })
+          .eq('stripe_identity_session_id', vs.id)
+        break
+      }
+      case 'identity.verification_session.requires_input': {
+        const vs = event.data.object as Stripe.Identity.VerificationSession
+        await admin
+          .from('detailer_profiles')
+          .update({ identity_status: 'failed' })
+          .eq('stripe_identity_session_id', vs.id)
         break
       }
       default:
