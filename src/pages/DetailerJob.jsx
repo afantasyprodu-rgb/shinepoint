@@ -14,6 +14,7 @@ import {
   CheckIcon,
   ChevronLeftIcon,
   CameraIcon,
+  LayersIcon,
   MapPinIcon,
   MenuIcon,
   NavigationIcon,
@@ -32,6 +33,7 @@ export default function DetailerJob() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [showInvoice, setShowInvoice] = useState(false)
   const [showPayout, setShowPayout] = useState(false)
+  const [stepsExpanded, setStepsExpanded] = useState(false)
   const b = getBooking(id)
 
   if (!b) {
@@ -127,6 +129,120 @@ export default function DetailerJob() {
     },
   ]
 
+  // Only the current step shows by default — the rest hide under a card
+  // stack the detailer can tap open to see the full gated sequence.
+  const activeIndex = (() => {
+    const idx = gates.findIndex((g) => !g.done)
+    return idx === -1 ? gates.length - 1 : idx
+  })()
+
+  function renderGate(g, i) {
+    return (
+      <motion.div
+        key={g.key}
+        layout
+        role="listitem"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: i * 0.04 }}
+        className={`card !p-5 ${g.ready ? 'border-brand-400 ring-2 ring-brand-100 dark:border-brand-400/60 dark:ring-brand-500/20' : ''} ${
+          g.done ? 'opacity-80' : ''
+        }`}
+      >
+        <div className="flex items-start gap-3">
+          <motion.span
+            initial={false}
+            animate={{
+              backgroundColor: g.done ? '#15803d' : g.ready ? '#7c3aed' : 'var(--gate-pending-bg)',
+              scale: g.ready ? 1.05 : 1,
+            }}
+            className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white"
+            style={{ '--gate-pending-bg': 'var(--neu-sd)' }}
+          >
+            {g.done ? (
+              <CheckIcon className="h-4 w-4" />
+            ) : (
+              <span className="font-display text-sm font-bold">{i + 1}</span>
+            )}
+          </motion.span>
+          <div className="flex-1">
+            <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">{g.title}</h2>
+            <p className="mt-0.5 text-sm text-slate-600 dark:text-slate-400">{g.desc}</p>
+            {g.ready && g.key === 'damage' ? (
+              <DamageInspection
+                booking={b}
+                onSubmit={(items) => submitDamageReport(b.id, items)}
+                onNoDamage={() => markNoDamage(b.id)}
+              />
+            ) : g.ready && (g.key === 'before' || g.key === 'after') ? (
+              <PhotoCapture
+                label={g.key}
+                onSubmit={(photos) => addBookingPhotos(b.id, g.key, photos)}
+              />
+            ) : g.ready && g.key === 'en_route' ? (
+              <div className="mt-3 rounded-2xl border border-brand-100 bg-brand-50/60 p-4 dark:border-brand-500/20 dark:bg-brand-500/10">
+                <p className="text-xs font-semibold uppercase tracking-wide text-brand-700 dark:text-brand-300">Heading to</p>
+                <p className="mt-1 font-display text-base font-bold text-slate-900 dark:text-slate-100">{displayAddress}</p>
+                <div className="mt-3 flex gap-2">
+                  <button
+                    onClick={g.action}
+                    className="btn btn-brand h-10 flex-1 text-sm"
+                  >
+                    <NavigationIcon className="h-4 w-4" /> I'm on my way
+                  </button>
+                </div>
+              </div>
+            ) : g.ready && g.key === 'arrived' ? (
+              <div className="mt-3 rounded-2xl border border-cta-200 bg-cta-50/60 p-4 dark:border-cta-500/20 dark:bg-cta-500/10">
+                <p className="text-xs font-semibold uppercase tracking-wide text-cta-700 dark:text-cta-400">Address</p>
+                <p className="mt-1 font-display text-base font-bold text-slate-900 dark:text-slate-100">{displayAddress}</p>
+                <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Confirm you're at the right vehicle before proceeding.</p>
+                <button
+                  onClick={g.action}
+                  className="btn btn-cta mt-3 h-10 w-full text-sm"
+                >
+                  <CheckIcon className="h-4 w-4" /> I've arrived — correct vehicle
+                </button>
+              </div>
+            ) : g.ready && g.key === 'start' ? (
+              <div className="mt-3 rounded-2xl border border-brand-200 bg-white p-4 dark:border-white/10 dark:bg-white/5">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-slate-500 dark:text-slate-400">Service</span>
+                  <span className="font-semibold text-slate-900 dark:text-slate-100">{b.service}</span>
+                </div>
+                <div className="mt-2 flex items-center justify-between text-sm">
+                  <span className="text-slate-500 dark:text-slate-400">Vehicle</span>
+                  <span className="font-semibold text-slate-900 dark:text-slate-100">{b.vehicleType ?? 'SUV'}</span>
+                </div>
+                <div className="mt-2 flex items-center justify-between text-sm">
+                  <span className="text-slate-500 dark:text-slate-400">Your take</span>
+                  <span className="font-semibold text-cta-700 dark:text-cta-400">+${(b.price * 0.85).toFixed(0)}</span>
+                </div>
+                <button
+                  onClick={g.action}
+                  className="btn btn-brand mt-4 h-10 w-full text-sm"
+                >
+                  {g.cta}
+                </button>
+              </div>
+            ) : g.ready ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button onClick={g.action} className="btn btn-brand h-10 text-sm">
+                  {g.cta}
+                </button>
+                {g.secondary && (
+                  <button onClick={g.secondary.action} className="btn btn-outline h-10 text-sm">
+                    {g.secondary.label}
+                  </button>
+                )}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </motion.div>
+    )
+  }
+
   return (
     <AppShell role="detailer">
       <AnimatedPage className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
@@ -191,113 +307,46 @@ export default function DetailerJob() {
           </motion.p>
         )}
 
-        <ol className="mt-6 space-y-3">
-          <AnimatePresence initial={false}>
-            {gates.map((g, i) => (
-              <motion.li
-                key={g.key}
-                layout
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.04 }}
-                className={`card !p-5 ${g.ready ? 'border-brand-400 ring-2 ring-brand-100 dark:border-brand-400/60 dark:ring-brand-500/20' : ''} ${
-                  g.done ? 'opacity-80' : ''
-                }`}
+        {stepsExpanded ? (
+          <div className="mt-6">
+            <div className="space-y-3" role="list">
+              <AnimatePresence initial={false}>
+                {gates.map((g, i) => renderGate(g, i))}
+              </AnimatePresence>
+            </div>
+            <button
+              type="button"
+              onClick={() => setStepsExpanded(false)}
+              className="mt-3 w-full cursor-pointer rounded-xl py-2 text-center text-xs font-semibold text-slate-400 transition-colors duration-200 hover:text-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-slate-500 dark:hover:text-brand-300"
+            >
+              Collapse steps
+            </button>
+          </div>
+        ) : (
+          <div className="mt-6">
+            <div role="list">
+              <AnimatePresence mode="wait" initial={false}>
+                {renderGate(gates[activeIndex], activeIndex)}
+              </AnimatePresence>
+            </div>
+
+            {gates.length > 1 && (
+              <button
+                type="button"
+                onClick={() => setStepsExpanded(true)}
+                aria-label={`Show all ${gates.length} steps`}
+                className="press-spring group relative mt-4 block w-full cursor-pointer focus-visible:outline-none"
               >
-                <div className="flex items-start gap-3">
-                  <motion.span
-                    initial={false}
-                    animate={{
-                      backgroundColor: g.done ? '#15803d' : g.ready ? '#7c3aed' : 'var(--gate-pending-bg)',
-                      scale: g.ready ? 1.05 : 1,
-                    }}
-                    className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white"
-                    style={{ '--gate-pending-bg': 'var(--neu-sd)' }}
-                  >
-                    {g.done ? (
-                      <CheckIcon className="h-4 w-4" />
-                    ) : (
-                      <span className="font-display text-sm font-bold">{i + 1}</span>
-                    )}
-                  </motion.span>
-                  <div className="flex-1">
-                    <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">{g.title}</h2>
-                    <p className="mt-0.5 text-sm text-slate-600 dark:text-slate-400">{g.desc}</p>
-                    {g.ready && g.key === 'damage' ? (
-                      <DamageInspection
-                        booking={b}
-                        onSubmit={(items) => submitDamageReport(b.id, items)}
-                        onNoDamage={() => markNoDamage(b.id)}
-                      />
-                    ) : g.ready && (g.key === 'before' || g.key === 'after') ? (
-                      <PhotoCapture
-                        label={g.key}
-                        onSubmit={(photos) => addBookingPhotos(b.id, g.key, photos)}
-                      />
-                    ) : g.ready && g.key === 'en_route' ? (
-                      <div className="mt-3 rounded-2xl border border-brand-100 bg-brand-50/60 p-4 dark:border-brand-500/20 dark:bg-brand-500/10">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-brand-700 dark:text-brand-300">Heading to</p>
-                        <p className="mt-1 font-display text-base font-bold text-slate-900 dark:text-slate-100">{displayAddress}</p>
-                        <div className="mt-3 flex gap-2">
-                          <button
-                            onClick={g.action}
-                            className="btn btn-brand h-10 flex-1 text-sm"
-                          >
-                            <NavigationIcon className="h-4 w-4" /> I'm on my way
-                          </button>
-                        </div>
-                      </div>
-                    ) : g.ready && g.key === 'arrived' ? (
-                      <div className="mt-3 rounded-2xl border border-cta-200 bg-cta-50/60 p-4 dark:border-cta-500/20 dark:bg-cta-500/10">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-cta-700 dark:text-cta-400">Address</p>
-                        <p className="mt-1 font-display text-base font-bold text-slate-900 dark:text-slate-100">{displayAddress}</p>
-                        <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Confirm you're at the right vehicle before proceeding.</p>
-                        <button
-                          onClick={g.action}
-                          className="btn btn-cta mt-3 h-10 w-full text-sm"
-                        >
-                          <CheckIcon className="h-4 w-4" /> I've arrived — correct vehicle
-                        </button>
-                      </div>
-                    ) : g.ready && g.key === 'start' ? (
-                      <div className="mt-3 rounded-2xl border border-brand-200 bg-white p-4 dark:border-white/10 dark:bg-white/5">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-slate-500 dark:text-slate-400">Service</span>
-                          <span className="font-semibold text-slate-900 dark:text-slate-100">{b.service}</span>
-                        </div>
-                        <div className="mt-2 flex items-center justify-between text-sm">
-                          <span className="text-slate-500 dark:text-slate-400">Vehicle</span>
-                          <span className="font-semibold text-slate-900 dark:text-slate-100">{b.vehicleType ?? 'SUV'}</span>
-                        </div>
-                        <div className="mt-2 flex items-center justify-between text-sm">
-                          <span className="text-slate-500 dark:text-slate-400">Your take</span>
-                          <span className="font-semibold text-cta-700 dark:text-cta-400">+${(b.price * 0.85).toFixed(0)}</span>
-                        </div>
-                        <button
-                          onClick={g.action}
-                          className="btn btn-brand mt-4 h-10 w-full text-sm"
-                        >
-                          {g.cta}
-                        </button>
-                      </div>
-                    ) : g.ready ? (
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        <button onClick={g.action} className="btn btn-brand h-10 text-sm">
-                          {g.cta}
-                        </button>
-                        {g.secondary && (
-                          <button onClick={g.secondary.action} className="btn btn-outline h-10 text-sm">
-                            {g.secondary.label}
-                          </button>
-                        )}
-                      </div>
-                    ) : null}
-                  </div>
+                <div className="pointer-events-none absolute inset-x-5 top-2 h-9 rounded-2xl bg-[var(--neu-bg)] opacity-40 transition-transform duration-200 group-hover:translate-y-0.5" />
+                <div className="pointer-events-none absolute inset-x-2.5 top-1 h-9 rounded-2xl bg-[var(--neu-bg)] opacity-70 transition-transform duration-200 group-hover:translate-y-0.5" />
+                <div className="relative flex items-center justify-center gap-2 rounded-2xl bg-[var(--neu-bg)] px-4 py-2.5 text-xs font-semibold text-slate-500 shadow-[6px_6px_14px_var(--neu-sd),-6px_-6px_14px_var(--neu-sl)] transition-shadow duration-200 group-hover:shadow-[4px_4px_10px_var(--neu-sd),-4px_-4px_10px_var(--neu-sl)] group-focus-visible:ring-2 group-focus-visible:ring-brand-600 dark:text-slate-400">
+                  <LayersIcon className="h-3.5 w-3.5" />
+                  {gates.length - 1} more step{gates.length - 1 === 1 ? '' : 's'} · tap to view all
                 </div>
-              </motion.li>
-            ))}
-          </AnimatePresence>
-        </ol>
+              </button>
+            )}
+          </div>
+        )}
 
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <div className="card !p-5">
