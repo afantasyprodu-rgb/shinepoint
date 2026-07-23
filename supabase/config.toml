@@ -12,5 +12,17 @@ verify_jwt = true
 [functions.identity-verification]
 verify_jwt = true
 
+[functions.detailer-dashboard-link]
+verify_jwt = true
+
+[functions.get-balance]
+verify_jwt = true
+
+[functions.request-payout]
+verify_jwt = true
+
 [functions.stripe-webhook]
+verify_jwt = false
+
+[functions.release-payouts]
 verify_jwt = false
