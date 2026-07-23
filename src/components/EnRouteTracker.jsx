@@ -3,7 +3,7 @@ import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import { motion } from 'motion/react'
 import { isMapboxConfigured } from './DetailerMap'
-import { LA_ZIP_CENTROIDS, milesBetween } from '../lib/fuzzyPin'
+import { CA_ZIP_CENTROIDS, milesBetween } from '../lib/fuzzyPin'
 import { ClockIcon, AlertTriangleIcon, MapPinIcon } from './icons'
 
 // mapboxgl throws immediately on `new mapboxgl.Map(...)` if this isn't set
@@ -25,7 +25,7 @@ const lerpPt = (a, b, t) => ({ lat: lerp(a.lat, b.lat, t), lng: lerp(a.lng, b.ln
 const ease = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2)
 
 export default function EnRouteTracker({ booking, detailer, live = true }) {
-  const home = LA_ZIP_CENTROIDS[booking.zip]
+  const home = CA_ZIP_CENTROIDS[booking.zip]
 
   // Deterministic origin ~2.5 mi NE of the destination (detailer.pin sits in the
   // same zip, too close to draw a meaningful route).

@@ -8,7 +8,7 @@ import { AnimatedPage } from '../components/ui/Motion'
 import { CheckIcon, MapPinIcon, PlusIcon, TrashIcon } from '../components/icons'
 import { useStore } from '../context/StoreContext'
 import { usePaint, PAINTS } from '../context/PaintContext'
-import { LA_ZIP_CENTROIDS } from '../lib/fuzzyPin'
+import { CA_ZIP_CENTROIDS } from '../lib/fuzzyPin'
 import { CAR_MAKES, CAR_MODELS } from '../lib/vehicleData'
 import { useTiltShadow } from '../hooks/useTiltShadow'
 
@@ -86,7 +86,7 @@ export default function CustomerSettings() {
   const [saved, setSaved] = useState(false)
   const [busy, setBusy] = useState(false)
 
-  const knownZip = zip.length === 5 && zip in LA_ZIP_CENTROIDS
+  const knownZip = zip.length === 5 && zip in CA_ZIP_CENTROIDS
 
   // Persist photo immediately so the avatar updates everywhere without a save.
   async function changePhoto(url) {

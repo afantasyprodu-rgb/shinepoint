@@ -5,7 +5,7 @@ import Logo from '../components/Logo'
 import Combobox from '../components/ui/Combobox'
 import { CarIcon, MapPinIcon } from '../components/icons'
 import { useStore } from '../context/StoreContext'
-import { LA_ZIP_CENTROIDS } from '../lib/fuzzyPin'
+import { CA_ZIP_CENTROIDS } from '../lib/fuzzyPin'
 import { CAR_MAKES, CAR_MODELS } from '../lib/vehicleData'
 
 const VEHICLE_TYPES = ['Sedan', 'SUV', 'Truck', 'Van', 'Coupe', 'EV']
@@ -53,7 +53,7 @@ export default function CustomerOnboarding() {
     if (step === 0) { setDir(1); setStep(1) } else { done() }
   }
 
-  const knownZip = zip.length === 5 && zip in LA_ZIP_CENTROIDS
+  const knownZip = zip.length === 5 && zip in CA_ZIP_CENTROIDS
 
   return (
     <div className="auth-card-shell">
