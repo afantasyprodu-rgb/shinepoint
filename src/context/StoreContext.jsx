@@ -242,8 +242,13 @@ export function StoreProvider({ children }) {
       ])
     }
 
-    // ── Merged detailers (real + demo, deduplicated) ──────────────────────
-    const allDetailers = [...realDetailers, ...demoDetailers]
+    // ── Detailers ───────────────────────────────────────────────────────────
+    // Demo mode merges real + demo detailers (useful for debugging — you can
+    // see live/real detailers alongside the full seeded roster). A real,
+    // non-demo session must never show the fake roster — a genuine customer
+    // should see exactly the real detailers who've actually signed up (zero,
+    // until someone does), not a map full of made-up businesses.
+    const allDetailers = isDemo ? [...realDetailers, ...demoDetailers] : realDetailers
 
     // The logged-in detailer's own merged record (demo seeds 'det-1').
     const myDetailer = isDemo
