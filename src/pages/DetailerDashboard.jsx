@@ -199,16 +199,19 @@ export default function DetailerDashboard() {
                       +${(b.price * 0.85).toFixed(0)}
                     </p>
                   </div>
+                  {/* h-11 (44px) — Fitts's Law: the most time-critical tap
+                      target on the screen (a 30-min response window) needs
+                      to be at least as easy to hit as it is important. */}
                   <div className="mt-4 flex gap-2">
                     <button
                       onClick={() => patchBooking(b.id, { status: 'accepted' })}
-                      className="btn btn-cta h-10 flex-1 text-sm"
+                      className="btn btn-cta h-11 flex-1 text-sm"
                     >
                       Accept
                     </button>
                     <button
                       onClick={() => patchBooking(b.id, { status: 'cancelled', cancelledBy: 'detailer' })}
-                      className="btn btn-outline h-10 flex-1 text-sm"
+                      className="btn btn-outline h-11 flex-1 text-sm"
                     >
                       Decline
                     </button>

@@ -8,10 +8,17 @@ import { useTheme } from '../context/ThemeContext'
 import { CheckIcon, ShieldCheckIcon, CreditCardIcon, ClipboardCheckIcon, UsersIcon, ChevronLeftIcon, PlusIcon, XIcon, LightbulbIcon } from '../components/icons'
 import { InfoPopover } from '../components/ui/bits'
 
-const SERVICE_MENU = [
-  'Exterior Wash', 'Interior Deep Clean', 'Full Detail', 'Wax & Seal',
-  'Ceramic Coating', 'Pet Hair Removal', 'Engine Bay Clean', 'Headlight Restoration',
+// Two chunked groups of 4 (Miller's Law — easier to scan than one flat list
+// of 8), each ordered so the single most-wanted item leads and the next-most
+// leads the other group, since users disproportionately remember/act on the
+// first and last items in a list (serial position effect): "Full Detail" is
+// the flagship (leads group 1), "Ceramic Coating" is the best-margin add-on
+// (leads group 2).
+const SERVICE_GROUPS = [
+  { label: 'Core services', items: ['Full Detail', 'Exterior Wash', 'Interior Deep Clean', 'Wax & Seal'] },
+  { label: 'Premium add-ons', items: ['Ceramic Coating', 'Pet Hair Removal', 'Engine Bay Clean', 'Headlight Restoration'] },
 ]
+const SERVICE_MENU = SERVICE_GROUPS.flatMap((g) => g.items)
 
 // Per-service coaching shown when a detailer enables it.
 const SERVICE_ADVICE = {
@@ -360,11 +367,17 @@ export default function DetailerOnboarding() {
                   please anyway.
                 </MarketingTip>
 
-                {SERVICE_MENU.map((name) => {
+                {SERVICE_GROUPS.map((group) => (
+                  <div key={group.label} className="space-y-2">
+                    <p className="pt-1 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                      {group.label}
+                    </p>
+                    {group.items.map((name) => {
                   const on = name in services
                   const advice = SERVICE_ADVICE[name]
+                  const isBestMargin = name === 'Ceramic Coating'
                   return (
-                    <div key={name} className={`card !p-4 transition-colors duration-200 ${on ? 'border-brand-400 dark:border-brand-400/60' : ''}`}>
+                    <div key={name} className={`card !p-4 transition-colors duration-200 ${on ? 'border-brand-400 dark:border-brand-400/60' : ''} ${isBestMargin ? 'ring-1 ring-amber-300 dark:ring-amber-500/30' : ''}`}>
                       <div className="flex items-center justify-between gap-3">
                         <button type="button" aria-pressed={on} onClick={() => toggleService(name)}
                           className="flex cursor-pointer items-center gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600">
@@ -372,6 +385,9 @@ export default function DetailerOnboarding() {
                             <motion.span animate={{ x: on ? 16 : 0 }} transition={{ type: 'spring', stiffness: 400, damping: 25 }} className="h-5 w-5 rounded-full bg-white shadow" />
                           </motion.span>
                           <span className={`font-medium ${on ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}`}>{name}</span>
+                          {isBestMargin && (
+                            <span className="chip bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">Best margin</span>
+                          )}
                         </button>
                         {on && (
                           <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-1">
@@ -391,7 +407,9 @@ export default function DetailerOnboarding() {
                       )}
                     </div>
                   )
-                })}
+                    })}
+                  </div>
+                ))}
 
                 {/* Custom services as removable bubbles */}
                 {customServices.length > 0 && (
