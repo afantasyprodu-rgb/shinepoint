@@ -270,10 +270,6 @@ export default function DetailerEarnings() {
           </button>
         </div>
 
-        <div className="mt-6">
-          <TaxWriteOffs />
-        </div>
-
         {!isDemo && isStripeConfigured && (
           <div className="mt-6">
             <PayoutStatus bookings={bookings} />
@@ -300,17 +296,19 @@ export default function DetailerEarnings() {
             </div>
           </FadeIn>
 
-          {/* Payout action tile — the single accent CTA on the grid. */}
+          {/* Payout action tile — the single accent CTA on the grid. No
+              fixed payout day shown here: cash-out is on-demand, any amount
+              up to what's available, not tied to a schedule. */}
           <FadeIn delay={0.05} className="col-span-2">
             <div className="bento-action flex items-center justify-between gap-3">
               <div>
-                <p className="bento-k text-brand-200">Next payout · Friday</p>
+                <p className="bento-k text-brand-200">Available balance</p>
                 <p className="mt-1 font-display text-2xl font-bold tabular-nums">
                   <CountUp value={963} prefix="$" />
                 </p>
               </div>
               <button className="press-spring btn btn-cta h-11 shrink-0 text-sm">
-                Cash out early
+                Cash out
               </button>
             </div>
           </FadeIn>
@@ -373,6 +371,10 @@ export default function DetailerEarnings() {
           released to your available balance — withdraw anytime after that. Tips carry no
           platform cut.
         </p>
+
+        <div className="mt-6">
+          <TaxWriteOffs />
+        </div>
       </AnimatedPage>
     </AppShell>
   )
