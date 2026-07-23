@@ -256,10 +256,10 @@ export default function BookingWizard() {
                       setDate(day)
                       setWeatherAck(false)
                     }}
-                    className={`flex w-16 shrink-0 cursor-pointer flex-col items-center rounded-2xl border py-3 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
+                    className={`flex w-16 shrink-0 cursor-pointer flex-col items-center rounded-2xl border py-3 transition-all duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
                       date?.key === day.key
-                        ? 'border-brand-600 bg-brand-600 text-white shadow-lg'
-                        : 'border-brand-100 bg-white text-slate-700 hover:border-brand-300 dark:border-white/10 dark:bg-white/5 dark:text-slate-300'
+                        ? 'border-brand-600 bg-brand-600 text-white shadow-[0_10px_22px_-6px_rgba(109,40,217,0.55)]'
+                        : 'border-brand-100 bg-white text-slate-700 shadow-[0_8px_18px_-8px_rgba(30,41,59,0.35)] hover:border-brand-300 hover:shadow-[0_12px_22px_-8px_rgba(30,41,59,0.4)] dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:shadow-[0_8px_18px_-8px_rgba(0,0,0,0.5)]'
                     }`}
                   >
                     <span className="text-xs font-medium opacity-80">{day.label}</span>

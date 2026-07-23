@@ -71,10 +71,10 @@ export default function TimePicker({ value, onChange }) {
               role="radio"
               aria-checked={active}
               onClick={() => onChange(slot)}
-              className={`flex shrink-0 flex-col items-center rounded-2xl px-3.5 py-2.5 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2 ${
+              className={`flex shrink-0 flex-col items-center rounded-2xl px-3.5 py-2.5 transition-all duration-300 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2 ${
                 active
-                  ? 'bg-gradient-to-br from-brand-500 to-brand-600 text-white shadow-[0_6px_16px_rgba(124,58,237,0.45),inset_2px_2px_5px_rgba(255,255,255,0.35),inset_-2px_-2px_5px_rgba(76,29,149,0.4)]'
-                  : 'bg-[var(--neu-bg)] text-brand-900 shadow-[6px_6px_12px_var(--neu-sd),-6px_-6px_11px_var(--neu-sl)] hover:shadow-[4px_4px_9px_var(--neu-sd),-4px_-4px_8px_var(--neu-sl)] dark:text-brand-200'
+                  ? 'bg-gradient-to-br from-brand-500 to-brand-600 text-white shadow-[0_10px_20px_-4px_rgba(124,58,237,0.55),inset_2px_2px_5px_rgba(255,255,255,0.35),inset_-2px_-2px_5px_rgba(76,29,149,0.4)]'
+                  : 'bg-white text-brand-900 shadow-[0_10px_18px_-6px_rgba(30,41,59,0.3),-2px_-2px_6px_var(--neu-sl)] hover:shadow-[0_14px_22px_-6px_rgba(30,41,59,0.35),-2px_-2px_6px_var(--neu-sl)] dark:bg-[var(--neu-bg)] dark:text-brand-200 dark:shadow-[6px_6px_12px_var(--neu-sd),-6px_-6px_11px_var(--neu-sl)] dark:hover:shadow-[4px_4px_9px_var(--neu-sd),-4px_-4px_8px_var(--neu-sl)]'
               }`}
             >
               <span className="font-display text-sm font-semibold tabular-nums">{t.text}</span>
