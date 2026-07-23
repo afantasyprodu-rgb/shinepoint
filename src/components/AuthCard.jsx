@@ -41,6 +41,16 @@ const COUNTRIES = [
 // ease-out-expo — decisive and quick
 const EASE = [0.16, 1, 0.3, 1]
 
+// A brand-new account always lands on its role's onboarding wizard, never
+// straight on the dashboard — a detailer isn't verified/insured yet and
+// shouldn't be shown live jobs before finishing that. Returning users
+// (login) skip this and go via homePathForRole in finishLogin instead.
+function signupHomePath(role) {
+  if (role === 'detailer') return '/detailer/onboarding'
+  if (role === 'customer') return '/onboarding'
+  return homePathForRole(role)
+}
+
 // Each form field slides in from behind, staggered.
 function Field({ index, children }) {
   return (
@@ -125,7 +135,7 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
       setBusy(false)
       if (err) { setError(err.message); return }
       if (!data.session) { navigate('/check-email', { state: { email } }); return }
-      const homePath = role === 'customer' ? '/onboarding' : homePathForRole(role)
+      const homePath = signupHomePath(role)
       navigate('/mfa-setup', { state: { next: homePath } })
     } else {
       const { data, error: err } = await supabase.auth.signInWithPassword({ email, password })
@@ -186,7 +196,7 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
     if (err) { setBusy(false); setError(err.message); setOtpCode(''); return }
     if (mode === 'signup') {
       setBusy(false)
-      const homePath = role === 'customer' ? '/onboarding' : homePathForRole(role)
+      const homePath = signupHomePath(role)
       navigate('/mfa-setup', { state: { next: homePath } })
       return
     }

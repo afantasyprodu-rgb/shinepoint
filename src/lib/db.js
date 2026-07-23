@@ -255,7 +255,7 @@ export async function saveServices(userId, services) {
 export async function fetchDetailerProfileRow(userId) {
   const { data, error } = await supabase
     .from('detailer_profiles')
-    .select('id, status, accepts_bookings_when_busy, total_completed_jobs, average_rating, probation_jobs_remaining, is_probation')
+    .select('id, status, accepts_bookings_when_busy, total_completed_jobs, average_rating, probation_jobs_remaining, is_probation, is_verified, bio, zip_code')
     .eq('user_id', userId)
     .single()
   if (error) {
