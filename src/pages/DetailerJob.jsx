@@ -46,6 +46,10 @@ export default function DetailerJob() {
 
   const damageDone = b.damageReport.submitted
   const damageAcked = b.damageReport.acknowledged
+  // Full address is withheld only while the request is still pending —
+  // it unlocks the moment the detailer accepts, not on arrival.
+  const addressRevealed = b.status !== 'pending'
+  const displayAddress = addressRevealed ? b.address : `Hidden until accepted · ${b.zip}`
 
   const gates = [
     {
@@ -60,10 +64,10 @@ export default function DetailerJob() {
     {
       key: 'arrived',
       title: 'Mark arrived',
-      desc: 'Full address unlocks at arrival.',
+      desc: 'Confirm you have the right vehicle before starting the damage report.',
       done: !['accepted', 'en_route'].includes(b.status),
       ready: b.status === 'en_route',
-      action: () => patchBooking(b.id, { status: 'arrived', address: '812 Lakeview Ter, Echo Park' }),
+      action: () => patchBooking(b.id, { status: 'arrived' }),
       cta: "I've arrived",
     },
     {
@@ -140,15 +144,15 @@ export default function DetailerJob() {
                 {b.service} · {b.customerName}
               </h1>
               <p className="mt-1 flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
-                <MapPinIcon className="h-4 w-4" /> {b.address}
+                <MapPinIcon className="h-4 w-4" /> {displayAddress}
               </p>
-              {b.status !== 'pending' && (
+              {addressRevealed && (
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {MAP_APPS.map((app) => (
                     <button
                       key={app.id}
                       type="button"
-                      onClick={() => openInMaps(app.id, b.address)}
+                      onClick={() => openInMaps(app.id, displayAddress)}
                       className="chip press-spring cursor-pointer bg-brand-50 text-brand-700 hover:bg-brand-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:bg-white/10 dark:text-brand-200 dark:hover:bg-white/15"
                     >
                       <NavigationIcon className="h-3 w-3" /> {app.label}
@@ -233,7 +237,7 @@ export default function DetailerJob() {
                     ) : g.ready && g.key === 'en_route' ? (
                       <div className="mt-3 rounded-2xl border border-brand-100 bg-brand-50/60 p-4 dark:border-brand-500/20 dark:bg-brand-500/10">
                         <p className="text-xs font-semibold uppercase tracking-wide text-brand-700 dark:text-brand-300">Heading to</p>
-                        <p className="mt-1 font-display text-base font-bold text-slate-900 dark:text-slate-100">{b.address}</p>
+                        <p className="mt-1 font-display text-base font-bold text-slate-900 dark:text-slate-100">{displayAddress}</p>
                         <div className="mt-3 flex gap-2">
                           <button
                             onClick={g.action}
@@ -245,8 +249,8 @@ export default function DetailerJob() {
                       </div>
                     ) : g.ready && g.key === 'arrived' ? (
                       <div className="mt-3 rounded-2xl border border-cta-200 bg-cta-50/60 p-4 dark:border-cta-500/20 dark:bg-cta-500/10">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-cta-700 dark:text-cta-400">Full address</p>
-                        <p className="mt-1 font-display text-base font-bold text-slate-900 dark:text-slate-100">812 Lakeview Ter, Echo Park</p>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-cta-700 dark:text-cta-400">Address</p>
+                        <p className="mt-1 font-display text-base font-bold text-slate-900 dark:text-slate-100">{displayAddress}</p>
                         <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Confirm you're at the right vehicle before proceeding.</p>
                         <button
                           onClick={g.action}

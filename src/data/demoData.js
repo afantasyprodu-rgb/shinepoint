@@ -415,7 +415,7 @@ export const DEMO_BOOKINGS = [
     tip: 0,
     status: 'pending',
     scheduledTime: hrs(4),
-    address: 'Hidden until arrival · Echo Park 90026',
+    address: '317 Alvarado Ter, Echo Park, Los Angeles',
     zip: '90026',
     vehicle: 'Truck',
     damageReport: { submitted: false, acknowledged: false, items: [] },
