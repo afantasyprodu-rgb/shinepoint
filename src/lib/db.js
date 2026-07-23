@@ -373,6 +373,7 @@ export async function saveDetailerOnboarding(userId, {
   freeTravelMiles,
   chargePerMile,
   serviceDays,
+  featuredService,
 }) {
   const { data: prof, error: profErr } = await supabase
     .from('detailer_profiles')
@@ -410,6 +411,7 @@ export async function saveDetailerOnboarding(userId, {
     price: Number(price),
     vehicle_types: vehicles,
     is_active: true,
+    is_featured: name === featuredService,
   }))
 
   if (rows.length) {

@@ -5,7 +5,7 @@ import AppShell from '../components/AppShell'
 import MarketingTip from '../components/MarketingTip'
 import { useStore } from '../context/StoreContext'
 import { useTheme } from '../context/ThemeContext'
-import { CheckIcon, ShieldCheckIcon, CreditCardIcon, ClipboardCheckIcon, UsersIcon, ChevronLeftIcon, PlusIcon, XIcon, LightbulbIcon, ClockIcon } from '../components/icons'
+import { CheckIcon, ShieldCheckIcon, CreditCardIcon, ClipboardCheckIcon, UsersIcon, ChevronLeftIcon, PlusIcon, XIcon, LightbulbIcon, ClockIcon, StarIcon } from '../components/icons'
 import { InfoPopover } from '../components/ui/bits'
 import { startIdentityVerification, isStripeConfigured, stripePromise } from '../lib/stripe'
 
@@ -72,6 +72,10 @@ export default function DetailerOnboarding() {
   const [zip, setZip] = useState('')
   const [vehicles, setVehicles] = useState(['Sedan', 'SUV'])
   const [services, setServices] = useState({ 'Exterior Wash': 45, 'Full Detail': 175 })
+  // Which enabled service gets the single "Best margin" highlight (Von
+  // Restorff — only one thing should visually stand out, and it should be
+  // the detailer's own call, not a hardcoded guess at their pricing).
+  const [featuredService, setFeaturedService] = useState(null)
   const [customName, setCustomName] = useState('')
   const [customPrice, setCustomPrice] = useState('')
   const [days, setDays] = useState(['Mon', 'Tue', 'Wed', 'Thu', 'Fri'])
@@ -97,6 +101,7 @@ export default function DetailerOnboarding() {
       delete next[name]
       return next
     })
+    setFeaturedService((f) => (f === name ? null : f))
   }
 
   async function runIdCheck() {
@@ -149,6 +154,7 @@ export default function DetailerOnboarding() {
         freeTravelMiles: travel,
         chargePerMile,
         serviceDays: days,
+        featuredService,
       })
       setSubmitted(true)
     } catch (e) {
@@ -169,6 +175,7 @@ export default function DetailerOnboarding() {
       else next[name] = 50
       return next
     })
+    setFeaturedService((f) => (f === name ? null : f))
   }
 
   const canContinue = [
@@ -451,22 +458,19 @@ export default function DetailerOnboarding() {
                     {group.items.map((name) => {
                   const on = name in services
                   const advice = SERVICE_ADVICE[name]
-                  const isBestMargin = name === 'Ceramic Coating'
+                  const isBestMargin = name === featuredService
                   return (
                     <div key={name} className={`card !p-4 transition-colors duration-200 ${on ? 'border-brand-400 dark:border-brand-400/60' : ''} ${isBestMargin ? 'ring-1 ring-amber-300 dark:ring-amber-500/30' : ''}`}>
                       <div className="flex items-center justify-between gap-3">
                         <button type="button" aria-pressed={on} onClick={() => toggleService(name)}
-                          className="flex cursor-pointer items-center gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600">
-                          <motion.span animate={{ backgroundColor: on ? '#7c3aed' : pipOff }} className="flex h-6 w-10 items-center rounded-full p-0.5">
+                          className="flex min-w-0 cursor-pointer items-center gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600">
+                          <motion.span animate={{ backgroundColor: on ? '#7c3aed' : pipOff }} className="flex h-6 w-10 shrink-0 items-center rounded-full p-0.5">
                             <motion.span animate={{ x: on ? 16 : 0 }} transition={{ type: 'spring', stiffness: 400, damping: 25 }} className="h-5 w-5 rounded-full bg-white shadow" />
                           </motion.span>
-                          <span className={`font-medium ${on ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}`}>{name}</span>
-                          {isBestMargin && (
-                            <span className="chip bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">Best margin</span>
-                          )}
+                          <span className={`truncate font-medium ${on ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}`}>{name}</span>
                         </button>
                         {on && (
-                          <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-1">
+                          <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex shrink-0 items-center gap-1">
                             <span className="text-slate-500 dark:text-slate-400">$</span>
                             <input type="number" min={10} aria-label={`${name} price`} value={services[name]}
                               onChange={(e) => setServices((s) => ({ ...s, [name]: Number(e.target.value) }))}
@@ -474,12 +478,29 @@ export default function DetailerOnboarding() {
                           </motion.div>
                         )}
                       </div>
-                      {on && advice && (
-                        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                          className="mt-2 flex gap-1.5 border-t border-brand-100 pt-2 text-xs text-brand-700 dark:border-white/10 dark:text-brand-300">
-                          <LightbulbIcon className="h-3.5 w-3.5 shrink-0" />
-                          {advice}
-                        </motion.p>
+                      {on && (
+                        <div className="mt-2 flex items-center justify-between gap-3 border-t border-brand-100 pt-2 dark:border-white/10">
+                          {advice ? (
+                            <p className="flex gap-1.5 text-xs text-brand-700 dark:text-brand-300">
+                              <LightbulbIcon className="h-3.5 w-3.5 shrink-0" />
+                              {advice}
+                            </p>
+                          ) : <span />}
+                          <button
+                            type="button"
+                            onClick={() => setFeaturedService((f) => (f === name ? null : name))}
+                            aria-pressed={isBestMargin}
+                            title={isBestMargin ? 'Unmark as your best margin' : 'Mark as your best margin — highlights it here'}
+                            className={`flex shrink-0 cursor-pointer items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
+                              isBestMargin
+                                ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400'
+                                : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:text-slate-500 dark:hover:bg-white/5 dark:hover:text-slate-300'
+                            }`}
+                          >
+                            <StarIcon className="h-3.5 w-3.5" />
+                            {isBestMargin ? 'Best margin' : 'Mark as best margin'}
+                          </button>
+                        </div>
                       )}
                     </div>
                   )
