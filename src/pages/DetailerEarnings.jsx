@@ -1,15 +1,78 @@
 import { useEffect, useState } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
 import AppShell from '../components/AppShell'
 import { AnimatedPage, FadeIn, Stagger, StaggerItem } from '../components/ui/Motion'
 import { CountUp, Sparkline } from '../components/ui/bits'
 import { useStore } from '../context/StoreContext'
 import { milesBetweenZips } from '../lib/fuzzyPin'
 import { openDetailerDashboard, getDetailerBalance, requestPayout, isStripeConfigured } from '../lib/stripe'
-import { ClockIcon } from '../components/icons'
+import { ClockIcon, ChevronDownIcon, LightbulbIcon } from '../components/icons'
 
 const ME = 'det-1'
 // Six weeks of net earnings — the sparkline trend in the hero tile.
 const WEEKLY = [240, 310, 285, 390, 364, 412]
+
+// Common self-employed deduction categories for a mobile detailer — not
+// exhaustive tax advice, just enough to point them toward what to ask their
+// accountant/bookkeeper about and what to keep receipts for.
+const WRITE_OFFS = [
+  { title: 'Mileage', body: 'Every drive to a job — this page’s CSV export already logs your real distance per job.' },
+  { title: 'Supplies & equipment', body: 'Chemicals, towels, buffers, vacuums, pressure washers — and larger gear can often be fully expensed the year you buy it.' },
+  { title: 'Insurance premiums', body: 'Your liability/garage-keepers coverage from onboarding is a straightforward deductible expense.' },
+  { title: 'Platform fees', body: 'ShinePoint’s cut is a cost of doing business, not just a reduction in what you made.' },
+  { title: 'Phone & data', body: 'The business-use share of your phone bill — you’re running the app and talking to customers on it.' },
+  { title: 'Home office', body: 'Space you use for scheduling, bookkeeping, or storing supplies, if it’s dedicated to the business.' },
+  { title: 'Self-employment tax', body: 'You can deduct half of it automatically on Schedule SE — easy to miss.' },
+  { title: 'Retirement contributions', body: 'A SEP-IRA or Solo 401(k) contribution is deductible and shelters real income.' },
+  { title: 'Certifications & training', body: 'Ceramic coating courses, IDA certification — anything that improves your trade.' },
+]
+
+// Collapsed by default so it doesn't compete with the numbers above it —
+// this is reference material, not something to glance at daily.
+function TaxWriteOffs() {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="card !p-0">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="flex w-full cursor-pointer items-center justify-between gap-3 p-5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+      >
+        <span className="flex items-center gap-2 font-semibold text-slate-900 dark:text-slate-100">
+          <LightbulbIcon className="h-5 w-5 text-brand-600 dark:text-brand-300" />
+          Tax write-off ideas
+        </span>
+        <motion.span animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }}>
+          <ChevronDownIcon className="h-5 w-5 text-slate-400" />
+        </motion.span>
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="overflow-hidden"
+          >
+            <div className="space-y-3 px-5 pb-5">
+              {WRITE_OFFS.map((w) => (
+                <div key={w.title} className="border-t border-brand-100 pt-3 first:border-t-0 first:pt-0 dark:border-white/10">
+                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{w.title}</p>
+                  <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">{w.body}</p>
+                </div>
+              ))}
+              <p className="pt-1 text-xs text-slate-400 dark:text-slate-500">
+                Not tax advice — confirm specifics with your accountant before filing.
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
 
 function formatHoldEta(iso) {
   const ms = new Date(iso).getTime() - Date.now()
@@ -205,6 +268,10 @@ export default function DetailerEarnings() {
           <button onClick={exportCsv} className="btn btn-outline h-10 text-sm">
             Export CSV (taxes)
           </button>
+        </div>
+
+        <div className="mt-6">
+          <TaxWriteOffs />
         </div>
 
         {!isDemo && isStripeConfigured && (
