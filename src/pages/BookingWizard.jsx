@@ -10,6 +10,7 @@ import { CheckIcon, AlertTriangleIcon, ChevronLeftIcon, SparklesIcon } from '../
 import { useStore } from '../context/StoreContext'
 import { useTheme } from '../context/ThemeContext'
 import { stripePromise, isStripeConfigured, createPaymentIntent } from '../lib/stripe'
+import { useT } from '../i18n/useT'
 
 const VEHICLES = ['Sedan', 'SUV', 'Truck', 'Coupe', 'Van']
 
@@ -51,6 +52,7 @@ export default function BookingWizard() {
   const navigate = useNavigate()
   const { getDetailer, customer, createBooking, isDemo, customerProfile } = useStore()
   const { theme } = useTheme()
+  const t = useT('bookingWizard')
   const pipOff = theme === 'dark' ? '#3f2d6e' : '#e9d5ff'
   const totalColors = theme === 'dark' ? ['#4ade80', '#f1f5f9'] : ['#15803d', '#0f172a']
   const d = getDetailer(id)
@@ -142,12 +144,12 @@ export default function BookingWizard() {
       setClientSecret(res.clientSecret)
       setStep(5)
     } catch (e) {
-      setPayError(e.message || 'Could not start payment. Please try again.')
+      setPayError(e.message || t('payErrorFallback'))
       setStep(2)
     }
   }
 
-  const stepTitles = ['Choose service', 'Pick a time', 'Review & pay']
+  const stepTitles = [t('stepService'), t('stepSchedule'), t('stepReview')]
 
   return (
     <AppShell role="customer">
@@ -158,17 +160,17 @@ export default function BookingWizard() {
               onClick={() => (step === 0 ? navigate(-1) : setStep(step - 1))}
               className="mb-2 inline-flex cursor-pointer items-center gap-1 rounded text-sm font-medium text-slate-600 transition-colors duration-200 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-slate-400 dark:hover:text-brand-300"
             >
-              <ChevronLeftIcon className="h-4 w-4" /> Back
+              <ChevronLeftIcon className="h-4 w-4" /> {t('back')}
             </button>
             <div className="mb-6 flex items-center gap-2" aria-label={`Step ${step + 1} of 3`}>
-              {stepTitles.map((t, i) => (
-                <div key={t} className="flex-1">
+              {stepTitles.map((title, i) => (
+                <div key={title} className="flex-1">
                   <motion.div
                     animate={{ backgroundColor: i <= step ? '#7c3aed' : pipOff }}
                     className="h-1.5 rounded-full"
                   />
                   <p className={`mt-1 text-xs ${i === step ? 'font-semibold text-brand-700 dark:text-brand-300' : 'text-slate-400 dark:text-slate-500'}`}>
-                    {t}
+                    {title}
                   </p>
                 </div>
               ))}
@@ -181,9 +183,9 @@ export default function BookingWizard() {
           {step === 0 && (
             <motion.div key="s0" variants={stepVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.25, ease: 'easeOut' }}>
               <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">
-                What does your car need?
+                {t('serviceHeading')}
               </h1>
-              <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">Booking with {d.name}</p>
+              <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{t('bookingWith', { name: d.name })}</p>
 
               <div className="mt-5 space-y-3" role="radiogroup" aria-label="Service">
                 {d.services.map((s) => (
@@ -209,7 +211,7 @@ export default function BookingWizard() {
                 ))}
               </div>
 
-              <h2 className="mt-6 text-sm font-semibold text-slate-700 dark:text-slate-300">Vehicle type</h2>
+              <h2 className="mt-6 text-sm font-semibold text-slate-700 dark:text-slate-300">{t('vehicleType')}</h2>
               <div className="mt-2 flex flex-wrap gap-2" role="radiogroup" aria-label="Vehicle type">
                 {VEHICLES.map((v) => (
                   <button
@@ -230,7 +232,7 @@ export default function BookingWizard() {
               </div>
 
               <button onClick={() => setStep(1)} disabled={!service} className="btn btn-brand mt-8 w-full">
-                Continue
+                {t('continue')}
               </button>
             </motion.div>
           )}
@@ -238,7 +240,7 @@ export default function BookingWizard() {
           {/* ===== Step 1: date + time ===== */}
           {step === 1 && (
             <motion.div key="s1" variants={stepVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.25, ease: 'easeOut' }}>
-              <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">When works for you?</h1>
+              <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">{t('scheduleHeading')}</h1>
               <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
                 {service.name} · ${service.price} · at {customer.address}
               </p>
@@ -262,7 +264,7 @@ export default function BookingWizard() {
                   >
                     <span className="text-xs font-medium opacity-80">{day.label}</span>
                     <span className="font-display text-xl font-bold">{day.day}</span>
-                    {day.rainy && <span className={`text-[10px] ${date?.key === day.key ? 'text-amber-200' : 'text-amber-600 dark:text-amber-400'}`}>rain</span>}
+                    {day.rainy && <span className={`text-[10px] ${date?.key === day.key ? 'text-amber-200' : 'text-amber-600 dark:text-amber-400'}`}>{t('rain')}</span>}
                   </button>
                 ))}
               </div>
@@ -272,7 +274,7 @@ export default function BookingWizard() {
               </div>
 
               <button onClick={continueFromSchedule} disabled={!date || !time} className="btn btn-brand mt-8 w-full">
-                Continue
+                {t('continue')}
               </button>
             </motion.div>
           )}
@@ -280,13 +282,13 @@ export default function BookingWizard() {
           {/* ===== Step 2: review ===== */}
           {step === 2 && (
             <motion.div key="s2" variants={stepVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.25, ease: 'easeOut' }}>
-              <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">Review your booking</h1>
+              <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">{t('reviewHeading')}</h1>
               <div className="card mt-5 space-y-3 !p-5 text-sm">
                 {[
-                  ['Detailer', d.name],
-                  ['Service', `${service.name} · ${vehicle}`],
-                  ['When', `${date.label} ${date.day} · ${formatTime(time)}`],
-                  ['Where', customer.address],
+                  [t('rowDetailer'), d.name],
+                  [t('rowService'), `${service.name} · ${vehicle}`],
+                  [t('rowWhen'), `${date.label} ${date.day} · ${formatTime(time)}`],
+                  [t('rowWhere'), customer.address],
                 ].map(([k, v]) => (
                   <div key={k} className="flex justify-between gap-4">
                     <span className="text-slate-500 dark:text-slate-400">{k}</span>
@@ -295,7 +297,7 @@ export default function BookingWizard() {
                 ))}
                 {weatherAck && (
                   <p className="flex items-center gap-1.5 text-xs text-amber-700 dark:text-amber-400">
-                    <AlertTriangleIcon className="h-3.5 w-3.5" /> Rain warning acknowledged
+                    <AlertTriangleIcon className="h-3.5 w-3.5" /> {t('rainAck')}
                   </p>
                 )}
               </div>
@@ -310,11 +312,11 @@ export default function BookingWizard() {
                   }`}
                 >
                   <div>
-                    <p className="font-semibold text-slate-900 dark:text-slate-100">Use your reward: {reward.type}</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Expires in {reward.expiresDays} days</p>
+                    <p className="font-semibold text-slate-900 dark:text-slate-100">{t('useReward', { reward: reward.type })}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{t('expiresIn', { days: reward.expiresDays })}</p>
                   </div>
                   <span className={`chip ${useReward ? 'bg-cta-700 text-white' : 'bg-brand-100 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300'}`}>
-                    {useReward ? 'Applied' : 'Apply'}
+                    {useReward ? t('applied') : t('apply')}
                   </span>
                 </button>
               )}
@@ -326,23 +328,23 @@ export default function BookingWizard() {
                 </div>
                 {useReward && reward && (
                   <div className="flex justify-between text-sm font-medium text-cta-700 dark:text-cta-400">
-                    <span>Loyalty reward applied</span>
+                    <span>{t('loyaltyApplied')}</span>
                     <span>−${service.price}</span>
                   </div>
                 )}
                 {creditUsed > 0 && (
                   <div className="flex justify-between text-sm font-medium text-cta-700 dark:text-cta-400">
-                    <span>Referral credit</span>
+                    <span>{t('referralCredit')}</span>
                     <span>−${creditUsed}</span>
                   </div>
                 )}
                 <div className="mt-2 flex justify-between border-t border-brand-100 pt-2 font-display text-lg font-bold text-slate-900 dark:border-white/10 dark:text-slate-100">
-                  <span>Total</span>
+                  <span>{t('total')}</span>
                   <motion.span key={total} initial={{ scale: 1.2, color: totalColors[0] }} animate={{ scale: 1, color: totalColors[1] }}>
                     ${total}
                   </motion.span>
                 </div>
-                <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">Tip your detailer after the job</p>
+                <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">{t('tipAfter')}</p>
               </div>
 
               {payError && (
@@ -351,12 +353,10 @@ export default function BookingWizard() {
                 </p>
               )}
               <button onClick={pay} className="btn btn-cta-gradient glow-cta glow-pulse mt-6 w-full">
-                Pay ${total} · Book it
+                {t('payAndBook', { total })}
               </button>
               <p className="mt-2 text-center text-xs text-slate-400 dark:text-slate-500">
-                {realPaid
-                  ? 'Secure card payment on the next step, powered by Stripe.'
-                  : 'Demo mode — no card is charged.'}
+                {realPaid ? t('securePayment') : t('demoModeNoCharge')}
               </p>
             </motion.div>
           )}
@@ -369,8 +369,8 @@ export default function BookingWizard() {
                 transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
                 className="mx-auto h-12 w-12 rounded-full border-4 border-brand-200 border-t-brand-600 dark:border-brand-500/20 dark:border-t-brand-400"
               />
-              <p className="mt-6 font-display text-lg font-semibold text-slate-900 dark:text-slate-100">Processing payment…</p>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Securing your booking with {d.name}</p>
+              <p className="mt-6 font-display text-lg font-semibold text-slate-900 dark:text-slate-100">{t('processingPayment')}</p>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{t('securingBooking', { name: d.name })}</p>
             </motion.div>
           )}
 
@@ -397,13 +397,12 @@ export default function BookingWizard() {
                   <SparklesIcon className="h-5 w-5" />
                 </motion.span>
               ))}
-              <h1 className="mt-6 font-display text-3xl font-bold text-slate-900 dark:text-slate-100">You&apos;re booked!</h1>
+              <h1 className="mt-6 font-display text-3xl font-bold text-slate-900 dark:text-slate-100">{t('bookedTitle')}</h1>
               <p className="mt-2 text-slate-600 dark:text-slate-400">
-                Ref <span className="font-mono font-semibold">{bookingId}</span> · {d.name} has
-                been notified and will confirm shortly.
+                {t('bookedRefPrefix')} <span className="font-mono font-semibold">{bookingId}</span> · {t('bookedSuffix', { name: d.name })}
               </p>
               <button onClick={() => navigate(`/bookings/${bookingId}`)} className="btn btn-brand mt-8">
-                View booking
+                {t('viewBooking')}
               </button>
             </motion.div>
           )}
@@ -411,9 +410,9 @@ export default function BookingWizard() {
           {/* ===== Step 5: card payment (real Stripe flow) ===== */}
           {step === 5 && clientSecret && (
             <motion.div key="s5" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
-              <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">Payment</h1>
+              <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">{t('paymentHeading')}</h1>
               <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-                {service.name} with {d.name} · ${total}
+                {t('serviceWithDetailer', { service: service.name, name: d.name, total })}
               </p>
               <div className="card mt-5">
                 <Elements
@@ -431,11 +430,10 @@ export default function BookingWizard() {
         <Modal open={showWeather} onClose={() => setShowWeather(false)} labelledBy="weather-title">
           <AlertTriangleIcon className="mx-auto h-10 w-10 text-amber-500" />
           <h2 id="weather-title" className="mt-3 text-center font-display text-xl font-bold text-slate-900 dark:text-slate-100">
-            Rain is forecast that day
+            {t('rainModalTitle')}
           </h2>
           <p className="mt-2 text-center text-sm text-slate-600 dark:text-slate-400">
-            Detailing in wet conditions may affect results. You can proceed anyway or pick
-            another time.
+            {t('rainModalBody')}
           </p>
           <div className="mt-6 flex flex-col gap-2">
             <button
@@ -446,10 +444,10 @@ export default function BookingWizard() {
               }}
               className="btn btn-brand"
             >
-              Proceed anyway
+              {t('proceedAnyway')}
             </button>
             <button onClick={() => setShowWeather(false)} className="btn btn-outline">
-              Choose another time
+              {t('chooseAnotherTime')}
             </button>
           </div>
         </Modal>
@@ -458,22 +456,20 @@ export default function BookingWizard() {
         <Modal open={showUninsured} onClose={() => setShowUninsured(false)} labelledBy="unins-title">
           <AlertTriangleIcon className="mx-auto h-10 w-10 text-red-500" />
           <h2 id="unins-title" className="mt-3 text-center font-display text-xl font-bold text-slate-900 dark:text-slate-100">
-            This detailer is uninsured
+            {t('uninsuredModalTitle')}
           </h2>
           <p className="mt-2 text-center text-sm text-slate-600 dark:text-slate-400">
-            You are about to book an uninsured detailer. You accept full financial
-            responsibility for any damage to your vehicle. This cannot be disputed through
-            our platform.
+            {t('uninsuredModalBody')}
           </p>
           <div className="mt-6 flex flex-col gap-2">
             <button onClick={pay} className="btn bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-600">
-              I understand and accept full responsibility
+              {t('acceptResponsibility')}
             </button>
             <button
               onClick={() => setShowUninsured(false)}
               className="cursor-pointer text-sm text-slate-500 underline-offset-2 hover:underline dark:text-slate-400"
             >
-              Go back
+              {t('goBack')}
             </button>
           </div>
         </Modal>

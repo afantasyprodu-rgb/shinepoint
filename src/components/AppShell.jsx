@@ -3,10 +3,12 @@ import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import Logo from './Logo'
 import ThemeToggle from './ThemeToggle'
+import LanguageToggle from './LanguageToggle'
 import { BellIcon, ClipboardCheckIcon, TrendingUpIcon, UsersIcon, PieChartIcon, MapPinIcon } from './icons'
 import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
 import BottomTabBar from './ui/BottomTabBar'
+import { useT } from '../i18n/useT'
 
 // Where a notification should send the user when tapped. Customer booking
 // notifications carry the exact TIMELINE stage they're about (set at the
@@ -31,6 +33,7 @@ function NotificationBell({ role }) {
   const [open, setOpen] = useState(false)
   const panelRef = useRef(null)
   const navigate = useNavigate()
+  const t = useT('nav')
 
   const mine = notifications.filter((n) => n.audience === role)
   const unread = mine.filter((n) => !n.read).length
@@ -66,7 +69,7 @@ function NotificationBell({ role }) {
     <div className="relative" ref={panelRef}>
       <button
         onClick={toggle}
-        aria-label={`Notifications${unread ? ` (${unread} unread)` : ''}`}
+        aria-label={`${t('notifications')}${unread ? ` (${unread} unread)` : ''}`}
         aria-expanded={open}
         className="relative flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-slate-600 transition-colors duration-200 hover:bg-brand-50 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-brand-200"
       >
@@ -102,11 +105,11 @@ function NotificationBell({ role }) {
             className="absolute right-0 top-11 z-[1000] w-80 rounded-2xl border border-brand-100 bg-white p-2 shadow-xl dark:border-white/10 dark:bg-[#1E1730] dark:shadow-black/40"
           >
             <h2 className="px-3 pt-2 font-display text-sm font-semibold text-slate-900 dark:text-slate-100">
-              Notifications
+              {t('notifications')}
             </h2>
             <div className="mt-1 max-h-80 overflow-y-auto">
               {mine.length === 0 && (
-                <p className="px-3 py-6 text-center text-sm text-slate-400">All quiet.</p>
+                <p className="px-3 py-6 text-center text-sm text-slate-400">{t('allQuiet')}</p>
               )}
               {mine.map((n) => {
                 const clickable = notificationHref(role, n) != null
@@ -137,22 +140,23 @@ function NotificationBell({ role }) {
 
 const NAVS = {
   customer: [
-    { to: '/home', label: 'Map', end: true, icon: MapPinIcon },
-    { to: '/bookings', label: 'My Bookings', icon: ClipboardCheckIcon },
-    { to: '/settings', label: 'Account', icon: UsersIcon },
+    { to: '/home', labelKey: 'map', end: true, icon: MapPinIcon },
+    { to: '/bookings', labelKey: 'myBookings', icon: ClipboardCheckIcon },
+    { to: '/settings', labelKey: 'account', icon: UsersIcon },
   ],
   detailer: [
-    { to: '/detailer', label: 'Jobs', end: true, icon: ClipboardCheckIcon },
-    { to: '/detailer/earnings', label: 'Earnings', icon: TrendingUpIcon },
-    { to: '/detailer/analytics', label: 'Analytics', icon: PieChartIcon },
-    { to: '/detailer/profile', label: 'Account', icon: UsersIcon },
+    { to: '/detailer', labelKey: 'jobs', end: true, icon: ClipboardCheckIcon },
+    { to: '/detailer/earnings', labelKey: 'earnings', icon: TrendingUpIcon },
+    { to: '/detailer/analytics', labelKey: 'analytics', icon: PieChartIcon },
+    { to: '/detailer/profile', labelKey: 'account', icon: UsersIcon },
   ],
 }
 
 export default function AppShell({ role, children }) {
   const { signOut, isDemo, profile } = useAuth()
   const navigate = useNavigate()
-  const nav = NAVS[role] ?? []
+  const t = useT('nav')
+  const nav = (NAVS[role] ?? []).map((item) => ({ ...item, label: t(item.labelKey) }))
 
   // Land on the public welcome page, not the /login redirect ProtectedRoute fires.
   async function handleSignOut() {
@@ -199,13 +203,14 @@ export default function AppShell({ role, children }) {
           <div className="flex items-center gap-2">
             {isDemo && (
               <span className="chip hidden bg-amber-500/15 text-amber-700 dark:text-amber-300 sm:inline-flex">
-                Demo · {profile?.full_name}
+                {t('demoAs', { name: profile?.full_name })}
               </span>
             )}
             <ThemeToggle />
+            <LanguageToggle />
             <NotificationBell role={role} />
             <button onClick={handleSignOut} className="btn btn-outline h-9 px-3 text-sm">
-              {isDemo ? 'Exit demo' : 'Sign out'}
+              {isDemo ? t('exitDemo') : t('signOut')}
             </button>
           </div>
         </div>
