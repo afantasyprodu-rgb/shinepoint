@@ -283,7 +283,7 @@ export default function BookingWizard() {
           {step === 2 && (
             <motion.div key="s2" variants={stepVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.25, ease: 'easeOut' }}>
               <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">{t('reviewHeading')}</h1>
-              <div className="card mt-5 space-y-3 !p-5 text-sm">
+              <div className="card mt-5 space-y-3 !p-5 text-sm !bg-white !shadow-[0_14px_28px_-12px_rgba(30,41,59,0.4)] dark:!bg-[var(--neu-bg)] dark:!shadow-[8px_8px_18px_var(--neu-sd),-8px_-8px_18px_var(--neu-sl)]">
                 {[
                   [t('rowDetailer'), d.name],
                   [t('rowService'), `${service.name} · ${vehicle}`],
@@ -307,7 +307,7 @@ export default function BookingWizard() {
                   type="button"
                   aria-pressed={useReward}
                   onClick={() => setUseReward((v) => !v)}
-                  className={`card mt-4 flex w-full cursor-pointer items-center justify-between gap-3 !p-4 text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
+                  className={`card mt-4 flex w-full cursor-pointer items-center justify-between gap-3 !p-4 text-left transition-all duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 !bg-white !shadow-[0_14px_28px_-12px_rgba(30,41,59,0.4)] dark:!bg-[var(--neu-bg)] dark:!shadow-[8px_8px_18px_var(--neu-sd),-8px_-8px_18px_var(--neu-sl)] ${
                     useReward ? 'border-cta-700 ring-2 ring-cta-500/30' : 'hover:border-brand-300'
                   }`}
                 >
@@ -321,7 +321,7 @@ export default function BookingWizard() {
                 </button>
               )}
 
-              <div className="card mt-6 !p-5">
+              <div className="card mt-6 !p-5 !bg-white !shadow-[0_14px_28px_-12px_rgba(30,41,59,0.4)] dark:!bg-[var(--neu-bg)] dark:!shadow-[8px_8px_18px_var(--neu-sd),-8px_-8px_18px_var(--neu-sl)]">
                 <div className="flex justify-between text-sm text-slate-600 dark:text-slate-400">
                   <span>{service.name}</span>
                   <span>${service.price}</span>
