@@ -293,19 +293,23 @@ export function StoreProvider({ children }) {
 
     function realPatchBooking(id, patch) {
       setRealBookings((bs) => bs.map((b) => (b.id === id ? { ...b, ...patch } : b)))
-      updateBookingStatusInDB(id, patch)
+      const written = updateBookingStatusInDB(id, patch)
       if (patch.status && STATUS_NOTIFICATIONS[patch.status]) {
         notify(...STATUS_NOTIFICATIONS[patch.status], id, patch.status)
       }
+      return written
     }
 
+    // Returns a promise for the real (DB) path so callers that need the
+    // write to land before doing something else (e.g. sending an email that
+    // depends on the new status) can await it. Demo path resolves immediately.
     function patchBooking(id, patch) {
       const booking = bookings.find((b) => b.id === id)
       if (!isDemo && booking?._real) {
-        realPatchBooking(id, patch)
-      } else {
-        demoPatchBooking(id, patch)
+        return realPatchBooking(id, patch)
       }
+      demoPatchBooking(id, patch)
+      return Promise.resolve()
     }
 
     return {

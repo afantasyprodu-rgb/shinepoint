@@ -22,13 +22,14 @@ import {
 import { useStore } from '../context/StoreContext'
 import { MAP_APPS, openInMaps } from '../lib/navigation'
 import { useT } from '../i18n/useT'
+import { sendReceiptEmail } from '../lib/email'
 
 // Blueprint 5.3–5.5 — the detailer's gated job flow:
 // en route → arrived → damage report → before photos → start →
 // in progress → after photos → complete. Photos are mandatory gates.
 export default function DetailerJob() {
   const { id } = useParams()
-  const { getBooking, getDetailer, patchBooking, rateCustomer, addBookingPhotos, submitDamageReport, markNoDamage } = useStore()
+  const { getBooking, getDetailer, patchBooking, rateCustomer, addBookingPhotos, submitDamageReport, markNoDamage, isDemo } = useStore()
   const [custRating, setCustRating] = useState(0)
   const [hardToHandle, setHardToHandle] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -124,7 +125,11 @@ export default function DetailerJob() {
       desc: t('gateCompleteDesc'),
       done: b.status === 'complete',
       ready: b.status === 'in_progress' && b.afterPhotos >= 1,
-      action: () => { patchBooking(b.id, { status: 'complete' }); setShowPayout(true) },
+      action: async () => {
+        await patchBooking(b.id, { status: 'complete' })
+        setShowPayout(true)
+        if (!isDemo) sendReceiptEmail(b.id).catch((e) => console.error('sendReceiptEmail:', e.message))
+      },
       cta: t('gateCompleteCta'),
     },
   ]

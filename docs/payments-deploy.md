@@ -9,7 +9,8 @@ The payment code is already written and wired into the app:
 - `supabase/functions/get-balance` — the logged-in detailer's live Stripe balance (available vs pending)
 - `supabase/functions/request-payout` — withdraws a detailer-chosen amount from their available balance to their bank
 - `supabase/functions/detailer-dashboard-link` — a secondary "manage in Stripe" link into their Express dashboard
-- `supabase/functions/stripe-webhook` — marks bookings paid, syncs detailer payout-readiness, and records ID verification outcome
+- `supabase/functions/stripe-webhook` — marks bookings paid, syncs detailer payout-readiness, records ID verification outcome, and sends the booking-confirmation email
+- `supabase/functions/send-receipt-email` — sends the payment receipt when a detailer marks a job complete (see `docs/email-templates/README.md`)
 
 What's left is **deploying** them and **configuring Stripe**. Do this once.
 
@@ -40,10 +41,14 @@ Get your keys from Stripe → Developers → API keys.
 supabase secrets set STRIPE_SECRET_KEY=sk_test_xxx
 supabase secrets set PLATFORM_FEE_PERCENT=15
 supabase secrets set CRON_SECRET=$(openssl rand -hex 24)
+supabase secrets set RESEND_API_KEY=re_your_key_here
+supabase secrets set RESEND_FROM="ShinePoint <notifications@yourdomain.com>"
 # STRIPE_WEBHOOK_SECRET is set in step 4 (you need the endpoint first).
 ```
 
 `CRON_SECRET` is a random string only you and the scheduler in step 5 know — it's how `release-payouts` verifies a request without a logged-in user (nobody's signed in when a cron job fires).
+
+`RESEND_API_KEY`/`RESEND_FROM` are optional — the booking-confirmation and receipt emails skip themselves (log a warning, don't throw) if `RESEND_API_KEY` is unset, so payments and job completion work fine without them. Set them when you're ready for real email; see `docs/email-templates/README.md`.
 
 > `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` are injected automatically — do **not** set them yourself.
 
@@ -68,6 +73,7 @@ supabase functions deploy request-payout
 supabase functions deploy detailer-dashboard-link
 supabase functions deploy release-payouts
 supabase functions deploy stripe-webhook
+supabase functions deploy send-receipt-email
 ```
 
 (If your CLI ignores `config.toml`, deploy the public ones explicitly:
@@ -129,8 +135,8 @@ select cron.schedule(
 
 1. **Detailer payout setup:** sign in as a real detailer → Dashboard → "Set up payouts" → finish Stripe onboarding with test data. The `account.updated` webhook flips `detailer_profiles.stripe_charges_enabled` to true.
 2. **ID verification:** onboarding wizard → Identity step → "Upload ID & take selfie" → complete Stripe's test-mode document flow. Confirm `detailer_profiles.identity_status` flips to `verified` (or `failed` for a rejection test case) once the webhook fires.
-3. **Customer booking + payment:** sign in as a real customer → book that detailer → at payment, use card `4242 4242 4242 4242`, any future expiry, any CVC. Confirm the booking gets `paid_at`/`stripe_payment_intent`/`platform_cut`/`detailer_payout`, and that Stripe Dashboard → Payments shows the charge landing on **your platform's** balance (not the connected account — that's the point of the new setup).
-4. **Mark the job complete** (customer/detailer flow through the booking lifecycle to `'complete'`). Confirm `payout_hold_until` gets set (now + 48h) via the trigger.
+3. **Customer booking + payment:** sign in as a real customer → book that detailer → at payment, use card `4242 4242 4242 4242`, any future expiry, any CVC. Confirm the booking gets `paid_at`/`stripe_payment_intent`/`platform_cut`/`detailer_payout`, and that Stripe Dashboard → Payments shows the charge landing on **your platform's** balance (not the connected account — that's the point of the new setup). If `RESEND_API_KEY` is set, confirm the booking-confirmation email arrives.
+4. **Mark the job complete** (customer/detailer flow through the booking lifecycle to `'complete'`). Confirm `payout_hold_until` gets set (now + 48h) via the trigger, and — if `RESEND_API_KEY` is set — that the receipt email arrives.
 5. **Force the hold to clear** for testing — either wait 48h, or in the SQL editor: `update bookings set payout_hold_until = now() where id = '<booking id>';` — then invoke `release-payouts` manually (`curl -X POST .../release-payouts -H "x-cron-secret: ..."`, or just wait for the next scheduled run). Confirm `transferred_at`/`stripe_transfer_id` get set, and Stripe → Connect → the detailer's account shows the transfer.
 6. **Balance + withdraw:** sign in as that detailer → Earnings page → confirm "Available to withdraw" reflects the transferred amount (via `get-balance`), then withdraw a partial amount and confirm a `Payout` appears in Stripe's test-mode dashboard for the connected account.
 7. **Dispute holds it:** file a dispute on a booking before its hold clears (status → `'disputed'`) and confirm `release-payouts` does *not* transfer it (it's excluded from the query since it's no longer `'complete'`). Resolving the dispute in the detailer's favor sets it back to `'complete'`, which restarts a fresh 48-hour hold via the same trigger.

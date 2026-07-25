@@ -1,13 +1,17 @@
 # Transactional email templates
 
-Two HTML email templates, generated from `supabase/functions/_shared/email-templates.ts`:
+Two HTML email templates, generated from `supabase/functions/_shared/email-templates.ts`
+and sent via [Resend](https://resend.com):
 
-- **Booking confirmation** — sent when a booking is made/accepted.
-- **Receipt** — sent after payment, itemized like the in-app invoice.
+- **Booking confirmation** — sent automatically when a booking's payment
+  succeeds (Stripe's `payment_intent.succeeded` webhook), from inside
+  `supabase/functions/stripe-webhook`.
+- **Receipt** — sent when a detailer marks a real (non-demo) job complete,
+  via the client calling `supabase/functions/send-receipt-email`.
 
 `booking-confirmation.html` and `receipt.html` in this folder are static
-previews with sample data (open either directly in a browser). They're not
-regenerated automatically — re-run the template functions with fresh sample
+previews with sample data (open either directly in a browser) — not
+regenerated automatically. Re-run the template functions with fresh sample
 data if the markup changes and you want updated previews.
 
 Both templates are table-based with inline styles only (no external CSS, no
@@ -15,44 +19,55 @@ CSS custom properties) so they render consistently across email clients —
 brand colors are the literal hex values from `src/index.css`'s
 `--color-brand-*`/`--color-cta-*`, not the oklch tokens the app uses.
 
-## Usage
+## How sending is wired up
 
-```ts
-import { bookingConfirmationEmail, receiptEmail } from '../_shared/email-templates.ts'
+- `supabase/functions/_shared/resend.ts` — thin wrapper over Resend's HTTP
+  API (`sendEmail({ to, subject, html })`). Skips silently (logs a warning,
+  doesn't throw) if `RESEND_API_KEY` isn't set, so booking/payment/job flows
+  never break just because email isn't configured.
+- **Confirmation**: inlined into `stripe-webhook`'s `payment_intent.succeeded`
+  handler — it's already the authoritative, service-role place a booking is
+  known to be paid. Looks up the customer/detailer/service from the DB
+  itself (never trusts the webhook payload for anything but the booking id),
+  builds the email, sends it. Failures are logged, never thrown — a
+  successful payment must never roll back over an email hiccup.
+- **Receipt**: a small dedicated function, `send-receipt-email`
+  (`verify_jwt = true`). The client (`src/lib/email.js`'s
+  `sendReceiptEmail(bookingId)`) calls it right after a detailer's "Mark job
+  complete" action lands in the DB (`DetailerJob.jsx`, real bookings only —
+  gated on `!isDemo`, same pattern as every other Stripe-backed feature in
+  this app). The function re-fetches the booking server-side, checks the
+  caller is either the detailer or the customer on it, and re-checks
+  `status === 'complete'` before sending — bookingId alone is never trusted
+  as authorization.
 
-const { subject, html } = bookingConfirmationEmail({
-  customerName: booking.customerName,
-  detailerName: detailer.name,
-  service: booking.service,
-  vehicle: booking.vehicle,
-  scheduledTime: booking.scheduledTime,
-  address: booking.address,
-  price: booking.price,
-  bookingId: booking.id,
-  bookingUrl: `https://shinepoint.app/bookings/${booking.id}`,
-})
+## Deploying
+
+```
+supabase functions deploy stripe-webhook --no-verify-jwt
+supabase functions deploy send-receipt-email
+supabase secrets set RESEND_API_KEY=re_your_key_here
+supabase secrets set RESEND_FROM="ShinePoint <notifications@yourdomain.com>"
 ```
 
-`receiptEmail()` takes the same `items`/`total` shape the in-app
-`InvoiceBuilder` already uses (`{ label, amount }[]`), so a receipt can be
-built straight from `booking.invoice` or from `{ items: [{ label: service, amount: price }], total: price }`
-when there's no itemized invoice.
+`RESEND_FROM` must be on a domain verified in Resend (Settings → Domains) —
+Resend rejects sends from unverified domains. Until a custom domain is
+verified, Resend's own shared `onboarding@resend.dev` sender works for
+testing but is rate-limited and clearly not production-ready.
 
-## Wiring up sending (not done yet)
+`APP_ORIGIN` (already used for CORS — see `_shared/cors.ts`) also sets the
+`bookingUrl`/`receiptUrl` links inside the emails; without it they fall back
+to `https://shinepoint.app`.
 
-There's no email provider configured in this project — `{ subject, html }`
-is as far as this goes. To actually send:
+## Smoke test
 
-1. Pick a provider (Resend, Postmark, SendGrid — Resend's API is the least
-   ceremony for a single transactional call).
-2. Add a Supabase secret for its API key.
-3. Call it from wherever the trigger event already happens:
-   - Booking confirmation: `createBooking`/`decideApplication`-equivalent
-     path, or a `bookings` insert/update trigger.
-   - Receipt: `stripe-webhook`'s `payment_intent.succeeded` handler, or
-     when a booking flips to `complete`.
-4. Every user record needs an email on file — real (non-demo) customers do
-   via Supabase auth; guard the send with `if (!user.email) return`.
-
-None of this is deployed — these are templates only, ready to plug into
-whichever of the above gets picked.
+1. Set `RESEND_API_KEY` (a real key, even a test one — Resend doesn't have a
+   sandbox mode, but you can send to your own verified email address freely).
+2. Book a real (non-demo) job as a customer with Stripe test mode configured
+   and pay with `4242 4242 4242 4242`. Confirm the confirmation email
+   arrives at the customer's address.
+3. As the detailer, run the job through to "Mark job complete." Confirm the
+   receipt email arrives.
+4. Check the Supabase function logs (`supabase functions logs stripe-webhook`
+   / `send-receipt-email`) if either doesn't show up — look for `sendEmail`
+   warnings (missing key/recipient) or Resend API errors.
