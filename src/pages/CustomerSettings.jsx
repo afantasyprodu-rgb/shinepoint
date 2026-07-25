@@ -11,6 +11,7 @@ import { usePaint, PAINTS } from '../context/PaintContext'
 import { CA_ZIP_CENTROIDS } from '../lib/fuzzyPin'
 import { CAR_MAKES, CAR_MODELS } from '../lib/vehicleData'
 import { useTiltShadow } from '../hooks/useTiltShadow'
+import { useT } from '../i18n/useT'
 
 const ALL_MODELS = Object.values(CAR_MODELS).flat()
 
@@ -19,34 +20,34 @@ const VEHICLE_TYPES = ['Sedan', 'SUV', 'Truck', 'Van', 'Coupe', 'EV']
 // "Your garage" — the paint accent is sampled from the customer's car photo
 // (on-device in production); the swatches are the manual override. Only these
 // personal surfaces read --accent — never the app chrome.
-function GarageCard({ make, model, type }) {
+function GarageCard({ make, model, type, t }) {
   const { accent, setAccent } = usePaint()
   const current = PAINTS.find((p) => p.hex.toLowerCase() === accent.toLowerCase())
 
-  const title = [make, model].filter(Boolean).join(' ') || type || 'Your vehicle'
+  const title = [make, model].filter(Boolean).join(' ') || type || t('yourVehicle')
   const hasVehicle = Boolean(make || model || type)
 
   return (
     <div className="card mt-4">
-      <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">Your garage</h2>
+      <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">{t('yourGarage')}</h2>
       <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-        Your car&apos;s paint color personalizes your bookings and arrival tracker.
+        {t('garageBlurb')}
       </p>
 
       <div className="paint-surface mt-4 rounded-2xl p-5">
         <p className="font-display text-lg font-bold">{title}</p>
         <p className="mt-0.5 text-sm text-white/85">
-          {hasVehicle ? current?.name ?? 'Custom paint' : 'Add your make/model below to personalize this card'}
+          {hasVehicle ? current?.name ?? t('customPaint') : t('addVehicleHint')}
         </p>
         {hasVehicle && (
           <span className="mt-3 inline-block rounded-full border border-white/35 bg-white/20 px-3 py-1 text-xs font-semibold">
-            Accent sampled from your paint
+            {t('accentSampled')}
           </span>
         )}
       </div>
 
       <p className="mt-4 mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-        Try another paint
+        {t('tryAnotherPaint')}
       </p>
       <div className="flex flex-wrap gap-3">
         {PAINTS.map((p) => {
@@ -73,6 +74,7 @@ function GarageCard({ make, model, type }) {
 export default function CustomerSettings() {
   const { customer, uploadImage, updateCustomer } = useStore()
   const tiltRef = useTiltShadow()
+  const t = useT('customerSettings')
 
   const [photo, setPhoto] = useState(customer.photo ?? null)
   const [name, setName] = useState(customer.name)
@@ -126,7 +128,7 @@ export default function CustomerSettings() {
   return (
     <AppShell role="customer">
       <AnimatedPage className="mx-auto max-w-xl px-4 py-8 sm:px-6">
-        <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">Account</h1>
+        <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">{t('account')}</h1>
 
         {/* Identity card — avatar straddles a notch carved into the card's
             top edge, same treatment as the detailer profile editor. */}
@@ -150,42 +152,42 @@ export default function CustomerSettings() {
             <div>
               <p className="font-display text-lg font-semibold text-slate-900 dark:text-slate-100">{name}</p>
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                {customer.points} loyalty point{customer.points !== 1 && 's'} · ${customer.referralCredits} referral credit
+                {customer.points} {customer.points !== 1 ? t('loyaltyPoints') : t('loyaltyPoint')} · ${customer.referralCredits} {t('referralCredit')}
               </p>
             </div>
           </div>
         </div>
 
-        <GarageCard make={vehMake} model={vehModel} type={vehType} />
+        <GarageCard make={vehMake} model={vehModel} type={vehType} t={t} />
 
         <form onSubmit={save} className="mt-4 space-y-4">
           {/* Basics */}
           <div className="card space-y-4">
-            <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">Profile</h2>
+            <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">{t('profile')}</h2>
             <div>
-              <label htmlFor="name" className="label">Display name</label>
+              <label htmlFor="name" className="label">{t('displayName')}</label>
               <input
                 id="name" type="text" autoComplete="name" value={name}
-                onChange={(e) => setName(e.target.value)} className="input" placeholder="Your name"
+                onChange={(e) => setName(e.target.value)} className="input" placeholder={t('displayNamePlaceholder')}
               />
             </div>
             <div>
               <label htmlFor="bio" className="label">
-                About you <span className="font-normal text-slate-400">({250 - bio.length} left)</span>
+                {t('aboutYou')} <span className="font-normal text-slate-400">({250 - bio.length} {t('left')})</span>
               </label>
               <textarea
                 id="bio" rows={3} maxLength={250} value={bio}
                 onChange={(e) => setBio(e.target.value)}
                 className="input h-auto resize-none py-2"
-                placeholder="Anything your detailer should know — gate codes, pets, parking…"
+                placeholder={t('aboutYouPlaceholder')}
               />
             </div>
           </div>
 
           {/* Primary vehicle */}
           <div className="card space-y-3">
-            <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">Primary vehicle</h2>
-            <p className="-mt-1 text-sm text-slate-500 dark:text-slate-400">Pre-fills your booking details.</p>
+            <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">{t('primaryVehicle')}</h2>
+            <p className="-mt-1 text-sm text-slate-500 dark:text-slate-400">{t('primaryVehicleBlurb')}</p>
             <div className="grid grid-cols-2 gap-2">
               <Combobox
                 value={vehMake}
@@ -201,15 +203,15 @@ export default function CustomerSettings() {
               />
             </div>
             <div className="flex flex-wrap gap-2">
-              {VEHICLE_TYPES.map((t) => (
+              {VEHICLE_TYPES.map((vt) => (
                 <button
-                  key={t} type="button"
-                  onClick={() => setVehType(vehType === t ? '' : t)}
+                  key={vt} type="button"
+                  onClick={() => setVehType(vehType === vt ? '' : vt)}
                   className={`cursor-pointer rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
-                    vehType === t ? 'bg-brand-600 text-white shadow-sm' : 'bg-brand-50 text-slate-600 hover:bg-brand-100'
+                    vehType === vt ? 'bg-brand-600 text-white shadow-sm' : 'bg-brand-50 text-slate-600 hover:bg-brand-100'
                   }`}
                 >
-                  {t}
+                  {vt}
                 </button>
               ))}
             </div>
@@ -219,9 +221,9 @@ export default function CustomerSettings() {
               photo, since a garage can hold more than one car. */}
           <div className="card space-y-4">
             <div>
-              <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">Other vehicles</h2>
+              <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">{t('otherVehicles')}</h2>
               <p className="-mt-0.5 text-sm text-slate-500 dark:text-slate-400">
-                Add every car you might book a detail for.
+                {t('otherVehiclesBlurb')}
               </p>
             </div>
 
@@ -248,17 +250,17 @@ export default function CustomerSettings() {
                     inputClassName="input h-10"
                   />
                   <div className="flex flex-wrap gap-1.5">
-                    {VEHICLE_TYPES.map((t) => (
+                    {VEHICLE_TYPES.map((vt) => (
                       <button
-                        key={t} type="button"
-                        onClick={() => patchVehicle(v.id, { type: v.type === t ? '' : t })}
+                        key={vt} type="button"
+                        onClick={() => patchVehicle(v.id, { type: v.type === vt ? '' : vt })}
                         className={`cursor-pointer rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                          v.type === t
+                          v.type === vt
                             ? 'bg-brand-600 text-white shadow-sm'
                             : 'bg-white text-slate-600 hover:bg-brand-100 dark:bg-white/10 dark:text-slate-400 dark:hover:bg-white/15'
                         }`}
                       >
-                        {t}
+                        {vt}
                       </button>
                     ))}
                   </div>
@@ -266,7 +268,7 @@ export default function CustomerSettings() {
                 <button
                   type="button"
                   onClick={() => removeVehicle(v.id)}
-                  aria-label="Remove vehicle"
+                  aria-label={t('removeVehicle')}
                   className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center self-start rounded-lg text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:text-slate-500 dark:hover:bg-red-500/10 dark:hover:text-red-400"
                 >
                   <TrashIcon className="h-4 w-4" />
@@ -279,23 +281,23 @@ export default function CustomerSettings() {
               onClick={addVehicle}
               className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-dashed border-brand-200 py-2.5 text-sm font-medium text-brand-700 transition-colors duration-200 hover:border-brand-400 hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:border-brand-500/30 dark:text-brand-300 dark:hover:bg-brand-500/10"
             >
-              <PlusIcon className="h-4 w-4" /> Add another car
+              <PlusIcon className="h-4 w-4" /> {t('addAnotherCar')}
             </button>
           </div>
 
           {/* Home address */}
           <div className="card space-y-4">
-            <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">Home address</h2>
-            <p className="-mt-2 text-sm text-slate-500 dark:text-slate-400">Default booking location and map center.</p>
+            <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">{t('homeAddress')}</h2>
+            <p className="-mt-2 text-sm text-slate-500 dark:text-slate-400">{t('homeAddressBlurb')}</p>
             <div>
-              <label htmlFor="addr" className="label">Street address</label>
+              <label htmlFor="addr" className="label">{t('streetAddressLabel')}</label>
               <input
                 id="addr" type="text" autoComplete="street-address" value={address}
                 onChange={(e) => setAddress(e.target.value)} className="input" placeholder="2200 Sunset Blvd"
               />
             </div>
             <div>
-              <label htmlFor="zip" className="label">Zip code</label>
+              <label htmlFor="zip" className="label">{t('zipLabel')}</label>
               <input
                 id="zip" inputMode="numeric" autoComplete="postal-code" maxLength={5} value={zip}
                 onChange={(e) => setZip(e.target.value.replace(/\D/g, ''))} className="input w-32" placeholder="90026"
@@ -303,7 +305,7 @@ export default function CustomerSettings() {
               {zip.length === 5 && (
                 <p className={`mt-1.5 flex items-center gap-1 text-xs ${knownZip ? 'text-cta-700' : 'text-amber-600'}`}>
                   <MapPinIcon className="h-3.5 w-3.5" />
-                  {knownZip ? 'In our LA service area' : 'Outside the demo service area — map centers on LA'}
+                  {knownZip ? t('inServiceArea') : t('outsideServiceArea')}
                 </p>
               )}
             </div>
@@ -311,7 +313,7 @@ export default function CustomerSettings() {
 
           <div className="relative">
             <button type="submit" disabled={busy || zip.length !== 5} className="btn btn-cta w-full">
-              {busy ? 'Saving…' : 'Save changes'}
+              {busy ? t('saving') : t('saveChanges')}
             </button>
             <AnimatePresence>
               {saved && (
@@ -320,7 +322,7 @@ export default function CustomerSettings() {
                   initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
                   className="absolute -top-9 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-cta-700 px-4 py-1.5 text-sm font-semibold text-white shadow-lg"
                 >
-                  <CheckIcon className="h-4 w-4" /> Saved
+                  <CheckIcon className="h-4 w-4" /> {t('saved')}
                 </motion.p>
               )}
             </AnimatePresence>
