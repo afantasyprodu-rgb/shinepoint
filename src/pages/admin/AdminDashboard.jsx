@@ -4,24 +4,33 @@ import { AnimatedPage, FadeIn } from '../../components/ui/Motion'
 import { CountUp, ProgressBar, Bars } from '../../components/ui/bits'
 import { AlertTriangleIcon, ArrowRightIcon } from '../../components/icons'
 import { useStore } from '../../context/StoreContext'
+import { useT } from '../../i18n/useT'
+
+const MILESTONE_KEYS = {
+  detailers: 'milestoneDetailers',
+  customers: 'milestoneCustomers',
+  jobs: 'milestoneJobs',
+  revenue: 'milestoneRevenue',
+}
 
 // Blueprint screen 6.1 — Admin Dashboard.
 export default function AdminDashboard() {
   const { admin, bookings } = useStore()
+  const t = useT('adminDashboard')
   const activeNow = bookings.filter((b) => ['en_route', 'arrived', 'in_progress'].includes(b.status)).length
   const openDisputes = admin.disputes.filter((d) => d.status !== 'resolved').length
 
   const cards = [
-    { label: 'Active jobs right now', value: activeNow },
-    { label: 'Bookings today', value: 14 },
-    { label: 'Platform earnings today', value: admin.finance.today, prefix: '$' },
-    { label: 'Pending applications', value: admin.applications.length },
+    { label: t('activeJobsNow'), value: activeNow },
+    { label: t('bookingsToday'), value: 14 },
+    { label: t('platformEarningsToday'), value: admin.finance.today, prefix: '$' },
+    { label: t('pendingApplications'), value: admin.applications.length },
   ]
 
   return (
     <AdminShell>
       <AnimatedPage>
-        <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">Mission control</h1>
+        <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">{t('missionControl')}</h1>
 
         <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
           {cards.map(({ label, value, prefix }, i) => (
@@ -42,13 +51,18 @@ export default function AdminDashboard() {
               <div className="flex items-center gap-3">
                 <AlertTriangleIcon className="h-6 w-6 text-red-600 dark:text-red-400" />
                 <p className="text-sm font-medium text-red-800 dark:text-red-300">
-                  Needs attention: {openDisputes} open dispute{openDisputes !== 1 && 's'} ·{' '}
-                  {admin.flagged.length} flagged message{admin.flagged.length !== 1 && 's'} ·{' '}
-                  {admin.overrides.length} damage-report override{admin.overrides.length !== 1 && 's'}
+                  {t('needsAttention', {
+                    disputes: openDisputes,
+                    disputesS: openDisputes !== 1 ? 's' : '',
+                    flagged: admin.flagged.length,
+                    flaggedS: admin.flagged.length !== 1 ? 's' : '',
+                    overrides: admin.overrides.length,
+                    overridesS: admin.overrides.length !== 1 ? 's' : '',
+                  })}
                 </p>
               </div>
               <Link to="/admin/ops" className="btn h-9 bg-red-600 px-4 text-sm text-white hover:bg-red-700 focus-visible:ring-red-600">
-                Open queue <ArrowRightIcon className="h-4 w-4" />
+                {t('openQueue')} <ArrowRightIcon className="h-4 w-4" />
               </Link>
             </div>
           </FadeIn>
@@ -58,7 +72,7 @@ export default function AdminDashboard() {
           <FadeIn delay={0.25}>
             <div className="card">
               <h2 className="mb-4 font-display text-lg font-semibold text-slate-900 dark:text-slate-100">
-                Platform revenue
+                {t('platformRevenue')}
               </h2>
               <Bars data={admin.finance.monthly} labels={admin.finance.monthLabels} />
             </div>
@@ -67,7 +81,7 @@ export default function AdminDashboard() {
           <FadeIn delay={0.3}>
             <div className="card">
               <h2 className="mb-4 font-display text-lg font-semibold text-slate-900 dark:text-slate-100">
-                Milestone tracker
+                {t('milestoneTracker')}
               </h2>
               <div className="space-y-4">
                 {Object.entries(admin.milestones).map(([key, { current, target }]) => (
@@ -75,7 +89,7 @@ export default function AdminDashboard() {
                     key={key}
                     value={current}
                     max={target}
-                    label={key.charAt(0).toUpperCase() + key.slice(1)}
+                    label={t(MILESTONE_KEYS[key] ?? key)}
                   />
                 ))}
               </div>
