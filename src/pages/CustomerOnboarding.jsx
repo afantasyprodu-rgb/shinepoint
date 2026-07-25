@@ -7,6 +7,7 @@ import { CarIcon, MapPinIcon } from '../components/icons'
 import { useStore } from '../context/StoreContext'
 import { CA_ZIP_CENTROIDS } from '../lib/fuzzyPin'
 import { CAR_MAKES, CAR_MODELS } from '../lib/vehicleData'
+import { useT } from '../i18n/useT'
 
 const VEHICLE_TYPES = ['Sedan', 'SUV', 'Truck', 'Van', 'Coupe', 'EV']
 const ALL_MODELS = Object.values(CAR_MODELS).flat()
@@ -22,6 +23,7 @@ const variants = {
 export default function CustomerOnboarding() {
   const navigate = useNavigate()
   const { updateCustomer } = useStore()
+  const t = useT('customerOnboarding')
 
   const [step, setStep] = useState(0)
   const [dir, setDir] = useState(1)
@@ -60,7 +62,7 @@ export default function CustomerOnboarding() {
       <div className="auth-card">
         <div className="auth-logo-block">
           <Logo />
-          <p className="auth-tagline">LA's mobile detailing marketplace</p>
+          <p className="auth-tagline">{t('tagline')}</p>
         </div>
 
         {/* Step dots */}
@@ -92,14 +94,14 @@ export default function CustomerOnboarding() {
                   <CarIcon className="h-6 w-6" />
                 </span>
                 <div>
-                  <h2 className="font-display text-lg font-bold text-slate-900">Your car</h2>
-                  <p className="text-sm text-slate-500 mt-0.5">Helps detailers bring the right supplies</p>
+                  <h2 className="font-display text-lg font-bold text-slate-900">{t('vehicleTitle')}</h2>
+                  <p className="text-sm text-slate-500 mt-0.5">{t('vehicleBody')}</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2.5">
                 <div className="auth-field">
-                  <label className="auth-label">Make</label>
+                  <label className="auth-label">{t('makeLabel')}</label>
                   <Combobox
                     value={make}
                     onChange={setMake}
@@ -112,7 +114,7 @@ export default function CustomerOnboarding() {
                   />
                 </div>
                 <div className="auth-field">
-                  <label className="auth-label">Model</label>
+                  <label className="auth-label">{t('modelLabel')}</label>
                   <Combobox
                     value={model}
                     onChange={setModel}
@@ -127,19 +129,19 @@ export default function CustomerOnboarding() {
               </div>
 
               <div className="auth-field">
-                <label className="auth-label">Type</label>
+                <label className="auth-label">{t('typeLabel')}</label>
                 <div className="flex flex-wrap gap-1.5 mt-0.5">
-                  {VEHICLE_TYPES.map((t) => (
+                  {VEHICLE_TYPES.map((vt) => (
                     <button
-                      key={t} type="button"
-                      onClick={() => setType(type === t ? '' : t)}
+                      key={vt} type="button"
+                      onClick={() => setType(type === vt ? '' : vt)}
                       className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all duration-150 ${
-                        type === t
+                        type === vt
                           ? 'bg-brand-600 text-white shadow-sm'
                           : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                       }`}
                     >
-                      {t}
+                      {vt}
                     </button>
                   ))}
                 </div>
@@ -151,13 +153,13 @@ export default function CustomerOnboarding() {
                   className="auth-btn-primary w-full"
                 >
                   {busy
-                    ? <span className="inline-flex items-center gap-2"><Spinner />Saving…</span>
-                    : 'Continue'}
+                    ? <span className="inline-flex items-center gap-2"><Spinner />{t('saving')}</span>
+                    : t('continue')}
                 </button>
                 <button type="button" onClick={skip}
                   className="w-full py-2 text-center text-sm text-slate-400 hover:text-slate-600 transition-colors"
                 >
-                  Skip for now
+                  {t('skipForNow')}
                 </button>
               </div>
             </motion.div>
@@ -177,13 +179,13 @@ export default function CustomerOnboarding() {
                   <MapPinIcon className="h-6 w-6" />
                 </span>
                 <div>
-                  <h2 className="font-display text-lg font-bold text-slate-900">Where do you park?</h2>
-                  <p className="text-sm text-slate-500 mt-0.5">We'll show detailers in your area</p>
+                  <h2 className="font-display text-lg font-bold text-slate-900">{t('addressTitle')}</h2>
+                  <p className="text-sm text-slate-500 mt-0.5">{t('addressBody')}</p>
                 </div>
               </div>
 
               <div className="auth-field">
-                <label className="auth-label">Street address</label>
+                <label className="auth-label">{t('streetAddressLabel')}</label>
                 <input
                   type="text" autoComplete="street-address" value={address}
                   onChange={(e) => setAddress(e.target.value)}
@@ -192,7 +194,7 @@ export default function CustomerOnboarding() {
               </div>
 
               <div className="auth-field">
-                <label className="auth-label">Zip code</label>
+                <label className="auth-label">{t('zipLabel')}</label>
                 <input
                   type="text" inputMode="numeric" autoComplete="postal-code" maxLength={5}
                   value={zip} onChange={(e) => setZip(e.target.value.replace(/\D/g, ''))}
@@ -201,7 +203,7 @@ export default function CustomerOnboarding() {
                 {zip.length === 5 && (
                   <p className={`mt-1.5 flex items-center gap-1 text-xs ${knownZip ? 'text-cta-700' : 'text-amber-600'}`}>
                     <MapPinIcon className="h-3.5 w-3.5" />
-                    {knownZip ? 'In our LA service area' : 'Outside demo area — map centers on LA'}
+                    {knownZip ? t('inServiceArea') : t('outsideServiceArea')}
                   </p>
                 )}
               </div>
@@ -212,13 +214,13 @@ export default function CustomerOnboarding() {
                   className="auth-btn-primary w-full"
                 >
                   {busy
-                    ? <span className="inline-flex items-center gap-2"><Spinner />Saving…</span>
-                    : 'Save & open map'}
+                    ? <span className="inline-flex items-center gap-2"><Spinner />{t('saving')}</span>
+                    : t('saveAndOpenMap')}
                 </button>
                 <button type="button" onClick={skip}
                   className="w-full py-2 text-center text-sm text-slate-400 hover:text-slate-600 transition-colors"
                 >
-                  Skip for now
+                  {t('skipForNow')}
                 </button>
               </div>
             </motion.div>
