@@ -11,32 +11,15 @@ import {
   ArrowRightIcon,
 } from '../components/icons'
 import { useStore } from '../context/StoreContext'
+import { useT } from '../i18n/useT'
 
 // before/after photo is null (no real job photo in the demo) — EvidencePhotos
 // falls back to a labeled gradient tile, same as everywhere else in the app
 // that doesn't have a real photo to show, so nothing here is fabricated.
 const FAKE_REVIEWS = [
-  {
-    id: 1,
-    name: 'Dana M.',
-    rating: 5,
-    text: 'Truck looks brand new. Sent photos the whole time.',
-    photos: [{ area: 'Before', photo: null }, { area: 'After', photo: null }],
-  },
-  {
-    id: 2,
-    name: 'Chris P.',
-    rating: 5,
-    text: 'On time, fast, and the interior smells amazing.',
-    photos: [{ area: 'Before', photo: null }, { area: 'After', photo: null }],
-  },
-  {
-    id: 3,
-    name: 'Sam T.',
-    rating: 4,
-    text: 'Great wash. Booking again next month.',
-    photos: [{ area: 'Before', photo: null }, { area: 'After', photo: null }],
-  },
+  { id: 1, name: 'Dana M.', rating: 5, textKey: 'review1' },
+  { id: 2, name: 'Chris P.', rating: 5, textKey: 'review2' },
+  { id: 3, name: 'Sam T.', rating: 4, textKey: 'review3' },
 ]
 
 // Blueprint screen 2.2 — Detailer Profile
@@ -45,12 +28,13 @@ export default function DetailerProfile() {
   const navigate = useNavigate()
   const { getDetailer } = useStore()
   const d = getDetailer(id)
+  const t = useT('detailerProfile')
 
   if (!d) {
     return (
       <AppShell role="customer">
         <div className="mx-auto max-w-xl px-6 py-16 text-center text-slate-600 dark:text-slate-400">
-          Detailer not found. <Link to="/home" className="font-semibold text-brand-600 dark:text-brand-300">Back to map</Link>
+          {t('detailerNotFound')} <Link to="/home" className="font-semibold text-brand-600 dark:text-brand-300">{t('backToMap')}</Link>
         </div>
       </AppShell>
     )
@@ -66,7 +50,7 @@ export default function DetailerProfile() {
           onClick={() => navigate(-1)}
           className="mb-4 inline-flex cursor-pointer items-center gap-1 rounded text-sm font-medium text-slate-600 transition-colors duration-200 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-slate-400 dark:hover:text-brand-300"
         >
-          <ChevronLeftIcon className="h-4 w-4" /> Back to map
+          <ChevronLeftIcon className="h-4 w-4" /> {t('backToMap')}
         </button>
 
         {uninsured && (
@@ -74,9 +58,7 @@ export default function DetailerProfile() {
             <div role="alert" className="mb-4 flex gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 dark:border-red-500/20 dark:bg-red-500/10">
               <AlertTriangleIcon className="h-5 w-5 shrink-0 text-red-600 dark:text-red-400" />
               <p className="text-sm text-red-800 dark:text-red-300">
-                <strong>This detailer has not provided proof of insurance.</strong> If you
-                choose to book them, you accept full responsibility for any damage to your
-                vehicle.
+                <strong>{t('uninsuredWarning')}</strong> {t('uninsuredWarningRest')}
               </p>
             </div>
           </FadeIn>
@@ -91,7 +73,7 @@ export default function DetailerProfile() {
                 <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
                   <Stars rating={d.rating} className="h-4 w-4" />
                   <span>
-                    {d.rating.toFixed(1)} · {d.reviews} reviews · {d.completedJobs} jobs
+                    {t('ratingSummary', { rating: d.rating.toFixed(1), reviews: d.reviews, jobs: d.completedJobs })}
                   </span>
                 </div>
               </div>
@@ -102,29 +84,29 @@ export default function DetailerProfile() {
           <div className="mt-4 flex flex-wrap gap-2">
             {d.insurance === 'premium' && (
               <span className="chip bg-amber-500/15 text-amber-700 dark:text-amber-300">
-                <ShieldCheckIcon className="h-3.5 w-3.5" /> Gold · Fully insured
+                <ShieldCheckIcon className="h-3.5 w-3.5" /> {t('goldInsured')}
               </span>
             )}
             {d.insurance === 'standard' && (
               <span className="chip bg-slate-200 text-slate-700 dark:bg-white/10 dark:text-slate-300">
-                <ShieldCheckIcon className="h-3.5 w-3.5" /> Silver · Insured
+                <ShieldCheckIcon className="h-3.5 w-3.5" /> {t('silverInsured')}
               </span>
             )}
             {uninsured && (
               <span className="chip bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300">
-                <AlertTriangleIcon className="h-3.5 w-3.5" /> Uninsured
+                <AlertTriangleIcon className="h-3.5 w-3.5" /> {t('uninsured')}
               </span>
             )}
-            {d.acceptsRewards && <span className="chip bg-brand-100 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">Accepts rewards</span>}
+            {d.acceptsRewards && <span className="chip bg-brand-100 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">{t('acceptsRewards')}</span>}
             <span className="chip bg-brand-50 text-slate-600 dark:bg-white/5 dark:text-slate-400">
-              <MapPinIcon className="h-3.5 w-3.5" /> {d.area} · travels {d.travelMiles} mi
+              <MapPinIcon className="h-3.5 w-3.5" /> {d.area} · {t('travels', { miles: d.travelMiles })}
             </span>
           </div>
 
           <p className="mt-4 leading-relaxed text-slate-700 dark:text-slate-300">{d.bio}</p>
         </div>
 
-        <h2 className="mt-8 font-display text-lg font-semibold text-slate-900 dark:text-slate-100">Services & pricing</h2>
+        <h2 className="mt-8 font-display text-lg font-semibold text-slate-900 dark:text-slate-100">{t('servicesAndPricing')}</h2>
         <Stagger className="mt-3 space-y-3">
           {d.services.map((s) => (
             <StaggerItem key={s.id}>
@@ -141,7 +123,7 @@ export default function DetailerProfile() {
 
         {d.gallery?.length > 0 && (
           <>
-            <h2 className="mt-8 font-display text-lg font-semibold text-slate-900 dark:text-slate-100">Portfolio</h2>
+            <h2 className="mt-8 font-display text-lg font-semibold text-slate-900 dark:text-slate-100">{t('portfolio')}</h2>
             <div className="mt-3 grid grid-cols-3 gap-2">
               {d.gallery.map((url, i) => (
                 <div key={url} className="aspect-square overflow-hidden rounded-xl">
@@ -152,7 +134,7 @@ export default function DetailerProfile() {
           </>
         )}
 
-        <h2 className="mt-8 font-display text-lg font-semibold text-slate-900 dark:text-slate-100">Reviews</h2>
+        <h2 className="mt-8 font-display text-lg font-semibold text-slate-900 dark:text-slate-100">{t('reviews')}</h2>
         <Stagger className="mt-3 space-y-3">
           {FAKE_REVIEWS.map((r) => (
             <StaggerItem key={r.id}>
@@ -162,12 +144,10 @@ export default function DetailerProfile() {
                   <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">{r.name}</span>
                   <Stars rating={r.rating} className="h-3 w-3" />
                 </div>
-                <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">{r.text}</p>
-                {r.photos && (
-                  <div className="mt-3 max-w-[168px]">
-                    <EvidencePhotos items={r.photos} columns={2} />
-                  </div>
-                )}
+                <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">{t(r.textKey)}</p>
+                <div className="mt-3 max-w-[168px]">
+                  <EvidencePhotos items={[{ area: t('before'), photo: null }, { area: t('after'), photo: null }]} columns={2} />
+                </div>
               </div>
             </StaggerItem>
           ))}
@@ -181,10 +161,10 @@ export default function DetailerProfile() {
           >
             {bookable ? (
               <>
-                Book Now <ArrowRightIcon className="h-4 w-4" />
+                {t('bookNow')} <ArrowRightIcon className="h-4 w-4" />
               </>
             ) : (
-              'Currently unavailable'
+              t('currentlyUnavailable')
             )}
           </button>
         </div>
