@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { CameraIcon, CarIcon, XIcon } from './icons'
+import { useT } from '../i18n/useT'
 
 const SHADES = [
   'from-brand-300 to-brand-500',
@@ -15,8 +16,10 @@ const ANGLE_LABELS = ['Front', 'Rear', 'Left', 'Right', 'Interior']
 // Renders real captured photos when `photos` (array of { area, photo }) is
 // provided; otherwise falls back to `count` placeholder tiles. Same lightbox
 // either way, so the customer, detailer, and admin all see identical photos.
-export default function PhotoGrid({ count, photos, label, emptyText = 'No photos yet' }) {
+export default function PhotoGrid({ count, photos, label, emptyText }) {
   const [open, setOpen] = useState(null) // index of enlarged photo
+  const t = useT('photoGrid')
+  const empty = emptyText ?? t('noPhotosYet')
 
   // Normalize to a single items array. Real photos take priority.
   const real = (photos ?? []).filter((p) => p && p.photo)
@@ -29,7 +32,7 @@ export default function PhotoGrid({ count, photos, label, emptyText = 'No photos
   if (items.length === 0) {
     return (
       <div className="flex h-24 items-center justify-center rounded-xl border-2 border-dashed border-brand-200 bg-brand-50 text-sm text-slate-400 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-slate-500">
-        <CameraIcon className="mr-2 h-4 w-4" /> {emptyText}
+        <CameraIcon className="mr-2 h-4 w-4" /> {empty}
       </div>
     )
   }
@@ -38,13 +41,13 @@ export default function PhotoGrid({ count, photos, label, emptyText = 'No photos
 
   return (
     <>
-      <div role="img" aria-label={`${items.length} ${label} photos`} className="grid grid-cols-5 gap-2">
+      <div role="img" aria-label={t('photosAria', { count: items.length, label })} className="grid grid-cols-5 gap-2">
         {items.map((item, i) => (
           <motion.button
             key={i}
             type="button"
             onClick={() => setOpen(i)}
-            aria-label={`View ${label} photo ${item.area}`}
+            aria-label={t('viewPhoto', { label, area: item.area })}
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: i * 0.06, duration: 0.25, ease: 'easeOut' }}
@@ -77,7 +80,7 @@ export default function PhotoGrid({ count, photos, label, emptyText = 'No photos
             <button
               type="button"
               onClick={() => setOpen(null)}
-              aria-label="Close photo"
+              aria-label={t('closePhoto')}
               className="absolute right-4 top-4 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
               <XIcon className="h-5 w-5" />
@@ -127,7 +130,7 @@ export default function PhotoGrid({ count, photos, label, emptyText = 'No photos
               ))}
             </div>
 
-            <p className="mt-3 text-xs text-white/50">Tap outside to close</p>
+            <p className="mt-3 text-xs text-white/50">{t('tapOutside')}</p>
           </motion.div>
         )}
       </AnimatePresence>

@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { CameraIcon, CheckIcon, XIcon } from './icons'
+import { useT } from '../i18n/useT'
 
 const ANGLES = ['Front', 'Rear', 'Left', 'Right', 'Interior']
 
@@ -17,6 +18,7 @@ export default function PhotoCapture({ label = 'before', onSubmit }) {
   const [lightbox, setLightbox] = useState(null) // angle string
   const fileRefs = useRef({})
   const fileObjs = useRef({}) // { angle: File } — kept for real uploads
+  const t = useT('photoCapture')
 
   function readOne(angle, file) {
     fileObjs.current[angle] = file
@@ -47,9 +49,7 @@ export default function PhotoCapture({ label = 'before', onSubmit }) {
   return (
     <div className="mt-3 space-y-3">
       <p className="text-xs text-slate-500 dark:text-slate-400">
-        Capture what you can — front, rear, left side, right side, and interior all help, but at
-        least one photo is enough to {label === 'before' ? 'start' : 'complete'} the job. Pick
-        several at once from your library and they'll fill the open angles.
+        {t('captureHint', { action: label === 'before' ? t('actionStart') : t('actionComplete') })}
       </p>
 
       <div className="grid grid-cols-5 gap-2">
@@ -120,10 +120,10 @@ export default function PhotoCapture({ label = 'before', onSubmit }) {
       >
         {hasEnough ? (
           <>
-            <CheckIcon className="h-4 w-4" /> Submit {captured.length} {label} photo{captured.length !== 1 ? 's' : ''}
+            <CheckIcon className="h-4 w-4" /> {t('submitPhotos', { count: captured.length, label, s: captured.length !== 1 ? 's' : '' })}
           </>
         ) : (
-          'Take at least 1 photo'
+          t('takeAtLeastOne')
         )}
       </motion.button>
 
@@ -162,7 +162,7 @@ export default function PhotoCapture({ label = 'before', onSubmit }) {
                   onClick={() => { remove(lightbox); setLightbox(null) }}
                   className="flex cursor-pointer items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-red-400 hover:bg-white/10 hover:text-red-300"
                 >
-                  <XIcon className="h-3.5 w-3.5" /> Retake
+                  <XIcon className="h-3.5 w-3.5" /> {t('retake')}
                 </button>
               </div>
             </motion.div>
