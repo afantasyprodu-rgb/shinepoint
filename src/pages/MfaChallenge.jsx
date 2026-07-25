@@ -4,6 +4,7 @@ import Logo from '../components/Logo'
 import { AnimatedPage } from '../components/ui/Motion'
 import { supabase } from '../lib/supabase'
 import { useAuth, homePathForRole } from '../context/AuthContext'
+import { useT } from '../i18n/useT'
 
 // Login-time step-up: shown when the account has a verified TOTP factor and
 // the session is still aal1. Reached from AuthCard after password/OTP login.
@@ -12,6 +13,7 @@ export default function MfaChallenge() {
   const location = useLocation()
   const { profile, signOut } = useAuth()
   const next = location.state?.next ?? homePathForRole(profile?.role)
+  const t = useT('mfa')
 
   const [factorId, setFactorId] = useState(null)
   const [code, setCode] = useState('')
@@ -55,10 +57,10 @@ export default function MfaChallenge() {
 
         <div className="card space-y-4">
           <h1 className="text-center font-display text-lg font-bold text-slate-900">
-            Two-factor verification
+            {t('challengeTitle')}
           </h1>
           <p className="text-center text-sm text-slate-600">
-            Enter the code from your authenticator app.
+            {t('challengeBody')}
           </p>
 
           {error && (
@@ -70,7 +72,7 @@ export default function MfaChallenge() {
           <form onSubmit={verify} className="space-y-3">
             <div>
               <label htmlFor="mfaChallengeCode" className="label">
-                6-digit code
+                {t('codeLabel')}
               </label>
               <input
                 id="mfaChallengeCode"
@@ -87,7 +89,7 @@ export default function MfaChallenge() {
               />
             </div>
             <button type="submit" disabled={busy || !factorId} className="btn btn-cta w-full">
-              {busy ? 'Verifying…' : 'Verify & continue'}
+              {busy ? t('verifying') : t('verifyAndContinue')}
             </button>
           </form>
 
@@ -96,7 +98,7 @@ export default function MfaChallenge() {
             onClick={signOut}
             className="w-full text-center text-sm font-medium text-slate-500 hover:text-slate-700"
           >
-            Not you? Sign out
+            {t('notYouSignOut')}
           </button>
         </div>
       </AnimatedPage>

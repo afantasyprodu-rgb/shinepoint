@@ -4,6 +4,8 @@ import AppShell from '../components/AppShell'
 import { AnimatedPage, Stagger, StaggerItem } from '../components/ui/Motion'
 import { StatusPill, EmptyState, Avatar, Skeleton, CarWashIllustration } from '../components/ui/bits'
 import { useStore } from '../context/StoreContext'
+import { useT } from '../i18n/useT'
+import { useLanguage } from '../context/LanguageContext'
 
 // Skeleton row — dimensions match the real booking card 1:1 so the swap to
 // loaded content never shifts the layout.
@@ -22,6 +24,8 @@ function BookingSkeleton() {
 
 export default function Bookings() {
   const { bookings, customer, isDemo, getDetailer } = useStore()
+  const t = useT('bookings')
+  const { lang } = useLanguage()
   // Demo: filter from the shared demo pool. Real: all bookings loaded are already ours.
   const mine = isDemo ? bookings.filter((b) => b.customerName === customer.name) : bookings
 
@@ -36,10 +40,10 @@ export default function Bookings() {
   return (
     <AppShell role="customer">
       <AnimatedPage className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
-        <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">My bookings</h1>
+        <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">{t('title')}</h1>
 
         {loading ? (
-          <div className="mt-6 space-y-3" aria-busy="true" aria-label="Loading bookings">
+          <div className="mt-6 space-y-3" aria-busy="true" aria-label={t('loadingAria')}>
             {Array.from({ length: 3 }).map((_, i) => (
               <BookingSkeleton key={i} />
             ))}
@@ -48,11 +52,11 @@ export default function Bookings() {
           <div className="mt-6">
             <EmptyState
               illustration={<CarWashIllustration />}
-              title="No bookings yet"
-              body="Your car misses you. Find a detailer nearby and give it a shine."
+              title={t('emptyTitle')}
+              body={t('emptyBody')}
               action={
                 <Link to="/home" className="btn btn-brand">
-                  Find a detailer
+                  {t('findDetailer')}
                 </Link>
               }
             />
@@ -74,7 +78,7 @@ export default function Bookings() {
                         {b.service} · {d?.name}
                       </p>
                       <p className="truncate text-sm text-slate-500 dark:text-slate-400">
-                        {new Date(b.scheduledTime).toLocaleString('en-US', {
+                        {new Date(b.scheduledTime).toLocaleString(lang === 'es' ? 'es-US' : 'en-US', {
                           weekday: 'short',
                           month: 'short',
                           day: 'numeric',
