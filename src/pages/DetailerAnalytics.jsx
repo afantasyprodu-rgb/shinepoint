@@ -4,6 +4,7 @@ import { CountUp } from '../components/ui/bits'
 import { NxLineChart, NxDonut } from '../components/ui/AnalyticsCharts'
 import { useStore } from '../context/StoreContext'
 import { TrendingUpIcon, PieChartIcon, LightbulbIcon, TrophyIcon } from '../components/icons'
+import { useT } from '../i18n/useT'
 
 const ME = 'det-1'
 // Same six-week net-earnings trend as the Earnings hero sparkline, split
@@ -14,6 +15,7 @@ const SEGMENT_COLORS = ['var(--color-cta-500)', 'var(--color-brand-400)', 'var(-
 export default function DetailerAnalytics() {
   const { bookings } = useStore()
   const complete = bookings.filter((b) => b.detailerId === ME && b.status === 'complete')
+  const t = useT('detailerAnalytics')
 
   const currentWeeks = WEEKLY.slice(3, 6)
   const comparisonWeeks = WEEKLY.slice(0, 3)
@@ -52,34 +54,34 @@ export default function DetailerAnalytics() {
   return (
     <AppShell role="detailer">
       <AnimatedPage className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
-        <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">Analytics</h1>
+        <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">{t('title')}</h1>
 
         <div className="mt-6">
           <div className="grid gap-3 sm:grid-cols-2">
             <FadeIn>
               <div className="nx-card">
                 <div className="flex items-center justify-between">
-                  <p className="nx-kicker">Net this week</p>
+                  <p className="nx-kicker">{t('netThisWeek')}</p>
                   <span className="nx-icon-tile"><TrendingUpIcon className="h-4 w-4" /></span>
                 </div>
                 <p className="mt-2 font-display text-3xl font-bold text-slate-900 dark:text-white">
                   <CountUp value={WEEKLY[5]} prefix="$" />
                 </p>
                 <p className={`mt-1 text-sm font-medium ${weekDelta >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                  {weekDelta >= 0 ? '+' : ''}{weekDelta.toFixed(1)}% vs last week
+                  {t('vsLastWeek', { sign: weekDelta >= 0 ? '+' : '', pct: weekDelta.toFixed(1) })}
                 </p>
               </div>
             </FadeIn>
             <FadeIn delay={0.05}>
               <div className="nx-card">
                 <div className="flex items-center justify-between">
-                  <p className="nx-kicker">Jobs completed</p>
+                  <p className="nx-kicker">{t('jobsCompleted')}</p>
                   <span className="nx-icon-tile"><PieChartIcon className="h-4 w-4" /></span>
                 </div>
                 <p className="mt-2 font-display text-3xl font-bold text-slate-900 dark:text-white">
                   <CountUp value={complete.length} />
                 </p>
-                <p className="nx-sub mt-1 text-sm">this session</p>
+                <p className="nx-sub mt-1 text-sm">{t('thisSession')}</p>
               </div>
             </FadeIn>
           </div>
@@ -90,25 +92,25 @@ export default function DetailerAnalytics() {
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <FadeIn delay={0.1}>
               <div className="nx-card h-full">
-                <p className="mb-1 text-sm font-semibold text-slate-900 dark:text-white">Net earnings by week</p>
-                <p className="nx-sub mb-4 text-xs">Last 3 weeks vs the 3 before that</p>
+                <p className="mb-1 text-sm font-semibold text-slate-900 dark:text-white">{t('netEarningsByWeek')}</p>
+                <p className="nx-sub mb-4 text-xs">{t('last3Weeks')}</p>
                 <NxLineChart
-                  labels={['Week 1', 'Week 2', 'Week 3']}
+                  labels={[t('week1'), t('week2'), t('week3')]}
                   current={currentWeeks}
                   comparison={comparisonWeeks}
-                  currentLabel="Recent 3wk"
-                  comparisonLabel="Prior 3wk"
+                  currentLabel={t('recent3wk')}
+                  comparisonLabel={t('prior3wk')}
                 />
               </div>
             </FadeIn>
 
             <FadeIn delay={0.15}>
               <div className="nx-card h-full">
-                <p className="mb-4 text-sm font-semibold text-slate-900 dark:text-white">Earnings by service</p>
+                <p className="mb-4 text-sm font-semibold text-slate-900 dark:text-white">{t('earningsByService')}</p>
                 {segments.length > 0 ? (
                   <NxDonut segments={segments} />
                 ) : (
-                  <p className="nx-sub text-sm">Complete jobs to see the breakdown here.</p>
+                  <p className="nx-sub text-sm">{t('completeToSeeBreakdown')}</p>
                 )}
               </div>
             </FadeIn>
@@ -116,8 +118,8 @@ export default function DetailerAnalytics() {
 
           <FadeIn delay={0.2}>
             <div className="nx-card mt-3">
-              <p className="mb-1 text-sm font-semibold text-slate-900 dark:text-white">Service performance</p>
-              <p className="nx-sub mb-4 text-xs">Take-home pay per job — your cut plus 100%-yours tips</p>
+              <p className="mb-1 text-sm font-semibold text-slate-900 dark:text-white">{t('servicePerformance')}</p>
+              <p className="nx-sub mb-4 text-xs">{t('takeHomeBlurb')}</p>
               {services.length > 0 ? (
                 <ul className="space-y-2.5">
                   {services.map((s, i) => (
@@ -140,19 +142,19 @@ export default function DetailerAnalytics() {
                         <div>
                           <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{s.service}</p>
                           <p className="text-xs text-slate-500 dark:text-slate-400">
-                            {s.count} job{s.count === 1 ? '' : 's'} · ${Math.round(s.totalNet)} total
+                            {t('jobsTotal', { count: s.count, s: s.count === 1 ? '' : 's', total: Math.round(s.totalNet) })}
                           </p>
                         </div>
                       </div>
                       <p className="font-display text-base font-bold text-slate-900 dark:text-slate-100">
                         ${s.avgNet.toFixed(0)}
-                        <span className="ml-1 text-xs font-normal text-slate-400 dark:text-slate-500">/job</span>
+                        <span className="ml-1 text-xs font-normal text-slate-400 dark:text-slate-500">{t('perJob')}</span>
                       </p>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="nx-sub text-sm">Complete jobs to see per-service performance here.</p>
+                <p className="nx-sub text-sm">{t('completeToSeePerformance')}</p>
               )}
             </div>
           </FadeIn>
@@ -164,13 +166,17 @@ export default function DetailerAnalytics() {
                   <span className="nx-icon-tile shrink-0"><LightbulbIcon className="h-4 w-4" /></span>
                   <div>
                     <p className="text-sm font-semibold text-slate-900 dark:text-white">
-                      Boost your {worstService.service} jobs
+                      {t('boostTitle', { service: worstService.service })}
                     </p>
                     <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-                      {worstService.service} nets you ${worstService.avgNet.toFixed(0)}/job — {gapPct}% less than
-                      your top earner, {bestService.service} at ${bestService.avgNet.toFixed(0)}/job. Try raising
-                      the price by ~${suggestedBump}, bundling it with a quick add-on (wax, tire shine, odor
-                      treatment), or upselling to {bestService.service} on-site once you're already there.
+                      {t('boostBody', {
+                        worstService: worstService.service,
+                        worstAvg: worstService.avgNet.toFixed(0),
+                        gapPct,
+                        bestService: bestService.service,
+                        bestAvg: bestService.avgNet.toFixed(0),
+                        bump: suggestedBump,
+                      })}
                     </p>
                   </div>
                 </div>
