@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { InfoIcon, StarIcon } from '../icons'
+import { useT } from '../../i18n/useT'
 
 const AVATAR_GRADIENTS = [
   'from-brand-500 to-brand-700',
@@ -44,6 +45,7 @@ export function Avatar({ name, photo, size = 'md' }) {
 }
 
 export function StatusPill({ status, acceptsWhenBusy }) {
+  const t = useT('status')
   const styles = {
     available: 'bg-cta-700/10 text-cta-700 dark:text-cta-500',
     busy: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
@@ -60,13 +62,7 @@ export function StatusPill({ status, acceptsWhenBusy }) {
     under_review: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
     resolved: 'bg-cta-700/10 text-cta-700 dark:text-cta-500',
   }
-  const labels = {
-    busy: acceptsWhenBusy ? 'Busy — accepting' : 'Busy',
-    en_route: 'En route',
-    in_progress: 'In progress',
-    under_review: 'Under review',
-  }
-  const label = labels[status] ?? status.charAt(0).toUpperCase() + status.slice(1)
+  const label = status === 'busy' && acceptsWhenBusy ? t('busyAccepting') : t(status)
   return <span className={`chip ${styles[status] ?? styles.offline}`}>{label}</span>
 }
 

@@ -4,8 +4,10 @@ import { AnimatePresence, motion, useAnimate, useReducedMotion } from 'motion/re
 import Logo from '../components/Logo'
 import AuthCard from '../components/AuthCard'
 import ThemeToggle from '../components/ThemeToggle'
+import LanguageToggle from '../components/LanguageToggle'
 import { useAuth, homePathForRole } from '../context/AuthContext'
 import { markArrival } from '../lib/transition'
+import { useT } from '../i18n/useT'
 
 // Background video montage. Clips live in public/videos/. There are more clips
 // than grid cells, and they're shuffled per load, so the montage varies and has
@@ -71,6 +73,7 @@ export default function DesktopLanding() {
   const { enterDemo } = useAuth()
   const reduce = useReducedMotion()
   const [scope] = useAnimate()
+  const t = useT('desktopLanding')
 
   // Montage cycles between a full-bleed single clip and the grid, at random
   // intervals, with a fresh random selection each time.
@@ -190,13 +193,16 @@ export default function DesktopLanding() {
       >
         <div className="flex items-center justify-between">
           <Logo tone="light" />
-          <ThemeToggle className="text-white/80 hover:bg-white/10 hover:text-white dark:text-white/80 dark:hover:bg-white/10 dark:hover:text-white" />
+          <div className="flex items-center gap-1">
+            <LanguageToggle className="text-white/80 hover:bg-white/10 hover:text-white dark:text-white/80 dark:hover:bg-white/10 dark:hover:text-white" />
+            <ThemeToggle className="text-white/80 hover:bg-white/10 hover:text-white dark:text-white/80 dark:hover:bg-white/10 dark:hover:text-white" />
+          </div>
         </div>
         <h1 className="mt-10 font-display text-3xl font-bold leading-tight text-white">
-          Your car, detailed at your door
+          {t('title')}
         </h1>
         <p className="mt-2.5 text-sm text-white/60">
-          Log in to book LA&apos;s vetted mobile detailers.
+          {t('subtitle')}
         </p>
 
         <div className="mt-8">
@@ -208,14 +214,14 @@ export default function DesktopLanding() {
             onClick={startDemo}
             className="cursor-pointer rounded font-medium text-white/60 underline-offset-4 transition-colors duration-200 hover:text-white hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
           >
-            Explore the demo
+            {t('exploreDemo')}
           </button>
           <span className="text-white/30">·</span>
           <Link
             to="/signup/detailer"
             className="rounded font-medium text-white/60 underline-offset-4 transition-colors duration-200 hover:text-white hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
           >
-            Join as a detailer
+            {t('joinAsDetailer')}
           </Link>
         </div>
       </motion.div>
