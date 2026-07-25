@@ -4,9 +4,20 @@ import { AnimatePresence, motion } from 'motion/react'
 export default function Modal({ open, onClose, children, labelledBy }) {
   const panelRef = useRef(null)
 
+  // Focus the panel once when it opens — deliberately not depending on
+  // `onClose`. Parents often pass an inline arrow function for onClose, so
+  // its identity changes on every parent re-render (e.g. every keystroke in
+  // a textarea inside the modal). If this effect depended on it, typing
+  // would re-run the effect and steal focus back to the panel after every
+  // character, blurring the input (and dismissing the mobile keyboard).
   useEffect(() => {
     if (!open) return
     panelRef.current?.focus()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
+
+  useEffect(() => {
+    if (!open) return
     function onKey(e) {
       if (e.key === 'Escape') onClose?.()
     }
