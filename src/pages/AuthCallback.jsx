@@ -5,12 +5,14 @@ import { homePathForRole } from '../context/AuthContext'
 import { needsMfaChallenge } from '../lib/mfa'
 import { markArrival } from '../lib/transition'
 import Logo from '../components/Logo'
+import { useT } from '../i18n/useT'
 
 // Landing page after an OAuth redirect. Finalizes the session, applies the
 // pending detailer role if one was requested, then routes to the right home.
 export default function AuthCallback() {
   const navigate = useNavigate()
   const [error, setError] = useState('')
+  const t = useT('authCallback')
 
   useEffect(() => {
     let cancelled = false
@@ -20,7 +22,7 @@ export default function AuthCallback() {
       if (cancelled) return
 
       if (sessionError || !data.session) {
-        setError('Could not complete sign-in. Please try again.')
+        setError(t('signinError'))
         setTimeout(() => navigate('/login', { replace: true }), 1800)
         return
       }
@@ -44,7 +46,7 @@ export default function AuthCallback() {
 
       if (userRow?.is_banned || userRow?.is_suspended) {
         await supabase.auth.signOut()
-        setError('This account is not available. Contact support.')
+        setError(t('accountUnavailable'))
         setTimeout(() => navigate('/login', { replace: true }), 1800)
         return
       }
@@ -75,10 +77,10 @@ export default function AuthCallback() {
           <>
             <div
               role="status"
-              aria-label="Finishing sign-in"
+              aria-label={t('finishingSignin')}
               className="mx-auto mt-6 h-8 w-8 animate-spin rounded-full border-4 border-brand-600 border-t-transparent"
             />
-            <p className="mt-4 text-sm text-slate-600">Finishing sign-in…</p>
+            <p className="mt-4 text-sm text-slate-600">{t('finishingSignin')}</p>
           </>
         )}
       </div>

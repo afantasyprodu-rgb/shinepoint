@@ -344,6 +344,11 @@ export const STRINGS = {
       add: 'Add',
       portfolioAlt: 'Portfolio {n}',
     },
+    authCallback: {
+      signinError: 'Could not complete sign-in. Please try again.',
+      accountUnavailable: 'This account is not available. Contact support.',
+      finishingSignin: 'Finishing sign-in…',
+    },
     legal: {
       back: 'Back',
       lastUpdated: 'Last updated {date}',
@@ -794,6 +799,11 @@ export const STRINGS = {
       removePhoto: 'Eliminar foto',
       add: 'Agregar',
       portfolioAlt: 'Portafolio {n}',
+    },
+    authCallback: {
+      signinError: 'No se pudo completar el inicio de sesión. Inténtalo de nuevo.',
+      accountUnavailable: 'Esta cuenta no está disponible. Contacta a soporte.',
+      finishingSignin: 'Finalizando inicio de sesión…',
     },
     legal: {
       back: 'Atrás',
