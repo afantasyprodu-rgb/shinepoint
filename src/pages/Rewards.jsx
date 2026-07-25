@@ -13,12 +13,13 @@ import {
   CalendarIcon,
 } from '../components/icons'
 import { useStore } from '../context/StoreContext'
+import { useT } from '../i18n/useT'
 
 const MILESTONES = [
   {
     at: 5,
-    reward: 'Free exterior wash',
-    tier: 'bronze',
+    rewardKey: 'milestoneWash',
+    tierKey: 'tierBronze',
     gradient: 'from-amber-400 to-orange-500',
     bg: 'bg-amber-50',
     border: 'border-amber-200',
@@ -27,8 +28,8 @@ const MILESTONES = [
   },
   {
     at: 15,
-    reward: 'Free exterior + interior detail',
-    tier: 'silver',
+    rewardKey: 'milestoneFullDetail',
+    tierKey: 'tierSilver',
     gradient: 'from-slate-400 to-slate-600',
     bg: 'bg-slate-50',
     border: 'border-slate-200',
@@ -37,8 +38,8 @@ const MILESTONES = [
   },
   {
     at: 25,
-    reward: 'Free full detail + priority booking',
-    tier: 'gold',
+    rewardKey: 'milestoneGold',
+    tierKey: 'tierGold',
     gradient: 'from-yellow-400 to-amber-500',
     bg: 'bg-yellow-50',
     border: 'border-yellow-200',
@@ -49,14 +50,14 @@ const MILESTONES = [
 
 // Clay punch card: filled washes are raised white clay stamps that pop in
 // with a spring; the remaining slots read as pressed-in clay.
-function PunchCard({ points, target }) {
+function PunchCard({ points, target, t }) {
   const slots = Array.from({ length: target })
   const filled = Math.min(points % target === 0 && points > 0 ? target : points % target, target)
 
   return (
     <div className="mt-5">
       <div className="mb-2.5 flex items-center justify-between">
-        <p className="text-xs font-semibold uppercase tracking-wide text-brand-200">Progress to next reward</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-brand-200">{t('progressToNext')}</p>
         <p className="text-xs font-bold tabular-nums text-white">{filled}/{target}</p>
       </div>
       <div className="flex justify-between gap-2">
@@ -91,6 +92,7 @@ function PunchCard({ points, target }) {
 export default function Rewards() {
   const { customer } = useStore()
   const [copied, setCopied] = useState(false)
+  const t = useT('rewards')
 
   const unlocked = customer.unlockedMilestones ?? []
   const currentMilestone = MILESTONES.find((m) => m.at === Math.max(...unlocked, 0)) ?? null
@@ -119,7 +121,7 @@ export default function Rewards() {
         >
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm font-semibold text-brand-200 uppercase tracking-widest">Loyalty points</p>
+              <p className="text-sm font-semibold text-brand-200 uppercase tracking-widest">{t('loyaltyPoints')}</p>
               <div className="mt-1 flex items-end gap-2">
                 <span className="font-display text-6xl font-bold leading-none">
                   <CountUp value={customer.points} />
@@ -131,14 +133,14 @@ export default function Rewards() {
                     transition={{ type: 'spring', stiffness: 300, damping: 18, delay: 0.3 }}
                     className={`mb-1 rounded-full px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide ${currentMilestone.badge}`}
                   >
-                    {currentMilestone.tier}
+                    {t(currentMilestone.tierKey)}
                   </motion.span>
                 )}
               </div>
               <p className="mt-1 text-sm text-brand-300">
                 {nextMilestone
-                  ? `${nextMilestone.at - customer.points} more to unlock ${nextMilestone.reward}`
-                  : 'Max tier reached — you did it'}
+                  ? t('moreToUnlock', { count: nextMilestone.at - customer.points, reward: t(nextMilestone.rewardKey) })
+                  : t('maxTierReached')}
               </p>
             </div>
             <motion.div
@@ -150,7 +152,7 @@ export default function Rewards() {
           </div>
 
           {nextMilestone && (
-            <PunchCard points={punchProgress} target={punchTarget} />
+            <PunchCard points={punchProgress} target={punchTarget} t={t} />
           )}
         </motion.div>
 
@@ -163,10 +165,11 @@ export default function Rewards() {
               transition={{ delay: 0.1 }}
               className="mt-6"
             >
-              <h2 className="font-display text-lg font-semibold text-slate-900 dark:text-slate-100">Your rewards</h2>
+              <h2 className="font-display text-lg font-semibold text-slate-900 dark:text-slate-100">{t('yourRewards')}</h2>
               <div className="mt-3 space-y-2">
                 {customer.rewards.map((r, i) => {
-                  const ms = MILESTONES.find((m) => m.tier === r.tier) ?? MILESTONES[0]
+                  const tierKey = `tier${r.tier.charAt(0).toUpperCase()}${r.tier.slice(1)}`
+                  const ms = MILESTONES.find((m) => m.tierKey === tierKey) ?? MILESTONES[0]
                   return (
                     <motion.div
                       key={r.id}
@@ -181,14 +184,14 @@ export default function Rewards() {
                         </span>
                         <div>
                           <p className={`font-semibold ${ms.text}`}>{r.type}</p>
-                          <p className="text-xs text-slate-500">Expires in {r.expiresDays} days</p>
+                          <p className="text-xs text-slate-500">{t('expiresIn', { days: r.expiresDays })}</p>
                         </div>
                       </div>
                       <Link
                         to="/map"
                         className={`press-spring shrink-0 rounded-xl px-3 py-1.5 text-xs font-bold hover:opacity-80 ${ms.badge}`}
                       >
-                        Use →
+                        {t('use')}
                       </Link>
                     </motion.div>
                   )
@@ -205,7 +208,7 @@ export default function Rewards() {
           transition={{ delay: 0.15 }}
           className="mt-6"
         >
-          <h2 className="font-display text-lg font-semibold text-slate-900 dark:text-slate-100">Milestone road</h2>
+          <h2 className="font-display text-lg font-semibold text-slate-900 dark:text-slate-100">{t('milestoneRoad')}</h2>
           <ol className="mt-3 space-y-3">
             {MILESTONES.map((m, i) => {
               const hit = unlocked.includes(m.at)
@@ -233,14 +236,14 @@ export default function Rewards() {
                     )}
                   </motion.div>
                   <div className="flex-1 min-w-0">
-                    <p className={`font-semibold ${hit ? m.text : 'text-slate-700 dark:text-slate-200'}`}>{m.reward}</p>
+                    <p className={`font-semibold ${hit ? m.text : 'text-slate-700 dark:text-slate-200'}`}>{t(m.rewardKey)}</p>
                     <p className="mt-0.5 text-xs text-slate-500">
-                      {hit ? 'Unlocked!' : active ? `${m.at - customer.points} points away` : `${m.at} points needed`}
+                      {hit ? t('unlocked') : active ? t('pointsAway', { count: m.at - customer.points }) : t('pointsNeeded', { count: m.at })}
                     </p>
                   </div>
                   {hit && (
                     <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase ${m.badge}`}>
-                      Earned
+                      {t('earned')}
                     </span>
                   )}
                 </motion.li>
@@ -256,21 +259,21 @@ export default function Rewards() {
           transition={{ delay: 0.2 }}
           className="clay-card mt-6 p-6"
         >
-          <h2 className="font-display text-sm font-semibold text-slate-900 uppercase tracking-wide dark:text-slate-100">How to earn points</h2>
+          <h2 className="font-display text-sm font-semibold text-slate-900 uppercase tracking-wide dark:text-slate-100">{t('howToEarn')}</h2>
           <ul className="mt-3 space-y-2.5">
             {[
-              { icon: CalendarIcon, label: 'Complete a booking', pts: '+1 pt' },
-              { icon: StarIcon,    label: 'Leave a review within 48 hrs', pts: 'required' },
-              { icon: UsersIcon,   label: 'Refer a friend who books', pts: '+2 pts' },
-            ].map(({ icon: Icon, label, pts }) => (
-              <li key={label} className="flex items-center justify-between gap-3">
+              { icon: CalendarIcon, labelKey: 'earnBooking', ptsKey: 'earnBookingPts' },
+              { icon: StarIcon,    labelKey: 'earnReview', ptsKey: 'earnReviewPts' },
+              { icon: UsersIcon,   labelKey: 'earnReferral', ptsKey: 'earnReferralPts' },
+            ].map(({ icon: Icon, labelKey, ptsKey }) => (
+              <li key={labelKey} className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5 text-sm text-slate-700 dark:text-slate-200">
                   <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-100 text-brand-600">
                     <Icon className="h-3.5 w-3.5" />
                   </span>
-                  {label}
+                  {t(labelKey)}
                 </div>
-                <span className="shrink-0 text-xs font-bold text-brand-700">{pts}</span>
+                <span className="shrink-0 text-xs font-bold text-brand-700">{t(ptsKey)}</span>
               </li>
             ))}
           </ul>
@@ -286,10 +289,10 @@ export default function Rewards() {
           <div className="clay-cta px-5 py-4 text-white">
             <div className="flex items-center gap-2">
               <UsersIcon className="h-4 w-4 opacity-80" />
-              <p className="font-display text-sm font-bold uppercase tracking-wide">Refer a friend</p>
+              <p className="font-display text-sm font-bold uppercase tracking-wide">{t('referFriend')}</p>
             </div>
             <p className="mt-0.5 text-sm text-cta-100">
-              They get $10 off their first detail. You earn $10 credit + 2 loyalty points.
+              {t('referralBlurb')}
             </p>
           </div>
           <div className="flex items-center justify-between gap-4 px-5 py-4">
@@ -298,7 +301,7 @@ export default function Rewards() {
                 {customer.referralCode}
               </p>
               <p className="mt-0.5 text-xs text-slate-500">
-                ${customer.referralCredits} earned in credits so far
+                {t('creditsEarned', { amount: customer.referralCredits })}
               </p>
             </div>
             <motion.button
@@ -315,7 +318,7 @@ export default function Rewards() {
                   exit={{ opacity: 0, y: -4 }}
                   transition={{ duration: 0.15 }}
                 >
-                  {copied ? '✓ Copied!' : 'Copy code'}
+                  {copied ? t('copied') : t('copyCode')}
                 </motion.span>
               </AnimatePresence>
             </motion.button>
@@ -323,7 +326,7 @@ export default function Rewards() {
         </motion.div>
 
         <p className="mt-4 text-center text-xs text-slate-400">
-          Rewards expire 90 days after earning · Redeemable with insured detailers only
+          {t('footerNote')}
         </p>
       </AnimatedPage>
     </AppShell>
