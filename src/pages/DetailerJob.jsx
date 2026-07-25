@@ -21,6 +21,7 @@ import {
 } from '../components/icons'
 import { useStore } from '../context/StoreContext'
 import { MAP_APPS, openInMaps } from '../lib/navigation'
+import { useT } from '../i18n/useT'
 
 // Blueprint 5.3–5.5 — the detailer's gated job flow:
 // en route → arrived → damage report → before photos → start →
@@ -35,12 +36,13 @@ export default function DetailerJob() {
   const [showPayout, setShowPayout] = useState(false)
   const [stepsExpanded, setStepsExpanded] = useState(false)
   const b = getBooking(id)
+  const t = useT('detailerJob')
 
   if (!b) {
     return (
       <AppShell role="detailer">
         <div className="mx-auto max-w-xl px-6 py-16 text-center text-slate-600 dark:text-slate-400">
-          Job not found. <Link to="/detailer" className="font-semibold text-brand-600 dark:text-brand-300">Back</Link>
+          {t('jobNotFound')} <Link to="/detailer" className="font-semibold text-brand-600 dark:text-brand-300">{t('back')}</Link>
         </div>
       </AppShell>
     )
@@ -51,31 +53,31 @@ export default function DetailerJob() {
   // Full address is withheld only while the request is still pending —
   // it unlocks the moment the detailer accepts, not on arrival.
   const addressRevealed = b.status !== 'pending'
-  const displayAddress = addressRevealed ? b.address : `Hidden until accepted · ${b.zip}`
+  const displayAddress = addressRevealed ? b.address : t('hiddenUntilAccepted', { zip: b.zip })
 
   const gates = [
     {
       key: 'en_route',
-      title: 'Mark en route',
-      desc: 'Customer gets notified you are on the way.',
+      title: t('gateEnRouteTitle'),
+      desc: t('gateEnRouteDesc'),
       done: !['accepted'].includes(b.status),
       ready: b.status === 'accepted',
       action: () => patchBooking(b.id, { status: 'en_route' }),
-      cta: "I'm on my way",
+      cta: t('gateEnRouteCta'),
     },
     {
       key: 'arrived',
-      title: 'Mark arrived',
-      desc: 'Confirm you have the right vehicle before starting the damage report.',
+      title: t('gateArrivedTitle'),
+      desc: t('gateArrivedDesc'),
       done: !['accepted', 'en_route'].includes(b.status),
       ready: b.status === 'en_route',
       action: () => patchBooking(b.id, { status: 'arrived' }),
-      cta: "I've arrived",
+      cta: t('gateArrivedCta'),
     },
     {
       key: 'damage',
-      title: 'Damage report',
-      desc: 'Photograph any existing damage before touching the car. Customer must confirm.',
+      title: t('gateDamageTitle'),
+      desc: t('gateDamageDesc'),
       done: damageDone,
       ready: b.status === 'arrived' && !damageDone,
       action: () =>
@@ -86,46 +88,44 @@ export default function DetailerJob() {
             items: [{ area: 'Driver door', note: 'Small ding, pre-existing' }],
           },
         }),
-      cta: 'Submit damage report',
+      cta: t('gateDamageCta'),
       secondary: {
-        label: 'No pre-existing damage found',
+        label: t('noDamageFound'),
         action: () =>
           patchBooking(b.id, { damageReport: { submitted: true, acknowledged: true, items: [] } }),
       },
     },
     {
       key: 'before',
-      title: 'Before photos',
-      desc: 'Front, rear, both sides, interior — capture what you can, at least one to unlock the job.',
+      title: t('gateBeforeTitle'),
+      desc: t('gateBeforeDesc'),
       done: b.beforePhotos >= 1,
       ready: b.status === 'arrived' && damageDone && b.beforePhotos < 1,
     },
     {
       key: 'start',
-      title: 'Start job',
-      desc: damageAcked
-        ? 'All gates passed — get to work.'
-        : 'Locked until the customer confirms your damage report (admin can override after 30 min).',
+      title: t('gateStartTitle'),
+      desc: damageAcked ? t('gateStartTitleReady') : t('gateStartTitleLocked'),
       done: ['in_progress', 'complete'].includes(b.status),
       ready: b.status === 'arrived' && b.beforePhotos >= 1 && damageAcked,
       action: () => patchBooking(b.id, { status: 'in_progress' }),
-      cta: 'Start job',
+      cta: t('gateStartCta'),
     },
     {
       key: 'after',
-      title: 'After photos',
-      desc: 'Same angles as before — at least one required, no payout without it.',
+      title: t('gateAfterTitle'),
+      desc: t('gateAfterDesc'),
       done: b.afterPhotos >= 1,
       ready: b.status === 'in_progress' && b.afterPhotos < 1,
     },
     {
       key: 'complete',
-      title: 'Mark complete',
-      desc: 'Customer gets the photos, tip prompt, and review request. Payout initiates.',
+      title: t('gateCompleteTitle'),
+      desc: t('gateCompleteDesc'),
       done: b.status === 'complete',
       ready: b.status === 'in_progress' && b.afterPhotos >= 1,
       action: () => { patchBooking(b.id, { status: 'complete' }); setShowPayout(true) },
-      cta: 'Mark job complete',
+      cta: t('gateCompleteCta'),
     },
   ]
 
@@ -181,41 +181,41 @@ export default function DetailerJob() {
               />
             ) : g.ready && g.key === 'en_route' ? (
               <div className="mt-3 rounded-2xl border border-brand-100 bg-brand-50/60 p-4 dark:border-brand-500/20 dark:bg-brand-500/10">
-                <p className="text-xs font-semibold uppercase tracking-wide text-brand-700 dark:text-brand-300">Heading to</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-brand-700 dark:text-brand-300">{t('headingTo')}</p>
                 <p className="mt-1 font-display text-base font-bold text-slate-900 dark:text-slate-100">{displayAddress}</p>
                 <div className="mt-3 flex gap-2">
                   <button
                     onClick={g.action}
                     className="btn btn-brand h-10 flex-1 text-sm"
                   >
-                    <NavigationIcon className="h-4 w-4" /> I'm on my way
+                    <NavigationIcon className="h-4 w-4" /> {t('gateEnRouteCta')}
                   </button>
                 </div>
               </div>
             ) : g.ready && g.key === 'arrived' ? (
               <div className="mt-3 rounded-2xl border border-cta-200 bg-cta-50/60 p-4 dark:border-cta-500/20 dark:bg-cta-500/10">
-                <p className="text-xs font-semibold uppercase tracking-wide text-cta-700 dark:text-cta-400">Address</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-cta-700 dark:text-cta-400">{t('addressLabel')}</p>
                 <p className="mt-1 font-display text-base font-bold text-slate-900 dark:text-slate-100">{displayAddress}</p>
-                <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Confirm you're at the right vehicle before proceeding.</p>
+                <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{t('confirmVehicle')}</p>
                 <button
                   onClick={g.action}
                   className="btn btn-cta mt-3 h-10 w-full text-sm"
                 >
-                  <CheckIcon className="h-4 w-4" /> I've arrived — correct vehicle
+                  <CheckIcon className="h-4 w-4" /> {t('arrivedCorrectVehicle')}
                 </button>
               </div>
             ) : g.ready && g.key === 'start' ? (
               <div className="mt-3 rounded-2xl border border-brand-200 bg-white p-4 dark:border-white/10 dark:bg-white/5">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-500 dark:text-slate-400">Service</span>
+                  <span className="text-slate-500 dark:text-slate-400">{t('service')}</span>
                   <span className="font-semibold text-slate-900 dark:text-slate-100">{b.service}</span>
                 </div>
                 <div className="mt-2 flex items-center justify-between text-sm">
-                  <span className="text-slate-500 dark:text-slate-400">Vehicle</span>
+                  <span className="text-slate-500 dark:text-slate-400">{t('vehicle')}</span>
                   <span className="font-semibold text-slate-900 dark:text-slate-100">{b.vehicleType ?? 'SUV'}</span>
                 </div>
                 <div className="mt-2 flex items-center justify-between text-sm">
-                  <span className="text-slate-500 dark:text-slate-400">Your take</span>
+                  <span className="text-slate-500 dark:text-slate-400">{t('yourTake')}</span>
                   <span className="font-semibold text-cta-700 dark:text-cta-400">+${(b.price * 0.85).toFixed(0)}</span>
                 </div>
                 <button
@@ -250,7 +250,7 @@ export default function DetailerJob() {
           to="/detailer"
           className="mb-4 inline-flex items-center gap-1 rounded text-sm font-medium text-slate-600 transition-colors duration-200 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-slate-400 dark:hover:text-brand-300"
         >
-          <ChevronLeftIcon className="h-4 w-4" /> Dashboard
+          <ChevronLeftIcon className="h-4 w-4" /> {t('dashboard')}
         </Link>
 
         <div className="card">
@@ -286,7 +286,7 @@ export default function DetailerJob() {
               </div>
               <button
                 onClick={() => setMenuOpen(true)}
-                aria-label="Open job menu"
+                aria-label={t('openJobMenu')}
                 className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-brand-100 text-slate-600 transition-colors duration-200 hover:bg-brand-50 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:border-white/10 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-brand-300"
               >
                 <MenuIcon className="h-5 w-5" />
@@ -302,8 +302,7 @@ export default function DetailerJob() {
             role="status"
             className="mt-3 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-500/10 dark:text-amber-300"
           >
-            Waiting on customer to confirm the damage report… (15-min reminder, 30-min admin
-            override available)
+            {t('waitingOnCustomer')}
           </motion.p>
         )}
 
@@ -319,7 +318,7 @@ export default function DetailerJob() {
               onClick={() => setStepsExpanded(false)}
               className="mt-3 w-full cursor-pointer rounded-xl py-2 text-center text-xs font-semibold text-slate-400 transition-colors duration-200 hover:text-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-slate-500 dark:hover:text-brand-300"
             >
-              Collapse steps
+              {t('collapseSteps')}
             </button>
           </div>
         ) : (
@@ -334,14 +333,14 @@ export default function DetailerJob() {
               <button
                 type="button"
                 onClick={() => setStepsExpanded(true)}
-                aria-label={`Show all ${gates.length} steps`}
+                aria-label={t('showAllSteps', { count: gates.length })}
                 className="press-spring group relative mt-4 block w-full cursor-pointer focus-visible:outline-none"
               >
                 <div className="pointer-events-none absolute inset-x-5 top-2 h-9 rounded-2xl bg-[var(--neu-bg)] opacity-40 transition-transform duration-200 group-hover:translate-y-0.5" />
                 <div className="pointer-events-none absolute inset-x-2.5 top-1 h-9 rounded-2xl bg-[var(--neu-bg)] opacity-70 transition-transform duration-200 group-hover:translate-y-0.5" />
                 <div className="relative flex items-center justify-center gap-2 rounded-2xl bg-[var(--neu-bg)] px-4 py-2.5 text-xs font-semibold text-slate-500 shadow-[6px_6px_14px_var(--neu-sd),-6px_-6px_14px_var(--neu-sl)] transition-shadow duration-200 group-hover:shadow-[4px_4px_10px_var(--neu-sd),-4px_-4px_10px_var(--neu-sl)] group-focus-visible:ring-2 group-focus-visible:ring-brand-600 dark:text-slate-400">
                   <LayersIcon className="h-3.5 w-3.5" />
-                  {gates.length - 1} more step{gates.length - 1 === 1 ? '' : 's'} · tap to view all
+                  {t('moreSteps', { count: gates.length - 1, s: gates.length - 1 === 1 ? '' : 's' })}
                 </div>
               </button>
             )}
@@ -350,11 +349,11 @@ export default function DetailerJob() {
 
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <div className="card !p-5">
-            <h2 className="mb-3 font-display text-sm font-semibold text-slate-900 dark:text-slate-100">Before</h2>
+            <h2 className="mb-3 font-display text-sm font-semibold text-slate-900 dark:text-slate-100">{t('before')}</h2>
             <PhotoGrid count={b.beforePhotos} photos={b.beforePhotoData} label="before" />
           </div>
           <div className="card !p-5">
-            <h2 className="mb-3 font-display text-sm font-semibold text-slate-900 dark:text-slate-100">After</h2>
+            <h2 className="mb-3 font-display text-sm font-semibold text-slate-900 dark:text-slate-100">{t('after')}</h2>
             <PhotoGrid count={b.afterPhotos} photos={b.afterPhotoData} label="after" />
           </div>
         </div>
@@ -366,10 +365,10 @@ export default function DetailerJob() {
             className="card mt-4 border-cta-600 text-center dark:border-cta-500/50"
           >
             <CheckIcon className="mx-auto h-8 w-8 text-cta-700 dark:text-cta-400" />
-            <h2 className="mt-2 font-display text-lg font-bold text-slate-900 dark:text-slate-100">Job complete</h2>
+            <h2 className="mt-2 font-display text-lg font-bold text-slate-900 dark:text-slate-100">{t('jobComplete')}</h2>
             <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-              Payout of ${(b.price * 0.85).toFixed(0)} initiated
-              {b.tip ? ` · $${b.tip} tip (100% yours, paid instantly)` : ''}.
+              {t('payoutInitiated', { amount: (b.price * 0.85).toFixed(0) })}
+              {b.tip ? t('tipSuffix', { amount: b.tip }) : ''}.
             </p>
           </motion.div>
         )}
@@ -378,10 +377,10 @@ export default function DetailerJob() {
         {b.status === 'complete' && !b.customerRated && (
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="card mt-4">
             <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">
-              Rate {b.customerName}
+              {t('rateCustomer', { name: b.customerName })}
             </h2>
             <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-              Private — only other detailers and admins see customer ratings.
+              {t('rateCustomerPrivate')}
             </p>
             <div className="mt-3">
               <StarInput value={custRating} onChange={setCustRating} />
@@ -393,20 +392,20 @@ export default function DetailerJob() {
                 onChange={(e) => setHardToHandle(e.target.checked)}
                 className="h-4 w-4 cursor-pointer accent-brand-600"
               />
-              Flag as hard to handle
+              {t('flagHardToHandle')}
             </label>
             <button
               disabled={!custRating}
               onClick={() => rateCustomer(b.id, custRating, hardToHandle)}
               className="btn btn-brand mt-4 h-10 text-sm"
             >
-              Submit rating
+              {t('submitRating')}
             </button>
           </motion.div>
         )}
         {b.customerRated && (
           <p className="mt-4 flex items-center justify-center gap-2 text-sm font-medium text-cta-700 dark:text-cta-400">
-            <CheckIcon className="h-4 w-4" /> Customer rated {b.customerRated.rating}/5
+            <CheckIcon className="h-4 w-4" /> {t('customerRated', { rating: b.customerRated.rating })}
           </p>
         )}
 
@@ -415,7 +414,7 @@ export default function DetailerJob() {
         </div>
       </AnimatedPage>
 
-      <Drawer open={menuOpen} onClose={() => setMenuOpen(false)} title="More">
+      <Drawer open={menuOpen} onClose={() => setMenuOpen(false)} title={t('more')}>
         {!showInvoice ? (
           <ul className="space-y-2">
             <li>
@@ -425,13 +424,13 @@ export default function DetailerJob() {
               >
                 <div>
                   <p className="font-semibold text-slate-900 dark:text-slate-100">
-                    {b.invoice ? 'Edit invoice' : 'Create invoice'}
+                    {b.invoice ? t('editInvoice') : t('createInvoice')}
                   </p>
                   <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Itemize the service and share a full breakdown with {b.customerName}.
+                    {t('invoiceBlurb', { name: b.customerName })}
                   </p>
                 </div>
-                <span className="text-sm font-semibold text-brand-600 dark:text-brand-300">Open →</span>
+                <span className="text-sm font-semibold text-brand-600 dark:text-brand-300">{t('openArrow')}</span>
               </button>
             </li>
           </ul>
@@ -441,7 +440,7 @@ export default function DetailerJob() {
               onClick={() => setShowInvoice(false)}
               className="mb-4 inline-flex items-center gap-1 rounded text-sm font-medium text-slate-600 transition-colors duration-200 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-slate-400 dark:hover:text-brand-300"
             >
-              <ChevronLeftIcon className="h-4 w-4" /> More
+              <ChevronLeftIcon className="h-4 w-4" /> {t('more')}
             </button>
             <InvoiceBuilder booking={b} detailer={getDetailer(b.detailerId)} />
           </div>
@@ -480,7 +479,7 @@ export default function DetailerJob() {
                 transition={{ delay: 0.4 }}
                 className="mt-4 font-display text-2xl font-bold text-slate-900"
               >
-                Job complete!
+                {t('payoutJobComplete')}
               </motion.h2>
 
               <motion.p
@@ -490,7 +489,7 @@ export default function DetailerJob() {
                 className="mt-1 text-3xl font-bold text-cta-700"
               >
                 +${(b.price * 0.85).toFixed(0)}
-                {b.tip ? <span className="text-xl"> + ${b.tip} tip</span> : null}
+                {b.tip ? <span className="text-xl">{t('tipSuffixShort', { amount: b.tip })}</span> : null}
               </motion.p>
 
               <motion.p
@@ -499,7 +498,7 @@ export default function DetailerJob() {
                 transition={{ delay: 0.65 }}
                 className="mt-2 text-sm text-slate-500"
               >
-                Payout initiated — funds arrive within 24 hrs.
+                {t('payoutFundsArrive')}
               </motion.p>
 
               <motion.button
@@ -510,7 +509,7 @@ export default function DetailerJob() {
                 onClick={() => setShowPayout(false)}
                 className="btn btn-brand mt-6 h-11 w-full text-sm"
               >
-                Done 🙌
+                {t('done')}
               </motion.button>
             </motion.div>
           </motion.div>
