@@ -7,6 +7,7 @@ import { AnimatedPage } from '../components/ui/Motion'
 import { CheckIcon, TrashIcon, PlusIcon } from '../components/icons'
 import { useStore } from '../context/StoreContext'
 import { useTiltShadow } from '../hooks/useTiltShadow'
+import { useT } from '../i18n/useT'
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
@@ -14,6 +15,7 @@ export default function DetailerProfileEditor() {
   const { myDetailer, setAvailability, uploadImage, updateDetailerMe, updateMyServices } = useStore()
   const me = myDetailer ?? {}
   const tiltRef = useTiltShadow()
+  const t = useT('detailerProfileEditor')
 
   const [photo, setPhoto] = useState(me.photo ?? null)
   const [name, setName] = useState(me.name ?? '')
@@ -76,7 +78,7 @@ export default function DetailerProfileEditor() {
   return (
     <AppShell role="detailer">
       <AnimatedPage className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
-        <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">Your profile</h1>
+        <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">{t('yourProfile')}</h1>
 
         <form onSubmit={save} className="mt-6 space-y-6">
           {/* Identity — avatar straddles a notch carved into the card's top
@@ -100,18 +102,18 @@ export default function DetailerProfileEditor() {
                 />
               </div>
               <div className="w-full text-left">
-                <label htmlFor="name" className="label">Business / display name</label>
+                <label htmlFor="name" className="label">{t('businessName')}</label>
                 <input
                   id="name" type="text" value={name}
-                  onChange={(e) => setName(e.target.value)} className="input-flat" placeholder="Marco's Mobile Shine"
+                  onChange={(e) => setName(e.target.value)} className="input-flat" placeholder={t('businessNamePlaceholder')}
                 />
                 <label htmlFor="bio" className="label mt-4">
-                  Bio <span className="font-normal text-slate-400 dark:text-slate-500">({250 - bio.length} left)</span>
+                  {t('bio')} <span className="font-normal text-slate-400 dark:text-slate-500">({250 - bio.length} {t('left')})</span>
                 </label>
                 <textarea
                   id="bio" maxLength={250} rows={3} value={bio}
                   onChange={(e) => setBio(e.target.value)} className="input-flat h-auto resize-none py-2"
-                  placeholder="Ceramic certified, 10 years on daily drivers and show cars…"
+                  placeholder={t('bioPlaceholder')}
                 />
               </div>
             </div>
@@ -120,9 +122,9 @@ export default function DetailerProfileEditor() {
           {/* Services & pricing — editable */}
           <div className="card">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Services & pricing</h2>
+              <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t('servicesAndPricing')}</h2>
               <button type="button" onClick={addService} className="flex items-center gap-1 text-sm font-semibold text-brand-700 hover:text-brand-800">
-                <PlusIcon className="h-4 w-4" /> Add service
+                <PlusIcon className="h-4 w-4" /> {t('addService')}
               </button>
             </div>
             <div className="mt-3 space-y-2">
@@ -138,7 +140,7 @@ export default function DetailerProfileEditor() {
                   >
                     <input
                       type="text" value={s.name} onChange={(e) => setService(i, 'name', e.target.value)}
-                      className="input flex-1" placeholder="Service name"
+                      className="input flex-1" placeholder={t('serviceNamePlaceholder')}
                     />
                     <div className="relative w-24 shrink-0">
                       <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500">$</span>
@@ -148,7 +150,7 @@ export default function DetailerProfileEditor() {
                       />
                     </div>
                     <button
-                      type="button" onClick={() => removeService(i)} aria-label={`Remove ${s.name || 'service'}`}
+                      type="button" onClick={() => removeService(i)} aria-label={t('removeService', { name: s.name || t('service') })}
                       className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:text-slate-500 dark:hover:bg-red-500/10 dark:hover:text-red-400"
                     >
                       <TrashIcon className="h-4 w-4" />
@@ -158,7 +160,7 @@ export default function DetailerProfileEditor() {
               </AnimatePresence>
               {services.length === 0 && (
                 <p className="rounded-xl bg-slate-50 px-4 py-6 text-center text-sm text-slate-400 dark:bg-white/5 dark:text-slate-500">
-                  No services yet — add your first above.
+                  {t('noServicesYet')}
                 </p>
               )}
             </div>
@@ -166,20 +168,20 @@ export default function DetailerProfileEditor() {
 
           {/* Portfolio gallery */}
           <div className="card">
-            <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Portfolio gallery</h2>
-            <p className="mb-3 mt-1 text-xs text-slate-400 dark:text-slate-500">Your best work — shown on your public profile.</p>
+            <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t('portfolioGallery')}</h2>
+            <p className="mb-3 mt-1 text-xs text-slate-400 dark:text-slate-500">{t('portfolioBlurb')}</p>
             <GalleryGrid gallery={gallery} setGallery={setGallery} onAdd={addGalleryPhoto} />
           </div>
 
           {/* Availability */}
           <div className="card">
-            <label htmlFor="travel" className="label">Free travel radius (miles)</label>
+            <label htmlFor="travel" className="label">{t('freeTravelRadius')}</label>
             <input
               id="travel" type="number" min={1} max={50} value={travel}
               onChange={(e) => setTravel(e.target.value)} className="input w-32"
             />
 
-            <h2 className="mt-5 text-sm font-semibold text-slate-700 dark:text-slate-300">Service days</h2>
+            <h2 className="mt-5 text-sm font-semibold text-slate-700 dark:text-slate-300">{t('serviceDays')}</h2>
             <div className="mt-3 flex flex-wrap gap-2">
               {DAYS.map((day) => (
                 <button
@@ -198,13 +200,13 @@ export default function DetailerProfileEditor() {
                 type="checkbox" checked={rewardsOptIn} onChange={(e) => setRewardsOptIn(e.target.checked)}
                 className="h-4 w-4 cursor-pointer rounded border-slate-300 accent-brand-600"
               />
-              Accept loyalty-reward bookings (paid 50–60% of rate, badge on your profile)
+              {t('acceptRewardBookings')}
             </label>
           </div>
 
           <div className="relative">
             <button type="submit" disabled={busy} className="btn btn-cta w-full">
-              {busy ? 'Saving…' : 'Save changes'}
+              {busy ? t('saving') : t('saveChanges')}
             </button>
             <AnimatePresence>
               {saved && (
@@ -213,7 +215,7 @@ export default function DetailerProfileEditor() {
                   initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
                   className="absolute -top-9 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-cta-700 px-4 py-1.5 text-sm font-semibold text-white shadow-lg"
                 >
-                  <CheckIcon className="h-4 w-4" /> Saved
+                  <CheckIcon className="h-4 w-4" /> {t('saved')}
                 </motion.p>
               )}
             </AnimatePresence>
