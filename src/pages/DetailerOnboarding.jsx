@@ -8,6 +8,7 @@ import { useTheme } from '../context/ThemeContext'
 import { CheckIcon, ShieldCheckIcon, CreditCardIcon, ClipboardCheckIcon, UsersIcon, ChevronLeftIcon, PlusIcon, XIcon, LightbulbIcon, ClockIcon, StarIcon } from '../components/icons'
 import { InfoPopover } from '../components/ui/bits'
 import { startIdentityVerification, isStripeConfigured, stripePromise } from '../lib/stripe'
+import { useT } from '../i18n/useT'
 
 // Maps the real detailer_profiles.identity_status ('unverified' | 'pending' |
 // 'verified' | 'failed') to this screen's local idStatus vocabulary.
@@ -31,20 +32,16 @@ const SERVICE_GROUPS = [
 const SERVICE_MENU = SERVICE_GROUPS.flatMap((g) => g.items)
 
 // Per-service coaching shown when a detailer enables it.
-const SERVICE_ADVICE = {
-  'Interior Deep Clean':
-    'Interiors are labor-heavy — price for the hours, not the square footage.',
-  'Pet Hair Removal':
-    "Pet hair is a detailer's worst nightmare — extra time, extra tools. Charge a solid upcharge for it.",
-  'Ceramic Coating':
-    'Premium service, premium price. This is where your best margins live.',
-  'Full Detail':
-    'Your flagship — bundle interior + exterior and price it above the sum of the parts.',
+const SERVICE_ADVICE_KEYS = {
+  'Interior Deep Clean': 'adviceInteriorDeepClean',
+  'Pet Hair Removal': 'advicePetHairRemoval',
+  'Ceramic Coating': 'adviceCeramicCoating',
+  'Full Detail': 'adviceFullDetail',
 }
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const VEHICLES = ['Sedan', 'SUV', 'Truck', 'Coupe', 'Van']
 
-const STEPS = ['Identity', 'Insurance', 'Profile', 'Services', 'Schedule', 'Payout']
+const STEP_KEYS = ['stepIdentity', 'stepInsurance', 'stepProfile', 'stepServices', 'stepSchedule', 'stepPayout']
 
 // Blueprint screens 4.2–4.8 — detailer onboarding wizard.
 // Stripe Identity / Connect calls are simulated until Phase 4 wiring.
@@ -52,6 +49,8 @@ export default function DetailerOnboarding() {
   const navigate = useNavigate()
   const { isDemo, saveOnboarding, detailerProfile } = useStore()
   const { theme } = useTheme()
+  const t = useT('detailerOnboarding')
+  const STEPS = STEP_KEYS.map((k) => t(k))
   const pipOff = theme === 'dark' ? '#3f2d6e' : '#e9d5ff'
   const [step, setStep] = useState(0)
   const [submitted, setSubmitted] = useState(false)
@@ -132,7 +131,7 @@ export default function DetailerOnboarding() {
       setIdStatus('pending')
     } catch (e) {
       setIdStatus('idle')
-      setIdError(e.message || 'Could not start ID verification.')
+      setIdError(e.message || t('idStartError'))
     }
   }
 
@@ -158,7 +157,7 @@ export default function DetailerOnboarding() {
       })
       setSubmitted(true)
     } catch (e) {
-      setSaveError(e?.message || 'Could not save your application. Please try again.')
+      setSaveError(e?.message || t('saveApplicationError'))
     } finally {
       setSaving(false)
     }
@@ -200,17 +199,17 @@ export default function DetailerOnboarding() {
             <ClipboardCheckIcon className="h-10 w-10" />
           </motion.span>
           <h1 className="mt-6 font-display text-3xl font-bold text-slate-900 dark:text-slate-100">
-            Application submitted
+            {t('submittedTitle')}
           </h1>
-          <p className="mt-2 text-slate-600 dark:text-slate-400">Here&apos;s what happens next:</p>
+          <p className="mt-2 text-slate-600 dark:text-slate-400">{t('whatsNext')}</p>
           <ol className="mt-6 space-y-3 text-left">
             {[
-              ['Insurance docs reviewed', '1–2 business days'],
+              [t('nextInsurance'), t('nextInsuranceSub')],
               [
-                'ID verification processed',
-                idStatus === 'passed' ? 'Done — passed' : 'Stripe is confirming this — usually within a couple minutes',
+                t('nextId'),
+                idStatus === 'passed' ? t('nextIdDonePassed') : t('nextIdPending'),
               ],
-              ['Approval email sent', 'Then your first 5 jobs are quality-reviewed'],
+              [t('nextApproval'), t('nextApprovalSub')],
             ].map(([title, sub], i) => (
               <motion.li
                 key={title}
@@ -230,7 +229,7 @@ export default function DetailerOnboarding() {
             ))}
           </ol>
           <button onClick={() => navigate('/detailer')} className="btn btn-cta mt-8 w-full">
-            {isDemo ? 'Demo: skip review → approved' : 'Go to dashboard'}
+            {isDemo ? t('demoSkipReview') : t('goToDashboard')}
           </button>
         </div>
       </AppShell>
@@ -244,12 +243,12 @@ export default function DetailerOnboarding() {
           to="/detailer"
           className="mb-3 inline-flex items-center gap-1 rounded text-sm font-medium text-slate-600 transition-colors duration-200 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-slate-400 dark:hover:text-brand-300"
         >
-          <ChevronLeftIcon className="h-4 w-4" /> Dashboard
+          <ChevronLeftIcon className="h-4 w-4" /> {t('dashboard')}
         </Link>
-        <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">Detailer onboarding</h1>
+        <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">{t('title')}</h1>
 
         {/* Step rail */}
-        <div className="mt-4 flex items-center gap-1.5" aria-label={`Step ${step + 1} of ${STEPS.length}: ${STEPS[step]}`}>
+        <div className="mt-4 flex items-center gap-1.5" aria-label={t('stepAria', { n: step + 1, total: STEPS.length, step: STEPS[step] })}>
           {STEPS.map((s, i) => (
             <motion.div
               key={s}
@@ -273,40 +272,35 @@ export default function DetailerOnboarding() {
           >
             {step === 0 && (
               <div className="space-y-4">
-                <MarketingTip title="Verified pros get booked more">
-                  Customers book verified detailers far more often — the badge is instant
-                  trust before they&apos;ve read a single review. It takes two minutes.
+                <MarketingTip title={t('tipVerifiedTitle')}>
+                  {t('tipVerifiedBody')}
                 </MarketingTip>
                 <div className="card text-center">
                 <UsersIcon className="mx-auto h-10 w-10 text-brand-600 dark:text-brand-300" />
                 <h2 className="mt-3 flex items-center justify-center gap-1.5 font-display text-lg font-semibold text-slate-900 dark:text-slate-100">
-                  Verify your identity
-                  <InfoPopover label="Why do you need my ID?">
-                    Confirms the person in your profile is really who shows up at the
-                    customer&apos;s door — it&apos;s the same reason a customer can trust the
-                    photo on your profile. It&apos;s also required by Stripe Connect
-                    before we can send you payouts, since payment processors are legally
-                    required to verify who they&apos;re paying.
+                  {t('verifyIdentity')}
+                  <InfoPopover label={t('whyIdLabel')}>
+                    {t('whyIdBody')}
                   </InfoPopover>
                 </h2>
                 <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-                  Government photo ID + selfie match, handled by Stripe Identity.
+                  {t('idBlurb')}
                 </p>
                 {(idStatus === 'idle' || idStatus === 'failed') && (
                   <>
                     {!isDemo && !isStripeConfigured ? (
                       <p className="mt-5 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
-                        ID verification isn&apos;t configured yet — set VITE_STRIPE_PUBLISHABLE_KEY to enable it.
+                        {t('idNotConfigured')}
                       </p>
                     ) : (
                       <>
                         {idStatus === 'failed' && (
                           <p className="mt-5 text-sm font-medium text-red-600 dark:text-red-400">
-                            Verification didn&apos;t go through — Stripe needs another attempt.
+                            {t('idFailedRetry')}
                           </p>
                         )}
                         <button onClick={runIdCheck} className="btn btn-brand mt-3">
-                          {idStatus === 'failed' ? 'Try again' : 'Upload ID & take selfie'}
+                          {idStatus === 'failed' ? t('tryAgain') : t('uploadIdSelfie')}
                         </button>
                       </>
                     )}
@@ -316,13 +310,13 @@ export default function DetailerOnboarding() {
                   </>
                 )}
                 {idStatus === 'scanning' && (
-                  <div className="mt-5" role="status" aria-label="Verifying">
+                  <div className="mt-5" role="status" aria-label={t('verifyingAria')}>
                     <motion.div
                       animate={{ rotate: 360 }}
                       transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
                       className="mx-auto h-10 w-10 rounded-full border-4 border-brand-200 border-t-brand-600 dark:border-brand-500/20 dark:border-t-brand-400"
                     />
-                    <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">Matching selfie to ID…</p>
+                    <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">{t('matchingSelfie')}</p>
                   </div>
                 )}
                 {idStatus === 'pending' && (
@@ -330,10 +324,9 @@ export default function DetailerOnboarding() {
                     <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">
                       <ClockIcon className="h-6 w-6" />
                     </span>
-                    <p className="mt-2 font-semibold text-amber-700 dark:text-amber-400">Submitted — under review</p>
+                    <p className="mt-2 font-semibold text-amber-700 dark:text-amber-400">{t('submittedUnderReview')}</p>
                     <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                      Stripe usually confirms within a couple minutes. You can keep going —
-                      we&apos;ll update this automatically.
+                      {t('stripeConfirming')}
                     </p>
                   </div>
                 )}
@@ -342,7 +335,7 @@ export default function DetailerOnboarding() {
                     <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-cta-700 text-white">
                       <CheckIcon className="h-6 w-6" />
                     </span>
-                    <p className="mt-2 font-semibold text-cta-700 dark:text-cta-400">Verified</p>
+                    <p className="mt-2 font-semibold text-cta-700 dark:text-cta-400">{t('verified')}</p>
                   </motion.div>
                 )}
                 </div>
@@ -351,26 +344,20 @@ export default function DetailerOnboarding() {
 
             {step === 1 && (
               <div className="space-y-3">
-                <MarketingTip title="Insurance wins you jobs">
-                  Insured detailers get a badge and priority placement, and many customers
-                  filter to only insured pros. The paperwork pays for itself in bookings.
+                <MarketingTip title={t('tipInsuranceTitle')}>
+                  {t('tipInsuranceBody')}
                 </MarketingTip>
                 <div className="flex items-center gap-1.5 px-1">
-                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Choose your coverage</p>
-                  <InfoPopover label="Why do you need insurance?">
-                    You&apos;re working on customers&apos; vehicles and property — insurance
-                    (garage keepers&apos; liability is the standard policy for this work)
-                    covers accidental damage so a scratch or a dent doesn&apos;t come out of
-                    your pocket. We verify your certificate&apos;s policy number and expiry
-                    against the carrier, not just take your word for it, which is also why
-                    insured pros get a trust badge customers can rely on.
+                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t('chooseCoverage')}</p>
+                  <InfoPopover label={t('whyInsuranceLabel')}>
+                    {t('whyInsuranceBody')}
                   </InfoPopover>
                 </div>
-                <div className="space-y-3" role="radiogroup" aria-label="Insurance level">
+                <div className="space-y-3" role="radiogroup" aria-label={t('insuranceLevelAria')}>
                 {[
-                  ['premium', 'Full business insurance', 'Gold badge · priority placement · instant payouts sooner'],
-                  ['standard', 'Light insurance', 'Silver badge on your profile'],
-                  ['none', 'No insurance', 'Red warning shown to customers; they must accept liability'],
+                  ['premium', t('insurancePremiumTitle'), t('insurancePremiumSub')],
+                  ['standard', t('insuranceStandardTitle'), t('insuranceStandardSub')],
+                  ['none', t('insuranceNoneTitle'), t('insuranceNoneSub')],
                 ].map(([value, title, sub]) => (
                   <button
                     key={value}
@@ -392,15 +379,15 @@ export default function DetailerOnboarding() {
                 </div>
                 {(insurance === 'premium' || insurance === 'standard') && (
                   <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="card !p-5">
-                    <label className="label" htmlFor="cert">Certificate upload (provider, policy #, expiry)</label>
+                    <label className="label" htmlFor="cert">{t('certUploadLabel')}</label>
                     <input id="cert" type="file" className="text-sm text-slate-600 file:btn file:btn-outline file:mr-3 file:h-9 file:px-3 file:text-xs dark:text-slate-400" />
-                    <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">Docs go to the admin review queue.</p>
+                    <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">{t('certUploadHint')}</p>
                   </motion.div>
                 )}
                 {insurance === 'none' && (
                   <motion.label initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="card flex cursor-pointer items-start gap-2 !p-5 text-sm text-slate-700 dark:text-slate-300">
                     <input type="checkbox" checked={noInsuranceAck} onChange={(e) => setNoInsuranceAck(e.target.checked)} className="mt-0.5 h-4 w-4 cursor-pointer accent-brand-600" />
-                    I confirm I have no business insurance and understand customers see a warning before booking me.
+                    {t('noInsuranceAck')}
                   </motion.label>
                 )}
               </div>
@@ -408,25 +395,23 @@ export default function DetailerOnboarding() {
 
             {step === 2 && (
               <div className="space-y-4">
-                <MarketingTip title="Your bio is your sales pitch">
-                  Lead with what sets you apart — ceramic certified, eco-friendly products,
-                  10 years on luxury cars. Specific beats generic. A photo + a sharp bio
-                  is what turns a map pin into a booking.
+                <MarketingTip title={t('tipBioTitle')}>
+                  {t('tipBioBody')}
                 </MarketingTip>
                 <div className="card space-y-4">
                 <div>
-                  <label htmlFor="ob-bio" className="label">Bio ({250 - bio.length} left)</label>
-                  <textarea id="ob-bio" maxLength={250} rows={3} value={bio} onChange={(e) => setBio(e.target.value)} className="input h-auto resize-none py-2" placeholder="What makes your detailing great?" />
+                  <label htmlFor="ob-bio" className="label">{t('bioLabel', { count: 250 - bio.length })}</label>
+                  <textarea id="ob-bio" maxLength={250} rows={3} value={bio} onChange={(e) => setBio(e.target.value)} className="input h-auto resize-none py-2" placeholder={t('bioPlaceholder')} />
                 </div>
                 <div>
-                  <label htmlFor="ob-zip" className="label">Home zip code</label>
+                  <label htmlFor="ob-zip" className="label">{t('homeZipLabel')}</label>
                   <input id="ob-zip" inputMode="numeric" maxLength={5} value={zip} onChange={(e) => setZip(e.target.value.replace(/\D/g, ''))} className="input w-32" placeholder="90026" />
                   <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
-                    Used to place your map pin at a random spot in your zip — your exact address is never shown.
+                    {t('zipHint')}
                   </p>
                 </div>
                 <div>
-                  <p className="label">Vehicle types you accept</p>
+                  <p className="label">{t('vehicleTypesLabel')}</p>
                   <div className="flex flex-wrap gap-2">
                     {VEHICLES.map((v) => (
                       <button key={v} type="button" aria-pressed={vehicles.includes(v)} onClick={() => toggle(vehicles, setVehicles, v)}
@@ -444,20 +429,18 @@ export default function DetailerOnboarding() {
 
             {step === 3 && (
               <div className="space-y-2">
-                <MarketingTip title="Price for profit, not just to win the job">
-                  Underpricing burns you out and signals low quality. Charge what the work
-                  is worth — customers who only want the cheapest option are the hardest to
-                  please anyway.
+                <MarketingTip title={t('tipPriceTitle')}>
+                  {t('tipPriceBody')}
                 </MarketingTip>
 
                 {SERVICE_GROUPS.map((group) => (
                   <div key={group.label} className="space-y-2">
                     <p className="pt-1 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
-                      {group.label}
+                      {group.label === 'Core services' ? t('coreServices') : t('premiumAddOns')}
                     </p>
                     {group.items.map((name) => {
                   const on = name in services
-                  const advice = SERVICE_ADVICE[name]
+                  const advice = SERVICE_ADVICE_KEYS[name] ? t(SERVICE_ADVICE_KEYS[name]) : null
                   const isBestMargin = name === featuredService
                   return (
                     <div key={name} className={`card !p-4 transition-colors duration-200 ${on ? 'border-brand-400 dark:border-brand-400/60' : ''} ${isBestMargin ? 'ring-1 ring-amber-300 dark:ring-amber-500/30' : ''}`}>
@@ -472,7 +455,7 @@ export default function DetailerOnboarding() {
                         {on && (
                           <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex shrink-0 items-center gap-1">
                             <span className="text-slate-500 dark:text-slate-400">$</span>
-                            <input type="number" min={10} aria-label={`${name} price`} value={services[name]}
+                            <input type="number" min={10} aria-label={t('priceAria', { name })} value={services[name]}
                               onChange={(e) => setServices((s) => ({ ...s, [name]: Number(e.target.value) }))}
                               className="input h-9 w-20" />
                           </motion.div>
@@ -490,7 +473,7 @@ export default function DetailerOnboarding() {
                             type="button"
                             onClick={() => setFeaturedService((f) => (f === name ? null : name))}
                             aria-pressed={isBestMargin}
-                            title={isBestMargin ? 'Unmark as your best margin' : 'Mark as your best margin — highlights it here'}
+                            title={isBestMargin ? t('unmarkBestMargin') : t('markBestMarginTitle')}
                             className={`flex shrink-0 cursor-pointer items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
                               isBestMargin
                                 ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400'
@@ -498,7 +481,7 @@ export default function DetailerOnboarding() {
                             }`}
                           >
                             <StarIcon className="h-3.5 w-3.5" />
-                            {isBestMargin ? 'Best margin' : 'Mark as best margin'}
+                            {isBestMargin ? t('bestMargin') : t('markAsBestMargin')}
                           </button>
                         </div>
                       )}
@@ -523,7 +506,7 @@ export default function DetailerOnboarding() {
                           className="inline-flex items-center gap-2 rounded-full border border-brand-300 bg-brand-100 py-1.5 pl-3 pr-1.5 text-sm font-medium text-brand-800 dark:border-brand-500/30 dark:bg-brand-500/15 dark:text-brand-300"
                         >
                           {name} · ${services[name]}
-                          <button type="button" aria-label={`Remove ${name}`} onClick={() => removeService(name)}
+                          <button type="button" aria-label={t('removeService', { name })} onClick={() => removeService(name)}
                             className="flex h-5 w-5 cursor-pointer items-center justify-center rounded-full text-brand-600 transition-colors duration-200 hover:bg-brand-200 hover:text-brand-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-brand-300 dark:hover:bg-brand-500/25 dark:hover:text-brand-100">
                             <XIcon className="h-3.5 w-3.5" />
                           </button>
@@ -535,15 +518,15 @@ export default function DetailerOnboarding() {
 
                 {/* Add a custom service */}
                 <div className="card !p-4">
-                  <p className="label">Add your own service</p>
+                  <p className="label">{t('addOwnService')}</p>
                   <div className="flex flex-wrap items-center gap-2">
                     <input
                       type="text"
-                      aria-label="Custom service name"
+                      aria-label={t('customServiceNameAria')}
                       value={customName}
                       onChange={(e) => setCustomName(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addCustomService())}
-                      placeholder="e.g. Ozone odor treatment"
+                      placeholder={t('customServiceNamePlaceholder')}
                       className="input h-10 min-w-0 flex-1"
                     />
                     <div className="flex items-center gap-1">
@@ -551,7 +534,7 @@ export default function DetailerOnboarding() {
                       <input
                         type="number"
                         min={1}
-                        aria-label="Custom service price"
+                        aria-label={t('customServicePriceAria')}
                         value={customPrice}
                         onChange={(e) => setCustomPrice(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addCustomService())}
@@ -565,11 +548,11 @@ export default function DetailerOnboarding() {
                       disabled={!customName.trim() || !Number(customPrice)}
                       className="btn btn-brand h-10 px-4 text-sm"
                     >
-                      <PlusIcon className="h-4 w-4" /> Add
+                      <PlusIcon className="h-4 w-4" /> {t('add')}
                     </button>
                   </div>
                   <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
-                    Offer something unique — clay bar, headlight tint, RV detailing — and name your price.
+                    {t('addServiceHint')}
                   </p>
                 </div>
               </div>
@@ -577,14 +560,12 @@ export default function DetailerOnboarding() {
 
             {step === 4 && (
               <div className="space-y-4">
-                <MarketingTip title="Free nearby, paid for the long hauls">
-                  Offer a free travel radius to attract jobs close to home, then charge per
-                  extra mile beyond it. You&apos;re racking up miles on your vehicle and gas
-                  isn&apos;t cheap — get paid for the drive.
+                <MarketingTip title={t('tipTravelTitle')}>
+                  {t('tipTravelBody')}
                 </MarketingTip>
                 <div className="card space-y-5">
                 <div>
-                  <p className="label">Service days</p>
+                  <p className="label">{t('serviceDays')}</p>
                   <div className="flex flex-wrap gap-2">
                     {DAYS.map((day) => (
                       <button key={day} type="button" aria-pressed={days.includes(day)} onClick={() => toggle(days, setDays, day)}
@@ -597,20 +578,20 @@ export default function DetailerOnboarding() {
                   </div>
                 </div>
                 <div>
-                  <label htmlFor="ob-travel" className="label">Free travel radius: {travel} miles</label>
+                  <label htmlFor="ob-travel" className="label">{t('freeTravelRadius', { miles: travel })}</label>
                   <input id="ob-travel" type="range" min={1} max={30} value={travel} onChange={(e) => setTravel(Number(e.target.value))} className="w-full cursor-pointer accent-brand-600" />
-                  <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">Jobs within {travel} miles pay no travel fee.</p>
+                  <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">{t('freeTravelHint', { miles: travel })}</p>
                 </div>
                 <div>
-                  <label htmlFor="ob-mile" className="label">Charge per extra mile (beyond {travel} mi)</label>
+                  <label htmlFor="ob-mile" className="label">{t('chargePerMile', { miles: travel })}</label>
                   <div className="flex items-center gap-1">
                     <span className="text-slate-500 dark:text-slate-400">$</span>
                     <input id="ob-mile" type="number" min={0} step={0.5} value={chargePerMile}
                       onChange={(e) => setChargePerMile(Number(e.target.value))} className="input h-10 w-24" />
-                    <span className="text-sm text-slate-500 dark:text-slate-400">/ mile</span>
+                    <span className="text-sm text-slate-500 dark:text-slate-400">{t('perMile')}</span>
                   </div>
                   <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
-                    Covers gas + wear. $1.50–$3 per mile is typical for mobile detailing.
+                    {t('chargePerMileHint')}
                   </p>
                 </div>
                 </div>
@@ -619,37 +600,28 @@ export default function DetailerOnboarding() {
 
             {step === 5 && (
               <div className="space-y-4">
-                <MarketingTip title="Get paid fast, keep more">
-                  Connect your bank now so payouts land automatically after each job — no
-                  invoicing, no chasing money. Tips go 100% to you. Track every dollar in
-                  your earnings dashboard.
+                <MarketingTip title={t('tipPayoutTitle')}>
+                  {t('tipPayoutBody')}
                 </MarketingTip>
                 <div className="card space-y-4">
                 <div className="flex items-center gap-3">
                   <CreditCardIcon className="h-8 w-8 text-brand-600 dark:text-brand-300" />
                   <div>
                     <h2 className="flex items-center gap-1.5 font-display font-semibold text-slate-900 dark:text-slate-100">
-                      Payout setup
-                      <InfoPopover label="Why do you need my tax info?">
-                        As an independent contractor, we&apos;re required to report what we
-                        pay you to the IRS on a 1099 each year, so we need a valid
-                        taxpayer ID to file it under. That&apos;s an SSN for most people,
-                        or an EIN if you run your detailing business as an LLC — an ITIN
-                        works too if you don&apos;t have an SSN, since the IRS issues those
-                        specifically so anyone can file and pay taxes regardless of
-                        immigration status.
+                      {t('payoutSetup')}
+                      <InfoPopover label={t('whyTaxInfoLabel')}>
+                        {t('whyTaxInfoBody')}
                       </InfoPopover>
                     </h2>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">Stripe Connect — bank + W-9 for 1099 reporting.</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">{t('payoutSetupBlurb')}</p>
                   </div>
                 </div>
                 <div>
-                  <label htmlFor="ob-bank" className="label">Bank account (last 4 digits — demo)</label>
+                  <label htmlFor="ob-bank" className="label">{t('bankLabel')}</label>
                   <input id="ob-bank" inputMode="numeric" maxLength={4} value={bank} onChange={(e) => setBank(e.target.value.replace(/\D/g, ''))} className="input w-32" placeholder="4242" />
                 </div>
                 <p className="text-xs text-slate-400 dark:text-slate-500">
-                  Real flow collects legal name, address, and SSN/EIN/ITIN through Stripe&apos;s
-                  hosted onboarding — never stored on our servers. Simulated in demo.
+                  {t('payoutRealFlow')}
                 </p>
                 </div>
               </div>
@@ -666,7 +638,7 @@ export default function DetailerOnboarding() {
         <div className="mt-6 flex gap-2">
           {step > 0 && (
             <button onClick={() => setStep(step - 1)} disabled={saving} className="btn btn-outline">
-              Back
+              {t('back')}
             </button>
           )}
           <button
@@ -676,9 +648,9 @@ export default function DetailerOnboarding() {
           >
             {step === STEPS.length - 1
               ? saving
-                ? 'Submitting…'
-                : 'Submit application'
-              : 'Continue'}
+                ? t('submitting')
+                : t('submitApplication')
+              : t('continue')}
           </button>
         </div>
       </div>
