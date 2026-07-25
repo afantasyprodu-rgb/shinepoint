@@ -9,6 +9,7 @@ import { ArrowRightIcon, CheckIcon, SparklesIcon } from '../components/icons'
 import { useAuth, homePathForRole } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
 import { CAR_MAKES, CAR_MODELS } from '../lib/vehicleData'
+import { useT } from '../i18n/useT'
 
 const VEHICLE_TYPES = ['Sedan', 'SUV', 'Truck', 'Van', 'Coupe', 'EV']
 const ALL_MODELS = Object.values(CAR_MODELS).flat()
@@ -20,6 +21,7 @@ export default function ProfileSetup() {
   const navigate = useNavigate()
   const { profile } = useAuth()
   const { customer, getDetailer, uploadImage, updateCustomer, updateDetailerMe } = useStore()
+  const t = useT('profileSetup')
 
   const role = profile?.role ?? 'customer'
   const isDetailer = role === 'detailer'
@@ -96,12 +98,10 @@ export default function ProfileSetup() {
                 <SparklesIcon className="h-8 w-8" />
               </motion.span>
               <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">
-                Welcome{name ? `, ${name.split(' ')[0]}` : ''}! 🎉
+                {t('welcome', { name: name ? `, ${name.split(' ')[0]}` : '' })}
               </h1>
               <p className="mt-2 max-w-sm text-slate-600 dark:text-slate-400">
-                Make your profile yours — add a photo and a few details so{' '}
-                {isDetailer ? 'customers know who they’re booking' : 'your detailer recognizes you'}.
-                Takes a minute.
+                {isDetailer ? t('customizeBlurbDetailer') : t('customizeBlurbCustomer')}
               </p>
 
               <div className="mt-8 flex w-full max-w-xs flex-col gap-3">
@@ -109,13 +109,13 @@ export default function ProfileSetup() {
                   onClick={() => setStep('form')}
                   className="btn btn-cta h-12 w-full text-base"
                 >
-                  Customize now <ArrowRightIcon className="h-5 w-5" />
+                  {t('customizeNow')} <ArrowRightIcon className="h-5 w-5" />
                 </button>
                 <button
                   onClick={done}
                   className="text-sm font-semibold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
                 >
-                  Skip for now — I’ll do it later
+                  {t('skipForNowLater')}
                 </button>
               </div>
             </motion.div>
@@ -129,7 +129,7 @@ export default function ProfileSetup() {
               className="flex flex-1 flex-col"
             >
               <h2 className="text-center font-display text-lg font-bold text-slate-900 dark:text-slate-100">
-                Your profile
+                {t('yourProfile')}
               </h2>
 
               <div className="relative mt-12">
@@ -153,34 +153,30 @@ export default function ProfileSetup() {
                   </div>
 
                   <div>
-                    <label htmlFor="name" className="label">Display name</label>
+                    <label htmlFor="name" className="label">{t('displayName')}</label>
                     <input
                       id="name" type="text" value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="input-flat" placeholder="Your name"
+                      className="input-flat" placeholder={t('displayNamePlaceholder')}
                     />
                   </div>
 
                   <div>
                     <label htmlFor="bio" className="label">
-                      {isDetailer ? 'About your service' : 'About you'}{' '}
-                      <span className="font-normal text-slate-400 dark:text-slate-500">({250 - bio.length} left)</span>
+                      {isDetailer ? t('aboutService') : t('aboutYou')}{' '}
+                      <span className="font-normal text-slate-400 dark:text-slate-500">({250 - bio.length} {t('left')})</span>
                     </label>
                     <textarea
                       id="bio" rows={3} maxLength={250} value={bio}
                       onChange={(e) => setBio(e.target.value)}
                       className="input-flat h-auto resize-none py-2"
-                      placeholder={
-                        isDetailer
-                          ? 'Ceramic certified, 10 years on daily drivers and show cars…'
-                          : 'Anything your detailer should know — gate codes, pets, parking…'
-                      }
+                      placeholder={isDetailer ? t('bioPlaceholderDetailer') : t('bioPlaceholderCustomer')}
                     />
                   </div>
 
                   {!isDetailer && (
                     <div>
-                      <p className="label">Your vehicle</p>
+                      <p className="label">{t('yourVehicle')}</p>
                       <div className="grid grid-cols-2 gap-2">
                         <Combobox
                           value={vehMake}
@@ -196,17 +192,17 @@ export default function ProfileSetup() {
                         />
                       </div>
                       <div className="mt-2 flex flex-wrap gap-2">
-                        {VEHICLE_TYPES.map((t) => (
+                        {VEHICLE_TYPES.map((vt) => (
                           <button
-                            key={t} type="button"
-                            onClick={() => setVehType(t)}
+                            key={vt} type="button"
+                            onClick={() => setVehType(vt)}
                             className={`cursor-pointer rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
-                              vehType === t
+                              vehType === vt
                                 ? 'bg-brand-600 text-white shadow-sm'
                                 : 'bg-brand-50 text-slate-600 hover:bg-brand-100 dark:bg-white/5 dark:text-slate-400 dark:hover:bg-white/10'
                             }`}
                           >
-                            {t}
+                            {vt}
                           </button>
                         ))}
                       </div>
@@ -215,9 +211,9 @@ export default function ProfileSetup() {
 
                   {isDetailer && (
                     <div>
-                      <p className="label">Portfolio gallery</p>
+                      <p className="label">{t('portfolioGallery')}</p>
                       <p className="-mt-1 mb-2 text-xs text-slate-400 dark:text-slate-500">
-                        Show off your best work — these appear on your public profile.
+                        {t('portfolioBlurb')}
                       </p>
                       <GalleryGrid gallery={gallery} setGallery={setGallery} onAdd={addGalleryPhoto} />
                     </div>
@@ -227,10 +223,10 @@ export default function ProfileSetup() {
 
               <div className="mt-5 flex gap-2">
                 <button type="button" onClick={done} className="btn btn-outline h-12 flex-1">
-                  Skip
+                  {t('skip')}
                 </button>
                 <button type="submit" disabled={busy} className="btn btn-cta h-12 flex-[2]">
-                  {busy ? 'Saving…' : (<><CheckIcon className="h-5 w-5" /> Save & continue</>)}
+                  {busy ? t('saving') : (<><CheckIcon className="h-5 w-5" /> {t('saveAndContinue')}</>)}
                 </button>
               </div>
             </motion.form>
@@ -244,6 +240,7 @@ export default function ProfileSetup() {
 // Small uploadable gallery grid reused by the detailer setup + profile editor.
 export function GalleryGrid({ gallery, setGallery, onAdd }) {
   const [busy, setBusy] = useState(false)
+  const t = useT('gallery')
 
   async function pick(e) {
     const file = e.target.files?.[0]
@@ -265,11 +262,11 @@ export function GalleryGrid({ gallery, setGallery, onAdd }) {
             exit={{ opacity: 0, scale: 0.85 }}
             className="group relative aspect-square overflow-hidden rounded-xl"
           >
-            <img src={url} alt={`Portfolio ${i + 1}`} className="h-full w-full object-cover" />
+            <img src={url} alt={t('portfolioAlt', { n: i + 1 })} className="h-full w-full object-cover" />
             <button
               type="button"
               onClick={() => setGallery((g) => g.filter((u) => u !== url))}
-              aria-label="Remove photo"
+              aria-label={t('removePhoto')}
               className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100"
             >
               ✕
@@ -283,7 +280,7 @@ export function GalleryGrid({ gallery, setGallery, onAdd }) {
         ) : (
           <>
             <span className="text-2xl leading-none">+</span>
-            <span className="text-[10px] font-semibold">Add</span>
+            <span className="text-[10px] font-semibold">{t('add')}</span>
           </>
         )}
         <input type="file" accept="image/*" onChange={pick} className="sr-only" />
