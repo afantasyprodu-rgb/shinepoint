@@ -65,7 +65,7 @@ export default function DetailerOnboarding() {
     isDemo ? 'idle' : idStatusFromProfile(detailerProfile?.identity_status)
   )
   const [idError, setIdError] = useState('')
-  const [insurance, setInsurance] = useState(null) // premium | standard | none
+  const [insurance, setInsurance] = useState(null) // insured | none
   const [noInsuranceAck, setNoInsuranceAck] = useState(false)
   const [bio, setBio] = useState('')
   const [zip, setZip] = useState('')
@@ -179,7 +179,7 @@ export default function DetailerOnboarding() {
 
   const canContinue = [
     idStatus === 'passed' || idStatus === 'pending',
-    insurance === 'premium' || insurance === 'standard' || (insurance === 'none' && noInsuranceAck),
+    insurance === 'insured' || (insurance === 'none' && noInsuranceAck),
     bio.length > 0 && zip.length === 5 && vehicles.length > 0,
     Object.keys(services).length > 0,
     days.length > 0,
@@ -355,8 +355,7 @@ export default function DetailerOnboarding() {
                 </div>
                 <div className="space-y-3" role="radiogroup" aria-label={t('insuranceLevelAria')}>
                 {[
-                  ['premium', t('insurancePremiumTitle'), t('insurancePremiumSub')],
-                  ['standard', t('insuranceStandardTitle'), t('insuranceStandardSub')],
+                  ['insured', t('insuranceYesTitle'), t('insuranceYesSub')],
                   ['none', t('insuranceNoneTitle'), t('insuranceNoneSub')],
                 ].map(([value, title, sub]) => (
                   <button
@@ -377,7 +376,7 @@ export default function DetailerOnboarding() {
                   </button>
                 ))}
                 </div>
-                {(insurance === 'premium' || insurance === 'standard') && (
+                {insurance === 'insured' && (
                   <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="card !p-5">
                     <label className="label" htmlFor="cert">{t('certUploadLabel')}</label>
                     <input id="cert" type="file" className="text-sm text-slate-600 file:btn file:btn-outline file:mr-3 file:h-9 file:px-3 file:text-xs dark:text-slate-400" />

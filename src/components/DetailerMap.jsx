@@ -80,7 +80,7 @@ const userIcon = L.divIcon({
 function popupHtml(d) {
   const color = PIN_COLORS[d.status] ?? PIN_COLORS.offline
   const badges = [
-    d.insurance !== 'none' ? `<span class="nx-pop-chip">🛡️ ${d.insurance} insured</span>` : '',
+    d.insurance !== 'none' ? '<span class="nx-pop-chip">🛡️ Insured</span>' : '',
     d.acceptsRewards ? '<span class="nx-pop-chip">🎁 Rewards</span>' : '',
   ].join('')
   const services = d.services

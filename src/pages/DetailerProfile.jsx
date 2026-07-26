@@ -82,14 +82,9 @@ export default function DetailerProfile() {
           </div>
 
           <div className="mt-4 flex flex-wrap gap-2">
-            {d.insurance === 'premium' && (
-              <span className="chip bg-amber-500/15 text-amber-700 dark:text-amber-300">
-                <ShieldCheckIcon className="h-3.5 w-3.5" /> {t('goldInsured')}
-              </span>
-            )}
-            {d.insurance === 'standard' && (
-              <span className="chip bg-slate-200 text-slate-700 dark:bg-white/10 dark:text-slate-300">
-                <ShieldCheckIcon className="h-3.5 w-3.5" /> {t('silverInsured')}
+            {!uninsured && (
+              <span className="chip bg-brand-100 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">
+                <ShieldCheckIcon className="h-3.5 w-3.5" /> {t('insured')}
               </span>
             )}
             {uninsured && (
