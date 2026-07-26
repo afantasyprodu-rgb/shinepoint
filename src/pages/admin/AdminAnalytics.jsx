@@ -4,6 +4,7 @@ import { CountUp } from '../../components/ui/bits'
 import { NxLineChart, NxDonut } from '../../components/ui/AnalyticsCharts'
 import { useStore } from '../../context/StoreContext'
 import { TrendingUpIcon, PieChartIcon } from '../../components/icons'
+import { useT } from '../../i18n/useT'
 
 const SEGMENT_COLORS = ['var(--color-cta-500)', 'var(--color-brand-400)', 'var(--color-accent-teal)']
 
@@ -15,6 +16,7 @@ const SEGMENT_COLORS = ['var(--color-cta-500)', 'var(--color-brand-400)', 'var(-
 export default function AdminAnalytics() {
   const { admin, bookings } = useStore()
   const f = admin.finance
+  const t = useT('adminAnalytics')
 
   const revenueDelta = f.monthly[4] ? ((f.month - f.monthly[4]) / f.monthly[4]) * 100 : 0
   const currentQuarter = f.monthly.slice(3, 6)
@@ -32,34 +34,34 @@ export default function AdminAnalytics() {
   return (
     <AdminShell>
       <AnimatedPage>
-        <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">Analytics</h1>
+        <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">{t('title')}</h1>
 
         <div className="mt-6">
           <div className="grid gap-3 sm:grid-cols-2">
             <FadeIn>
               <div className="nx-card">
                 <div className="flex items-center justify-between">
-                  <p className="nx-kicker">Revenue this month</p>
+                  <p className="nx-kicker">{t('revenueThisMonth')}</p>
                   <span className="nx-icon-tile"><TrendingUpIcon className="h-4 w-4" /></span>
                 </div>
                 <p className="mt-2 font-display text-3xl font-bold text-slate-900 dark:text-white">
                   <CountUp value={f.month} prefix="$" />
                 </p>
                 <p className={`mt-1 text-sm font-medium ${revenueDelta >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                  {revenueDelta >= 0 ? '+' : ''}{revenueDelta.toFixed(1)}% vs last month
+                  {t('vsLastMonth', { sign: revenueDelta >= 0 ? '+' : '', pct: revenueDelta.toFixed(1) })}
                 </p>
               </div>
             </FadeIn>
             <FadeIn delay={0.05}>
               <div className="nx-card">
                 <div className="flex items-center justify-between">
-                  <p className="nx-kicker">Jobs completed</p>
+                  <p className="nx-kicker">{t('jobsCompleted')}</p>
                   <span className="nx-icon-tile"><PieChartIcon className="h-4 w-4" /></span>
                 </div>
                 <p className="mt-2 font-display text-3xl font-bold text-slate-900 dark:text-white">
                   <CountUp value={admin.milestones.jobs.current} />
                 </p>
-                <p className="mt-1 text-sm nx-sub">of {admin.milestones.jobs.target.toLocaleString()} goal</p>
+                <p className="mt-1 text-sm nx-sub">{t('ofGoal', { target: admin.milestones.jobs.target.toLocaleString() })}</p>
               </div>
             </FadeIn>
           </div>
@@ -71,14 +73,14 @@ export default function AdminAnalytics() {
           <div className="mt-3 grid gap-3 lg:grid-cols-2">
             <FadeIn delay={0.1}>
               <div className="nx-card h-full">
-                <p className="mb-1 text-sm font-semibold text-slate-900 dark:text-white">Platform revenue by quarter</p>
-                <p className="nx-sub mb-4 text-xs">Apr–Jun vs Jan–Mar</p>
+                <p className="mb-1 text-sm font-semibold text-slate-900 dark:text-white">{t('revenueByQuarter')}</p>
+                <p className="nx-sub mb-4 text-xs">{t('quarterLabels')}</p>
                 <NxLineChart
-                  labels={['Month 1', 'Month 2', 'Month 3']}
+                  labels={[t('month1'), t('month2'), t('month3')]}
                   current={currentQuarter}
                   comparison={comparisonQuarter}
-                  currentLabel="Apr–Jun"
-                  comparisonLabel="Jan–Mar"
+                  currentLabel={t('aprJun')}
+                  comparisonLabel={t('janMar')}
                 />
               </div>
             </FadeIn>
@@ -86,14 +88,14 @@ export default function AdminAnalytics() {
             <FadeIn delay={0.15}>
               <div className="nx-card h-full">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold text-slate-900 dark:text-white">Revenue by service</p>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white">{t('revenueByService')}</p>
                   <p className="font-display text-lg font-bold text-slate-900 dark:text-white">${revenueTotal.toLocaleString()}</p>
                 </div>
                 <div className="mt-4">
                   {segments.length > 0 ? (
                     <NxDonut segments={segments} />
                   ) : (
-                    <p className="nx-sub text-sm">No bookings yet.</p>
+                    <p className="nx-sub text-sm">{t('noBookingsYet')}</p>
                   )}
                 </div>
               </div>

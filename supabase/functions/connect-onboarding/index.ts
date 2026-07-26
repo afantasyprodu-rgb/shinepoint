@@ -61,6 +61,13 @@ Deno.serve(async (req) => {
           card_payments: { requested: true },
           transfers: { requested: true },
         },
+        // Manual payout schedule: money that's been transferred to this
+        // account (see release-payouts) sits available until the detailer
+        // requests it themselves from their Express dashboard, rather than
+        // Stripe auto-sweeping it to their bank on a rolling schedule.
+        settings: {
+          payouts: { schedule: { interval: 'manual' } },
+        },
         metadata: { detailer_profile_id: profile.id },
       })
       accountId = account.id

@@ -3,11 +3,12 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
 import { fuzzyPinForZip } from '../lib/fuzzyPin'
+import { useT } from '../i18n/useT'
 
 const OPTIONS = [
-  { value: 'available', label: 'Available', active: 'bg-cta-700 text-white shadow-md' },
-  { value: 'busy', label: 'Busy', active: 'bg-amber-500 text-white shadow-md' },
-  { value: 'offline', label: 'Offline', active: 'bg-slate-600 text-white shadow-md' },
+  { value: 'available', active: 'bg-cta-700 text-white shadow-md' },
+  { value: 'busy', active: 'bg-amber-500 text-white shadow-md' },
+  { value: 'offline', active: 'bg-slate-600 text-white shadow-md' },
 ]
 
 // Demo detailer account maps to this seeded detailer.
@@ -21,6 +22,8 @@ export default function AvailabilityToggle() {
   const [profile, setProfile] = useState(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const t = useT('availability')
+  const tStatus = useT('status')
 
   const demoDetailer = isDemo ? store.getDetailer(DEMO_DETAILER_ID) : null
 
@@ -34,7 +37,7 @@ export default function AvailabilityToggle() {
       .single()
       .then(({ data, error: fetchError }) => {
         if (cancelled) return
-        if (fetchError) setError('Could not load your availability.')
+        if (fetchError) setError(t('loadError'))
         else setProfile(data)
       })
     return () => {
@@ -73,14 +76,14 @@ export default function AvailabilityToggle() {
     setSaving(false)
     if (saveError) {
       setProfile(previous)
-      setError('Could not save — check your connection and try again.')
+      setError(t('saveError'))
     }
   }
 
   if (!current) {
     return (
       <section className="card" aria-busy={!error}>
-        <h2 className="font-display text-lg font-semibold text-slate-900 dark:text-slate-100">Availability</h2>
+        <h2 className="font-display text-lg font-semibold text-slate-900 dark:text-slate-100">{t('title')}</h2>
         {error ? (
           <p role="alert" className="mt-2 text-sm text-red-700 dark:text-red-400">{error}</p>
         ) : (
@@ -93,16 +96,16 @@ export default function AvailabilityToggle() {
   return (
     <section className="card">
       <div className="flex items-center justify-between">
-        <h2 className="font-display text-lg font-semibold text-slate-900 dark:text-slate-100">Availability</h2>
-        {saving && <span className="text-xs text-slate-500 dark:text-slate-400">Saving…</span>}
+        <h2 className="font-display text-lg font-semibold text-slate-900 dark:text-slate-100">{t('title')}</h2>
+        {saving && <span className="text-xs text-slate-500 dark:text-slate-400">{t('saving')}</span>}
       </div>
 
       <div
         role="group"
-        aria-label="Availability status"
+        aria-label={t('statusGroupLabel')}
         className="mt-3 grid grid-cols-3 gap-1 rounded-xl bg-brand-50 p-1 dark:bg-white/5"
       >
-        {OPTIONS.map(({ value, label, active }) => (
+        {OPTIONS.map(({ value, active }) => (
           <button
             key={value}
             type="button"
@@ -112,7 +115,7 @@ export default function AvailabilityToggle() {
               current.status === value ? active : 'text-slate-600 hover:bg-brand-100 dark:text-slate-400 dark:hover:bg-white/10'
             }`}
           >
-            {label}
+            {tStatus(value)}
           </button>
         ))}
       </div>
@@ -125,7 +128,7 @@ export default function AvailabilityToggle() {
             onChange={(e) => save({ accepts_bookings_when_busy: e.target.checked })}
             className="h-4 w-4 cursor-pointer rounded border-slate-300 accent-brand-600 dark:border-slate-600"
           />
-          Accept new bookings while busy
+          {t('acceptWhileBusy')}
         </label>
       )}
 

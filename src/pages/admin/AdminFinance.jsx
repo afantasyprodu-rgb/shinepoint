@@ -2,17 +2,19 @@ import AdminShell from '../../components/AdminShell'
 import { AnimatedPage, FadeIn } from '../../components/ui/Motion'
 import { CountUp, Bars } from '../../components/ui/bits'
 import { useStore } from '../../context/StoreContext'
+import { useT } from '../../i18n/useT'
 
 // Blueprint screen 6.8 — Financial Dashboard.
 export default function AdminFinance() {
   const { admin } = useStore()
   const f = admin.finance
+  const t = useT('adminFinance')
 
   const stats = [
-    { label: 'Today', value: f.today, prefix: '$' },
-    { label: 'This week', value: f.week, prefix: '$' },
-    { label: 'This month', value: f.month, prefix: '$' },
-    { label: 'Pending payouts', value: f.pendingPayouts, prefix: '$' },
+    { label: t('today'), value: f.today, prefix: '$' },
+    { label: t('thisWeek'), value: f.week, prefix: '$' },
+    { label: t('thisMonth'), value: f.month, prefix: '$' },
+    { label: t('pendingPayouts'), value: f.pendingPayouts, prefix: '$' },
   ]
 
   function exportCsv() {
@@ -29,9 +31,9 @@ export default function AdminFinance() {
     <AdminShell>
       <AnimatedPage>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">Finance</h1>
+          <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">{t('finance')}</h1>
           <button onClick={exportCsv} className="btn btn-outline h-10 text-sm">
-            Export CSV
+            {t('exportCsv')}
           </button>
         </div>
 
@@ -51,7 +53,7 @@ export default function AdminFinance() {
         <FadeIn delay={0.2}>
           <div className="card mt-6">
             <h2 className="mb-4 font-display text-lg font-semibold text-slate-900 dark:text-slate-100">
-              Monthly platform revenue
+              {t('monthlyRevenue')}
             </h2>
             <Bars data={f.monthly} labels={f.monthLabels} />
           </div>
@@ -60,21 +62,21 @@ export default function AdminFinance() {
         <div className="mt-6 grid gap-4 lg:grid-cols-2">
           <FadeIn delay={0.25}>
             <div className="card !p-5">
-              <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">Refunds issued</h2>
+              <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">{t('refundsIssued')}</h2>
               <p className="mt-1 font-display text-2xl font-bold text-brand-800 dark:text-brand-300">
                 <CountUp value={f.refundsIssued} prefix="$" />
               </p>
               <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                Across {f.refundsCount} resolved disputes this month — deducted from platform earnings.
+                {t('refundsAcross', { count: f.refundsCount })}
               </p>
             </div>
           </FadeIn>
           <FadeIn delay={0.3}>
             <div className="card !p-5">
-              <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">1099 tracker</h2>
-              <p className="mt-1 font-display text-2xl font-bold text-brand-800 dark:text-brand-300">3 detailers</p>
+              <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">{t('tracker1099')}</h2>
+              <p className="mt-1 font-display text-2xl font-bold text-brand-800 dark:text-brand-300">{t('detailersCount', { count: 3 })}</p>
               <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                Crossed $600 in annual earnings — 1099 forms required at year end.
+                {t('tracker1099Body')}
               </p>
             </div>
           </FadeIn>

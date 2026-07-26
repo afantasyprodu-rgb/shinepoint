@@ -5,9 +5,10 @@
 // pin stays in the same spot between renders — mirroring production, where
 // pin_lat/pin_lng are computed once at signup and stored.
 
-// Approximate centroids for LA-area test zips. Production will geocode
-// any zip via the Mapbox Geocoding API instead of this table.
-export const LA_ZIP_CENTROIDS = {
+// Approximate centroids for demo test zips, covering the coastal stretch
+// from Santa Barbara down to San Diego. Production will geocode any zip via
+// the Mapbox Geocoding API instead of this table.
+export const CA_ZIP_CENTROIDS = {
   90001: { lat: 33.9731, lng: -118.2479 }, // Florence
   90008: { lat: 34.0095, lng: -118.347 }, // Baldwin Hills
   90013: { lat: 34.0447, lng: -118.2437 }, // Downtown LA
@@ -16,6 +17,17 @@ export const LA_ZIP_CENTROIDS = {
   90291: { lat: 33.9938, lng: -118.4637 }, // Venice
   90405: { lat: 34.0103, lng: -118.4675 }, // Santa Monica
   91401: { lat: 34.1783, lng: -118.4319 }, // Van Nuys
+  // Santa Barbara → San Diego coastal expansion
+  93101: { lat: 34.4208, lng: -119.6982 }, // Santa Barbara
+  93001: { lat: 34.2746, lng: -119.229 }, // Ventura
+  91360: { lat: 34.1706, lng: -118.8376 }, // Thousand Oaks
+  90802: { lat: 33.7701, lng: -118.1937 }, // Long Beach
+  92805: { lat: 33.8353, lng: -117.9145 }, // Anaheim
+  92660: { lat: 33.6189, lng: -117.9298 }, // Newport Beach
+  92672: { lat: 33.4269, lng: -117.612 }, // San Clemente
+  92054: { lat: 33.1959, lng: -117.3795 }, // Oceanside
+  92037: { lat: 32.8328, lng: -117.2713 }, // La Jolla
+  92101: { lat: 32.7157, lng: -117.1611 }, // San Diego
 }
 
 const EARTH_RADIUS_MI = 3958.8
@@ -36,8 +48,8 @@ export function milesBetween(a, b) {
 // in the table. Used for a real-distance mileage estimate — not a fake/random
 // number — on the detailer earnings page (tax mileage log).
 export function milesBetweenZips(zipA, zipB) {
-  const a = LA_ZIP_CENTROIDS[zipA]
-  const b = LA_ZIP_CENTROIDS[zipB]
+  const a = CA_ZIP_CENTROIDS[zipA]
+  const b = CA_ZIP_CENTROIDS[zipB]
   if (!a || !b) return null
   return milesBetween(a, b)
 }
@@ -59,7 +71,7 @@ function seededFloat(seed) {
 // Returns { lat, lng } jittered up to roughly ±0.8 miles from the zip
 // centroid, or null for an unknown zip.
 export function fuzzyPinForZip(zip, seed = '') {
-  const centroid = LA_ZIP_CENTROIDS[zip]
+  const centroid = CA_ZIP_CENTROIDS[zip]
   if (!centroid) return null
 
   const dLat = (seededFloat(`${zip}:${seed}:lat`) - 0.5) * 0.024

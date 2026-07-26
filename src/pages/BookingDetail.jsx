@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import AppShell from '../components/AppShell'
 import ChatThread from '../components/ChatThread'
@@ -19,6 +19,8 @@ import {
   StarIcon,
 } from '../components/icons'
 import { useStore } from '../context/StoreContext'
+import { useLanguage } from '../context/LanguageContext'
+import { useT } from '../i18n/useT'
 
 // Half the tick hit-target (.job-progress-tick is 2.75rem) — insetting every
 // tick position by this amount keeps the end ticks' centers a full radius
@@ -30,18 +32,18 @@ function tickPos(i, count) {
 }
 
 const TIMELINE = ['pending', 'accepted', 'en_route', 'arrived', 'in_progress', 'complete']
-const TIMELINE_LABELS = {
-  pending: 'Booked',
-  accepted: 'Confirmed',
-  en_route: 'En route',
-  arrived: 'Arrived',
-  in_progress: 'In progress',
-  complete: 'Complete',
+const TIMELINE_LABEL_KEYS = {
+  pending: 'timelineBooked',
+  accepted: 'timelineConfirmed',
+  en_route: 'timelineEnRoute',
+  arrived: 'timelineArrived',
+  in_progress: 'timelineInProgress',
+  complete: 'timelineComplete',
 }
 
-function formatWhen(iso) {
-  if (!iso) return 'your scheduled time'
-  return new Date(iso).toLocaleString('en-US', {
+function formatWhen(iso, lang) {
+  if (!iso) return null
+  return new Date(iso).toLocaleString(lang === 'es' ? 'es-US' : 'en-US', {
     weekday: 'short',
     hour: 'numeric',
     minute: '2-digit',
@@ -50,43 +52,22 @@ function formatWhen(iso) {
 
 // Per-stage "what's happening" copy so every dot tells the client the process:
 // what's going on now, a time/ETA hint, and what they can do — read-ahead friendly.
-const STAGE_DETAIL = {
-  pending: {
-    what: (d) => `Your request is with ${d} for confirmation.`,
-    eta: () => 'Detailers usually respond within 30 minutes.',
-    prep: () => 'Add gate codes or parking notes in chat so they arrive ready.',
-  },
-  accepted: {
-    what: (d) => `${d} confirmed and will arrive at your scheduled time.`,
-    eta: (d, b) => `Scheduled for ${formatWhen(b.scheduledTime)}.`,
-    prep: () => 'Make sure your vehicle is reachable and unobstructed at that time.',
-  },
-  en_route: {
-    what: (d) => `${d} is on the way to you now.`,
-    eta: () => 'Arriving in ~15 minutes.',
-    prep: () => 'Unlock the car or leave the keys out, and clear space around it.',
-  },
-  arrived: {
-    what: (d) => `${d} is here and photographing the vehicle's existing condition before touching the car.`,
-    eta: () => 'Takes 2–3 minutes. You\'ll get a photo report to approve.',
-    prep: () => 'Review the condition photos and tap "Approve" — work starts the moment you confirm.',
-  },
-  in_progress: {
-    what: () => 'Your detail is underway.',
-    eta: () => 'Most details take 1–3 hours depending on the package.',
-    prep: () => 'Sit back — you’ll get after-photos the moment it’s done.',
-  },
-  complete: {
-    what: () => 'All done — your after-photos are ready.',
-    eta: () => 'Tip & review within 48 hours to earn a loyalty point.',
-    prep: () => 'Check the photos, rate your detailer, and leave a tip.',
-  },
+const STAGE_KEYS = {
+  pending: { what: 'pendingWhat', eta: 'pendingEta', prep: 'pendingPrep' },
+  accepted: { what: 'acceptedWhat', eta: 'acceptedEta', prep: 'acceptedPrep' },
+  en_route: { what: 'enRouteWhat', eta: 'enRouteEta', prep: 'enRoutePrep' },
+  arrived: { what: 'arrivedWhat', eta: 'arrivedEta', prep: 'arrivedPrep' },
+  in_progress: { what: 'inProgressWhat', eta: 'inProgressEta', prep: 'inProgressPrep' },
+  complete: { what: 'completeWhat', eta: 'completeEta', prep: 'completePrep' },
 }
 
 // Blueprint 3.1–3.4 — booking status, damage review, chat, completion.
 export default function BookingDetail() {
   const { id } = useParams()
+  const [searchParams] = useSearchParams()
   const { getBooking, getDetailer, patchBooking, submitReview, cancelBooking, fileDispute } = useStore()
+  const { lang } = useLanguage()
+  const t = useT('bookingDetail')
   const [rating, setRating] = useState(0)
   const [reviewNote, setReviewNote] = useState('')
   const [hoverStar, setHoverStar] = useState(0)
@@ -100,7 +81,23 @@ export default function BookingDetail() {
   const [showDispute, setShowDispute] = useState(false)
   const [showInvoice, setShowInvoice] = useState(false)
   const [disputeReason, setDisputeReason] = useState('')
-  const [openStage, setOpenStage] = useState(null) // null = follow the current stage
+  // A notification bell link arrives as ?stage=en_route — jump straight to
+  // that stage's preview instead of following the booking's current status,
+  // so an older notification still opens the stage it was actually about.
+  const [openStage, setOpenStage] = useState(() => {
+    const stage = searchParams.get('stage')
+    const idx = TIMELINE.indexOf(stage)
+    return idx === -1 ? null : idx
+  })
+  const timelineRef = useRef(null)
+  const [highlightTimeline, setHighlightTimeline] = useState(() => searchParams.has('stage'))
+
+  useEffect(() => {
+    if (!highlightTimeline) return
+    timelineRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    const t = setTimeout(() => setHighlightTimeline(false), 1400)
+    return () => clearTimeout(t)
+  }, [highlightTimeline])
 
   const b = getBooking(id)
   const d = b && getDetailer(b.detailerId)
@@ -108,7 +105,7 @@ export default function BookingDetail() {
     return (
       <AppShell role="customer">
         <div className="mx-auto max-w-xl px-6 py-16 text-center text-slate-600">
-          Booking not found. <Link to="/bookings" className="font-semibold text-brand-600">Back</Link>
+          {t('notFound')} <Link to="/bookings" className="font-semibold text-brand-600">{t('backLink')}</Link>
         </div>
       </AppShell>
     )
@@ -117,7 +114,7 @@ export default function BookingDetail() {
   const stageIdx = TIMELINE.indexOf(b.status)
 const shownStage = openStage ?? stageIdx
   const shownKey = TIMELINE[shownStage]
-  const detail = STAGE_DETAIL[shownKey]
+  const stageKeys = STAGE_KEYS[shownKey]
   const detailerName = d?.name ?? 'Your detailer'
   const isPreview = openStage != null && openStage !== stageIdx
 
@@ -141,7 +138,7 @@ const shownStage = openStage ?? stageIdx
           to="/bookings"
           className="mb-4 inline-flex items-center gap-1 rounded text-sm font-medium text-slate-600 transition-colors duration-200 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
         >
-          <ChevronLeftIcon className="h-4 w-4" /> All bookings
+          <ChevronLeftIcon className="h-4 w-4" /> {t('allBookings')}
         </Link>
 
         <div className="card">
@@ -165,44 +162,51 @@ const shownStage = openStage ?? stageIdx
                   track) is inset by TICK_R so tick 1 and tick 6 sit flush
                   inside the pill's rounded caps instead of centered right on
                   the edge, half hanging off. */}
-              <div className="job-progress-track mt-8" aria-label="Job progress">
-                <motion.div
-                  className="job-progress-fill"
-                  initial={false}
-                  animate={{ width: tickPos(stageIdx, TIMELINE.length) }}
-                  transition={{ type: 'spring', stiffness: 140, damping: 20 }}
-                />
-                {TIMELINE.map((stage, i) => (
-                  <button
-                    key={stage}
-                    type="button"
-                    onClick={() => setOpenStage(i)}
-                    aria-label={`${TIMELINE_LABELS[stage]} — see what happens`}
-                    aria-expanded={shownStage === i}
-                    className={`job-progress-tick ${i <= stageIdx ? 'text-white' : 'text-slate-600 dark:text-slate-300'}`}
-                    style={{ left: tickPos(i, TIMELINE.length) }}
+              <div
+                ref={timelineRef}
+                className={`rounded-2xl transition-shadow duration-700 ${
+                  highlightTimeline ? 'shadow-[0_0_0_4px_var(--color-brand-300)]' : 'shadow-[0_0_0_0px_transparent]'
+                }`}
+              >
+                <div className="job-progress-track mt-8" aria-label={t('jobProgress')}>
+                  <motion.div
+                    className="job-progress-fill"
+                    initial={false}
+                    animate={{ width: tickPos(stageIdx, TIMELINE.length) }}
+                    transition={{ type: 'spring', stiffness: 140, damping: 20 }}
+                  />
+                  {TIMELINE.map((stage, i) => (
+                    <button
+                      key={stage}
+                      type="button"
+                      onClick={() => setOpenStage(i)}
+                      aria-label={t('tickAriaLabel', { label: t(TIMELINE_LABEL_KEYS[stage]) })}
+                      aria-expanded={shownStage === i}
+                      className={`job-progress-tick ${i <= stageIdx ? 'text-white' : 'text-slate-600 dark:text-slate-300'}`}
+                      style={{ left: tickPos(i, TIMELINE.length) }}
+                    >
+                      {i < stageIdx ? <CheckIcon className="h-3 w-3" /> : i + 1}
+                    </button>
+                  ))}
+                  <motion.div
+                    className="job-progress-ball-wrap"
+                    initial={false}
+                    animate={{ left: tickPos(shownStage, TIMELINE.length) }}
+                    transition={{ type: 'spring', stiffness: 140, damping: 20 }}
                   >
-                    {i < stageIdx ? <CheckIcon className="h-3 w-3" /> : i + 1}
-                  </button>
-                ))}
-                <motion.div
-                  className="job-progress-ball-wrap"
-                  initial={false}
-                  animate={{ left: tickPos(shownStage, TIMELINE.length) }}
-                  transition={{ type: 'spring', stiffness: 140, damping: 20 }}
-                >
-                  <div className="job-progress-ball" />
-                </motion.div>
-              </div>
-              <div className="mt-1.5 flex justify-between px-1">
-                {TIMELINE.map((stage, i) => (
-                  <span
-                    key={stage}
-                    className={`hidden text-[10px] sm:block ${i === stageIdx ? 'font-bold text-brand-700' : 'text-slate-400'}`}
-                  >
-                    {TIMELINE_LABELS[stage]}
-                  </span>
-                ))}
+                    <div className="job-progress-ball" />
+                  </motion.div>
+                </div>
+                <div className="mt-1.5 flex justify-between px-1">
+                  {TIMELINE.map((stage, i) => (
+                    <span
+                      key={stage}
+                      className={`hidden text-[10px] sm:block ${i === stageIdx ? 'font-bold text-brand-700' : 'text-slate-400'}`}
+                    >
+                      {t(TIMELINE_LABEL_KEYS[stage])}
+                    </span>
+                  ))}
+                </div>
               </div>
 
               {/* Per-stage detail — auto-follows the current step, or a tapped preview */}
@@ -217,24 +221,26 @@ const shownStage = openStage ?? stageIdx
                 >
                   <div className="flex items-center gap-2">
                     <h2 className="font-display text-sm font-bold text-slate-900">
-                      {TIMELINE_LABELS[shownKey]}
+                      {t(TIMELINE_LABEL_KEYS[shownKey])}
                     </h2>
                     {shownStage === stageIdx ? (
-                      <span className="chip bg-brand-600 text-white">Current</span>
+                      <span className="chip bg-brand-600 text-white">{t('current')}</span>
                     ) : (
                       <span className="chip bg-brand-100 text-brand-700">
-                        {shownStage < stageIdx ? 'Done' : 'Preview'}
+                        {shownStage < stageIdx ? t('done') : t('preview')}
                       </span>
                     )}
                   </div>
-                  <p className="mt-1.5 text-sm text-slate-700">{detail.what(detailerName, b)}</p>
+                  <p className="mt-1.5 text-sm text-slate-700">
+                    {t(stageKeys.what, { name: detailerName })}
+                  </p>
                   <p className="mt-2 flex items-start gap-1.5 text-xs text-slate-500">
                     <ClockIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                    {detail.eta(detailerName, b)}
+                    {t(stageKeys.eta, { name: detailerName, when: formatWhen(b.scheduledTime, lang) ?? t('yourScheduledTime') })}
                   </p>
                   <p className="mt-1 flex items-start gap-1.5 text-xs font-medium text-brand-700">
                     <LightbulbIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                    {detail.prep(detailerName, b)}
+                    {t(stageKeys.prep, { name: detailerName })}
                   </p>
                   {shownKey === 'en_route' && (
                     <EnRouteTracker booking={b} detailer={d} live={b.status === 'en_route'} />
@@ -244,7 +250,7 @@ const shownStage = openStage ?? stageIdx
                       {b.damageReport.items.length > 0 ? (
                         <>
                           <p className="mb-2 text-xs font-semibold text-amber-700 uppercase tracking-wide">
-                            Pre-existing condition — review &amp; approve
+                            {t('preExisting')}
                           </p>
                           <ul className="space-y-2">
                             {b.damageReport.items.map((item, i) => (
@@ -258,7 +264,7 @@ const shownStage = openStage ?? stageIdx
                                 )}
                                 {!item.photo && (
                                   <div className="flex h-28 items-center justify-center bg-slate-100 text-xs text-slate-400">
-                                    No photo attached
+                                    {t('noPhotoAttached')}
                                   </div>
                                 )}
                                 {(item.area || item.note) && (
@@ -276,24 +282,24 @@ const shownStage = openStage ?? stageIdx
                                 onClick={() => patchBooking(b.id, { damageReport: { ...b.damageReport, acknowledged: true } })}
                                 className="btn btn-cta h-10 w-full text-sm"
                               >
-                                Approve — condition is pre-existing, proceed
+                                {t('approveCondition')}
                               </button>
                               <button
                                 onClick={() => setShowRejectDamage(true)}
                                 className="btn h-9 w-full text-xs bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-600"
                               >
-                                Reject &amp; cancel job
+                                {t('rejectCancel')}
                               </button>
                             </div>
                           ) : (
                             <p className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-cta-700">
-                              <CheckIcon className="h-3.5 w-3.5" /> Condition approved — work in progress
+                              <CheckIcon className="h-3.5 w-3.5" /> {t('conditionApproved')}
                             </p>
                           )}
                         </>
                       ) : (
                         <p className="text-xs text-cta-700 font-medium flex items-center gap-1.5">
-                          <CheckIcon className="h-3.5 w-3.5" /> No pre-existing issues reported
+                          <CheckIcon className="h-3.5 w-3.5" /> {t('noPreExisting')}
                         </p>
                       )}
                     </div>
@@ -305,7 +311,7 @@ const shownStage = openStage ?? stageIdx
 
           {stageIdx < TIMELINE.length - 1 && b.status !== 'cancelled' && b.status !== 'disputed' && (
             <button onClick={advance} className="btn btn-outline mt-5 h-9 w-full text-xs">
-              Demo: simulate next step →
+              {t('simulateNext')}
             </button>
           )}
 
@@ -314,7 +320,7 @@ const shownStage = openStage ?? stageIdx
               onClick={() => setShowCancel(true)}
               className="mt-3 w-full cursor-pointer rounded text-center text-xs font-medium text-slate-400 transition-colors duration-200 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
             >
-              Cancel booking
+              {t('cancelBookingBtn')}
             </button>
           )}
           {b.status === 'complete' && (
@@ -322,7 +328,7 @@ const shownStage = openStage ?? stageIdx
               onClick={() => setShowDispute(true)}
               className="mt-3 w-full cursor-pointer rounded text-center text-xs font-medium text-slate-400 transition-colors duration-200 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
             >
-              Report a problem with this job
+              {t('reportProblem')}
             </button>
           )}
         </div>
@@ -332,12 +338,12 @@ const shownStage = openStage ?? stageIdx
         {b.status === 'complete' && (
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <div className="card !p-5">
-              <h2 className="mb-3 font-display text-sm font-semibold text-slate-900">Before</h2>
-              <PhotoGrid count={b.beforePhotos} photos={b.beforePhotoData} label="before" emptyText="Taken at arrival" />
+              <h2 className="mb-3 font-display text-sm font-semibold text-slate-900">{t('beforeHeading')}</h2>
+              <PhotoGrid count={b.beforePhotos} photos={b.beforePhotoData} label="before" emptyText={t('takenAtArrival')} />
             </div>
             <div className="card !p-5">
-              <h2 className="mb-3 font-display text-sm font-semibold text-slate-900">After</h2>
-              <PhotoGrid count={b.afterPhotos} photos={b.afterPhotoData} label="after" emptyText="Taken at completion" />
+              <h2 className="mb-3 font-display text-sm font-semibold text-slate-900">{t('afterHeading')}</h2>
+              <PhotoGrid count={b.afterPhotos} photos={b.afterPhotoData} label="after" emptyText={t('takenAtCompletion')} />
             </div>
           </div>
         )}
@@ -355,13 +361,13 @@ const shownStage = openStage ?? stageIdx
                 <FileTextIcon className="h-5 w-5" />
               </span>
               <div>
-                <p className="font-semibold text-slate-900">View invoice</p>
+                <p className="font-semibold text-slate-900">{t('viewInvoice')}</p>
                 <p className="text-sm text-slate-500">
-                  Full breakdown · ${(b.invoice.total ?? 0).toFixed(2)}
+                  {t('fullBreakdown', { total: (b.invoice.total ?? 0).toFixed(2) })}
                 </p>
               </div>
             </div>
-            <span className="text-sm font-semibold text-brand-600">Open →</span>
+            <span className="text-sm font-semibold text-brand-600">{t('openArrow')}</span>
           </motion.button>
         )}
 
@@ -371,20 +377,20 @@ const shownStage = openStage ?? stageIdx
             className="card mt-4 overflow-hidden !p-0"
           >
             <div className="bg-gradient-to-r from-brand-600 to-brand-500 px-5 py-4 text-white">
-              <p className="font-display text-xs font-semibold uppercase tracking-widest opacity-70">Job complete</p>
-              <h2 className="mt-0.5 font-display text-lg font-bold">How did it go with {d?.name}?</h2>
+              <p className="font-display text-xs font-semibold uppercase tracking-widest opacity-70">{t('jobComplete')}</p>
+              <h2 className="mt-0.5 font-display text-lg font-bold">{t('howDidItGo', { name: d?.name })}</h2>
             </div>
             <div className="flex items-center justify-between gap-3 px-5 py-4">
-              <p className="text-sm text-slate-500">Rate within 48 hrs to earn a loyalty point.</p>
+              <p className="text-sm text-slate-500">{t('rateWithin48')}</p>
               <button onClick={() => setShowReview(true)} className="btn btn-cta shrink-0 h-10 text-sm">
-                Rate now
+                {t('rateNow')}
               </button>
             </div>
           </motion.div>
         )}
         {b.reviewed && (
           <p className="mt-4 flex items-center justify-center gap-2 text-sm font-medium text-cta-700">
-            <CheckIcon className="h-4 w-4" /> Reviewed — loyalty point earned
+            <CheckIcon className="h-4 w-4" /> {t('reviewedEarned')}
           </p>
         )}
 
@@ -393,7 +399,7 @@ const shownStage = openStage ?? stageIdx
         </div>
 
         <Modal open={showInvoice} onClose={() => setShowInvoice(false)} labelledBy="invoice-title">
-          <h2 id="invoice-title" className="sr-only">Invoice</h2>
+          <h2 id="invoice-title" className="sr-only">{t('invoiceSr')}</h2>
           <InvoiceReceipt
             invoice={b.invoice}
             booking={b}
@@ -414,11 +420,10 @@ const shownStage = openStage ?? stageIdx
         <Modal open={showRejectDamage} onClose={() => setShowRejectDamage(false)} labelledBy="reject-damage-title">
           <AlertTriangleIcon className="mx-auto h-10 w-10 text-red-500" />
           <h2 id="reject-damage-title" className="mt-3 text-center font-display text-xl font-bold text-slate-900">
-            Cancel this job?
+            {t('rejectDamageTitle')}
           </h2>
           <p className="mt-2 text-center text-sm text-slate-600">
-            Rejecting the condition report will cancel the booking. The detailer will be notified
-            and no charge will be made.
+            {t('rejectDamageBody')}
           </p>
           <div className="mt-6 flex flex-col gap-2">
             <button
@@ -428,13 +433,13 @@ const shownStage = openStage ?? stageIdx
               }}
               className="btn bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-600"
             >
-              Yes, cancel the job
+              {t('yesCancelJob')}
             </button>
             <button
               onClick={() => setShowRejectDamage(false)}
               className="btn btn-outline"
             >
-              Go back — approve instead
+              {t('goBackApprove')}
             </button>
           </div>
         </Modal>
@@ -442,11 +447,10 @@ const shownStage = openStage ?? stageIdx
         <Modal open={showCancel} onClose={() => setShowCancel(false)} labelledBy="cancel-title">
           <AlertTriangleIcon className="mx-auto h-10 w-10 text-amber-500" />
           <h2 id="cancel-title" className="mt-3 text-center font-display text-xl font-bold text-slate-900">
-            Cancel this booking?
+            {t('cancelTitle')}
           </h2>
           <p className="mt-2 text-center text-sm text-slate-600">
-            Free cancellation up to 4 hours before the appointment. Late cancellations count
-            toward your account standing (3 = warning).
+            {t('cancelBody')}
           </p>
           <div className="mt-6 flex flex-col gap-2">
             <button
@@ -456,31 +460,30 @@ const shownStage = openStage ?? stageIdx
               }}
               className="btn bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-600"
             >
-              Yes, cancel booking
+              {t('yesCancelBooking')}
             </button>
             <button onClick={() => setShowCancel(false)} className="btn btn-outline">
-              Keep my booking
+              {t('keepBooking')}
             </button>
           </div>
         </Modal>
 
         <Modal open={showDispute} onClose={() => setShowDispute(false)} labelledBy="dispute-title">
           <h2 id="dispute-title" className="text-center font-display text-xl font-bold text-slate-900">
-            Report a problem
+            {t('reportProblemTitle')}
           </h2>
           <p className="mt-2 text-center text-sm text-slate-600">
-            Describe what went wrong. Your job photos and chat history attach automatically
-            for the admin review.
+            {t('reportProblemBody')}
           </p>
           <label htmlFor="dispute-reason" className="sr-only">
-            What went wrong
+            {t('whatWentWrongSr')}
           </label>
           <textarea
             id="dispute-reason"
             rows={4}
             value={disputeReason}
             onChange={(e) => setDisputeReason(e.target.value)}
-            placeholder="e.g. New scratch on the hood that wasn't in the condition report…"
+            placeholder={t('disputePlaceholder')}
             className="input mt-4 h-auto resize-none py-2"
           />
           <button
@@ -491,7 +494,7 @@ const shownStage = openStage ?? stageIdx
             }}
             className="btn btn-brand mt-4 w-full"
           >
-            File dispute
+            {t('fileDispute')}
           </button>
         </Modal>
 
@@ -499,7 +502,7 @@ const shownStage = openStage ?? stageIdx
           {(() => {
             const active = hoverStar || rating
             const MOODS = ['', '😞', '😕', '😐', '😊', '🤩']
-            const LABELS = ['', 'Poor', 'Fair', 'Good', 'Great', 'Amazing!']
+            const LABELS = ['', t('moodPoor'), t('moodFair'), t('moodGood'), t('moodGreat'), t('moodAmazing')]
             const COLORS = ['', 'text-red-500', 'text-orange-400', 'text-amber-400', 'text-cta-600', 'text-cta-600']
             return (
               <>
@@ -518,7 +521,7 @@ const shownStage = openStage ?? stageIdx
                     </motion.span>
                   </AnimatePresence>
                   <h2 id="review-title" className="mt-2 font-display text-xl font-bold text-slate-900">
-                    How did {d?.name} do?
+                    {t('howDidDetailerDo', { name: d?.name })}
                   </h2>
                   <AnimatePresence mode="wait">
                     <motion.p
@@ -528,20 +531,20 @@ const shownStage = openStage ?? stageIdx
                       exit={{ opacity: 0 }}
                       className={`mt-0.5 text-sm font-semibold ${active ? COLORS[active] : 'text-slate-400'}`}
                     >
-                      {active ? LABELS[active] : 'Tap a star'}
+                      {active ? LABELS[active] : t('tapAStar')}
                     </motion.p>
                   </AnimatePresence>
                 </div>
 
                 {/* Stars */}
-                <div role="radiogroup" aria-label="Rating" className="mt-5 flex justify-center gap-2">
+                <div role="radiogroup" aria-label={t('ratingSr')} className="mt-5 flex justify-center gap-2">
                   {[1, 2, 3, 4, 5].map((n) => (
                     <motion.button
                       key={n}
                       type="button"
                       role="radio"
                       aria-checked={rating === n}
-                      aria-label={`${n} star${n > 1 ? 's' : ''}`}
+                      aria-label={t('starLabel', { n, s: n > 1 ? 's' : '' })}
                       whileTap={{ scale: 0.75 }}
                       animate={{ scale: n <= (hoverStar || rating) ? 1.15 : 1 }}
                       transition={{ type: 'spring', stiffness: 400, damping: 18 }}
@@ -560,7 +563,7 @@ const shownStage = openStage ?? stageIdx
                   rows={3}
                   value={reviewNote}
                   onChange={(e) => setReviewNote(e.target.value)}
-                  placeholder={`Leave a note for ${d?.name ?? 'your detailer'} (optional)…`}
+                  placeholder={d?.name ? t('notePlaceholder', { name: d.name }) : t('notePlaceholderFallback')}
                   className="input mt-5 h-auto resize-none py-2.5 text-sm"
                 />
 
@@ -569,7 +572,7 @@ const shownStage = openStage ?? stageIdx
                   onClick={() => { setShowReview(false); setShowTip(true) }}
                   className="btn btn-cta mt-4 w-full disabled:opacity-40"
                 >
-                  {rating >= 4 ? 'Submit & add a tip ✨' : 'Submit rating'}
+                  {rating >= 4 ? t('submitAddTip') : t('submitRating')}
                 </button>
               </>
             )
@@ -596,10 +599,10 @@ const shownStage = openStage ?? stageIdx
           </div>
 
           <h2 id="tip-title" className="mt-3 text-center font-display text-xl font-bold text-slate-900">
-            {'⭐'.repeat(rating)} Rating in!
+            {'⭐'.repeat(rating)} {t('ratingIn')}
           </h2>
           <p className="mt-1 text-center text-sm text-slate-500">
-            Show {d?.name} some love — 100% goes directly to them.
+            {t('showSomeLove', { name: d?.name })}
           </p>
 
           {/* Tip presets */}
@@ -629,7 +632,7 @@ const shownStage = openStage ?? stageIdx
               type="number"
               min="1"
               max="500"
-              placeholder="Custom amount"
+              placeholder={t('customAmount')}
               value={customTip}
               onChange={(e) => { setCustomTip(e.target.value); setSelectedTip(null) }}
               className="h-11 flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400"
@@ -648,7 +651,7 @@ const shownStage = openStage ?? stageIdx
             }}
             className="btn btn-cta mt-4 w-full disabled:opacity-40"
           >
-            {customTip || selectedTip ? `Send $${customTip || selectedTip} tip 🙌` : 'Add tip'}
+            {customTip || selectedTip ? t('sendTip', { amount: customTip || selectedTip }) : t('addTip')}
           </motion.button>
           <button
             onClick={() => {
@@ -657,7 +660,7 @@ const shownStage = openStage ?? stageIdx
             }}
             className="mt-2 w-full cursor-pointer rounded py-2 text-sm text-slate-400 transition-colors hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
           >
-            Skip tip
+            {t('skipTip')}
           </button>
         </Modal>
 
@@ -692,7 +695,7 @@ const shownStage = openStage ?? stageIdx
                   transition={{ delay: 0.25 }}
                   className="mt-5 font-display text-3xl font-bold text-white"
                 >
-                  Thank you!
+                  {t('thankYou')}
                 </motion.h2>
 
                 <motion.p
@@ -701,7 +704,7 @@ const shownStage = openStage ?? stageIdx
                   transition={{ delay: 0.35 }}
                   className="mt-2 text-base text-white/80"
                 >
-                  ${thankYouAmount} tip sent to {d?.name ?? 'your detailer'}
+                  {d?.name ? t('tipSent', { amount: thankYouAmount, name: d.name }) : t('tipSentFallback', { amount: thankYouAmount })}
                 </motion.p>
 
                 <motion.p
@@ -710,7 +713,7 @@ const shownStage = openStage ?? stageIdx
                   transition={{ delay: 0.55 }}
                   className="mt-1 text-sm text-white/50"
                 >
-                  100% goes directly to them 🙌
+                  {t('goesDirectly')}
                 </motion.p>
               </motion.div>
             </motion.div>

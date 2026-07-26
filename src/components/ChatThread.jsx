@@ -5,6 +5,7 @@ import { useStore } from '../context/StoreContext'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 import { fetchMessages, sendMessageToDB } from '../lib/db'
+import { useT } from '../i18n/useT'
 
 // Blueprint 3.3 — in-app chat tied to a booking. Auto-flags phone numbers
 // and payment-app mentions (off-platform solicitation guard).
@@ -13,6 +14,7 @@ export default function ChatThread({ bookingId, me }) {
   const { user, isDemo } = useAuth()
   const [text, setText] = useState('')
   const [flagNotice, setFlagNotice] = useState(false)
+  const t = useT('chatThread')
 
   // Real chat is loaded per-booking and kept live with a realtime subscription.
   const [realThread, setRealThread] = useState([])
@@ -76,10 +78,10 @@ export default function ChatThread({ bookingId, me }) {
 
   return (
     <div className="card !p-4">
-      <h2 className="px-1 font-display text-sm font-semibold text-slate-900">Chat</h2>
+      <h2 className="px-1 font-display text-sm font-semibold text-slate-900">{t('chat')}</h2>
       <div className="mt-2 max-h-64 space-y-2 overflow-y-auto px-1 py-1">
         {thread.length === 0 && (
-          <p className="py-4 text-center text-sm text-slate-400">No messages yet — say hi.</p>
+          <p className="py-4 text-center text-sm text-slate-400">{t('noMessagesYet')}</p>
         )}
         <AnimatePresence initial={false}>
           {thread.map((m) => (
@@ -100,7 +102,7 @@ export default function ChatThread({ bookingId, me }) {
                 {m.text}
                 {m.flagged && (
                   <span className="mt-1 block text-[10px] font-semibold uppercase tracking-wide opacity-80">
-                    Flagged for review
+                    {t('flaggedForReview')}
                   </span>
                 )}
               </div>
@@ -110,19 +112,18 @@ export default function ChatThread({ bookingId, me }) {
       </div>
       {flagNotice && (
         <p role="alert" className="mx-1 mb-2 rounded-lg bg-red-50 px-3 py-1.5 text-xs text-red-700">
-          Heads up: sharing phone numbers or payment links is against the rules. This
-          message was flagged for admin review.
+          {t('flagNotice')}
         </p>
       )}
       <form onSubmit={submit} className="flex gap-2">
         <input
-          aria-label="Message"
+          aria-label={t('messageAria')}
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="Type a message…"
+          placeholder={t('placeholder')}
           className="input h-10 flex-1"
         />
-        <button type="submit" aria-label="Send message" className="btn btn-brand h-10 w-10 !p-0">
+        <button type="submit" aria-label={t('sendMessage')} className="btn btn-brand h-10 w-10 !p-0">
           <SendIcon className="h-4 w-4" />
         </button>
       </form>

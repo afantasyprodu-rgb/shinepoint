@@ -17,8 +17,15 @@ import {
 } from '../../components/icons'
 import { useStore } from '../../context/StoreContext'
 import { fetchAllUsersForAdmin, adminDeleteUser } from '../../lib/db'
+import { useT } from '../../i18n/useT'
 
-const TABS = ['Applications', 'Detailers', 'Customers', 'Accounts', 'Team']
+const TAB_KEYS = [
+  { key: 'Applications', labelKey: 'tabApplications' },
+  { key: 'Detailers', labelKey: 'tabDetailers' },
+  { key: 'Customers', labelKey: 'tabCustomers' },
+  { key: 'Accounts', labelKey: 'tabAccounts' },
+  { key: 'Team', labelKey: 'tabTeam' },
+]
 
 const DEMO_ADMINS = [
   { id: 'a1', name: 'Riley Park', email: 'riley@shinepoint.app', since: '2026-01-01' },
@@ -30,34 +37,35 @@ const FAKE_CUSTOMERS = [
   { id: 'c3', name: 'Chris P.', bookings: 12, reliability: 3.2, disputes: 2 },
 ]
 
-const REJECT_REASONS = [
-  'Insufficient experience',
-  'Insurance not provided',
-  'Failed background check',
-  'Incomplete portfolio',
-  'Outside service area',
+const REJECT_REASON_KEYS = [
+  'reasonInsufficientExperience',
+  'reasonInsuranceNotProvided',
+  'reasonFailedBackgroundCheck',
+  'reasonIncompletePortfolio',
+  'reasonOutsideServiceArea',
 ]
 
-function hoursAgo(ts) {
+function hoursAgo(ts, t) {
   const diff = Date.now() - new Date(ts).getTime()
   const h = Math.round(diff / 3_600_000)
-  if (h < 1) return 'just now'
-  if (h < 24) return `${h}h ago`
-  return `${Math.round(h / 24)}d ago`
+  if (h < 1) return t('justNow')
+  if (h < 24) return t('hoursAgo', { h })
+  return t('daysAgo', { d: Math.round(h / 24) })
 }
 
 // Surface anything an admin must weigh before approving.
-function riskFlags(a) {
+function riskFlags(a, t) {
   const flags = []
-  if (a.insurance === 'none') flags.push({ level: 'high', label: 'No insurance on file' })
-  if (a.idCheck !== 'passed') flags.push({ level: 'med', label: 'ID needs manual review' })
-  if (a.bgCheck && a.bgCheck !== 'passed') flags.push({ level: 'med', label: 'Background check pending' })
+  if (a.insurance === 'none') flags.push({ level: 'high', label: t('noInsuranceOnFile') })
+  if (a.idCheck !== 'passed') flags.push({ level: 'med', label: t('idNeedsReview') })
+  if (a.bgCheck && a.bgCheck !== 'passed') flags.push({ level: 'med', label: t('bgCheckPending') })
   return flags
 }
 
 function ApplicationCard({ app, onApprove, onReject }) {
   const [open, setOpen] = useState(false)
-  const flags = riskFlags(app)
+  const t = useT('adminPeople')
+  const flags = riskFlags(app, t)
   const hasHighRisk = flags.some((f) => f.level === 'high')
 
   return (
@@ -76,7 +84,7 @@ function ApplicationCard({ app, onApprove, onReject }) {
           <div>
             <p className="font-semibold text-slate-900 dark:text-slate-100">{app.name}</p>
             <p className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
-              <ClockIcon className="h-3.5 w-3.5" /> Applied {hoursAgo(app.applied)} · {app.experience} exp
+              <ClockIcon className="h-3.5 w-3.5" /> {t('appliedAgo', { when: hoursAgo(app.applied, t), exp: app.experience })}
             </p>
           </div>
         </div>
@@ -87,7 +95,7 @@ function ApplicationCard({ app, onApprove, onReject }) {
                 hasHighRisk ? 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'
               }`}
             >
-              <AlertTriangleIcon className="h-3 w-3" /> {flags.length} flag{flags.length !== 1 && 's'}
+              <AlertTriangleIcon className="h-3 w-3" /> {t('flagCount', { count: flags.length, s: flags.length !== 1 ? 's' : '' })}
             </span>
           )}
           <motion.span
@@ -131,11 +139,11 @@ function ApplicationCard({ app, onApprove, onReject }) {
               {/* Detail grid */}
               <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
                 <div>
-                  <dt className="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">Insurance</dt>
+                  <dt className="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">{t('insurance')}</dt>
                   <dd className="mt-0.5 flex items-center gap-1 font-medium text-slate-900 dark:text-slate-100">
                     {app.insurance === 'none' ? (
                       <span className="flex items-center gap-1 text-red-600 dark:text-red-400">
-                        <AlertTriangleIcon className="h-3.5 w-3.5" /> Uninsured
+                        <AlertTriangleIcon className="h-3.5 w-3.5" /> {t('uninsured')}
                       </span>
                     ) : (
                       <span className="flex items-center gap-1">
@@ -146,32 +154,32 @@ function ApplicationCard({ app, onApprove, onReject }) {
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">ID check</dt>
+                  <dt className="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">{t('idCheck')}</dt>
                   <dd className="mt-0.5 font-medium text-slate-900 dark:text-slate-100">
-                    {app.idCheck === 'passed' ? '✓ Passed' : '⚠ Manual review'}
+                    {app.idCheck === 'passed' ? t('passed') : t('manualReview')}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">Background</dt>
+                  <dt className="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">{t('background')}</dt>
                   <dd className="mt-0.5 font-medium text-slate-900 dark:text-slate-100">
-                    {app.bgCheck === 'passed' ? '✓ Passed' : '⏳ Pending'}
+                    {app.bgCheck === 'passed' ? t('passed') : t('pending')}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">Service area</dt>
+                  <dt className="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">{t('serviceArea')}</dt>
                   <dd className="mt-0.5 flex items-center gap-1 font-medium text-slate-900 dark:text-slate-100">
                     <MapPinIcon className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500" /> {app.area}
                   </dd>
                 </div>
                 <div className="col-span-2">
-                  <dt className="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">Rig</dt>
+                  <dt className="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">{t('rig')}</dt>
                   <dd className="mt-0.5 font-medium text-slate-900 dark:text-slate-100">{app.vehicle}</dd>
                 </div>
               </dl>
 
               {/* Services offered */}
               <div>
-                <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">Services</p>
+                <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">{t('services')}</p>
                 <div className="flex flex-wrap gap-1.5">
                   {app.services.map((s) => (
                     <span key={s} className="chip bg-brand-100 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">{s}</span>
@@ -182,7 +190,7 @@ function ApplicationCard({ app, onApprove, onReject }) {
               {/* Portfolio */}
               <div>
                 <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">
-                  Portfolio ({app.portfolio} photos)
+                  {t('portfolioCount', { count: app.portfolio })}
                 </p>
                 <div className="grid grid-cols-4 gap-2">
                   {Array.from({ length: Math.min(app.portfolio, 4) }).map((_, i) => (
@@ -203,10 +211,10 @@ function ApplicationCard({ app, onApprove, onReject }) {
       {/* Actions */}
       <div className="flex gap-2 border-t border-brand-100 bg-slate-50/50 p-4 dark:border-white/10 dark:bg-white/[0.02]">
         <button onClick={onApprove} className="btn btn-cta h-10 flex-1 text-sm">
-          <CheckIcon className="h-4 w-4" /> Approve
+          <CheckIcon className="h-4 w-4" /> {t('approve')}
         </button>
         <button onClick={onReject} className="btn btn-outline h-10 flex-1 text-sm">
-          <XIcon className="h-4 w-4" /> Reject
+          <XIcon className="h-4 w-4" /> {t('reject')}
         </button>
       </div>
     </motion.div>
@@ -219,6 +227,7 @@ export default function AdminPeople() {
   const [rejectReason, setRejectReason] = useState('')
   const [toast, setToast] = useState(null)
   const { admin, detailers, decideApplication } = useStore()
+  const t = useT('adminPeople')
 
   const [accounts, setAccounts] = useState(null) // null = loading
   const [deleting, setDeleting] = useState(null) // account being confirmed
@@ -266,21 +275,21 @@ export default function AdminPeople() {
   return (
     <AdminShell>
       <AnimatedPage>
-        <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">People</h1>
+        <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">{t('people')}</h1>
 
-        <div role="tablist" aria-label="People sections" className="mt-5 flex gap-1 rounded-xl bg-brand-100/60 p-1 sm:w-fit dark:bg-white/5">
-          {TABS.map((t) => (
+        <div role="tablist" aria-label={t('peopleSectionsAria')} className="mt-5 flex gap-1 rounded-xl bg-brand-100/60 p-1 sm:w-fit dark:bg-white/5">
+          {TAB_KEYS.map(({ key, labelKey }) => (
             <button
-              key={t}
+              key={key}
               role="tab"
-              aria-selected={tab === t}
-              onClick={() => setTab(t)}
+              aria-selected={tab === key}
+              onClick={() => setTab(key)}
               className={`flex-1 cursor-pointer rounded-lg px-4 py-2 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 sm:flex-none ${
-                tab === t ? 'bg-white text-brand-800 shadow-sm dark:bg-white/10 dark:text-brand-300' : 'text-slate-600 dark:text-slate-400 hover:text-brand-800 dark:hover:text-brand-300'
+                tab === key ? 'bg-white text-brand-800 shadow-sm dark:bg-white/10 dark:text-brand-300' : 'text-slate-600 dark:text-slate-400 hover:text-brand-800 dark:hover:text-brand-300'
               }`}
             >
-              {t}
-              {t === 'Applications' && admin.applications.length > 0 && (
+              {t(labelKey)}
+              {key === 'Applications' && admin.applications.length > 0 && (
                 <span className="ml-1.5 rounded-full bg-brand-600 px-1.5 text-xs text-white">
                   {admin.applications.length}
                 </span>
@@ -305,8 +314,8 @@ export default function AdminPeople() {
                     <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cta-700/10 text-cta-700 dark:text-cta-500">
                       <CheckIcon className="h-6 w-6" />
                     </span>
-                    <p className="mt-3 font-semibold text-slate-900 dark:text-slate-100">Queue clear</p>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">No applications waiting — nice work.</p>
+                    <p className="mt-3 font-semibold text-slate-900 dark:text-slate-100">{t('queueClear')}</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">{t('noApplicationsWaiting')}</p>
                   </div>
                 )}
                 <AnimatePresence>
@@ -335,7 +344,7 @@ export default function AdminPeople() {
                             <Stars rating={d.rating} className="h-3 w-3" /> {d.rating.toFixed(1)} ·{' '}
                             {d.completedJobs} jobs · {d.area}
                             {d.probationRemaining > 0 && (
-                              <span className="chip bg-amber-500/15 text-amber-700 dark:text-amber-300">probation</span>
+                              <span className="chip bg-amber-500/15 text-amber-700 dark:text-amber-300">{t('probation')}</span>
                             )}
                           </p>
                         </div>
@@ -366,7 +375,7 @@ export default function AdminPeople() {
                       <div>
                         <p className="font-semibold text-slate-900 dark:text-slate-100">{c.name}</p>
                         <p className="text-sm text-slate-500 dark:text-slate-400">
-                          {c.bookings} bookings · {c.disputes} disputes
+                          {t('bookingsDisputes', { bookings: c.bookings, disputes: c.disputes })}
                         </p>
                       </div>
                     </div>
@@ -375,12 +384,12 @@ export default function AdminPeople() {
                         c.reliability >= 4 ? 'bg-cta-700/10 text-cta-700 dark:text-cta-500' : 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300'
                       }`}
                     >
-                      Reliability {c.reliability.toFixed(1)}
+                      {t('reliability', { score: c.reliability.toFixed(1) })}
                     </span>
                   </div>
                 ))}
                 <p className="text-xs text-slate-400 dark:text-slate-500">
-                  Reliability scores are internal — never shown to customers.
+                  {t('reliabilityNote')}
                 </p>
               </div>
             )}
@@ -388,10 +397,10 @@ export default function AdminPeople() {
             {tab === 'Accounts' && (
               <div className="space-y-3">
                 {accounts === null && (
-                  <p className="text-sm text-slate-500 dark:text-slate-400">Loading accounts…</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">{t('loadingAccounts')}</p>
                 )}
                 {accounts?.length === 0 && (
-                  <p className="text-sm text-slate-500 dark:text-slate-400">No accounts registered.</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">{t('noAccountsRegistered')}</p>
                 )}
                 {accounts?.map((a) => (
                   <div key={a.id} className="card flex flex-wrap items-center justify-between gap-3 !p-5">
@@ -399,16 +408,15 @@ export default function AdminPeople() {
                       <Avatar name={a.full_name || a.email || a.phone || '?'} />
                       <div>
                         <p className="font-semibold text-slate-900 dark:text-slate-100">
-                          {a.full_name || 'Unnamed'}
+                          {a.full_name || t('unnamed')}
                           {(a.is_banned || a.is_suspended) && (
                             <span className={`ml-2 chip ${a.is_banned ? 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'}`}>
-                              {a.is_banned ? 'banned' : 'suspended'}
+                              {a.is_banned ? t('banned') : t('suspended')}
                             </span>
                           )}
                         </p>
                         <p className="text-sm text-slate-500 dark:text-slate-400">
-                          {a.email || a.phone || 'no contact'} · {a.role} · joined{' '}
-                          {new Date(a.created_at).toLocaleDateString()}
+                          {a.email || a.phone || t('noContact')} · {a.role} · {t('joined', { date: new Date(a.created_at).toLocaleDateString() })}
                         </p>
                       </div>
                     </div>
@@ -416,7 +424,7 @@ export default function AdminPeople() {
                       onClick={() => { setDeleting(a); setDeleteError('') }}
                       className="btn btn-outline h-9 border-red-200 text-sm text-red-700 hover:bg-red-50 dark:border-red-500/30 dark:text-red-400 dark:hover:bg-red-500/10"
                     >
-                      <TrashIcon className="h-4 w-4" /> Delete
+                      <TrashIcon className="h-4 w-4" /> {t('delete')}
                     </button>
                   </div>
                 ))}
@@ -427,7 +435,7 @@ export default function AdminPeople() {
               <div className="space-y-4">
                 {/* Current admins */}
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Current admins</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">{t('currentAdmins')}</p>
                   {DEMO_ADMINS.map((a) => (
                     <div key={a.id} className="card flex items-center gap-3 !p-4">
                       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">
@@ -437,7 +445,7 @@ export default function AdminPeople() {
                         <p className="font-semibold text-slate-900 dark:text-slate-100">{a.name}</p>
                         <p className="text-sm text-slate-500 dark:text-slate-400">{a.email}</p>
                       </div>
-                      <span className="chip bg-brand-100 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">Admin</span>
+                      <span className="chip bg-brand-100 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">{t('admin')}</span>
                     </div>
                   ))}
                 </div>
@@ -446,9 +454,9 @@ export default function AdminPeople() {
                     Promote a signed-up user in Supabase:
                     update public.users set role='admin' where email='...'; */}
                 <div className="card !p-5 border-brand-200 dark:border-white/10">
-                  <p className="font-semibold text-slate-900 dark:text-slate-100">Add a team member</p>
+                  <p className="font-semibold text-slate-900 dark:text-slate-100">{t('addTeamMember')}</p>
                   <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
-                    Have them sign up normally, then grant admin in the Supabase SQL editor:
+                    {t('addTeamMemberBody')}
                   </p>
                   <code className="mt-3 block overflow-x-auto rounded-xl border border-brand-100 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 dark:text-slate-300 font-mono dark:border-white/10 dark:bg-white/5">
                     update public.users set role='admin' where email='them@example.com';
@@ -463,26 +471,29 @@ export default function AdminPeople() {
       {/* Reject reason modal */}
       <Modal open={!!rejecting} onClose={() => setRejecting(null)} labelledBy="reject-title">
         <h2 id="reject-title" className="font-display text-lg font-bold text-slate-900 dark:text-slate-100">
-          Reject {rejecting?.name}?
+          {t('rejectTitle', { name: rejecting?.name })}
         </h2>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Pick a reason — the applicant is notified and can re-apply in 30 days.
+          {t('rejectBody')}
         </p>
         <div className="mt-4 space-y-2">
-          {REJECT_REASONS.map((r) => (
-            <button
-              key={r}
-              onClick={() => setRejectReason(r)}
-              className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left text-sm font-medium transition-colors ${
-                rejectReason === r
-                  ? 'border-red-300 bg-red-50 text-red-800 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300'
-                  : 'border-brand-100 text-slate-700 dark:text-slate-300 hover:border-brand-200 hover:bg-brand-50/50 dark:border-white/10 dark:hover:border-brand-500/40 dark:hover:bg-brand-500/10'
-              }`}
-            >
-              {r}
-              {rejectReason === r && <CheckIcon className="h-4 w-4 text-red-600 dark:text-red-400" />}
-            </button>
-          ))}
+          {REJECT_REASON_KEYS.map((rk) => {
+            const r = t(rk)
+            return (
+              <button
+                key={rk}
+                onClick={() => setRejectReason(r)}
+                className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left text-sm font-medium transition-colors ${
+                  rejectReason === r
+                    ? 'border-red-300 bg-red-50 text-red-800 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300'
+                    : 'border-brand-100 text-slate-700 dark:text-slate-300 hover:border-brand-200 hover:bg-brand-50/50 dark:border-white/10 dark:hover:border-brand-500/40 dark:hover:bg-brand-500/10'
+                }`}
+              >
+                {r}
+                {rejectReason === r && <CheckIcon className="h-4 w-4 text-red-600 dark:text-red-400" />}
+              </button>
+            )
+          })}
         </div>
         <div className="mt-5 flex gap-2">
           <button
@@ -490,10 +501,10 @@ export default function AdminPeople() {
             onClick={confirmReject}
             className="btn h-11 flex-1 bg-red-600 text-sm text-white hover:bg-red-700 focus-visible:ring-red-600 disabled:opacity-40"
           >
-            Confirm rejection
+            {t('confirmRejection')}
           </button>
           <button onClick={() => setRejecting(null)} className="btn btn-outline h-11 flex-1 text-sm">
-            Cancel
+            {t('cancel')}
           </button>
         </div>
       </Modal>
@@ -501,10 +512,10 @@ export default function AdminPeople() {
       {/* Delete account modal */}
       <Modal open={!!deleting} onClose={() => setDeleting(null)} labelledBy="delete-title">
         <h2 id="delete-title" className="font-display text-lg font-bold text-slate-900 dark:text-slate-100">
-          Delete {deleting?.full_name || deleting?.email || deleting?.phone}?
+          {t('deleteTitle', { name: deleting?.full_name || deleting?.email || deleting?.phone })}
         </h2>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Permanently removes the account and everything tied to it. This can&apos;t be undone.
+          {t('deleteBody')}
         </p>
         {deleteError && (
           <p role="alert" className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-300">
@@ -517,10 +528,10 @@ export default function AdminPeople() {
             onClick={confirmDeleteAccount}
             className="btn h-11 flex-1 bg-red-600 text-sm text-white hover:bg-red-700 focus-visible:ring-red-600 disabled:opacity-40"
           >
-            {deleteBusy ? 'Deleting…' : 'Delete permanently'}
+            {deleteBusy ? t('deleting') : t('deletePermanently')}
           </button>
           <button onClick={() => setDeleting(null)} className="btn btn-outline h-11 flex-1 text-sm">
-            Cancel
+            {t('cancel')}
           </button>
         </div>
       </Modal>
@@ -545,21 +556,21 @@ export default function AdminPeople() {
                   <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/20">
                     <CheckIcon className="h-3.5 w-3.5" />
                   </span>
-                  {toast.name} approved — they can start taking jobs
+                  {t('toastApproved', { name: toast.name })}
                 </>
               ) : toast.type === 'deleted' ? (
                 <>
                   <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/20">
                     <TrashIcon className="h-3.5 w-3.5" />
                   </span>
-                  {toast.name} deleted
+                  {t('toastDeleted', { name: toast.name })}
                 </>
               ) : (
                 <>
                   <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/20">
                     <XIcon className="h-3.5 w-3.5" />
                   </span>
-                  {toast.name}'s application rejected
+                  {t('toastRejected', { name: toast.name })}
                 </>
               )}
             </div>

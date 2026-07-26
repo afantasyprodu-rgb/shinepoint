@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { motion, useReducedMotion } from 'motion/react'
-import { StarIcon } from '../icons'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { InfoIcon, StarIcon } from '../icons'
+import { useT } from '../../i18n/useT'
 
 const AVATAR_GRADIENTS = [
   'from-brand-500 to-brand-700',
@@ -44,6 +45,7 @@ export function Avatar({ name, photo, size = 'md' }) {
 }
 
 export function StatusPill({ status, acceptsWhenBusy }) {
+  const t = useT('status')
   const styles = {
     available: 'bg-cta-700/10 text-cta-700 dark:text-cta-500',
     busy: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
@@ -60,13 +62,7 @@ export function StatusPill({ status, acceptsWhenBusy }) {
     under_review: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
     resolved: 'bg-cta-700/10 text-cta-700 dark:text-cta-500',
   }
-  const labels = {
-    busy: acceptsWhenBusy ? 'Busy — accepting' : 'Busy',
-    en_route: 'En route',
-    in_progress: 'In progress',
-    under_review: 'Under review',
-  }
-  const label = labels[status] ?? status.charAt(0).toUpperCase() + status.slice(1)
+  const label = status === 'busy' && acceptsWhenBusy ? t('busyAccepting') : t(status)
   return <span className={`chip ${styles[status] ?? styles.offline}`}>{label}</span>
 }
 
@@ -326,5 +322,58 @@ export function CarWashIllustration({ className = 'h-32 w-52' }) {
         <path d="M76 56 l-10 12 h58 l-9-11 c-2-2.5-4-3.5-7-3.5 h-24 c-3.5 0-6 1-8 2.5z" />
       </g>
     </svg>
+  )
+}
+
+// Small "why do you need this?" tap target — an info dot that opens a short
+// explanation next to it, for a form field/step whose purpose isn't obvious
+// on its own (e.g. "why do you need my ID / insurance / SSN"). Deliberately
+// tap-to-open rather than hover-only so it works the same on touch and desktop.
+export function InfoPopover({ label = 'Why is this required?', children }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    if (!open) return
+    function onClick(e) {
+      if (!ref.current?.contains(e.target)) setOpen(false)
+    }
+    function onKey(e) {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    window.addEventListener('mousedown', onClick)
+    window.addEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('mousedown', onClick)
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+
+  return (
+    <span className="relative inline-flex" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-label={label}
+        aria-expanded={open}
+        className="flex h-5 w-5 cursor-pointer items-center justify-center rounded-full text-slate-400 transition-colors duration-150 hover:text-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-slate-500 dark:hover:text-brand-300"
+      >
+        <InfoIcon className="h-4 w-4" />
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -4, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, scale: 0.96 }}
+            transition={{ duration: 0.15 }}
+            role="tooltip"
+            className="absolute left-1/2 top-full z-50 mt-2 w-64 -translate-x-1/2 rounded-xl border border-brand-100 bg-white p-3 text-left text-xs leading-relaxed text-slate-600 shadow-xl dark:border-white/10 dark:bg-[#1E1730] dark:text-slate-300"
+          >
+            {children}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </span>
   )
 }

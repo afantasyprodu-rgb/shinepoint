@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { CameraIcon, PlusIcon, TrashIcon, CheckIcon } from './icons'
+import { useT } from '../i18n/useT'
 
 function newItem() {
   return { id: crypto.randomUUID(), area: '', note: '', photo: null }
@@ -9,6 +10,7 @@ function newItem() {
 export default function DamageInspection({ booking, onSubmit, onNoDamage }) {
   const [items, setItems] = useState([newItem()])
   const fileRefs = useRef({})
+  const t = useT('damageInspection')
 
   function update(id, patch) {
     setItems((prev) => prev.map((it) => (it.id === id ? { ...it, ...patch } : it)))
@@ -37,8 +39,7 @@ export default function DamageInspection({ booking, onSubmit, onNoDamage }) {
   return (
     <div className="mt-3 space-y-3">
       <p className="text-xs text-slate-500 dark:text-slate-400">
-        Photograph and describe any existing damage before touching the vehicle. The client must
-        confirm each item before work can start.
+        {t('instructions')}
       </p>
 
       <AnimatePresence initial={false}>
@@ -53,13 +54,13 @@ export default function DamageInspection({ booking, onSubmit, onNoDamage }) {
           >
             <div className="flex items-center justify-between gap-2">
               <span className="font-display text-xs font-semibold text-slate-500 uppercase tracking-wide dark:text-slate-400">
-                Area {idx + 1}
+                {t('areaN', { n: idx + 1 })}
               </span>
               {items.length > 1 && (
                 <button
                   type="button"
                   onClick={() => remove(item.id)}
-                  aria-label="Remove area"
+                  aria-label={t('removeArea')}
                   className="cursor-pointer text-slate-400 transition-colors duration-200 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 dark:text-slate-500 dark:hover:text-red-400"
                 >
                   <TrashIcon className="h-4 w-4" />
@@ -69,14 +70,14 @@ export default function DamageInspection({ booking, onSubmit, onNoDamage }) {
 
             <input
               type="text"
-              placeholder="Area (e.g. Driver door, Hood)"
+              placeholder={t('areaPlaceholder')}
               value={item.area}
               onChange={(e) => update(item.id, { area: e.target.value })}
               className="input mt-2 h-9 text-sm"
             />
             <input
               type="text"
-              placeholder="Note (e.g. Small ding, scratch — pre-existing)"
+              placeholder={t('notePlaceholder')}
               value={item.note}
               onChange={(e) => update(item.id, { note: e.target.value })}
               className="input mt-2 h-9 text-sm"
@@ -104,7 +105,7 @@ export default function DamageInspection({ booking, onSubmit, onNoDamage }) {
                   type="button"
                   onClick={() => update(item.id, { photo: null })}
                   className="absolute right-2 top-2 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full bg-black/50 text-white transition-colors duration-200 hover:bg-black/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-                  aria-label="Remove photo"
+                  aria-label={t('removePhoto')}
                 >
                   <TrashIcon className="h-3.5 w-3.5" />
                 </button>
@@ -113,7 +114,7 @@ export default function DamageInspection({ booking, onSubmit, onNoDamage }) {
                   onClick={() => fileRefs.current[item.id]?.click()}
                   className="absolute bottom-2 right-2 flex cursor-pointer items-center gap-1 rounded-lg bg-black/50 px-2 py-1 text-[11px] font-medium text-white transition-colors duration-200 hover:bg-black/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                 >
-                  <CameraIcon className="h-3 w-3" /> Retake
+                  <CameraIcon className="h-3 w-3" /> {t('retake')}
                 </button>
               </div>
             ) : (
@@ -122,7 +123,7 @@ export default function DamageInspection({ booking, onSubmit, onNoDamage }) {
                 onClick={() => fileRefs.current[item.id]?.click()}
                 className="mt-2 flex h-24 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-brand-200 bg-brand-50/50 text-sm font-medium text-brand-700 transition-colors duration-200 hover:border-brand-400 hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300 dark:hover:bg-brand-500/15"
               >
-                <CameraIcon className="h-5 w-5" /> Take or upload photo
+                <CameraIcon className="h-5 w-5" /> {t('takeOrUpload')}
               </button>
             )}
           </motion.div>
@@ -134,7 +135,7 @@ export default function DamageInspection({ booking, onSubmit, onNoDamage }) {
         onClick={() => setItems((prev) => [...prev, newItem()])}
         className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-dashed border-brand-200 py-2.5 text-sm font-medium text-brand-700 transition-colors duration-200 hover:border-brand-400 hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:border-brand-500/30 dark:text-brand-300 dark:hover:bg-brand-500/10"
       >
-        <PlusIcon className="h-4 w-4" /> Add another area
+        <PlusIcon className="h-4 w-4" /> {t('addAnotherArea')}
       </button>
 
       <div className="flex flex-col gap-2 pt-1">
@@ -144,14 +145,14 @@ export default function DamageInspection({ booking, onSubmit, onNoDamage }) {
           disabled={!canSubmit}
           className="btn btn-brand h-10 text-sm disabled:opacity-40"
         >
-          <CheckIcon className="h-4 w-4" /> Send report to client
+          <CheckIcon className="h-4 w-4" /> {t('sendReport')}
         </button>
         <button
           type="button"
           onClick={onNoDamage}
           className="btn btn-outline h-10 text-sm"
         >
-          No pre-existing damage — proceed
+          {t('noDamageProceed')}
         </button>
       </div>
     </div>

@@ -13,17 +13,19 @@ import {
   StampIcon,
 } from './icons'
 import { listTemplates, saveTemplate, deleteTemplate } from '../lib/invoiceTemplates'
+import { useT } from '../i18n/useT'
+import { useLanguage } from '../context/LanguageContext'
 
 let rowSeq = 0
 const newRow = (label = '', amount = '') => ({ id: `row-${rowSeq++}`, label, amount })
 
-function seedRows(booking) {
+function seedRows(booking, tipLabel) {
   // Re-hydrate a previously attached invoice, otherwise seed from the booking.
   if (booking.invoice?.items?.length) {
     return booking.invoice.items.map((it) => newRow(it.label, String(it.amount)))
   }
   const rows = [newRow(booking.service, String(booking.price ?? ''))]
-  if (booking.tip) rows.push(newRow('Tip', String(booking.tip)))
+  if (booking.tip) rows.push(newRow(tipLabel, String(booking.tip)))
   return rows
 }
 
@@ -35,6 +37,8 @@ export function InvoicePrintable({ invoice, booking, detailer, customerName, hid
   const items = invoice?.items ?? []
   const total = invoice?.total ?? items.reduce((s, it) => s + (Number(it.amount) || 0), 0)
   const issued = invoice?.issuedAt ? new Date(invoice.issuedAt) : new Date()
+  const t = useT('invoiceBuilder')
+  const { lang } = useLanguage()
 
   return (
     <div
@@ -45,24 +49,24 @@ export function InvoicePrintable({ invoice, booking, detailer, customerName, hid
         <div className="flex items-start justify-between gap-4 border-b border-brand-100 pb-6">
           <Logo />
           <div className="text-right">
-            <p className="font-display text-2xl font-bold tracking-tight text-slate-900">INVOICE</p>
+            <p className="font-display text-2xl font-bold tracking-tight text-slate-900">{t('invoice')}</p>
             <p className="mt-1 text-sm text-slate-500">
-              No. <span className="font-mono">{booking.id}</span>
+              {t('no')} <span className="font-mono">{booking.id}</span>
             </p>
             <p className="text-sm text-slate-500">
-              {issued.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+              {issued.toLocaleDateString(lang === 'es' ? 'es-US' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
             </p>
           </div>
         </div>
 
         <div className="mt-6 grid grid-cols-2 gap-6 text-sm">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">From</p>
-            <p className="mt-1 font-semibold text-slate-900">{detailer?.name ?? 'Your detailer'}</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('from')}</p>
+            <p className="mt-1 font-semibold text-slate-900">{detailer?.name ?? t('yourDetailer')}</p>
             {detailer?.area && <p className="text-slate-500">{detailer.area}</p>}
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Billed to</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('billedTo')}</p>
             <p className="mt-1 font-semibold text-slate-900">{customerName}</p>
             {booking.vehicle && <p className="text-slate-500">{booking.vehicle}</p>}
           </div>
@@ -71,8 +75,8 @@ export function InvoicePrintable({ invoice, booking, detailer, customerName, hid
         <table className="mt-6 w-full text-sm">
           <thead>
             <tr className="border-b border-brand-100 text-left text-xs uppercase tracking-wide text-slate-400">
-              <th className="pb-2 font-semibold">Description</th>
-              <th className="pb-2 text-right font-semibold">Amount</th>
+              <th className="pb-2 font-semibold">{t('description')}</th>
+              <th className="pb-2 text-right font-semibold">{t('amount')}</th>
             </tr>
           </thead>
           <tbody>
@@ -88,14 +92,14 @@ export function InvoicePrintable({ invoice, booking, detailer, customerName, hid
         <div className="mt-4 flex justify-end">
           <div className="w-48">
             <div className="flex justify-between border-t-2 border-slate-900 pt-3 font-display text-lg font-bold">
-              <span>Total</span>
+              <span>{t('total')}</span>
               <span>{money(total)}</span>
             </div>
           </div>
         </div>
 
         <p className="mt-8 text-center text-xs text-slate-400">
-          Thank you for choosing ShinePoint. For viewing only — not a tax document.
+          {t('thankYou')}
         </p>
       </div>
     </div>
@@ -110,6 +114,8 @@ export function InvoiceReceipt({ invoice, booking, detailer, customerName }) {
   const total = invoice?.total ?? items.reduce((s, it) => s + (Number(it.amount) || 0), 0)
   const issued = invoice?.issuedAt ? new Date(invoice.issuedAt) : new Date()
   const paid = booking.status === 'complete'
+  const t = useT('invoiceBuilder')
+  const { lang } = useLanguage()
 
   return (
     <div>
@@ -118,22 +124,22 @@ export function InvoiceReceipt({ invoice, booking, detailer, customerName }) {
       </div>
       <div className="receipt-ticket relative z-10 -mt-6 mx-auto w-[92%] rounded-2xl p-5 sm:p-6">
         <h2 className="receipt-title py-2.5 text-center font-display text-base font-semibold text-slate-900 dark:text-slate-100">
-          {booking.service || 'Detailing service'}
+          {booking.service || t('detailingService')}
         </h2>
 
         <div className="mt-3 space-y-1.5">
           <p className="flex items-center justify-between text-sm text-slate-500 dark:text-slate-400">
-            <span>Total</span>
+            <span>{t('total')}</span>
             <span className="font-display text-lg font-bold text-slate-900 dark:text-slate-100">
               {money(total)}
             </span>
           </p>
           <p className="flex items-center justify-between text-sm text-slate-500 dark:text-slate-400">
-            <span>Billed to</span>
+            <span>{t('billedTo')}</span>
             <span className="font-medium text-slate-700 dark:text-slate-300">{customerName}</span>
           </p>
           <p className="flex items-center justify-between text-sm text-slate-500 dark:text-slate-400">
-            <span>Detailer</span>
+            <span>{t('detailer')}</span>
             <span className="font-medium text-slate-700 dark:text-slate-300">{detailer?.name ?? '—'}</span>
           </p>
         </div>
@@ -150,24 +156,24 @@ export function InvoiceReceipt({ invoice, booking, detailer, customerName }) {
         )}
 
         <div className="mt-4 flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-          <span>Invoice date</span>
-          <span>{issued.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+          <span>{t('invoiceDate')}</span>
+          <span>{issued.toLocaleDateString(lang === 'es' ? 'es-US' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
         </div>
 
         <div className="mt-4 rounded-2xl border border-slate-200 p-3.5 dark:border-slate-700">
           <p className="flex items-center justify-between text-sm">
-            <span className="font-semibold text-slate-900 dark:text-slate-100">Payment status</span>
+            <span className="font-semibold text-slate-900 dark:text-slate-100">{t('paymentStatus')}</span>
             {paid ? (
               <span className="chip bg-cta-700/10 text-cta-700">
-                <CheckIcon className="h-3.5 w-3.5" /> Paid
+                <CheckIcon className="h-3.5 w-3.5" /> {t('paid')}
               </span>
             ) : (
               <span className="chip bg-amber-500/15 text-amber-700">
-                <ClockIcon className="h-3.5 w-3.5" /> Pending
+                <ClockIcon className="h-3.5 w-3.5" /> {t('pending')}
               </span>
             )}
           </p>
-          <div className="job-progress-track mt-3.5 mx-1.5" aria-label="Payment status">
+          <div className="job-progress-track mt-3.5 mx-1.5" aria-label={t('paymentStatusAria')}>
             <motion.div
               className="job-progress-fill"
               initial={false}
@@ -192,7 +198,7 @@ export function InvoiceReceipt({ invoice, booking, detailer, customerName }) {
         </div>
 
         <button onClick={() => window.print()} className="btn btn-outline mt-4 h-10 w-full text-sm">
-          <PrinterIcon className="h-4 w-4" /> Download invoice
+          <PrinterIcon className="h-4 w-4" /> {t('downloadInvoice')}
         </button>
       </div>
     </div>
@@ -202,7 +208,8 @@ export function InvoiceReceipt({ invoice, booking, detailer, customerName }) {
 // Detailer-facing editor. Lives inside the Drawer on the job page.
 export default function InvoiceBuilder({ booking, detailer }) {
   const { patchBooking } = useStore()
-  const [items, setItems] = useState(() => seedRows(booking))
+  const t = useT('invoiceBuilder')
+  const [items, setItems] = useState(() => seedRows(booking, t('tip')))
   const [templates, setTemplates] = useState(() => listTemplates())
   const [templateName, setTemplateName] = useState('')
   const [attached, setAttached] = useState(Boolean(booking.invoice))
@@ -261,27 +268,27 @@ export default function InvoiceBuilder({ booking, detailer }) {
       {templates.length > 0 && (
         <section>
           <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-            Saved invoices
+            {t('savedInvoices')}
           </h3>
           <ul className="mt-2 space-y-2">
-            {templates.map((t) => (
+            {templates.map((tpl) => (
               <li
-                key={t.id}
+                key={tpl.id}
                 className="flex items-center justify-between gap-2 rounded-xl border border-brand-100 bg-brand-50/50 px-3 py-2"
               >
                 <button
-                  onClick={() => loadTemplate(t)}
+                  onClick={() => loadTemplate(tpl)}
                   className="flex flex-1 cursor-pointer items-center gap-2 text-left text-sm font-medium text-slate-800 transition-colors duration-200 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
                 >
                   <FileTextIcon className="h-4 w-4 text-brand-600" />
-                  {t.name}
+                  {tpl.name}
                   <span className="ml-auto text-xs font-normal text-slate-400">
-                    {t.items.length} item{t.items.length === 1 ? '' : 's'}
+                    {t('itemCount', { count: tpl.items.length, s: tpl.items.length === 1 ? '' : 's' })}
                   </span>
                 </button>
                 <button
-                  onClick={() => removeTemplate(t.id)}
-                  aria-label={`Delete ${t.name}`}
+                  onClick={() => removeTemplate(tpl.id)}
+                  aria-label={t('deleteTemplate', { name: tpl.name })}
                   className="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
                 >
                   <TrashIcon className="h-4 w-4" />
@@ -295,16 +302,16 @@ export default function InvoiceBuilder({ booking, detailer }) {
       {/* Line-item editor */}
       <section>
         <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-          Line items
+          {t('lineItems')}
         </h3>
         <div className="mt-2 space-y-2">
           {items.map((row) => (
             <div key={row.id} className="flex items-center gap-2">
               <input
-                aria-label="Item description"
+                aria-label={t('itemDescriptionAria')}
                 value={row.label}
                 onChange={(e) => updateRow(row.id, { label: e.target.value })}
-                placeholder="Description"
+                placeholder={t('descriptionPlaceholder')}
                 className="input h-10 flex-1 text-sm"
               />
               <div className="relative w-24 shrink-0">
@@ -312,7 +319,7 @@ export default function InvoiceBuilder({ booking, detailer }) {
                   $
                 </span>
                 <input
-                  aria-label="Item amount"
+                  aria-label={t('itemAmountAria')}
                   type="number"
                   min="0"
                   step="0.01"
@@ -324,7 +331,7 @@ export default function InvoiceBuilder({ booking, detailer }) {
               </div>
               <button
                 onClick={() => removeRow(row.id)}
-                aria-label="Remove item"
+                aria-label={t('removeItem')}
                 className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
               >
                 <XIcon className="h-4 w-4" />
@@ -337,11 +344,11 @@ export default function InvoiceBuilder({ booking, detailer }) {
           onClick={addRow}
           className="btn btn-outline mt-3 h-10 w-full text-sm"
         >
-          <PlusIcon className="h-4 w-4" /> Add item
+          <PlusIcon className="h-4 w-4" /> {t('addItem')}
         </button>
 
         <div className="mt-4 flex items-center justify-between border-t border-brand-100 pt-3 font-display text-lg font-bold text-slate-900">
-          <span>Total</span>
+          <span>{t('total')}</span>
           <motion.span key={total} initial={{ scale: 1.15 }} animate={{ scale: 1 }}>
             {money(total)}
           </motion.span>
@@ -351,14 +358,14 @@ export default function InvoiceBuilder({ booking, detailer }) {
       {/* Save as reusable template */}
       <section>
         <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-          Save for reuse
+          {t('saveForReuse')}
         </h3>
         <div className="mt-2 flex gap-2">
           <input
-            aria-label="Template name"
+            aria-label={t('templateNameAria')}
             value={templateName}
             onChange={(e) => setTemplateName(e.target.value)}
-            placeholder="e.g. Full detail — SUV"
+            placeholder={t('templateNamePlaceholder')}
             className="input h-10 flex-1 text-sm"
           />
           <button
@@ -366,11 +373,11 @@ export default function InvoiceBuilder({ booking, detailer }) {
             disabled={!templateName.trim()}
             className="btn btn-brand h-10 px-4 text-sm"
           >
-            Save
+            {t('save')}
           </button>
         </div>
         <p className="mt-1.5 text-xs text-slate-400">
-          Saved invoices live in “Saved invoices” above — load and re-edit any time.
+          {t('savedInvoicesHint')}
         </p>
       </section>
 
@@ -379,14 +386,14 @@ export default function InvoiceBuilder({ booking, detailer }) {
         <button onClick={attachToJob} className="btn btn-cta h-11 w-full text-sm">
           {attached ? (
             <>
-              <CheckIcon className="h-4 w-4" /> Attached — customer can view
+              <CheckIcon className="h-4 w-4" /> {t('attachedCanView')}
             </>
           ) : (
-            'Attach to this job'
+            t('attachToJob')
           )}
         </button>
         <button onClick={() => window.print()} className="btn btn-outline h-11 w-full text-sm">
-          <PrinterIcon className="h-4 w-4" /> Print / Save as PDF
+          <PrinterIcon className="h-4 w-4" /> {t('printOrSavePdf')}
         </button>
       </section>
 

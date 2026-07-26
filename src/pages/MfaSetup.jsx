@@ -4,6 +4,7 @@ import Logo from '../components/Logo'
 import { AnimatedPage } from '../components/ui/Motion'
 import { supabase } from '../lib/supabase'
 import { useAuth, homePathForRole } from '../context/AuthContext'
+import { useT } from '../i18n/useT'
 
 // Optional TOTP 2FA enrollment, shown right after signup. Supabase generates
 // the QR code itself (totp.qr_code, an inline SVG) — no extra library needed.
@@ -12,6 +13,7 @@ export default function MfaSetup() {
   const location = useLocation()
   const { profile } = useAuth()
   const next = location.state?.next ?? homePathForRole(profile?.role)
+  const t = useT('mfa')
 
   const [factorId, setFactorId] = useState(null)
   const [qrSvg, setQrSvg] = useState(null)
@@ -63,11 +65,10 @@ export default function MfaSetup() {
 
         <div className="card space-y-4">
           <h1 className="text-center font-display text-lg font-bold text-slate-900">
-            Add an extra layer of security
+            {t('setupTitle')}
           </h1>
           <p className="text-center text-sm text-slate-600">
-            Scan this with an authenticator app (Google Authenticator, Authy, 1Password) to enable
-            two-factor login.
+            {t('setupBody')}
           </p>
 
           {error && (
@@ -85,14 +86,14 @@ export default function MfaSetup() {
 
           {secret && (
             <p className="break-all text-center text-xs text-slate-400">
-              Can&apos;t scan? Enter manually: <span className="font-mono">{secret}</span>
+              {t('cantScan')} <span className="font-mono">{secret}</span>
             </p>
           )}
 
           <form onSubmit={verify} className="space-y-3">
             <div>
               <label htmlFor="mfaCode" className="label">
-                6-digit code
+                {t('codeLabel')}
               </label>
               <input
                 id="mfaCode"
@@ -108,7 +109,7 @@ export default function MfaSetup() {
               />
             </div>
             <button type="submit" disabled={busy || !factorId} className="btn btn-cta w-full">
-              {busy ? 'Verifying…' : 'Enable 2FA'}
+              {busy ? t('verifying') : t('enable2fa')}
             </button>
           </form>
 
@@ -117,7 +118,7 @@ export default function MfaSetup() {
             onClick={skip}
             className="w-full text-center text-sm font-medium text-slate-500 hover:text-slate-700"
           >
-            Skip for now — I&apos;ll set this up later
+            {t('skipForNow')}
           </button>
         </div>
       </AnimatedPage>

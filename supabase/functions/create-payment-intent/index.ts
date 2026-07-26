@@ -1,7 +1,10 @@
-// Creates a PaymentIntent for an existing booking using a destination charge:
-// the customer pays the platform, the platform keeps application_fee_amount,
-// and the rest is routed to the detailer's connected account. Returns the
-// client_secret for the embedded Payment Element.
+// Creates a PaymentIntent for an existing booking. The customer's payment
+// lands on the PLATFORM's own Stripe balance (not a destination charge) —
+// the detailer's cut is computed and recorded here but not moved yet. See
+// supabase/functions/release-payouts for why: it's transferred separately,
+// after a 48-hour hold with no dispute, so a chargeback/dispute during that
+// window never has to be clawed back from money already in the detailer's
+// account. Returns the client_secret for the embedded Payment Element.
 //
 // Deploy: supabase functions deploy create-payment-intent
 // Secrets: STRIPE_SECRET_KEY, PLATFORM_FEE_PERCENT (optional, default 15).
@@ -122,8 +125,9 @@ Deno.serve(async (req) => {
       intent = await stripe.paymentIntents.create({
         amount,
         currency: 'usd',
-        application_fee_amount: fee,
-        transfer_data: { destination: detailer.stripe_account_id },
+        // Deliberately no application_fee_amount/transfer_data — this
+        // charges the platform's own balance. The detailer's cut moves via
+        // a separate Transfer later (release-payouts), not at capture time.
         metadata: {
           booking_id: booking.id,
           customer_id: booking.customer_id,

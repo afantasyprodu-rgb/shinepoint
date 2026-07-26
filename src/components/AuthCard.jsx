@@ -6,8 +6,10 @@ import { homePathForRole } from '../context/AuthContext'
 import { needsMfaChallenge } from '../lib/mfa'
 import { markArrival } from '../lib/transition'
 import Logo from './Logo'
+import LanguageToggle from './LanguageToggle'
 import OtpBoxInput from './OtpBoxInput'
 import { GoogleIcon, MailIcon, PhoneIcon, ChevronLeftIcon, LockIcon } from './icons'
+import { useT } from '../i18n/useT'
 
 const COUNTRIES = [
   { code: '+1',   flag: '🇺🇸', name: 'United States' },
@@ -41,6 +43,16 @@ const COUNTRIES = [
 // ease-out-expo — decisive and quick
 const EASE = [0.16, 1, 0.3, 1]
 
+// A brand-new account always lands on its role's onboarding wizard, never
+// straight on the dashboard — a detailer isn't verified/insured yet and
+// shouldn't be shown live jobs before finishing that. Returning users
+// (login) skip this and go via homePathForRole in finishLogin instead.
+function signupHomePath(role) {
+  if (role === 'detailer') return '/detailer/onboarding'
+  if (role === 'customer') return '/onboarding'
+  return homePathForRole(role)
+}
+
 // Each form field slides in from behind, staggered.
 function Field({ index, children }) {
   return (
@@ -60,6 +72,7 @@ function Field({ index, children }) {
 // onAuthenticated: optional callback, parent handles nav (desktop fly-through).
 export default function AuthCard({ defaultMode = 'login', role = 'customer', onAuthenticated, standalone = true }) {
   const navigate = useNavigate()
+  const t = useT('auth')
 
   const [mode, setMode] = useState(defaultMode)  // 'signup' | 'login'
   const [modeDir, setModeDir] = useState(1)       // 1 = forward (signup), -1 = back (login)
@@ -95,7 +108,7 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
     if (userRow?.is_banned || userRow?.is_suspended) {
       setBusy(false)
       await supabase.auth.signOut()
-      setError(userRow.is_banned ? 'This account has been banned.' : 'This account is suspended.')
+      setError(userRow.is_banned ? t('accountBanned') : t('accountSuspended'))
       return
     }
     const homePath = homePathForRole(userRow?.role)
@@ -114,8 +127,8 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
     e.preventDefault()
     setError('')
     if (mode === 'signup') {
-      if (password.length < 8) { setError('Password must be at least 8 characters.'); return }
-      if (password !== confirmPassword) { setError('Passwords do not match.'); return }
+      if (password.length < 8) { setError(t('passwordTooShort')); return }
+      if (password !== confirmPassword) { setError(t('passwordsDontMatch')); return }
     }
     setBusy(true)
     if (mode === 'signup') {
@@ -125,7 +138,7 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
       setBusy(false)
       if (err) { setError(err.message); return }
       if (!data.session) { navigate('/check-email', { state: { email } }); return }
-      const homePath = role === 'customer' ? '/onboarding' : homePathForRole(role)
+      const homePath = signupHomePath(role)
       navigate('/mfa-setup', { state: { next: homePath } })
     } else {
       const { data, error: err } = await supabase.auth.signInWithPassword({ email, password })
@@ -171,7 +184,7 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
     if (err) {
       setError(
         err.message?.includes('provider is not enabled') || err.message?.includes('Unsupported phone provider')
-          ? "Phone sign-in isn't enabled yet — set up an SMS provider in Supabase first."
+          ? t('phoneNotEnabled')
           : err.message
       )
       return
@@ -186,7 +199,7 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
     if (err) { setBusy(false); setError(err.message); setOtpCode(''); return }
     if (mode === 'signup') {
       setBusy(false)
-      const homePath = role === 'customer' ? '/onboarding' : homePathForRole(role)
+      const homePath = signupHomePath(role)
       navigate('/mfa-setup', { state: { next: homePath } })
       return
     }
@@ -226,10 +239,10 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
           transition={{ duration: 0.22, ease: EASE }}
         >
           <h2 className="font-display text-xl font-bold text-white mb-1">
-            {isSignup ? 'Create your account' : 'Welcome back'}
+            {isSignup ? t('createAccount') : t('welcomeBack')}
           </h2>
           <p className="text-sm text-white/60 mb-6">
-            {isSignup ? "Join ShinePoint — LA's detailing marketplace." : 'Sign in to continue.'}
+            {isSignup ? t('joinTagline') : t('signInTagline')}
           </p>
 
           <div className="flex flex-col gap-2.5">
@@ -238,21 +251,21 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
               onClick={handleGoogle}
               disabled={busy}
             >
-              Continue with Google
+              {t('continueGoogle')}
             </MethodButton>
             <MethodButton
               icon={<MailIcon className="h-5 w-5 text-slate-400" />}
               onClick={() => { setView('email'); setError('') }}
               disabled={busy}
             >
-              Continue with Email
+              {t('continueEmail')}
             </MethodButton>
             <MethodButton
               icon={<PhoneIcon className="h-5 w-5 text-slate-400" />}
               onClick={() => { setView('phone'); setError('') }}
               disabled={busy}
             >
-              Continue with Phone
+              {t('continuePhone')}
             </MethodButton>
           </div>
 
@@ -260,27 +273,27 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
 
           <p className="mt-7 text-center text-sm text-white/60">
             {isSignup ? (
-              <>Already have an account?{' '}
+              <>{t('alreadyHaveAccount')}{' '}
                 <button type="button" onClick={() => switchMode('login')}
                   className="font-semibold text-white transition-colors hover:text-white/80">
-                  Log in
+                  {t('logIn')}
                 </button>
               </>
             ) : (
-              <>New here?{' '}
+              <>{t('newHere')}{' '}
                 <button type="button" onClick={() => switchMode('signup')}
                   className="font-semibold text-white transition-colors hover:text-white/80">
-                  Create an account
+                  {t('createAccountLink')}
                 </button>
               </>
             )}
           </p>
 
           <p className="auth-terms mt-3">
-            By continuing you agree to our{' '}
-            <Link to="/terms" className="underline underline-offset-2 hover:text-white">Terms</Link>
+            {t('termsPrefix')}{' '}
+            <Link to="/terms" className="underline underline-offset-2 hover:text-white">{t('terms')}</Link>
             {' & '}
-            <Link to="/privacy" className="underline underline-offset-2 hover:text-white">Privacy Policy</Link>
+            <Link to="/privacy" className="underline underline-offset-2 hover:text-white">{t('privacyPolicy')}</Link>
           </p>
         </motion.div>
       )}
@@ -300,32 +313,32 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
             {isSignup && (
               <Field index={0}>
                 <div className="auth-field">
-                  <label className="auth-label">Full name</label>
+                  <label className="auth-label">{t('fullNameLabel')}</label>
                   <input type="text" autoComplete="name" required value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    placeholder="Jordan Doe" className="auth-input" autoFocus />
+                    placeholder={t('fullNamePlaceholder')} className="auth-input" autoFocus />
                 </div>
               </Field>
             )}
 
             <Field index={isSignup ? 1 : 0}>
               <div className="auth-field">
-                <label className="auth-label">Email</label>
+                <label className="auth-label">{t('emailLabel')}</label>
                 <input type="email" autoComplete="email" required value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com" className="auth-input"
+                  placeholder={t('emailPlaceholder')} className="auth-input"
                   autoFocus={!isSignup} />
               </div>
             </Field>
 
             <Field index={isSignup ? 2 : 1}>
               <div className="auth-field">
-                <label className="auth-label">Password</label>
+                <label className="auth-label">{t('passwordLabel')}</label>
                 <input type="password"
                   autoComplete={isSignup ? 'new-password' : 'current-password'}
                   required value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder={isSignup ? 'At least 8 characters' : '••••••••'}
+                  placeholder={isSignup ? t('passwordPlaceholderSignup') : '••••••••'}
                   className="auth-input" />
               </div>
             </Field>
@@ -333,7 +346,7 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
             {isSignup && (
               <Field index={3}>
                 <div className="auth-field">
-                  <label className="auth-label">Confirm password</label>
+                  <label className="auth-label">{t('confirmPasswordLabel')}</label>
                   <input type="password" autoComplete="new-password" required
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
@@ -347,8 +360,8 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
             <Field index={isSignup ? 4 : 2}>
               <button type="submit" disabled={busy} className="auth-btn-primary w-full">
                 {busy
-                  ? <span className="inline-flex items-center gap-2"><BtnSpinner />{isSignup ? 'Creating…' : 'Logging in…'}</span>
-                  : isSignup ? 'Create account' : 'Log in'}
+                  ? <span className="inline-flex items-center gap-2"><BtnSpinner />{isSignup ? t('creating') : t('loggingIn')}</span>
+                  : isSignup ? t('createAccountBtn') : t('logInBtn')}
               </button>
             </Field>
 
@@ -360,7 +373,7 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
                   onClick={() => handleSendEmailCode()}
                   className="w-full text-center text-sm font-medium text-white/60 hover:text-white transition-colors"
                 >
-                  Email me a code instead
+                  {t('emailMeCode')}
                 </button>
               </Field>
             )}
@@ -389,9 +402,9 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
 
           <Field index={1}>
             <p className="pb-1 text-center text-sm text-white/70">
-              {busy ? 'Verifying code…' : 'Enter the code'}
+              {busy ? t('verifyingCode') : t('enterTheCode')}
               <br />
-              sent to <span className="font-semibold text-white">{email}</span>
+              {t('sentTo')} <span className="font-semibold text-white">{email}</span>
             </p>
           </Field>
 
@@ -427,17 +440,17 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
             {isSignup && (
               <Field index={0}>
                 <div className="auth-field">
-                  <label className="auth-label">Full name</label>
+                  <label className="auth-label">{t('fullNameLabel')}</label>
                   <input type="text" autoComplete="name" required value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    placeholder="Jordan Doe" className="auth-input" autoFocus />
+                    placeholder={t('fullNamePlaceholder')} className="auth-input" autoFocus />
                 </div>
               </Field>
             )}
 
             <Field index={isSignup ? 1 : 0}>
               <div className="auth-field">
-                <label className="auth-label">Phone number</label>
+                <label className="auth-label">{t('phoneNumberLabel')}</label>
                 <div className="flex gap-2">
                   <select value={countryIdx} onChange={(e) => setCountryIdx(Number(e.target.value))}
                     className="auth-input auth-select" aria-label="Country code">
@@ -447,7 +460,7 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
                   </select>
                   <input type="tel" inputMode="numeric" autoComplete="tel-national" required
                     value={localNumber} onChange={(e) => setLocalNumber(e.target.value)}
-                    placeholder="310 555 0123" className="auth-input flex-1 min-w-0"
+                    placeholder={t('phonePlaceholder')} className="auth-input flex-1 min-w-0"
                     autoFocus={!isSignup} />
                 </div>
                 <p className="mt-1 text-xs text-white/50">
@@ -461,8 +474,8 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
             <Field index={isSignup ? 2 : 1}>
               <button type="submit" disabled={busy} className="auth-btn-primary w-full">
                 {busy
-                  ? <span className="inline-flex items-center gap-2"><BtnSpinner />Sending…</span>
-                  : 'Send code'}
+                  ? <span className="inline-flex items-center gap-2"><BtnSpinner />{t('sending')}</span>
+                  : t('sendCode')}
               </button>
             </Field>
           </form>
@@ -488,9 +501,9 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
 
           <Field index={1}>
             <p className="pb-1 text-center text-sm text-white/70">
-              {busy ? 'Verifying code…' : 'Enter the code'}
+              {busy ? t('verifyingCode') : t('enterTheCode')}
               <br />
-              sent to <span className="font-semibold text-white">{fullPhone}</span>
+              {t('sentTo')} <span className="font-semibold text-white">{fullPhone}</span>
             </p>
           </Field>
 
@@ -512,7 +525,7 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
           <button type="button"
             onClick={() => { setView('phone'); setOtpCode(''); setError('') }}
             className="mt-5 w-full py-1 text-center text-sm text-white/50 hover:text-white transition-colors">
-            Use a different number
+            {t('useDifferentNumber')}
           </button>
         </motion.div>
       )}
@@ -524,15 +537,43 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
 
   return (
     <div className="auth-card-shell">
+      <LanguageToggle className="fixed right-4 top-4 z-50 text-white hover:bg-white/10 hover:text-white" />
       <div className="auth-card">
+        <Link
+          to="/"
+          className="mb-2 inline-flex items-center gap-1 text-sm text-white/60 transition-colors hover:text-white"
+        >
+          <ChevronLeftIcon className="h-4 w-4" />
+          {t('back')}
+        </Link>
         <div className="auth-logo-block">
           <div className="relative">
             <div className="absolute inset-0 -z-10 scale-[2] rounded-full bg-white/15 blur-xl" />
             <Logo tone="light" />
           </div>
-          <p className="auth-tagline">LA's mobile detailing marketplace</p>
+          <p className="auth-tagline">{t('tagline')}</p>
         </div>
         {content}
+        {/* The signup/login card only ever renders for one role — this is
+            the only way to switch between "book a detail" and "apply as a
+            detailer" without leaving the page and losing what's typed. */}
+        {view === 'methods' && (
+          <p className="auth-terms mt-4 text-center">
+            {role === 'detailer' ? (
+              <>{t('lookingToBook')}{' '}
+                <Link to="/signup" className="underline underline-offset-2 hover:text-white">
+                  {t('signUpAsCustomer')}
+                </Link>
+              </>
+            ) : (
+              <>{t('wantToDetail')}{' '}
+                <Link to="/signup/detailer" className="underline underline-offset-2 hover:text-white">
+                  {t('applyAsDetailer')}
+                </Link>
+              </>
+            )}
+          </p>
+        )}
       </div>
     </div>
   )

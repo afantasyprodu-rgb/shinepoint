@@ -3,9 +3,11 @@ import { AnimatePresence, motion } from 'motion/react'
 import Logo from './Logo'
 import BottomTabBar from './ui/BottomTabBar'
 import ThemeToggle from './ThemeToggle'
+import LanguageToggle from './LanguageToggle'
 import { GridIcon, UsersIcon, AlertTriangleIcon, CreditCardIcon, PieChartIcon } from './icons'
 import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
+import { useT } from '../i18n/useT'
 
 function NavBadge({ count }) {
   return (
@@ -49,6 +51,7 @@ export default function AdminShell({ children }) {
   const { signOut, isDemo } = useAuth()
   const navigate = useNavigate()
   const { admin } = useStore()
+  const t = useT('adminShell')
 
   const peopleBadge = admin.applications.length
   const opsBadge =
@@ -58,11 +61,11 @@ export default function AdminShell({ children }) {
   const totalBadge = peopleBadge + opsBadge
 
   const LINKS = [
-    { to: '/admin',         label: 'Dashboard',  end: true, badge: 0,           icon: GridIcon },
-    { to: '/admin/people',  label: 'People',               badge: peopleBadge, icon: UsersIcon },
-    { to: '/admin/ops',     label: 'Operations',            badge: opsBadge,    icon: AlertTriangleIcon },
-    { to: '/admin/finance', label: 'Finance',               badge: 0,           icon: CreditCardIcon },
-    { to: '/admin/analytics', label: 'Analytics',           badge: 0,           icon: PieChartIcon },
+    { to: '/admin',         label: t('dashboard'),  end: true, badge: 0,           icon: GridIcon },
+    { to: '/admin/people',  label: t('people'),               badge: peopleBadge, icon: UsersIcon },
+    { to: '/admin/ops',     label: t('operations'),            badge: opsBadge,    icon: AlertTriangleIcon },
+    { to: '/admin/finance', label: t('finance'),               badge: 0,           icon: CreditCardIcon },
+    { to: '/admin/analytics', label: t('analytics'),           badge: 0,           icon: PieChartIcon },
   ]
 
   // Land on the public welcome page, not the /login redirect ProtectedRoute fires.
@@ -78,9 +81,12 @@ export default function AdminShell({ children }) {
           <Link to="/admin" className="rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600">
             <Logo />
           </Link>
-          <ThemeToggle />
+          <div className="flex items-center gap-1">
+            <LanguageToggle />
+            <ThemeToggle />
+          </div>
         </div>
-        <nav aria-label="Admin" className="mt-8 flex flex-col gap-1">
+        <nav aria-label={t('adminNavAria')} className="mt-8 flex flex-col gap-1">
           {LINKS.map(({ to, label, end, badge }) => (
             <NavLink
               key={to}
@@ -100,9 +106,9 @@ export default function AdminShell({ children }) {
           ))}
         </nav>
         <div className="mt-auto">
-          {isDemo && <span className="chip mb-3 bg-amber-500/15 text-amber-700 dark:text-amber-300">Demo mode</span>}
+          {isDemo && <span className="chip mb-3 bg-amber-500/15 text-amber-700 dark:text-amber-300">{t('demoMode')}</span>}
           <button onClick={handleSignOut} className="btn btn-outline h-9 w-full text-sm">
-            {isDemo ? 'Exit demo' : 'Sign out'}
+            {isDemo ? t('exitDemo') : t('signOut')}
           </button>
         </div>
       </aside>
@@ -112,9 +118,10 @@ export default function AdminShell({ children }) {
         <header className="flex items-center justify-between px-4 py-3 sm:hidden">
           <Logo />
           <div className="flex items-center gap-1">
+            <LanguageToggle />
             <ThemeToggle />
             <button onClick={handleSignOut} className="btn btn-outline h-9 px-3 text-sm">
-              {isDemo ? 'Exit' : 'Sign out'}
+              {isDemo ? t('exit') : t('signOut')}
             </button>
           </div>
         </header>

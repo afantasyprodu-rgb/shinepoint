@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { CameraIcon, XIcon } from './icons'
+import { useT } from '../i18n/useT'
 
 const DEFAULT_SHADES = [
   'from-rose-300 to-rose-500',
@@ -15,6 +16,7 @@ const DEFAULT_SHADES = [
 // items: [{ area, note, photo? }] — photo is a base64/url; falls back to a labeled gradient tile.
 export default function EvidencePhotos({ items = [], columns = 3, shades = DEFAULT_SHADES }) {
   const [open, setOpen] = useState(null) // index
+  const t = useT('evidencePhotos')
 
   if (items.length === 0) return null
 
@@ -57,7 +59,7 @@ export default function EvidencePhotos({ items = [], columns = 3, shades = DEFAU
           >
             <button
               onClick={() => setOpen(null)}
-              aria-label="Close"
+              aria-label={t('close')}
               className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
               <XIcon className="h-5 w-5" />
@@ -107,7 +109,7 @@ export default function EvidencePhotos({ items = [], columns = 3, shades = DEFAU
                 </button>
               ))}
             </div>
-            <p className="mt-3 text-xs text-white/50">Tap outside to close</p>
+            <p className="mt-3 text-xs text-white/50">{t('tapOutside')}</p>
           </motion.div>
         )}
       </AnimatePresence>

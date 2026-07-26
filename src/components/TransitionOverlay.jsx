@@ -260,25 +260,246 @@ function BubbleOverlay({ onDone }) {
   )
 }
 
+// ── Shine overlay: a bright glare sweeps diagonally across the screen,
+// sparkles twinkling just ahead of it, wiping the wash away as it passes —
+// like a detailer's cloth catching the light while buffing a car to a shine.
+// Unlike the bubble burst's radial reveal, this one wipes in a single
+// direction, so the two transitions read as genuinely different moments.
+const SHINE_FILL_HOLD = 260 // opaque wash + ambient sparkle twinkle before the wipe starts
+const SHINE_WIPE_DUR = 780 // time for the glare band to cross the whole diagonal
+const SHINE_FADE_DUR = 320 // final fade for any sliver the wipe didn't quite clear
+
+function buildShineSettings() {
+  // The sweep direction is just an angle — rotating it by another 180°
+  // reverses which corner the wipe starts from, so "reverse" doesn't need
+  // separate handling anywhere else, it's baked into this one number.
+  const baseAngle = randRange(-35, -15) * (Math.PI / 180)
+  const flipped = Math.random() < 0.5 ? Math.PI : 0
+  return {
+    hue: randomHue(),
+    angle: baseAngle + flipped,
+  }
+}
+
+function ShineOverlay({ onDone }) {
+  const canvasRef = useRef(null)
+  const [settings] = useState(buildShineSettings)
+  const [fading, setFading] = useState(false)
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    const dpr = Math.min(window.devicePixelRatio || 1, 2)
+    let width = window.innerWidth
+    let height = window.innerHeight
+
+    function resize() {
+      width = window.innerWidth
+      height = window.innerHeight
+      canvas.width = width * dpr
+      canvas.height = height * dpr
+      canvas.style.width = `${width}px`
+      canvas.style.height = `${height}px`
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+    }
+    resize()
+    window.addEventListener('resize', resize)
+
+    const diag = Math.hypot(width, height)
+    const cos = Math.cos(settings.angle)
+    const sin = Math.sin(settings.angle)
+    // Every point's position along the sweep axis, so the wipe/sparkle logic
+    // never has to touch pixels directly — just compare this one number
+    // against the band's current position.
+    function axisPos(x, y) {
+      return (x - width / 2) * cos + (y - height / 2) * sin
+    }
+
+    const BAND_WIDTH = diag * 0.16
+    const start0 = -diag / 2 - BAND_WIDTH
+    const end0 = diag / 2 + BAND_WIDTH
+
+    // Sparkles scattered across the whole viewport, each keyed to where it
+    // sits along the sweep axis so it only twinkles as the glare band
+    // reaches it — not all at once.
+    const sparkleCount = Math.round((width * height) / 9000)
+    const sparkles = []
+    for (let i = 0; i < sparkleCount; i++) {
+      const x = randRange(0, width)
+      const y = randRange(0, height)
+      sparkles.push({
+        x,
+        y,
+        axis: axisPos(x, y),
+        r: randRange(1.5, 4),
+        seed: Math.random() * Math.PI * 2,
+      })
+    }
+    // A handful of ambient sparkles twinkle during the ho ld phase too, spread
+    // independently of the sweep so the pre-wipe moment isn't static.
+    const ambientCount = Math.round(sparkleCount * 0.4)
+    const ambient = []
+    for (let i = 0; i < ambientCount; i++) {
+      ambient.push({
+        x: randRange(0, width),
+        y: randRange(0, height),
+        r: randRange(1, 3),
+        delay: randRange(0, SHINE_FILL_HOLD),
+        life: randRange(220, 420),
+      })
+    }
+
+    function drawSparkle(x, y, r, alpha) {
+      if (alpha <= 0) return
+      ctx.save()
+      ctx.translate(x, y)
+      ctx.globalAlpha = alpha
+      ctx.fillStyle = '#ffffff'
+      ctx.beginPath()
+      // Four-point sparkle (a stretched diamond cross), reads as a glint
+      // rather than a plain dot.
+      ctx.moveTo(0, -r * 2.2)
+      ctx.quadraticCurveTo(r * 0.3, -r * 0.3, r * 2.2, 0)
+      ctx.quadraticCurveTo(r * 0.3, r * 0.3, 0, r * 2.2)
+      ctx.quadraticCurveTo(-r * 0.3, r * 0.3, -r * 2.2, 0)
+      ctx.quadraticCurveTo(-r * 0.3, -r * 0.3, 0, -r * 2.2)
+      ctx.closePath()
+      ctx.fill()
+      ctx.restore()
+    }
+
+    const start = performance.now()
+    let raf
+    let finished = false
+
+    function tick(now) {
+      const elapsed = now - start
+
+      if (elapsed < SHINE_FILL_HOLD) {
+        ctx.clearRect(0, 0, width, height)
+        // Saturated enough to read clearly against the app's own light
+        // background (the earlier low-saturation version blended in and
+        // was nearly invisible) — matches the bubble overlay's vividness.
+        ctx.fillStyle = `hsl(${settings.hue} 70% 78%)`
+        ctx.fillRect(0, 0, width, height)
+        // Sheen across the whole wash so it doesn't sit flat.
+        const sheenGrad = ctx.createLinearGradient(0, 0, width, height)
+        sheenGrad.addColorStop(0, `hsla(${settings.hue}, 80%, 95%, 0.7)`)
+        sheenGrad.addColorStop(0.5, `hsla(${settings.hue}, 60%, 70%, 0.2)`)
+        sheenGrad.addColorStop(1, `hsla(${settings.hue}, 80%, 95%, 0.7)`)
+        ctx.fillStyle = sheenGrad
+        ctx.fillRect(0, 0, width, height)
+
+        for (const s of ambient) {
+          const age = elapsed - s.delay
+          if (age < 0 || age > s.life) continue
+          const lifeT = age / s.life
+          const alpha = lifeT < 0.5 ? lifeT * 2 : (1 - lifeT) * 2
+          drawSparkle(s.x, s.y, s.r, alpha * 0.9)
+        }
+        raf = requestAnimationFrame(tick)
+        return
+      }
+
+      const wipeElapsed = elapsed - SHINE_FILL_HOLD
+      const t = Math.min(wipeElapsed / SHINE_WIPE_DUR, 1)
+      const eased = easeInCubic(t) * 0.5 + t * 0.5 // slight ease-in, mostly linear so it feels like one steady sweep
+      const bandCenter = start0 + (end0 - start0) * eased
+
+      // Draw the glare band fresh at its new position (source-over), then
+      // erase everything the trailing edge has already passed — the erase
+      // never reaches into the band itself, so it always reads as a bright
+      // edge with a clean reveal behind it and the untouched wash ahead.
+      ctx.save()
+      ctx.translate(width / 2, height / 2)
+      ctx.rotate(settings.angle)
+      const grad = ctx.createLinearGradient(bandCenter - BAND_WIDTH, 0, bandCenter + BAND_WIDTH, 0)
+      grad.addColorStop(0, 'rgba(255,255,255,0)')
+      grad.addColorStop(0.42, `hsla(${settings.hue}, 70%, 92%, 0.85)`)
+      grad.addColorStop(0.5, 'rgba(255,255,255,0.98)')
+      grad.addColorStop(0.58, `hsla(${settings.hue}, 70%, 92%, 0.85)`)
+      grad.addColorStop(1, 'rgba(255,255,255,0)')
+      ctx.fillStyle = grad
+      ctx.fillRect(bandCenter - BAND_WIDTH, -diag, BAND_WIDTH * 2, diag * 2)
+      ctx.restore()
+
+      // Sparkles twinkle as the band's leading edge nears them.
+      for (const s of sparkles) {
+        const dist = Math.abs(s.axis - bandCenter)
+        if (dist > BAND_WIDTH * 1.4) continue
+        const alpha = Math.max(0, 1 - dist / (BAND_WIDTH * 1.4))
+        const twinkle = 0.6 + 0.4 * Math.sin(elapsed * 0.02 + s.seed)
+        drawSparkle(s.x, s.y, s.r, alpha * twinkle)
+      }
+
+      ctx.save()
+      ctx.translate(width / 2, height / 2)
+      ctx.rotate(settings.angle)
+      ctx.globalCompositeOperation = 'destination-out'
+      const eraseTo = bandCenter - BAND_WIDTH
+      const eraseFrom = start0 - BAND_WIDTH
+      // Erase from the sweep's own start point (nothing before it ever needs
+      // erasing) up to the band's trailing edge.
+      ctx.fillStyle = 'rgba(0,0,0,1)'
+      ctx.fillRect(eraseFrom, -diag, eraseTo - eraseFrom, diag * 2)
+      ctx.restore()
+
+      if (t >= 1) {
+        if (!finished) {
+          finished = true
+          setFading(true)
+          setTimeout(onDone, SHINE_FADE_DUR)
+        }
+        return
+      }
+
+      raf = requestAnimationFrame(tick)
+    }
+
+    raf = requestAnimationFrame(tick)
+
+    return () => {
+      cancelAnimationFrame(raf)
+      window.removeEventListener('resize', resize)
+    }
+  }, [onDone, settings])
+
+  return (
+    <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-[9999] overflow-hidden">
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0"
+        style={{ opacity: fading ? 0 : 1, transition: `opacity ${SHINE_FADE_DUR}ms ease-out` }}
+      />
+    </div>
+  )
+}
+
+const OVERLAY_VARIANTS = [BubbleOverlay, ShineOverlay]
+
 // Wraps the app's routes. After login (flag set by the OAuth callback, the
 // email/password auth card, or the desktop fly-through) the freshly-navigated
-// page mounts underneath, then this overlay bursts open over it with the
-// bubble field above. No-op on normal nav / reduced-motion.
+// page mounts underneath, then this overlay plays one of two random
+// transitions over it: a full-screen bubble burst, or a diagonal shine/glare
+// sweep with sparkles. No-op on normal nav / reduced-motion.
 export default function TransitionOverlay({ children }) {
   const location = useLocation()
   const reduce = useReducedMotion()
   const [playing, setPlaying] = useState(false)
+  const [Variant, setVariant] = useState(null)
 
   useLayoutEffect(() => {
     const role = consumeArrival()
     if (!role || reduce) return
+    setVariant(() => OVERLAY_VARIANTS[Math.floor(Math.random() * OVERLAY_VARIANTS.length)])
     setPlaying(true)
   }, [location.pathname, reduce])
 
   return (
     <>
       {children}
-      {playing && <BubbleOverlay onDone={() => setPlaying(false)} />}
+      {playing && Variant && <Variant onDone={() => setPlaying(false)} />}
     </>
   )
 }

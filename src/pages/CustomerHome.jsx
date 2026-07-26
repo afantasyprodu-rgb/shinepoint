@@ -2,12 +2,13 @@ import { useMemo, useState } from 'react'
 import AppShell from '../components/AppShell'
 import DetailerMap from '../components/DetailerMap'
 import { useStore } from '../context/StoreContext'
+import { useT } from '../i18n/useT'
 
 const FILTERS = [
-  { key: 'top', label: '4.5+ stars', test: (d) => d.rating >= 4.5 },
-  { key: 'insured', label: 'Insured', test: (d) => d.insurance !== 'none' },
-  { key: 'rewards', label: 'Accepts rewards', test: (d) => d.acceptsRewards },
-  { key: 'now', label: 'Available now', test: (d) => d.status === 'available' },
+  { key: 'top', labelKey: 'filterTop', test: (d) => d.rating >= 4.5 },
+  { key: 'insured', labelKey: 'filterInsured', test: (d) => d.insurance !== 'none' },
+  { key: 'rewards', labelKey: 'filterRewards', test: (d) => d.acceptsRewards },
+  { key: 'now', labelKey: 'filterNow', test: (d) => d.status === 'available' },
 ]
 
 // Blueprint screen 2.1 — Customer Home (Map Screen). Fully map-driven: tap a
@@ -16,6 +17,7 @@ export default function CustomerHome() {
   const { detailers } = useStore()
   const [query, setQuery] = useState('')
   const [active, setActive] = useState([])
+  const t = useT('customerHome')
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -33,21 +35,21 @@ export default function CustomerHome() {
   return (
     <AppShell role="customer">
       <main className="relative h-[calc(100vh-61px)]">
-        <h1 className="sr-only">Find a detailer near you</h1>
+        <h1 className="sr-only">{t('srHeading')}</h1>
         <DetailerMap detailers={filtered} />
 
         {/* Search + filters (2.1) */}
         <div className="pointer-events-none absolute inset-x-0 top-3 z-[500] mx-auto w-full max-w-md px-4">
           <input
             type="search"
-            aria-label="Search zip code or neighborhood"
-            placeholder="Search zip code or neighborhood"
+            aria-label={t('searchPlaceholder')}
+            placeholder={t('searchPlaceholder')}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="input pointer-events-auto h-11 w-full placeholder-slate-500"
           />
           <div className="mt-2 flex flex-wrap justify-center gap-1.5">
-            {FILTERS.map(({ key, label }) => (
+            {FILTERS.map(({ key, labelKey }) => (
               <button
                 key={key}
                 type="button"
@@ -57,13 +59,13 @@ export default function CustomerHome() {
                   active.includes(key) ? 'nx-neu-active text-white' : 'nx-neu text-slate-700 dark:text-slate-300'
                 }`}
               >
-                {label}
+                {t(labelKey)}
               </button>
             ))}
           </div>
           {filtered.length === 0 && (
             <p role="status" className="nx-neu pointer-events-auto mx-auto mt-2 w-fit rounded-xl px-4 py-2 text-sm text-slate-700 dark:text-slate-300">
-              No detailers match — try clearing a filter.
+              {t('noMatch')}
             </p>
           )}
         </div>

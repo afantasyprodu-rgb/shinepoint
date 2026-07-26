@@ -68,6 +68,10 @@ function normalizeDetailerBooking(row) {
     serviceId: row.service_id,
     price: Number(row.total_price ?? 0),
     tip: Number(row.tip_amount ?? 0),
+    platformCut: row.platform_cut != null ? Number(row.platform_cut) : null,
+    detailerPayout: row.detailer_payout != null ? Number(row.detailer_payout) : null,
+    payoutHoldUntil: row.payout_hold_until,
+    transferredAt: row.transferred_at,
     status: row.status,
     scheduledTime: row.scheduled_time,
     address: row.booking_address ?? '',
@@ -255,7 +259,7 @@ export async function saveServices(userId, services) {
 export async function fetchDetailerProfileRow(userId) {
   const { data, error } = await supabase
     .from('detailer_profiles')
-    .select('id, status, accepts_bookings_when_busy, total_completed_jobs, average_rating, probation_jobs_remaining, is_probation')
+    .select('id, status, accepts_bookings_when_busy, total_completed_jobs, average_rating, probation_jobs_remaining, is_probation, is_verified, bio, zip_code, identity_status')
     .eq('user_id', userId)
     .single()
   if (error) {
@@ -299,6 +303,7 @@ export async function fetchBookingsForDetailer(detailerProfileId) {
       booking_address, booking_zip, created_at,
       service_id, customer_id,
       damage_report_submitted, damage_report_acknowledged,
+      platform_cut, detailer_payout, payout_hold_until, transferred_at,
       services(service_name),
       customer_profiles!bookings_customer_id_fkey(
         id,
@@ -373,6 +378,7 @@ export async function saveDetailerOnboarding(userId, {
   freeTravelMiles,
   chargePerMile,
   serviceDays,
+  featuredService,
 }) {
   const { data: prof, error: profErr } = await supabase
     .from('detailer_profiles')
@@ -410,6 +416,7 @@ export async function saveDetailerOnboarding(userId, {
     price: Number(price),
     vehicle_types: vehicles,
     is_active: true,
+    is_featured: name === featuredService,
   }))
 
   if (rows.length) {
@@ -511,7 +518,7 @@ export async function sendMessageToDB(bookingId, senderId, content) {
 export async function fetchNotifications(userId, role) {
   const { data, error } = await supabase
     .from('notifications')
-    .select('id, title, body, read_at, created_at')
+    .select('id, title, body, read_at, created_at, booking_id')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(50)
@@ -521,6 +528,7 @@ export async function fetchNotifications(userId, role) {
     audience: role,          // a user only ever sees their own; role drives the UI filter
     title: n.title,
     body: n.body ?? '',
+    bookingId: n.booking_id,
     read: n.read_at != null,
     at: n.created_at,
   }))

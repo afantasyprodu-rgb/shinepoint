@@ -180,7 +180,18 @@ export function StoreProvider({ children }) {
           setRealNotifications((prev) =>
             prev.some((x) => x.id === n.id)
               ? prev
-              : [{ id: n.id, audience: profile.role, title: n.title, body: n.body ?? '', read: false, at: n.created_at }, ...prev]
+              : [
+                  {
+                    id: n.id,
+                    audience: profile.role,
+                    title: n.title,
+                    body: n.body ?? '',
+                    bookingId: n.booking_id,
+                    read: false,
+                    at: n.created_at,
+                  },
+                  ...prev,
+                ]
           )
         }
       )
@@ -218,15 +229,26 @@ export function StoreProvider({ children }) {
   }, [isDemo, profile?.role])
 
   const api = useMemo(() => {
-    function notify(audience, title, body) {
+    // bookingId/stage let the notification bell deep-link straight back to
+    // what changed — stage is the exact TIMELINE key so the customer lands on
+    // that stage's progress-bar detail even if the booking has since moved
+    // past it (e.g. tapping an old "en route" notification after the job's
+    // since completed still opens the en-route preview, not just "wherever
+    // the booking is now").
+    function notify(audience, title, body, bookingId, stage) {
       setNotifications((ns) => [
-        { id: `n-${idCounter++}`, audience, title, body, read: false, at: new Date().toISOString() },
+        { id: `n-${idCounter++}`, audience, title, body, bookingId, stage, read: false, at: new Date().toISOString() },
         ...ns,
       ])
     }
 
-    // ── Merged detailers (real + demo, deduplicated) ──────────────────────
-    const allDetailers = [...realDetailers, ...demoDetailers]
+    // ── Detailers ───────────────────────────────────────────────────────────
+    // Demo mode merges real + demo detailers (useful for debugging — you can
+    // see live/real detailers alongside the full seeded roster). A real,
+    // non-demo session must never show the fake roster — a genuine customer
+    // should see exactly the real detailers who've actually signed up (zero,
+    // until someone does), not a map full of made-up businesses.
+    const allDetailers = isDemo ? [...realDetailers, ...demoDetailers] : realDetailers
 
     // The logged-in detailer's own merged record (demo seeds 'det-1').
     const myDetailer = isDemo
@@ -265,25 +287,29 @@ export function StoreProvider({ children }) {
     function demoPatchBooking(id, patch) {
       setDemoBookings((bs) => bs.map((b) => (b.id === id ? { ...b, ...patch } : b)))
       if (patch.status && STATUS_NOTIFICATIONS[patch.status]) {
-        notify(...STATUS_NOTIFICATIONS[patch.status])
+        notify(...STATUS_NOTIFICATIONS[patch.status], id, patch.status)
       }
     }
 
     function realPatchBooking(id, patch) {
       setRealBookings((bs) => bs.map((b) => (b.id === id ? { ...b, ...patch } : b)))
-      updateBookingStatusInDB(id, patch)
+      const written = updateBookingStatusInDB(id, patch)
       if (patch.status && STATUS_NOTIFICATIONS[patch.status]) {
-        notify(...STATUS_NOTIFICATIONS[patch.status])
+        notify(...STATUS_NOTIFICATIONS[patch.status], id, patch.status)
       }
+      return written
     }
 
+    // Returns a promise for the real (DB) path so callers that need the
+    // write to land before doing something else (e.g. sending an email that
+    // depends on the new status) can await it. Demo path resolves immediately.
     function patchBooking(id, patch) {
       const booking = bookings.find((b) => b.id === id)
       if (!isDemo && booking?._real) {
-        realPatchBooking(id, patch)
-      } else {
-        demoPatchBooking(id, patch)
+        return realPatchBooking(id, patch)
       }
+      demoPatchBooking(id, patch)
+      return Promise.resolve()
     }
 
     return {
@@ -475,7 +501,7 @@ export function StoreProvider({ children }) {
           }))
         }
         patchBooking(bookingId, { status: 'disputed' })
-        notify('customer', 'Dispute filed', 'An admin will review your case within 24 hours.')
+        notify('customer', 'Dispute filed', 'An admin will review your case within 24 hours.', bookingId)
       },
 
       rateCustomer(bookingId, rating, hardToHandle) {
@@ -540,7 +566,7 @@ export function StoreProvider({ children }) {
           })
           const refreshed = await fetchBookingsForCustomer(customerProfile.id)
           setRealBookings(refreshed)
-          notify('detailer', 'New booking request', `${draft.service} — new request waiting`)
+          notify('detailer', 'New booking request', `${draft.service} — new request waiting`, bookingId)
           return bookingId
         }
 
@@ -563,7 +589,7 @@ export function StoreProvider({ children }) {
           ...draft,
         }
         setDemoBookings((bs) => [booking, ...bs])
-        notify('detailer', 'New booking request', `${booking.service} from ${booking.customerName}`)
+        notify('detailer', 'New booking request', `${booking.service} from ${booking.customerName}`, id)
         return id
       },
 
@@ -595,7 +621,7 @@ export function StoreProvider({ children }) {
         }
         patchBooking(bookingId, { reviewed: true, tip })
         if (isDemo) {
-          notify('detailer', 'New review', `${rating} stars from ${demoCustomer.name}`)
+          notify('detailer', 'New review', `${rating} stars from ${demoCustomer.name}`, bookingId)
           setDemoCustomer((c) => {
             const newPoints = c.points + 1
             const MILESTONES = [
@@ -643,7 +669,7 @@ export function StoreProvider({ children }) {
         // 'disputed' state and the customer sees the recorded outcome.
         if (dispute && bookings.some((b) => b.id === dispute.bookingId)) {
           patchBooking(dispute.bookingId, { status: 'complete', disputeResolution: resolution })
-          notify('customer', 'Dispute resolved', 'An admin has settled your case — see the booking.')
+          notify('customer', 'Dispute resolved', 'An admin has settled your case — see the booking.', dispute.bookingId)
         }
       },
 
