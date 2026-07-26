@@ -11,3 +11,52 @@ verify_jwt = true
 
 [functions.stripe-webhook]
 verify_jwt = false
+
+# `supabase config push` treats this file as the FULL source of truth for
+# every section it touches — anything left unset gets reset to the CLI's
+# blank defaults, not "leave remote alone". These values restore what was
+# already live (captured from the push diff after an earlier push clobbered
+# them) so they don't silently reset again on the next push.
+[auth]
+# detailing-marketplace.vercel.app stopped resolving once shinepoint.app was
+# connected as the project's custom domain (Vercel dropped the short alias
+# from the project's domain list) — shinepoint.app is the real live URL now.
+site_url = "https://shinepoint.app/"
+additional_redirect_urls = ["https://shinepoint.app/auth/callback", "https://detailing-marketplace.vercel.app/auth/callback", "http://localhost:5180/auth/callback"]
+
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
+
+[auth.email]
+enable_confirmations = true
+max_frequency = "1m0s"
+otp_length = 8
+
+[storage.vector]
+enabled = false
+
+# Custom SMTP so email OTP/signup mail sends from shinepoint.app instead of
+# Supabase's default 2-emails/hour dev sender. Secret pulled from the
+# SUPABASE_AUTH_SMTP_PASS env var at `supabase config push` time — never
+# committed here.
+[auth.email.smtp]
+enabled = true
+host = "smtp.resend.com"
+port = 465
+user = "resend"
+pass = "env(SUPABASE_AUTH_SMTP_PASS)"
+admin_email = "noreply@shinepoint.app"
+sender_name = "ShinePoint"
+
+# Twilio SMS for phone OTP. Messaging Service needs an A2P 10DLC-registered
+# local number in its sender pool before carriers will actually deliver.
+[auth.sms]
+enable_signup = true
+enable_confirmations = false
+
+[auth.sms.twilio]
+enabled = true
+account_sid = "env(SUPABASE_AUTH_SMS_TWILIO_ACCOUNT_SID)"
+auth_token = "env(SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN)"
+message_service_sid = "env(SUPABASE_AUTH_SMS_TWILIO_MESSAGE_SERVICE_SID)"

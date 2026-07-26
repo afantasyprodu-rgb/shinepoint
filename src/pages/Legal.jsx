@@ -63,7 +63,9 @@ export function Terms() {
       <H>2. Accounts</H>
       <p>
         You must provide accurate information and keep your login secure. You’re responsible for
-        activity under your account. You must be at least 18 to use ShinePoint.
+        activity under your account. You must be at least 18 to use ShinePoint. If you sign in with
+        your phone number, you consent to receive a one-time SMS verification code; message and
+        data rates may apply, and you can reply STOP at any time to opt out.
       </p>
 
       <H>3. Bookings & payments</H>
@@ -151,6 +153,14 @@ export function Privacy() {
       <p>
         We use industry-standard measures and access controls. No system is perfectly secure, but
         we work to protect your data.
+      </p>
+
+      <H>SMS / text messages</H>
+      <p>
+        If you sign in or sign up with your phone number, we text you a one-time verification code.
+        Message frequency is one text per code you request — we never send marketing texts. Message
+        and data rates may apply. We do not share your mobile number with third parties for
+        marketing purposes. Reply STOP to a message to opt out, or HELP for support.
       </p>
 
       <H>Contact</H>
