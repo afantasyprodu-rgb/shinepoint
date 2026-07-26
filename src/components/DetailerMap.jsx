@@ -103,6 +103,7 @@ export default function DetailerMap({ detailers, focus }) {
   const tileRef = useRef(null)
   const markersRef = useRef(new Map())
   const userRef = useRef(null)
+  const radarRef = useRef(null)
   const navigate = useNavigate()
   const { theme } = useTheme()
   const [locating, setLocating] = useState(false)
@@ -143,6 +144,10 @@ export default function DetailerMap({ detailers, focus }) {
     if (!map) return
     markersRef.current.forEach((m) => m.remove())
     markersRef.current.clear()
+    if (radarRef.current) {
+      radarRef.current.remove()
+      radarRef.current = null
+    }
 
     detailers
       .filter((d) => d.pin)
@@ -184,6 +189,30 @@ export default function DetailerMap({ detailers, focus }) {
           const el = marker.getPopup().getElement()
           const btn = el?.querySelector('[data-view]')
           if (btn) btn.onclick = () => navigate(`/detailers/${d.id}`)
+        })
+        // Tapping a pin reveals its free-travel radius as a "radar" ring —
+        // a geo-accurate circle (miles -> meters) rather than a fixed-pixel
+        // one, so it actually shrinks/grows with zoom like a real coverage
+        // area. Only one ring is ever shown at a time.
+        marker.on('popupopen', () => {
+          if (radarRef.current) radarRef.current.remove()
+          const color = PIN_COLORS[d.status] ?? PIN_COLORS.offline
+          radarRef.current = L.circle([d.pin.lat, d.pin.lng], {
+            radius: d.travelMiles * 1609.34,
+            className: 'nx-radar-ring',
+            color,
+            weight: 1.5,
+            fillColor: color,
+            fillOpacity: 0.08,
+            interactive: false,
+          }).addTo(map)
+          radarRef.current.bringToBack()
+        })
+        marker.on('popupclose', () => {
+          if (radarRef.current) {
+            radarRef.current.remove()
+            radarRef.current = null
+          }
         })
         markersRef.current.set(d.id, marker)
       })

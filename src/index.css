@@ -1169,6 +1169,19 @@
   75%, 100% { transform: scale(2.6); opacity: 0; }
 }
 
+/* Free-travel-radius "radar" ring — the fixed geo-accurate circle (drawn by
+   Leaflet as an <svg> path in DetailerMap.jsx) gets a breathing fill/stroke
+   pulse layered on top so it reads as an active radar sweep rather than a
+   static boundary line. Animating opacity/stroke instead of transform:scale
+   keeps the circle's actual geographic radius intact at every zoom level. */
+.nx-radar-ring {
+  animation: nx-radar-pulse 2.2s ease-in-out infinite;
+}
+@keyframes nx-radar-pulse {
+  0%, 100% { stroke-opacity: 0.85; fill-opacity: 0.05; }
+  50% { stroke-opacity: 0.35; fill-opacity: 0.14; }
+}
+
 /* Grow-in popup bubble */
 .nx-popup .leaflet-popup-content-wrapper,
 .nx-popup .leaflet-popup-tip {
