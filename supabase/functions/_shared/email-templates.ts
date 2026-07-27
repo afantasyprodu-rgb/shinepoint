@@ -64,13 +64,27 @@ function emailShell(previewText: string, bodyHtml: string): string {
     <tr>
       <td align="center" style="padding:32px 16px;">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">
-          <!-- Logo -->
+          <!-- Logo — same mark as public/favicon.svg (gradient square + sparkle),
+               rebuilt with inline styles/SVG for email. background-color is the
+               fallback for clients that ignore background-image (e.g. Outlook
+               desktop); the gradient is a progressive enhancement on top of it.
+               The sparkle SVG itself may not render in that same Outlook engine —
+               it degrades to a plain solid-color square, which still reads as a
+               logo mark rather than a broken image. -->
           <tr>
-            <td style="padding-bottom:20px;">
+            <td style="padding-bottom:24px;">
               <table role="presentation" cellpadding="0" cellspacing="0">
                 <tr>
-                  <td style="background-color:${BRAND_600}; width:36px; height:36px; border-radius:10px; text-align:center; vertical-align:middle; font-size:18px; line-height:36px;">✨</td>
-                  <td style="padding-left:10px; font-size:20px; font-weight:700; color:${SLATE_900}; font-family:Georgia,'Times New Roman',serif;">ShinePoint</td>
+                  <td style="background-color:${BRAND_600}; background-image:linear-gradient(135deg, #a78bfa, ${BRAND_700}); width:36px; height:36px; border-radius:10px; text-align:center; vertical-align:middle;">
+                    <!--[if !mso]><!-->
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block; margin:8px;">
+                      <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
+                      <path d="M20 3v4" />
+                      <path d="M22 5h-4" />
+                    </svg>
+                    <!--<![endif]-->
+                  </td>
+                  <td style="padding-left:10px; font-size:22px; font-weight:800; letter-spacing:-0.01em; color:#4c1d95; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">ShinePoint</td>
                 </tr>
               </table>
             </td>
