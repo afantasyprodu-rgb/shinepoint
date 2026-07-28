@@ -1,4 +1,4 @@
-import { supabase } from './supabase'
+import { supabase, invokeFn } from './supabase'
 import { fuzzyPinForZip } from './fuzzyPin'
 
 function normalizeDetailer(row) {
@@ -667,7 +667,5 @@ export async function fetchAllUsersForAdmin() {
 // to remove the auth.users row). Throws with the DB error message if the
 // account has bookings blocking the cascade — ban instead in that case.
 export async function adminDeleteUser(userId) {
-  const { data, error } = await supabase.functions.invoke('admin-delete-user', { body: { userId } })
-  if (error) throw new Error(error.message)
-  if (data?.error) throw new Error(data.error)
+  await invokeFn('admin-delete-user', { userId })
 }

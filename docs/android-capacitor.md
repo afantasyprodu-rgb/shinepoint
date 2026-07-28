@@ -110,6 +110,4 @@ change: `npm run cap:sync` again.
 - **Blank screen on device** = `webDir` mismatch or stale build. Re-run `npm run build && npx cap sync`.
 - **OAuth doesn't return** = the intent filter scheme/host or the Supabase redirect URL doesn't
   exactly match `shinepoint://auth/callback`.
-- **Mapbox token**: `VITE_MAPBOX_TOKEN` is baked into the build at `npm run build` time — rebuild
-  after changing env, then `cap sync`.
 - Phone (SMS) sign-in still needs the Supabase provider turned on — see `docs/sms-auth-setup.md`.

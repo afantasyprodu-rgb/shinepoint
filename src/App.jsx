@@ -1,10 +1,9 @@
-import { lazy, Suspense } from 'react'
 import { Routes, Route, useLocation } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute'
 import ErrorBoundary from './components/ErrorBoundary'
 import TransitionOverlay from './components/TransitionOverlay'
 import NativeBridge from './components/NativeBridge'
-import { loadCustomerHome } from './lib/preload'
+import CustomerHome from './pages/CustomerHome'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
 import CustomerSignup from './pages/CustomerSignup'
@@ -33,22 +32,6 @@ import MfaSetup from './pages/MfaSetup'
 import MfaChallenge from './pages/MfaChallenge'
 import CustomerOnboarding from './pages/CustomerOnboarding'
 import { Terms, Privacy } from './pages/Legal'
-
-// Lazy: keeps mapbox-gl (~1.6 MB) out of the initial bundle. Same loader is
-// reused by the login transition's preload so the page is warm on arrival.
-const CustomerHome = lazy(loadCustomerHome)
-
-function PageLoader() {
-  return (
-    <div
-      role="status"
-      aria-label="Loading"
-      className="flex min-h-screen items-center justify-center"
-    >
-      <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-600 border-t-transparent" />
-    </div>
-  )
-}
 
 const guard = (role, el) => <ProtectedRoute role={role}>{el}</ProtectedRoute>
 
@@ -81,15 +64,7 @@ export default function App() {
         <Route path="/onboarding" element={<ProtectedRoute role="customer"><CustomerOnboarding /></ProtectedRoute>} />
 
         {/* Customer */}
-        <Route
-          path="/home"
-          element={guard(
-            'customer',
-            <Suspense fallback={<PageLoader />}>
-              <CustomerHome />
-            </Suspense>
-          )}
-        />
+        <Route path="/home" element={guard('customer', <CustomerHome />)} />
         <Route path="/detailers/:id" element={guard('customer', <DetailerProfile />)} />
         <Route path="/book/:id" element={guard('customer', <BookingWizard />)} />
         <Route path="/bookings" element={guard('customer', <Bookings />)} />

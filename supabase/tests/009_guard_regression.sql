@@ -1,5 +1,5 @@
 -- Guard regression test. Run against STAGING after 009 + 010:
---   supabase db execute --file supabase/migrations/009_guard_regression.sql
+--   supabase db execute --file supabase/tests/009_guard_regression.sql
 -- Everything runs in a transaction and ROLLS BACK — no data is kept.
 --
 -- Proves the column-guard triggers actually reject forbidden writes and

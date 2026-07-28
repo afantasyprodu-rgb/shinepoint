@@ -114,6 +114,4 @@ npx cap sync ios
   doesn't exactly match `shinepoint://auth/callback`.
 - **"No such module" / Swift package errors on first open** — File → Packages → Reset Package
   Caches in Xcode, then reopen.
-- **Mapbox token**: same as Android — `VITE_MAPBOX_TOKEN` is baked into the build at
-  `npm run build` time; rebuild + `cap sync` after changing it.
 - Phone (SMS) sign-in still needs the Supabase provider turned on — see `docs/sms-auth-setup.md`.

@@ -173,14 +173,6 @@ export function CalendarIcon(props) {
   )
 }
 
-export function MessageIcon(props) {
-  return (
-    <Icon {...props}>
-      <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
-    </Icon>
-  )
-}
-
 export function SendIcon(props) {
   return (
     <Icon {...props}>
@@ -390,24 +382,6 @@ export function LayersIcon(props) {
   )
 }
 
-export function TimerIcon(props) {
-  return (
-    <Icon {...props}>
-      <line x1="10" x2="14" y1="2" y2="2" />
-      <line x1="12" x2="15" y1="14" y2="11" />
-      <circle cx="12" cy="14" r="8" />
-    </Icon>
-  )
-}
-
-export function ZapIcon(props) {
-  return (
-    <Icon {...props}>
-      <path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z" />
-    </Icon>
-  )
-}
-
 // Brand logos — multi-path, use their own fills (not currentColor).
 export function PhoneIcon(props) {
   return (
@@ -424,14 +398,6 @@ export function GoogleIcon({ className = 'h-5 w-5' }) {
       <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z" />
       <path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84z" />
       <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1A11 11 0 0 0 2.18 7.06l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z" />
-    </svg>
-  )
-}
-
-export function AppleIcon({ className = 'h-5 w-5' }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden="true">
-      <path d="M17.05 12.04c-.03-2.9 2.37-4.3 2.48-4.36-1.35-1.98-3.46-2.25-4.2-2.28-1.79-.18-3.49 1.05-4.4 1.05-.9 0-2.3-1.03-3.78-1-1.95.03-3.74 1.13-4.74 2.87-2.02 3.5-.52 8.69 1.45 11.53.96 1.39 2.11 2.95 3.61 2.9 1.45-.06 2-.94 3.75-.94s2.24.94 3.78.9c1.56-.02 2.55-1.42 3.5-2.82 1.1-1.61 1.56-3.17 1.58-3.25-.03-.02-3.03-1.16-3.06-4.6zM14.2 4.38c.8-.97 1.34-2.32 1.19-3.66-1.15.05-2.54.77-3.36 1.73-.74.86-1.38 2.23-1.21 3.55 1.28.1 2.59-.65 3.38-1.62z" />
     </svg>
   )
 }

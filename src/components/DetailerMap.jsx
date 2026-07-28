@@ -10,14 +10,6 @@ import { useTheme } from '../context/ThemeContext'
 // too — so it's gated to iOS only rather than "native vs web".
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
 
-// EnRouteTracker still uses Mapbox for live turn-by-turn; the main discovery
-// map switched to Leaflet + OpenStreetMap (no token needed), so this token
-// check stays here for EnRouteTracker to import.
-const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN
-export function isMapboxConfigured() {
-  return Boolean(MAPBOX_TOKEN)
-}
-
 // Pin colors per Blueprint screen 2.1:
 // green = available, yellow = busy but accepting, grey = offline.
 const PIN_COLORS = {
@@ -36,7 +28,7 @@ const LA_CENTER = [34.05, -118.33]
 // Positron — Positron's near-white/grey read as washed out next to the
 // brand-colored pins; Voyager keeps the same no-labels restraint with
 // actual color so the map doesn't disappear into the page background.
-const TILES = {
+export const TILES = {
   light: {
     url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png',
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',

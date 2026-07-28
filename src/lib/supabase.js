@@ -17,3 +17,13 @@ export const supabase = createClient(
   supabaseUrl || 'https://placeholder.supabase.co',
   supabaseAnonKey || 'placeholder-anon-key'
 )
+
+// Every edge function returns either a transport error or a `{ error }` body,
+// and every caller wants the same thing: the payload, or a throw. One place
+// to do that instead of the same four lines in each wrapper.
+export async function invokeFn(name, body = {}) {
+  const { data, error } = await supabase.functions.invoke(name, { body })
+  if (error) throw new Error(error.message)
+  if (data?.error) throw new Error(data.error)
+  return data
+}

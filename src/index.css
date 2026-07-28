@@ -1121,6 +1121,13 @@
 .nx-map-native .leaflet-tile-pane {
   filter: none;
 }
+/* Opt-out for any map outside DetailerMap (EnRouteTracker on BookingDetail).
+   The #nx-map-abstract <filter> def is rendered by DetailerMap, so on a page
+   where that map isn't mounted the url() reference resolves to nothing and
+   the tile pane disappears entirely. */
+.nx-map-plain .leaflet-tile-pane {
+  filter: none;
+}
 .leaflet-tile-pane {
   filter: url(#nx-map-abstract);
 }

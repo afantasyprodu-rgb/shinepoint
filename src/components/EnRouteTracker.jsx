@@ -1,19 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import mapboxgl from 'mapbox-gl'
-import 'mapbox-gl/dist/mapbox-gl.css'
-import { motion } from 'motion/react'
-import { isMapboxConfigured } from './DetailerMap'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
+import { TILES } from './DetailerMap'
+import { useTheme } from '../context/ThemeContext'
 import { CA_ZIP_CENTROIDS, milesBetween } from '../lib/fuzzyPin'
 import { ClockIcon, AlertTriangleIcon, MapPinIcon } from './icons'
 
-// mapboxgl throws immediately on `new mapboxgl.Map(...)` if this isn't set
-// first — nothing else in the app sets it (the main discovery map runs on
-// Leaflet/OSM, token-free), so this was the only place it was ever needed.
-if (isMapboxConfigured()) mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN
-
 // Simulated live tracking for the En route stage. No real GPS in demo, so the
 // detailer drives a deterministic line from ~2.5 mi out to the customer's zip
-// centroid. Renders real Mapbox tiles when a token is set, else a stylized box.
+// centroid. Runs on the same Leaflet + CartoDB tiles as the discovery map —
+// no token needed, so there's one render path instead of a token/no-token pair.
 const TICK_MS = 1200
 const BASE_STEP = 0.05
 const MAX_PROGRESS = 0.96
@@ -24,8 +20,25 @@ const lerpPt = (a, b, t) => ({ lat: lerp(a.lat, b.lat, t), lng: lerp(a.lng, b.ln
 // Ease-in-out so the car accelerates away and slows on approach.
 const ease = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2)
 
+// Destination reuses the discovery map's pin (green = the customer's address);
+// the car reuses the pulsing "you are here" marker, which already reads as a
+// live-updating position. Both styles live in index.css.
+const homeIcon = L.divIcon({
+  className: '',
+  html: '<span class="nx-map-pin" style="--pin:#16a34a"></span>',
+  iconSize: [22, 22],
+  iconAnchor: [11, 11],
+})
+const carIcon = L.divIcon({
+  className: '',
+  html: '<span class="nx-user-dot"><span class="nx-user-ping"></span></span>',
+  iconSize: [22, 22],
+  iconAnchor: [11, 11],
+})
+
 export default function EnRouteTracker({ booking, detailer, live = true }) {
   const home = CA_ZIP_CENTROIDS[booking.zip]
+  const { theme } = useTheme()
 
   // Deterministic origin ~2.5 mi NE of the destination (detailer.pin sits in the
   // same zip, too close to draw a meaningful route).
@@ -57,136 +70,81 @@ export default function EnRouteTracker({ booking, detailer, live = true }) {
   const etaMin = Math.max(1, Math.round((1 - progress) * totalMin))
   const milesLeft = home ? milesBetween(current, home) : 0
 
-  // ── Mapbox refs ────────────────────────────────────────────────────────────
+  // ── Leaflet refs ───────────────────────────────────────────────────────────
   const containerRef = useRef(null)
   const mapRef = useRef(null)
+  const tileRef = useRef(null)
   const carRef = useRef(null)
-  const useMap = isMapboxConfigured() && home
 
   useEffect(() => {
-    if (!useMap || !containerRef.current) return
-    const map = new mapboxgl.Map({
-      container: containerRef.current,
-      style: 'mapbox://styles/mapbox/streets-v12',
-      center: [start.lng, start.lat],
+    if (!home || !containerRef.current || mapRef.current) return
+    // Every interaction off — a clean tracker that never hijacks page scroll.
+    const map = L.map(containerRef.current, {
+      center: [start.lat, start.lng],
       zoom: 12,
-      interactive: false, // a clean tracker — never hijacks page scroll
-      attributionControl: false,
+      zoomControl: false,
+      dragging: false,
+      scrollWheelZoom: false,
+      doubleClickZoom: false,
+      touchZoom: false,
+      boxZoom: false,
+      keyboard: false,
     })
+    const tile = TILES[theme] ?? TILES.light
+    tileRef.current = L.tileLayer(tile.url, { attribution: tile.attribution, maxZoom: 19 }).addTo(map)
     mapRef.current = map
 
-    map.on('load', () => {
-      map.addSource('route', {
-        type: 'geojson',
-        data: {
-          type: 'Feature',
-          geometry: {
-            type: 'LineString',
-            coordinates: [
-              [start.lng, start.lat],
-              [home.lng, home.lat],
-            ],
-          },
-        },
-      })
-      map.addLayer({
-        id: 'route',
-        type: 'line',
-        source: 'route',
-        layout: { 'line-cap': 'round', 'line-join': 'round' },
-        paint: { 'line-color': '#7c3aed', 'line-width': 4, 'line-opacity': 0.5, 'line-dasharray': [1.5, 1.5] },
-      })
+    L.polyline(
+      [
+        [start.lat, start.lng],
+        [home.lat, home.lng],
+      ],
+      { color: '#7c3aed', weight: 4, opacity: 0.5, dashArray: '6 6', lineCap: 'round' }
+    ).addTo(map)
 
-      // Home (destination) marker
-      const homeEl = document.createElement('div')
-      homeEl.style.cssText =
-        'width:18px;height:18px;border-radius:9999px;background:#16a34a;border:3px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.4);'
-      new mapboxgl.Marker({ element: homeEl }).setLngLat([home.lng, home.lat]).addTo(map)
+    L.marker([home.lat, home.lng], { icon: homeIcon, interactive: false }).addTo(map)
+    carRef.current = L.marker([start.lat, start.lng], {
+      icon: carIcon,
+      interactive: false,
+      zIndexOffset: 500,
+    }).addTo(map)
 
-      // Detailer (car) marker with a pulsing ring
-      const carEl = document.createElement('div')
-      carEl.style.cssText = 'position:relative;width:22px;height:22px;'
-      carEl.innerHTML =
-        '<span style="position:absolute;inset:0;border-radius:9999px;background:#7c3aed;opacity:0.35;animation:emp 1.6s ease-out infinite;"></span>' +
-        '<span style="position:absolute;inset:0;border-radius:9999px;background:#7c3aed;border:3px solid white;box-shadow:0 1px 5px rgba(0,0,0,0.5);"></span>' +
-        '<style>@keyframes emp{0%{transform:scale(1);opacity:.4}100%{transform:scale(2.4);opacity:0}}</style>'
-      const carMarker = new mapboxgl.Marker({ element: carEl }).setLngLat([start.lng, start.lat]).addTo(map)
-      carRef.current = carMarker
-
-      map.fitBounds(
-        [
-          [start.lng, start.lat],
-          [home.lng, home.lat],
-        ],
-        { padding: 46, maxZoom: 14, duration: 0 }
-      )
-    })
+    map.fitBounds(
+      [
+        [start.lat, start.lng],
+        [home.lat, home.lng],
+      ],
+      { padding: [46, 46], maxZoom: 14, animate: false }
+    )
 
     return () => {
       carRef.current = null
+      tileRef.current = null
       map.remove()
       mapRef.current = null
     }
-  }, [useMap]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Swap tiles when the theme flips.
+  useEffect(() => {
+    if (!tileRef.current) return
+    const tile = TILES[theme] ?? TILES.light
+    tileRef.current.setUrl(tile.url)
+    tileRef.current.options.attribution = tile.attribution
+  }, [theme])
 
   // Move the car marker as progress advances.
   useEffect(() => {
-    if (carRef.current && current) carRef.current.setLngLat([current.lng, current.lat])
+    if (carRef.current && current) carRef.current.setLatLng([current.lat, current.lng])
   }, [current])
 
   if (!home) return null
 
-  // Stylized fallback projection (no token): local bbox of start+home with padding.
-  const fb = (() => {
-    const pad = 0.012
-    const minLng = Math.min(start.lng, home.lng) - pad
-    const maxLng = Math.max(start.lng, home.lng) + pad
-    const minLat = Math.min(start.lat, home.lat) - pad
-    const maxLat = Math.max(start.lat, home.lat) + pad
-    const px = (p) => ({
-      x: ((p.lng - minLng) / (maxLng - minLng)) * 100,
-      y: ((maxLat - p.lat) / (maxLat - minLat)) * 100,
-    })
-    return { s: px(start), h: px(home), c: px(current) }
-  })()
-
   return (
     <div className="mt-3 overflow-hidden rounded-2xl border border-brand-100 bg-white">
-      {useMap ? (
-        <div ref={containerRef} className="h-44 w-full" />
-      ) : (
-        <div className="relative h-44 w-full bg-[#eae7df]">
-          <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 h-full w-full" aria-hidden="true">
-            <g stroke="#ffffff" strokeWidth="1.25" vectorEffect="non-scaling-stroke">
-              {[20, 40, 60, 80].map((y) => (
-                <line key={`h${y}`} x1="0" y1={y} x2="100" y2={y} vectorEffect="non-scaling-stroke" />
-              ))}
-              {[20, 40, 60, 80].map((x) => (
-                <line key={`v${x}`} x1={x} y1="0" x2={x} y2="100" vectorEffect="non-scaling-stroke" />
-              ))}
-            </g>
-            <line
-              x1={fb.s.x} y1={fb.s.y} x2={fb.h.x} y2={fb.h.y}
-              stroke="#7c3aed" strokeWidth="2.5" strokeDasharray="4 3" opacity="0.5"
-              vectorEffect="non-scaling-stroke"
-            />
-          </svg>
-          {/* Home marker */}
-          <span className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${fb.h.x}%`, top: `${fb.h.y}%` }}>
-            <span className="block h-4 w-4 rounded-full border-[3px] border-white bg-cta-600 shadow" />
-          </span>
-          {/* Car marker */}
-          <motion.span
-            className="absolute -translate-x-1/2 -translate-y-1/2"
-            animate={{ left: `${fb.c.x}%`, top: `${fb.c.y}%` }}
-            transition={{ duration: TICK_MS / 1000, ease: 'linear' }}
-            style={{ left: `${fb.c.x}%`, top: `${fb.c.y}%` }}
-          >
-            <span className="absolute inset-0 h-[18px] w-[18px] animate-ping rounded-full bg-brand-600 opacity-40" />
-            <span className="relative block h-[18px] w-[18px] rounded-full border-[3px] border-white bg-brand-600 shadow-md" />
-          </motion.span>
-        </div>
-      )}
+      {/* nx-map-plain opts out of the poster tile filter, whose <filter> def
+          only exists while DetailerMap is mounted (see index.css). */}
+      <div ref={containerRef} className="nx-map-plain h-44 w-full" />
 
       {/* Live status strip */}
       <div className="border-t border-brand-100 px-3 py-2.5">

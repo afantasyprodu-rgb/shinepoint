@@ -47,7 +47,9 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Photo pickers are plain <input type="file">, which the WebView hands to
+         the system file/camera chooser — no CAMERA permission needed. Location
+         is required: the map's locate-me button calls navigator.geolocation. -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 </manifest>

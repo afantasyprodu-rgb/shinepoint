@@ -1,5 +1,5 @@
 -- Smoke test for 009. Run against staging AFTER applying 009:
---   supabase db execute --file supabase/migrations/009_verify.sql
+--   supabase db execute --file supabase/tests/009_verify.sql
 -- Asserts the service-role gate that all column guards depend on.
 -- If is_service_role() ever returns true for a normal user JWT, every
 -- guard trigger silently becomes a no-op.

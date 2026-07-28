@@ -43,9 +43,8 @@ Fill in the two values from **Project Settings → API** in your Supabase dashbo
 - `VITE_SUPABASE_URL` — the Project URL
 - `VITE_SUPABASE_ANON_KEY` — the `anon` `public` key
 
-For the customer map, also create a free [Mapbox](https://mapbox.com) account and set:
-
-- `VITE_MAPBOX_TOKEN` — your default public token from account.mapbox.com
+Maps need no key — both the customer discovery map and the en-route tracker run
+on Leaflet + CartoDB/OpenStreetMap tiles.
 
 ### 4. Run the app
 

@@ -1,7 +1,7 @@
-import { useRef, useState } from 'react'
 import { motion } from 'motion/react'
 import { Avatar } from './ui/bits'
 import { CameraIcon, XIcon } from './icons'
+import { useFileUpload } from '../hooks/useFileUpload'
 
 // Reusable profile-photo picker. Shows the current photo (or initials), lets the
 // user pick a new one, runs the parent-supplied async uploader, and reports the
@@ -15,27 +15,7 @@ import { CameraIcon, XIcon } from './icons'
 //   onFile    async (file) => url   — uploads and returns the new URL
 //   onChange  (url | null) => void  — called with the new URL, or null on remove
 export default function AvatarUpload({ photo, name, size = 'xl', onFile, onChange }) {
-  const inputRef = useRef(null)
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState('')
-
-  async function handlePick(e) {
-    const file = e.target.files?.[0]
-    e.target.value = '' // allow re-picking the same file
-    if (!file) return
-    if (!file.type.startsWith('image/')) { setError('Pick an image file.'); return }
-    if (file.size > 5 * 1024 * 1024) { setError('Image must be under 5 MB.'); return }
-    setError('')
-    setBusy(true)
-    try {
-      const url = await onFile(file)
-      onChange(url)
-    } catch {
-      setError('Upload failed — try again.')
-    } finally {
-      setBusy(false)
-    }
-  }
+  const { inputRef, busy, error, handlePick, open } = useFileUpload({ onFile, onChange })
 
   return (
     <div className="flex flex-col items-center gap-2">
@@ -43,7 +23,7 @@ export default function AvatarUpload({ photo, name, size = 'xl', onFile, onChang
         <motion.button
           type="button"
           whileTap={{ scale: 0.96 }}
-          onClick={() => inputRef.current?.click()}
+          onClick={open}
           disabled={busy}
           aria-label={photo ? 'Change profile photo' : 'Add profile photo'}
           className="group relative block rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2"
@@ -80,7 +60,7 @@ export default function AvatarUpload({ photo, name, size = 'xl', onFile, onChang
 
       <button
         type="button"
-        onClick={() => inputRef.current?.click()}
+        onClick={open}
         disabled={busy}
         className="text-sm font-semibold text-brand-700 hover:text-brand-800 disabled:opacity-50"
       >

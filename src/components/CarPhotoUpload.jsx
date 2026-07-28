@@ -1,36 +1,17 @@
-import { useRef, useState } from 'react'
 import { CameraIcon, CarIcon, XIcon } from './icons'
+import { useFileUpload } from '../hooks/useFileUpload'
 
 // Compact square photo picker for a single vehicle — same upload contract as
-// AvatarUpload (onFile does the actual upload, onChange gets the resulting
-// URL or null on remove) but rounded-xl instead of circular, with a car-icon
-// placeholder instead of initials when there's no photo yet.
+// AvatarUpload (both run on useFileUpload) but rounded-xl instead of circular,
+// with a car-icon placeholder instead of initials when there's no photo yet.
 export default function CarPhotoUpload({ photo, onFile, onChange }) {
-  const inputRef = useRef(null)
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState('')
-
-  async function handlePick(e) {
-    const file = e.target.files?.[0]
-    e.target.value = ''
-    if (!file || !file.type.startsWith('image/')) return
-    setError('')
-    setBusy(true)
-    try {
-      const url = await onFile(file)
-      onChange(url)
-    } catch {
-      setError('Upload failed')
-    } finally {
-      setBusy(false)
-    }
-  }
+  const { inputRef, busy, error, handlePick, open } = useFileUpload({ onFile, onChange })
 
   return (
     <div className="relative shrink-0">
       <button
         type="button"
-        onClick={() => inputRef.current?.click()}
+        onClick={open}
         disabled={busy}
         aria-label={photo ? 'Change vehicle photo' : 'Add vehicle photo'}
         className="group relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-xl bg-brand-50 text-brand-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:bg-white/5 dark:text-brand-300"
