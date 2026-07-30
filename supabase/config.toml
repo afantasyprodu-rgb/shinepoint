@@ -46,6 +46,21 @@ additional_redirect_urls = ["https://shinepoint.app/auth/callback", "https://det
 enroll_enabled = true
 verify_enabled = true
 
+# Phone OTP is the one paid endpoint that is NOT an edge function — the client
+# calls signInWithOtp() straight against GoTrue, so the app-level limiter in
+# _shared/rateLimit.ts can't see it. These are GoTrue's own limits and are the
+# only thing standing between an unauthenticated public form and a per-SMS
+# Twilio bill. Tighten sms_sent further once real traffic gives a baseline.
+#   sms_sent / email_sent  -> per hour, whole project
+#   the rest               -> per 5 minutes, per IP
+[auth.rate_limit]
+sms_sent = 30
+email_sent = 60
+sign_in_sign_ups = 10
+token_verifications = 10
+token_refresh = 150
+anonymous_users = 10
+
 [auth.email]
 enable_confirmations = true
 max_frequency = "1m0s"

@@ -11,6 +11,7 @@
 import Stripe from 'npm:stripe@^18'
 import { createClient } from 'npm:@supabase/supabase-js@^2'
 import { corsHeaders, json } from '../_shared/cors.ts'
+import { withinRateLimit, tooManyRequests } from '../_shared/rateLimit.ts'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
   apiVersion: '2026-05-27.dahlia',
@@ -57,6 +58,14 @@ Deno.serve(async (req) => {
       if (!TERMINAL_STATUSES.has(existing.status) && existing.client_secret) {
         return json({ clientSecret: existing.client_secret })
       }
+    }
+
+    // Only a genuinely NEW session costs money (~$1.50), so the limit is
+    // checked here rather than at the top — a detailer who closes and
+    // reopens the modal reuses the in-flight session above and is never
+    // charged against their quota for it.
+    if (!(await withinRateLimit(admin, `identity:${user.id}`, 3, '1 day'))) {
+      return tooManyRequests(3600)
     }
 
     const session = await stripe.identity.verificationSessions.create({

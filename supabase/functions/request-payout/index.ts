@@ -10,6 +10,7 @@
 import Stripe from 'npm:stripe@^18'
 import { createClient } from 'npm:@supabase/supabase-js@^2'
 import { corsHeaders, json } from '../_shared/cors.ts'
+import { withinRateLimit, tooManyRequests } from '../_shared/rateLimit.ts'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
   apiVersion: '2026-05-27.dahlia',
@@ -51,6 +52,12 @@ Deno.serve(async (req) => {
 
     // Never trust a client-sent amount against a client-sent balance —
     // re-read the live balance here and validate against it.
+    // Payouts move real money; 5/day per detailer is far above any honest
+    // use and well below anything worth scripting.
+    if (!(await withinRateLimit(admin, `payout:${user.id}`, 5, '1 day'))) {
+      return tooManyRequests(3600)
+    }
+
     const balance = await stripe.balance.retrieve({}, { stripeAccount: profile.stripe_account_id })
     const availableUsd =
       balance.available.filter((e) => e.currency === 'usd').reduce((s, e) => s + e.amount, 0) / 100

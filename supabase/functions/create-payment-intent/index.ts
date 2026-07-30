@@ -11,6 +11,7 @@
 import Stripe from 'npm:stripe@^18'
 import { createClient } from 'npm:@supabase/supabase-js@^2'
 import { corsHeaders, json } from '../_shared/cors.ts'
+import { withinRateLimit, tooManyRequests } from '../_shared/rateLimit.ts'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
   apiVersion: '2026-05-27.dahlia',
@@ -119,6 +120,12 @@ Deno.serve(async (req) => {
 
     // Reuse the intent if one already exists for this booking (idempotent retry).
     let intent: Stripe.PaymentIntent
+    // Creating intents is cheap but not free, and a loop here is the
+    // cheapest way to make noise in your Stripe dashboard.
+    if (!(await withinRateLimit(admin, `pi:${user.id}`, 20, '1 hour'))) {
+      return tooManyRequests(3600)
+    }
+
     if (booking.stripe_payment_intent) {
       intent = await stripe.paymentIntents.retrieve(booking.stripe_payment_intent)
     } else {

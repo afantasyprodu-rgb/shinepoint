@@ -7,6 +7,7 @@
 // Secrets: RESEND_API_KEY (optional — send is skipped, not fatal, if unset).
 import { createClient } from 'npm:@supabase/supabase-js@^2'
 import { corsHeaders, json } from '../_shared/cors.ts'
+import { withinRateLimit, tooManyRequests } from '../_shared/rateLimit.ts'
 import { sendEmail } from '../_shared/resend.ts'
 import { receiptEmail } from '../_shared/email-templates.ts'
 
@@ -76,6 +77,12 @@ Deno.serve(async (req) => {
       paidAt: booking.completed_at ?? new Date().toISOString(),
       receiptUrl: `${Deno.env.get('APP_ORIGIN') ?? 'https://shinepoint.app'}/bookings/${booking.id}`,
     })
+    // Each send costs a Resend credit and lands in a customer's inbox —
+    // capped so a loop can't bill you or spam them.
+    if (!(await withinRateLimit(admin, `receipt:${user.id}`, 10, '1 hour'))) {
+      return tooManyRequests(3600)
+    }
+
     const result = await sendEmail({ to: customer.email, subject, html })
 
     return json({ ok: true, ...result })
