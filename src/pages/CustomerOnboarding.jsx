@@ -6,7 +6,7 @@ import Combobox from '../components/ui/Combobox'
 import { CarIcon, MapPinIcon } from '../components/icons'
 import { useStore } from '../context/StoreContext'
 import { CA_ZIP_CENTROIDS } from '../lib/fuzzyPin'
-import { CAR_MAKES, CAR_MODELS } from '../lib/vehicleData'
+import { CAR_MAKES, CAR_MODELS, MODEL_TO_TYPE } from '../lib/vehicleData'
 import { useT } from '../i18n/useT'
 
 const VEHICLE_TYPES = ['Sedan', 'SUV', 'Truck', 'Van', 'Coupe', 'EV']
@@ -117,7 +117,12 @@ export default function CustomerOnboarding() {
                   <label className="auth-label">{t('modelLabel')}</label>
                   <Combobox
                     value={model}
-                    onChange={setModel}
+                    onChange={(m) => {
+                      setModel(m)
+                      // Auto-detect vehicle type from model
+                      const detectedType = MODEL_TO_TYPE[m]
+                      if (detectedType) setType(detectedType)
+                    }}
                     options={CAR_MODELS[make] ?? ALL_MODELS}
                     placeholder="Camry"
                     inputClassName="auth-input"

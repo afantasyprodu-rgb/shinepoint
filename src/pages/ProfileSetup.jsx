@@ -8,7 +8,7 @@ import { AnimatedPage } from '../components/ui/Motion'
 import { ArrowRightIcon, CheckIcon, SparklesIcon } from '../components/icons'
 import { useAuth, homePathForRole } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
-import { CAR_MAKES, CAR_MODELS } from '../lib/vehicleData'
+import { CAR_MAKES, CAR_MODELS, MODEL_TO_TYPE } from '../lib/vehicleData'
 import { useT } from '../i18n/useT'
 
 const VEHICLE_TYPES = ['Sedan', 'SUV', 'Truck', 'Van', 'Coupe', 'EV']
@@ -186,7 +186,12 @@ export default function ProfileSetup() {
                         />
                         <Combobox
                           value={vehModel}
-                          onChange={setVehModel}
+                          onChange={(m) => {
+                            setVehModel(m)
+                            // Auto-detect vehicle type from model
+                            const detectedType = MODEL_TO_TYPE[m]
+                            if (detectedType) setVehType(detectedType)
+                          }}
                           options={CAR_MODELS[vehMake] ?? ALL_MODELS}
                           placeholder="Model (RAV4)"
                         />

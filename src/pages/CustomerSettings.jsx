@@ -9,7 +9,7 @@ import { CheckIcon, MapPinIcon, PlusIcon, TrashIcon } from '../components/icons'
 import { useStore } from '../context/StoreContext'
 import { usePaint, PAINTS } from '../context/PaintContext'
 import { CA_ZIP_CENTROIDS } from '../lib/fuzzyPin'
-import { CAR_MAKES, CAR_MODELS } from '../lib/vehicleData'
+import { CAR_MAKES, CAR_MODELS, MODEL_TO_TYPE } from '../lib/vehicleData'
 import { useTiltShadow } from '../hooks/useTiltShadow'
 import { useT } from '../i18n/useT'
 
@@ -197,7 +197,12 @@ export default function CustomerSettings() {
               />
               <Combobox
                 value={vehModel}
-                onChange={setVehModel}
+                onChange={(m) => {
+                  setVehModel(m)
+                  // Auto-detect vehicle type from model
+                  const detectedType = MODEL_TO_TYPE[m]
+                  if (detectedType) setVehType(detectedType)
+                }}
                 options={CAR_MODELS[vehMake] ?? ALL_MODELS}
                 placeholder="Model (RAV4)"
               />
