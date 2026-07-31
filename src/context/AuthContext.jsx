@@ -116,3 +116,13 @@ export function homePathForRole(role) {
   if (role === 'admin') return '/admin'
   return '/home'
 }
+
+// A brand-new account always lands on its role's onboarding wizard, never
+// straight on the dashboard — a detailer isn't verified/insured yet and
+// shouldn't be shown live jobs before finishing that. Returning users
+// (login) skip this and go via homePathForRole instead.
+export function signupHomePath(role) {
+  if (role === 'detailer') return '/detailer/onboarding'
+  if (role === 'customer') return '/onboarding'
+  return homePathForRole(role)
+}

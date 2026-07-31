@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { homePathForRole } from '../context/AuthContext'
+import { homePathForRole, signupHomePath } from '../context/AuthContext'
 import { needsMfaChallenge } from '../lib/mfa'
 import { markArrival } from '../lib/transition'
 import Logo from '../components/Logo'
@@ -27,11 +27,19 @@ export default function AuthCallback() {
         return
       }
 
-      const userId = data.session.user.id
+      const user = data.session.user
+      const userId = user.id
       // URL param survives the OAuth redirect even if localStorage got
       // partitioned/cleared cross-origin; localStorage is the fallback.
       const pendingRole =
         new URLSearchParams(window.location.search).get('role') || localStorage.getItem('pendingRole')
+      // OAuth has no separate signup/login step — Supabase issues the same
+      // callback either way. A brand-new account's created_at and
+      // last_sign_in_at land within a couple seconds of each other; a
+      // returning user's created_at is old. That's the only signal we have
+      // for "just signed up" vs "logging back in".
+      const isNewSignup =
+        new Date(user.last_sign_in_at).getTime() - new Date(user.created_at).getTime() < 5000
 
       // Convert a fresh OAuth account to a detailer if that's what they chose.
       if (pendingRole === 'detailer') {
@@ -55,7 +63,7 @@ export default function AuthCallback() {
         return
       }
 
-      const homePath = homePathForRole(userRow?.role)
+      const homePath = isNewSignup ? signupHomePath(userRow?.role) : homePathForRole(userRow?.role)
       if (await needsMfaChallenge()) {
         navigate('/mfa-challenge', { state: { next: homePath }, replace: true })
         return
