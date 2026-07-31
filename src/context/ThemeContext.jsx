@@ -109,16 +109,14 @@ export function ThemeProvider({ children }) {
     applyHue(hue)
   }, [theme, paintVersion])
 
-  // Listen for paint changes (from PaintContext updates to localStorage).
-  // Trigger re-apply of hue when paint changes.
+  // Listen for paint changes (custom event from PaintContext).
+  // Real-time re-apply when user clicks a color swatch.
   useEffect(() => {
-    const handleStorageChange = (e) => {
-      if (e.key === PAINT_STORAGE_KEY) {
-        setPaintVersion((v) => v + 1)
-      }
+    const handlePaintChange = () => {
+      setPaintVersion((v) => v + 1)
     }
-    window.addEventListener('storage', handleStorageChange)
-    return () => window.removeEventListener('storage', handleStorageChange)
+    window.addEventListener('shinepoint:paint-changed', handlePaintChange)
+    return () => window.removeEventListener('shinepoint:paint-changed', handlePaintChange)
   }, [])
 
   // Rolls a new hue for the mode being entered — persisted immediately, so

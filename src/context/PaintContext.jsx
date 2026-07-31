@@ -61,7 +61,11 @@ export function PaintProvider({ children }) {
     localStorage.setItem(STORAGE_KEY, accent)
   }, [accent, safeAccent])
 
-  const setAccent = (hex) => setAccentRaw(hex)
+  const setAccent = (hex) => {
+    setAccentRaw(hex)
+    // Dispatch custom event for ThemeContext to listen to (real-time, same-tab)
+    window.dispatchEvent(new CustomEvent('shinepoint:paint-changed', { detail: { hex } }))
+  }
 
   return (
     <PaintContext.Provider value={{ accent: safeAccent, rawAccent: accent, setAccent }}>
