@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
 /* Manual dark mode: the `dark` class on <html> wins over the OS setting.
@@ -8,8 +8,8 @@
 
 /* Design tokens — see design-system/shinepoint/MASTER.md */
 @theme {
-  --font-sans: "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Lexend", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Playfair Display", ui-sans-serif, system-ui, sans-serif;
 
   /* Brand/cta ramps are generated from --brand-h/--cta-h (defined below)
      via relative-color syntax: each step keeps the lightness of its
