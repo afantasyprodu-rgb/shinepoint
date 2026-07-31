@@ -81,7 +81,6 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
 
   const [countryIdx, setCountryIdx] = useState(0)
   const [localNumber, setLocalNumber] = useState('')
@@ -127,24 +126,13 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
     e.preventDefault()
     setError('')
     if (mode === 'signup') {
-      if (password.length < 8) { setError(t('passwordTooShort')); return }
-      if (password !== confirmPassword) { setError(t('passwordsDontMatch')); return }
+      await handleSendEmailCode()
+      return
     }
     setBusy(true)
-    if (mode === 'signup') {
-      const { data, error: err } = await supabase.auth.signUp({
-        email, password, options: { data: { full_name: fullName, role } },
-      })
-      setBusy(false)
-      if (err) { setError(err.message); return }
-      if (!data.session) { navigate('/check-email', { state: { email } }); return }
-      const homePath = signupHomePath(role)
-      navigate('/mfa-setup', { state: { next: homePath } })
-    } else {
-      const { data, error: err } = await supabase.auth.signInWithPassword({ email, password })
-      if (err) { setBusy(false); setError(err.message); return }
-      await finishLogin(data.user.id)
-    }
+    const { data, error: err } = await supabase.auth.signInWithPassword({ email, password })
+    if (err) { setBusy(false); setError(err.message); return }
+    await finishLogin(data.user.id)
   }
 
   async function handleSendEmailCode(e) {
@@ -153,7 +141,9 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
     setBusy(true)
     const { error: err } = await supabase.auth.signInWithOtp({
       email,
-      options: { shouldCreateUser: false },
+      options: isSignup
+        ? { shouldCreateUser: true, data: { full_name: fullName, role } }
+        : { shouldCreateUser: false },
     })
     setBusy(false)
     if (err) { setError(err.message); return }
@@ -165,6 +155,12 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
     setBusy(true)
     const { data, error: err } = await supabase.auth.verifyOtp({ email, token: code, type: 'email' })
     if (err) { setBusy(false); setError(err.message); setOtpCode(''); return }
+    if (mode === 'signup') {
+      setBusy(false)
+      const homePath = signupHomePath(role)
+      navigate('/mfa-setup', { state: { next: homePath } })
+      return
+    }
     await finishLogin(data.user.id)
   }
 
@@ -331,25 +327,15 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
               </div>
             </Field>
 
-            <Field index={isSignup ? 2 : 1}>
-              <div className="auth-field">
-                <label className="auth-label">{t('passwordLabel')}</label>
-                <input type="password"
-                  autoComplete={isSignup ? 'new-password' : 'current-password'}
-                  required value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder={isSignup ? t('passwordPlaceholderSignup') : '••••••••'}
-                  className="auth-input" />
-              </div>
-            </Field>
-
-            {isSignup && (
-              <Field index={3}>
+            {!isSignup && (
+              <Field index={1}>
                 <div className="auth-field">
-                  <label className="auth-label">{t('confirmPasswordLabel')}</label>
-                  <input type="password" autoComplete="new-password" required
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
+                  <label className="auth-label">{t('passwordLabel')}</label>
+                  <input type="password"
+                    autoComplete="current-password"
+                    required value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
                     className="auth-input" />
                 </div>
               </Field>
@@ -357,11 +343,11 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
 
             {error && <p role="alert" className="auth-error">{error}</p>}
 
-            <Field index={isSignup ? 4 : 2}>
+            <Field index={isSignup ? 2 : 2}>
               <button type="submit" disabled={busy} className="auth-btn-primary w-full">
                 {busy
-                  ? <span className="inline-flex items-center gap-2"><BtnSpinner />{isSignup ? t('creating') : t('loggingIn')}</span>
-                  : isSignup ? t('createAccountBtn') : t('logInBtn')}
+                  ? <span className="inline-flex items-center gap-2"><BtnSpinner />{isSignup ? t('sending') : t('loggingIn')}</span>
+                  : isSignup ? t('sendCode') : t('logInBtn')}
               </button>
             </Field>
 
