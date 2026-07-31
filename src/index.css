@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&family=Source+Sans+3:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
 /* Manual dark mode: the `dark` class on <html> wins over the OS setting.
@@ -17,8 +17,8 @@
    Never violate this ratio; it ensures visual hierarchy and accessibility.
    Apply this strictly when adding new components or colors. */
 @theme {
-  --font-sans: "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Lexend", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Playfair Display", ui-sans-serif, system-ui, sans-serif;
 
   /* Brand/cta ramps are generated from --brand-h/--cta-h (defined below)
      via relative-color syntax: each step keeps the lightness of its
@@ -27,23 +27,21 @@
      vividly as the saturated mid-transition sheen instead of looking flat
      by comparison. ThemeContext.jsx rotates the hue — see the comment
      above the :root block below for why. */
-  /* Brand colors stay fixed across themes. A marketplace that asks for trust
-     cannot look like a different company every time the theme is changed. */
-  --color-brand-50: #faf5ff;
-  --color-brand-100: #f3e8ff;
-  --color-brand-200: #e9d5ff;
-  --color-brand-300: #d8b4fe;
-  --color-brand-400: #c084fc;
-  --color-brand-500: #a78bfa;
-  --color-brand-600: #7c3aed;
-  --color-brand-700: #6d28d9;
-  --color-brand-800: #5b21b6;
-  --color-brand-900: #4c1d95;
+  --color-brand-50: oklch(from #faf5ff L calc(C * 1.15) var(--brand-h));
+  --color-brand-100: oklch(from #f3e8ff L calc(C * 1.15) var(--brand-h));
+  --color-brand-200: oklch(from #e9d5ff L calc(C * 1.15) var(--brand-h));
+  --color-brand-300: oklch(from #d8b4fe L calc(C * 1.15) var(--brand-h));
+  --color-brand-400: oklch(from #c084fc L calc(C * 1.15) var(--brand-h));
+  --color-brand-500: oklch(from #a78bfa L calc(C * 1.15) var(--brand-h));
+  --color-brand-600: oklch(from #7c3aed L calc(C * 1.15) var(--brand-h));
+  --color-brand-700: oklch(from #6d28d9 L calc(C * 1.15) var(--brand-h));
+  --color-brand-800: oklch(from #5b21b6 L calc(C * 1.15) var(--brand-h));
+  --color-brand-900: oklch(from #4c1d95 L calc(C * 1.15) var(--brand-h));
 
-  --color-cta-500: #22c55e;
-  --color-cta-600: #16a34a;
-  --color-cta-700: #15803d;
-  --color-cta-800: #166534;
+  --color-cta-500: oklch(from #22c55e L calc(C * 1.15) var(--cta-h));
+  --color-cta-600: oklch(from #16a34a L calc(C * 1.15) var(--cta-h));
+  --color-cta-700: oklch(from #15803d L calc(C * 1.15) var(--cta-h));
+  --color-cta-800: oklch(from #166534 L calc(C * 1.15) var(--cta-h));
 
   /* Third analytics accent — donut/chart segments beyond brand+cta (revenue
      and earnings breakdowns need a 3rd hue that isn't a full extra ramp).
@@ -59,7 +57,8 @@
      • Icons + text always accompany color signals (never color alone)
      Remember: OKLCH lightness (L) is the primary contrast driver. */
 
-  --ease-spring: cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* Bouncy overshoot easing — the app-wide "fun" press feel */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 /* Rotating brand hue — every time the user flips light<->dark, ThemeContext
@@ -82,36 +81,16 @@
    (which is a deliberately fixed-dark surface, see .auth-card-shell)
    reads through these three variables. */
 :root {
-  --neu-bg: var(--surface-card);
-  --neu-sd: rgba(76, 29, 149, 0.14);
+  --neu-bg: #e3e7ee;
+  --neu-sd: #b9c1d1;
   --neu-sl: #ffffff;
-  --surface-page: #faf8fc;
-  --surface-card: #ffffff;
-  --surface-soft: #f7f2ff;
-  --surface-raised: #ffffff;
-  --surface-border: #e8e1f0;
-  --surface-border-strong: #d9cbe8;
-  --text-strong: #21172e;
-  --text-muted: #675c72;
-  --shadow-card: 0 1px 2px rgba(41, 25, 55, 0.04), 0 10px 30px rgba(76, 29, 149, 0.07);
-  --shadow-float: 0 18px 48px rgba(49, 27, 70, 0.16);
 }
 /* :root.dark (not :where(.dark)) — :where() zeroes specificity, which would
    lose to the plain :root rule above regardless of source order. */
 :root.dark {
-  --neu-bg: var(--surface-card);
-  --neu-sd: rgba(0, 0, 0, 0.42);
-  --neu-sl: rgba(255, 255, 255, 0.06);
-  --surface-page: #120f18;
-  --surface-card: #1d1826;
-  --surface-soft: #251d31;
-  --surface-raised: #231c2d;
-  --surface-border: rgba(233, 213, 255, 0.11);
-  --surface-border-strong: rgba(233, 213, 255, 0.2);
-  --text-strong: #f6f0fb;
-  --text-muted: #b6aabd;
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.25), 0 14px 34px rgba(0, 0, 0, 0.22);
-  --shadow-float: 0 20px 54px rgba(0, 0, 0, 0.42);
+  --neu-bg: #1a2029;
+  --neu-sd: #0e1218;
+  --neu-sl: #262e3a;
 }
 
 /* Soap-sheen hue arc — bounded purple→pink→blue→purple (real soap-film
@@ -135,26 +114,14 @@
   }
 
   body {
-    background:
-      radial-gradient(circle at 8% -10%, color-mix(in srgb, var(--color-brand-100) 72%, transparent), transparent 30rem),
-      var(--surface-page);
+    background: var(--neu-bg);
     @apply font-sans text-slate-900 antialiased dark:text-slate-100;
     transition: background-color 0.3s ease, color 0.3s ease;
   }
 
   h1, h2, h3, h4 {
     font-family: var(--font-display);
-    letter-spacing: -0.035em;
-    text-wrap: balance;
-  }
-
-  p {
-    text-wrap: pretty;
-  }
-
-  ::selection {
-    background: var(--color-brand-200);
-    color: var(--color-brand-900);
+    letter-spacing: -0.02em;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -169,7 +136,7 @@
 
 @layer components {
   .btn {
-    @apply inline-flex h-12 cursor-pointer items-center justify-center gap-2 rounded-xl px-5 font-semibold transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none;
+    @apply inline-flex h-12 cursor-pointer items-center justify-center gap-2 rounded-xl px-5 font-semibold transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none;
     transition-timing-function: var(--ease-spring);
   }
 
@@ -185,7 +152,7 @@
       box-shadow 200ms ease;
   }
   .press-spring:active {
-    transform: scale(0.98);
+    transform: scale(0.94);
   }
 
   /* Money-moving actions (pay, book, create account) stay solid-filled —
@@ -194,22 +161,19 @@
      treatment so the CTA is the one thing that visually pops. */
   .btn-cta {
     @apply bg-cta-600 text-white hover:bg-cta-700 focus-visible:ring-cta-500;
-    box-shadow: 0 8px 20px -10px color-mix(in srgb, var(--color-cta-700) 80%, transparent);
+    box-shadow: 0 6px 16px -6px color-mix(in srgb, var(--color-cta-600) 70%, transparent);
   }
 
   .btn-brand {
-    background: var(--surface-card);
-    border: 1px solid var(--surface-border-strong);
-    @apply text-brand-700 dark:text-brand-200 focus-visible:ring-brand-600;
-    box-shadow: 0 1px 2px rgba(41, 25, 55, 0.05);
+    background: var(--neu-bg);
+    @apply text-brand-700 dark:text-brand-200;
+    box-shadow: 5px 5px 11px var(--neu-sd), -5px -5px 11px var(--neu-sl);
   }
   .btn-brand:hover {
-    background: var(--surface-soft);
-    border-color: var(--color-brand-300);
-    box-shadow: 0 7px 18px rgba(76, 29, 149, 0.1);
+    box-shadow: 6px 6px 14px var(--neu-sd), -6px -6px 14px var(--neu-sl);
   }
   .btn-brand:active {
-    box-shadow: 0 1px 2px rgba(41, 25, 55, 0.05);
+    box-shadow: inset 3px 3px 7px var(--neu-sd), inset -3px -3px 7px var(--neu-sl);
   }
 
   /* Gradient fills — oklch keeps the blend clean. */
@@ -230,15 +194,13 @@
   }
 
   .btn-outline {
-    border: 1px solid var(--surface-border);
-    background: var(--surface-card);
+    border: none;
+    background: var(--neu-bg);
     @apply text-slate-700 dark:text-slate-300 focus-visible:ring-brand-600;
-    box-shadow: 0 1px 2px rgba(41, 25, 55, 0.04);
+    box-shadow: inset 3px 3px 7px var(--neu-sd), inset -3px -3px 7px var(--neu-sl);
   }
   .btn-outline:hover {
     @apply text-brand-700 dark:text-brand-200;
-    border-color: var(--surface-border-strong);
-    background: var(--surface-soft);
   }
 
   .btn-outline-light {
@@ -246,16 +208,16 @@
   }
 
   .input {
-    border: 1px solid var(--surface-border-strong);
-    background: var(--surface-card);
-    @apply h-11 w-full rounded-xl px-3.5 text-base text-slate-900 placeholder-slate-400 transition-all duration-150 focus:outline-none dark:text-slate-100 dark:placeholder-slate-500;
-    box-shadow: 0 1px 2px rgba(41, 25, 55, 0.04);
+    border: none;
+    background: var(--neu-bg);
+    @apply h-11 w-full rounded-xl px-3.5 text-slate-900 placeholder-slate-400 transition-all duration-150 focus:outline-none dark:text-slate-100 dark:placeholder-slate-500;
+    box-shadow: inset 3px 3px 7px var(--neu-sd), inset -3px -3px 7px var(--neu-sl);
   }
   .input:focus {
     box-shadow:
-      0 0 0 3px color-mix(in srgb, var(--color-brand-600) 18%, transparent),
-      0 2px 8px rgba(76, 29, 149, 0.08);
-    border-color: var(--color-brand-600);
+      inset 3px 3px 7px var(--neu-sd),
+      inset -3px -3px 7px var(--neu-sl),
+      0 0 0 3px color-mix(in srgb, var(--color-cta-600) 35%, transparent);
   }
 
   /* Flat variant — same shape/type as .input, no inset neumorphic depth.
@@ -263,13 +225,12 @@
      mode / lighter in dark mode) so it still reads as a distinct field
      against the card behind it, just flush rather than pressed-in. */
   .input-flat {
-    border: 1px solid var(--surface-border);
-    background: var(--surface-soft);
-    @apply h-11 w-full rounded-xl px-3.5 text-base text-slate-900 placeholder-slate-400 transition-all duration-150 focus:outline-none dark:text-slate-100 dark:placeholder-slate-500;
+    border: none;
+    background: color-mix(in srgb, var(--neu-bg), var(--neu-sd) 30%);
+    @apply h-11 w-full rounded-xl px-3.5 text-slate-900 placeholder-slate-400 transition-all duration-150 focus:outline-none dark:text-slate-100 dark:placeholder-slate-500;
   }
   .input-flat:focus {
-    border-color: var(--color-brand-600);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand-600) 18%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-cta-600) 35%, transparent);
   }
 
   .label {
@@ -277,19 +238,18 @@
   }
 
   .card {
-    border: 1px solid var(--surface-border);
+    border: none;
     border-radius: 1.25rem;
-    background: var(--surface-card);
-    @apply p-6 sm:p-8;
-    box-shadow: var(--shadow-card);
+    background: var(--neu-bg);
+    @apply p-8;
+    box-shadow: 8px 8px 18px var(--neu-sd), -8px -8px 18px var(--neu-sl);
   }
 
   .card-hover {
-    @apply transition-all duration-200 hover:-translate-y-0.5;
+    @apply transition-all duration-200 hover:-translate-y-1;
   }
   .card-hover:hover {
-    border-color: var(--surface-border-strong);
-    box-shadow: 0 16px 38px rgba(76, 29, 149, 0.11);
+    box-shadow: 10px 10px 22px var(--neu-sd), -10px -10px 22px var(--neu-sl);
   }
 
   .glass {
@@ -389,11 +349,11 @@
      Weighted tiles; mixed sizes carry the hierarchy. One accent
      action tile max per grid. */
   .bento-tile {
-    border: 1px solid var(--surface-border);
+    border: none;
     border-radius: 1.5rem;
-    background: var(--surface-card);
+    background: var(--neu-bg);
     @apply p-5;
-    box-shadow: var(--shadow-card);
+    box-shadow: 7px 7px 15px var(--neu-sd), -7px -7px 15px var(--neu-sl);
   }
   .bento-k {
     @apply text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400;
@@ -403,7 +363,7 @@
     @apply font-display font-bold tabular-nums text-brand-800 dark:text-brand-200;
   }
   .bento-action {
-    background: var(--color-brand-800);
+    background: linear-gradient(135deg in oklch, var(--color-brand-700), var(--color-brand-800));
     @apply rounded-3xl p-5 text-white shadow-lg shadow-brand-900/20;
   }
 
@@ -432,9 +392,9 @@
      accent. Local --auth-* vars (not the global --neu-* ones) so this stays
      dark even when the rest of the app is light. */
   .auth-card-shell {
-    --auth-bg: #1c1029;
-    --auth-sd: rgba(0, 0, 0, 0.35);
-    --auth-sl: rgba(255, 255, 255, 0.08);
+    --auth-bg: #201033;
+    --auth-sd: #130a1f;
+    --auth-sl: #2f1a48;
     --auth-accent: var(--color-cta-500);
     background: var(--auth-bg);
     @apply relative isolate flex min-h-screen items-center justify-center overflow-hidden px-4 py-12;
@@ -459,8 +419,8 @@
     height: 34rem;
     top: -10rem;
     left: -12rem;
-    background: radial-gradient(circle, rgba(167, 139, 250, 0.35), transparent 70%);
-    animation: aurora-drift-a 18s ease-in-out infinite alternate;
+    background: radial-gradient(circle, rgba(167, 139, 250, 0.6), transparent 70%);
+    animation: aurora-drift-a 13s ease-in-out infinite alternate, aurora-hue-drift 42s linear infinite;
   }
 
   .auth-card-shell::after {
@@ -468,8 +428,8 @@
     height: 28rem;
     bottom: -12rem;
     right: -10rem;
-    background: radial-gradient(circle, rgba(34, 197, 94, 0.2), transparent 70%);
-    animation: aurora-drift-b 20s ease-in-out infinite alternate;
+    background: radial-gradient(circle, rgba(34, 197, 94, 0.35), transparent 70%);
+    animation: aurora-drift-b 11s ease-in-out infinite alternate, aurora-hue-drift 35s linear infinite reverse;
   }
 
   /* No card bg — content floats directly on the gradient shell */
@@ -525,40 +485,40 @@
   }
 
   .auth-input {
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    background: rgba(255, 255, 255, 0.075);
+    border: none;
+    background: var(--auth-bg, #1a2029);
     color: #fff;
     @apply h-11 w-full rounded-xl px-3.5 text-sm placeholder-white/35 transition-all duration-150 focus:outline-none;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+    box-shadow: inset 3px 3px 7px var(--auth-sd, #0e1218), inset -3px -3px 7px var(--auth-sl, #262e3a);
   }
   .auth-input:focus {
     box-shadow:
+      inset 3px 3px 7px var(--auth-sd, #0e1218),
+      inset -3px -3px 7px var(--auth-sl, #262e3a),
       0 0 0 3px color-mix(in srgb, var(--auth-accent, var(--color-cta-500)) 35%, transparent);
-    border-color: var(--auth-accent, var(--color-cta-500));
   }
 
   .auth-select {
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    background: rgba(255, 255, 255, 0.075);
+    border: none;
+    background: var(--auth-bg, #1a2029);
     color: #fff;
     @apply w-auto shrink-0 cursor-pointer rounded-xl;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+    box-shadow: inset 3px 3px 7px var(--auth-sd, #0e1218), inset -3px -3px 7px var(--auth-sl, #262e3a);
   }
 
   /* buttons */
   .auth-btn-primary {
     border: none;
-    background: var(--color-cta-600);
-    color: #fff;
+    background: var(--auth-bg, #1a2029);
+    color: var(--auth-accent, var(--color-cta-500));
     @apply inline-flex h-12 cursor-pointer items-center justify-center gap-2 rounded-xl px-5 text-sm font-bold transition-all duration-200 active:scale-[0.98] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50;
-    box-shadow: 0 10px 24px -12px rgba(34, 197, 94, 0.8);
+    box-shadow: 6px 6px 13px var(--auth-sd, #0e1218), -6px -6px 13px var(--auth-sl, #262e3a);
   }
   .auth-btn-primary:hover:not(:disabled) {
-    background: var(--color-cta-700);
-    box-shadow: 0 14px 28px -14px rgba(34, 197, 94, 0.85);
+    box-shadow: 7px 7px 15px var(--auth-sd, #0e1218), -7px -7px 15px var(--auth-sl, #262e3a);
   }
   .auth-btn-primary:active:not(:disabled) {
-    box-shadow: 0 4px 12px -8px rgba(34, 197, 94, 0.75);
+    box-shadow: inset 3px 3px 7px var(--auth-sd, #0e1218), inset -3px -3px 7px var(--auth-sl, #262e3a);
   }
 
   .auth-btn-outline {
@@ -787,7 +747,7 @@
     z-index: -1;
     border-radius: inherit;
     filter: blur(22px);
-    opacity: 0.28;
+    opacity: 0.55;
     pointer-events: none;
   }
   .glow-brand::before {
@@ -798,7 +758,7 @@
   }
 
   .glow-pulse::before {
-    animation: none;
+    animation: glow-pulse 2.8s ease-in-out infinite;
   }
 
   @keyframes glow-pulse {
@@ -947,74 +907,94 @@
    UI is untouched. Puffy pastel surfaces: soft dual shadows instead of hard
    borders, bigger radii, inputs read as pressed-in rather than outlined. */
 .admin-clay {
-  --clay-bg: var(--surface-page);
-  --clay-shadow-1: rgba(76, 29, 149, 0.08);
-  --clay-shadow-2: rgba(255, 255, 255, 0.9);
+  --clay-bg: #eef2fb;
+  --clay-shadow-1: rgba(163, 177, 214, 0.55);
+  --clay-shadow-2: rgba(255, 255, 255, 0.85);
 }
 :where(.dark) .admin-clay {
-  --clay-bg: var(--surface-page);
-  --clay-shadow-1: rgba(0, 0, 0, 0.35);
-  --clay-shadow-2: rgba(255, 255, 255, 0.04);
+  --clay-bg: #101828;
+  --clay-shadow-1: rgba(0, 0, 0, 0.5);
+  --clay-shadow-2: rgba(71, 105, 165, 0.22);
 }
 
 .admin-clay .card {
-  border: 1px solid var(--surface-border);
-  border-radius: 1.25rem;
-  background: var(--surface-card);
-  box-shadow: var(--shadow-card);
+  border: none;
+  border-radius: 1.75rem;
+  background: var(--clay-bg);
+  box-shadow:
+    8px 8px 18px var(--clay-shadow-1),
+    -8px -8px 18px var(--clay-shadow-2);
 }
 
 .admin-clay .card-hover:hover {
-  border-color: var(--surface-border-strong);
-  box-shadow: 0 16px 38px rgba(76, 29, 149, 0.11);
+  box-shadow:
+    10px 10px 22px var(--clay-shadow-1),
+    -10px -10px 22px var(--clay-shadow-2);
   transform: translateY(-2px);
 }
 
 .admin-clay .btn {
-  border-radius: 0.75rem;
+  border-radius: 1.25rem;
+  box-shadow:
+    5px 5px 10px var(--clay-shadow-1),
+    -5px -5px 10px var(--clay-shadow-2);
 }
 .admin-clay .btn:hover {
-  box-shadow: 0 8px 20px -12px rgba(76, 29, 149, 0.5);
+  box-shadow:
+    6px 6px 14px var(--clay-shadow-1),
+    -6px -6px 14px var(--clay-shadow-2);
 }
 .admin-clay .btn:active {
-  box-shadow: 0 1px 2px rgba(41, 25, 55, 0.08);
+  box-shadow:
+    inset 3px 3px 6px var(--clay-shadow-1),
+    inset -3px -3px 6px var(--clay-shadow-2);
 }
 
 .admin-clay .btn-outline {
-  border: 1px solid var(--surface-border);
-  background: var(--surface-card);
-  box-shadow: 0 1px 2px rgba(41, 25, 55, 0.04);
+  border: none;
+  background: var(--clay-bg);
+  box-shadow:
+    inset 3px 3px 7px var(--clay-shadow-1),
+    inset -3px -3px 7px var(--clay-shadow-2);
 }
 .admin-clay .btn-outline:hover {
-  background: var(--surface-soft);
+  background: var(--clay-bg);
 }
 
 .admin-clay .input {
-  border: 1px solid var(--surface-border-strong);
-  border-radius: 0.75rem;
-  background: var(--surface-card);
-  box-shadow: 0 1px 2px rgba(41, 25, 55, 0.04);
+  border: none;
+  border-radius: 1rem;
+  background: var(--clay-bg);
+  box-shadow:
+    inset 3px 3px 7px var(--clay-shadow-1),
+    inset -3px -3px 7px var(--clay-shadow-2);
 }
 .admin-clay .input:focus {
-  border-color: var(--color-brand-600);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand-600) 18%, transparent);
+  box-shadow:
+    inset 3px 3px 7px var(--clay-shadow-1),
+    inset -3px -3px 7px var(--clay-shadow-2),
+    0 0 0 3px var(--color-brand-200);
 }
 
 .admin-clay .chip {
   border-radius: 999px;
-  box-shadow: none;
+  box-shadow:
+    3px 3px 6px var(--clay-shadow-1),
+    -3px -3px 6px var(--clay-shadow-2);
 }
 
 .admin-clay aside,
 .admin-clay header {
-  background: var(--surface-card) !important;
-  border-color: var(--surface-border) !important;
-  box-shadow: 1px 0 0 var(--surface-border);
-  backdrop-filter: blur(16px) !important;
+  background: var(--clay-bg) !important;
+  border: none !important;
+  box-shadow: 4px 0 14px var(--clay-shadow-1);
+  backdrop-filter: none !important;
 }
 
 .admin-clay nav a[class*='bg-brand-600'] {
-  box-shadow: 0 8px 18px -12px rgba(76, 29, 149, 0.75);
+  box-shadow:
+    inset 3px 3px 7px rgba(0, 0, 0, 0.15),
+    inset -2px -2px 5px rgba(255, 255, 255, 0.25);
 }
 
 /* ── Analytics: neumorphism ────────────────────────────────────────────────
@@ -1024,11 +1004,10 @@
    fixed-dark — unlike .auth-card-shell, this isn't a deliberately separate
    world, it's a dashboard people expect to match their theme. */
 .nx-card {
-  background: var(--surface-card);
-  border: 1px solid var(--surface-border);
+  background: var(--neu-bg);
   border-radius: 1.25rem;
   padding: 1.1rem;
-  box-shadow: var(--shadow-card);
+  box-shadow: 6px 6px 14px var(--neu-sd), -6px -6px 14px var(--neu-sl);
 }
 
 .nx-sub {
@@ -1113,11 +1092,12 @@
    where the hook never runs) — tilting the phone shifts both shadow layers so
    the card reads as catching light from a fixed overhead source. */
 .nx-card-notch-shadow {
-  border: 1px solid var(--surface-border);
-  box-shadow: var(--shadow-card);
+  box-shadow:
+    calc(var(--tilt-x, 0px) * -1) calc(22px + var(--tilt-y, 0px)) 45px -14px color-mix(in srgb, var(--neu-sd) 75%, transparent),
+    calc(var(--tilt-x, 0px) * -0.4) calc(8px + var(--tilt-y, 0px) * 0.4) 18px -6px color-mix(in srgb, var(--neu-sd) 55%, transparent);
 }
 .nx-card-notch-bg {
-  background: var(--surface-card);
+  background: var(--neu-bg);
   -webkit-mask-image: radial-gradient(circle var(--notch-r, 60px) at 50% 0%, transparent 98%, black 100%);
   mask-image: radial-gradient(circle var(--notch-r, 60px) at 50% 0%, transparent 98%, black 100%);
 }
@@ -1311,7 +1291,7 @@
   width: 100%;
   cursor: pointer;
   border-radius: 0.6rem;
-  background: var(--color-cta-600);
+  background: var(--color-brand-600);
   padding: 0.4rem 0;
   font-size: 0.8rem;
   font-weight: 600;
@@ -1319,7 +1299,7 @@
   transition: background 0.15s ease;
 }
 .nx-pop-btn:hover {
-  background: var(--color-cta-700);
+  background: var(--color-brand-700);
 }
 
 /* Dark popup surface to match the app's dark theme */
@@ -1341,20 +1321,15 @@
    locate-me button floating over the map. The search bar itself just uses
    the global .input class (already the pressed-in neu treatment). */
 .nx-neu {
-  border: 1px solid rgba(255, 255, 255, 0.78);
-  background: rgba(255, 255, 255, 0.86);
-  box-shadow: 0 8px 24px -14px rgba(49, 27, 70, 0.4);
-  -webkit-backdrop-filter: blur(14px);
-  backdrop-filter: blur(14px);
-}
-.dark .nx-neu {
-  border-color: rgba(255, 255, 255, 0.12);
-  background: rgba(29, 24, 38, 0.88);
+  background: var(--neu-bg);
+  box-shadow: 6px 6px 13px var(--neu-sd), -6px -6px 13px var(--neu-sl);
 }
 .nx-neu-active {
-  border: 1px solid color-mix(in srgb, var(--color-brand-600) 78%, white);
-  background: var(--color-brand-700);
-  box-shadow: 0 8px 20px -12px rgba(76, 29, 149, 0.75);
+  background: linear-gradient(135deg in oklch, var(--color-brand-500), var(--color-brand-600));
+  box-shadow:
+    0 6px 16px -4px color-mix(in srgb, var(--color-brand-600) 55%, transparent),
+    inset 2px 2px 5px rgba(255, 255, 255, 0.35),
+    inset -2px -2px 5px rgba(76, 29, 149, 0.4);
 }
 
 /* ── Theme toggle: wave wipe ───────────────────────────────────────────────

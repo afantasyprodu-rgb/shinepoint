@@ -16,9 +16,13 @@ function NavBadge({ count }) {
         <motion.span
           key={count}
           initial={{ scale: 0, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
+          animate={{ scale: [1, 1.25, 1], opacity: 1, y: [0, -3, 0] }}
           exit={{ scale: 0, opacity: 0 }}
-          transition={{ type: 'spring', stiffness: 360, damping: 24 }}
+          transition={{
+            scale: { times: [0, 0.5, 1], duration: 0.6, ease: 'easeInOut', repeat: Infinity, repeatDelay: 2 },
+            y:     { times: [0, 0.5, 1], duration: 0.6, ease: 'easeInOut', repeat: Infinity, repeatDelay: 2 },
+            opacity: { duration: 0.2 },
+          }}
           className="ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1.5 text-[11px] font-bold text-white tabular-nums"
         >
           {count > 99 ? '99+' : count}
@@ -26,6 +30,21 @@ function NavBadge({ count }) {
       )}
     </AnimatePresence>
   )
+}
+
+// Admin blue theme: override the brand palette CSS vars so every
+// `brand-*` utility inside the shell (cards, chips, buttons, modals) turns blue.
+const ADMIN_BLUE = {
+  '--color-brand-50': '#eff6ff',
+  '--color-brand-100': '#dbeafe',
+  '--color-brand-200': '#bfdbfe',
+  '--color-brand-300': '#93c5fd',
+  '--color-brand-400': '#60a5fa',
+  '--color-brand-500': '#3b82f6',
+  '--color-brand-600': '#2563eb',
+  '--color-brand-700': '#1d4ed8',
+  '--color-brand-800': '#1e40af',
+  '--color-brand-900': '#1e3a8a',
 }
 
 export default function AdminShell({ children }) {
@@ -56,8 +75,8 @@ export default function AdminShell({ children }) {
   }
 
   return (
-    <div className="admin-clay flex min-h-screen bg-[var(--clay-bg)]">
-      <aside className="hidden w-60 shrink-0 flex-col px-4 py-5 sm:flex">
+    <div style={ADMIN_BLUE} className="admin-clay flex min-h-screen bg-[var(--clay-bg)]">
+      <aside className="hidden w-56 shrink-0 flex-col px-4 py-5 sm:flex">
         <div className="flex items-center justify-between">
           <Link to="/admin" className="rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600">
             <Logo />
@@ -88,7 +107,7 @@ export default function AdminShell({ children }) {
         </nav>
         <div className="mt-auto">
           {isDemo && <span className="chip mb-3 bg-amber-500/15 text-amber-700 dark:text-amber-300">{t('demoMode')}</span>}
-          <button onClick={handleSignOut} className="btn btn-outline h-10 w-full text-sm">
+          <button onClick={handleSignOut} className="btn btn-outline h-9 w-full text-sm">
             {isDemo ? t('exitDemo') : t('signOut')}
           </button>
         </div>
@@ -97,11 +116,11 @@ export default function AdminShell({ children }) {
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Mobile header */}
         <header className="flex items-center justify-between px-4 py-3 sm:hidden">
-          <Logo compactOnMobile />
+          <Logo />
           <div className="flex items-center gap-1">
             <LanguageToggle />
             <ThemeToggle />
-            <button onClick={handleSignOut} className="btn btn-outline h-10 px-3 text-sm">
+            <button onClick={handleSignOut} className="btn btn-outline h-9 px-3 text-sm">
               {isDemo ? t('exit') : t('signOut')}
             </button>
           </div>

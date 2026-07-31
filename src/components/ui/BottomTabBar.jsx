@@ -1,11 +1,20 @@
 import { NavLink, useLocation, matchPath } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 
-// Fixed bottom tab bar, mobile only, shared by every role. Active state is
-// derived from the router so back/forward and deep links stay correct.
+// Fixed bottom tab bar, mobile only, shared by every role (customer,
+// detailer, admin). The bar's top edge has a circular cutout that slides to
+// the active tab (--tab-notch-x, animated via the CSS `@property` in
+// index.css), and the active tab's icon sits in a raised neumorphic bubble
+// that pops up through the notch (layoutId makes it slide instead of
+// popping in fresh). Active state is derived from the router's location, not
+// a click listener, so back/forward and deep links stay correct.
 export default function BottomTabBar({ items, layoutId }) {
   const location = useLocation()
-  const activeIndex = Math.max(0, items.findIndex(({ to, end }) => matchPath({ path: to, end: !!end }, location.pathname)))
+  const activeIndex = Math.max(
+    0,
+    items.findIndex(({ to, end }) => matchPath({ path: to, end: !!end }, location.pathname))
+  )
+  const notchX = `${((activeIndex + 0.5) / items.length) * 100}%`
 
   return (
     // pb-[env(safe-area-inset-bottom)]: the Capacitor native build (per
@@ -13,33 +22,50 @@ export default function BottomTabBar({ items, layoutId }) {
     // iOS home-indicator gesture strip with no clearance otherwise. Adds
     // nothing on devices without a safe-area inset (env() falls back to 0).
     <div
-      className="fixed inset-x-0 bottom-0 z-20 border-t border-brand-100/80 bg-white/94 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_28px_-20px_rgba(76,29,149,0.35)] backdrop-blur-xl sm:hidden dark:border-white/10 dark:bg-[#17131f]/94"
-      data-active-index={activeIndex}
+      className="fixed inset-x-0 bottom-0 z-20 pb-[env(safe-area-inset-bottom)] sm:hidden"
+      style={{ '--tab-notch-x': notchX }}
     >
-      <nav aria-label="Main mobile" className="relative flex px-2 py-1.5">
+      {/* Visual layer only — the notch cutout lives here so it never masks
+          the bubble/icons in the nav layer above it (see index.css). Split
+          across two divs, not one: mask-image suppresses an element's own
+          box-shadow entirely in this engine, so the shadow needs its own
+          unmasked layer underneath the masked fill (see the profile card's
+          identical fix/comment in index.css for how this was found). */}
+      <div aria-hidden="true" className="absolute inset-0 shadow-[0_-8px_20px_-10px_var(--neu-sd)]" />
+      <div aria-hidden="true" className="bottom-tabbar-bg absolute inset-0 bg-[var(--neu-bg)]" />
+      <nav aria-label="Main mobile" className="relative flex">
         {items.map(({ to, label, end, icon: ItemIcon, badge }) => (
         <NavLink
           key={to}
           to={to}
           end={end}
-          className="relative flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1 text-xs font-semibold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+          className="relative flex flex-1 flex-col items-center gap-1 py-3 text-xs font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
         >
           {({ isActive }) => (
             <>
-              <span className="relative flex h-8 w-10 items-center justify-center">
+              <span className="relative flex h-9 w-9 items-center justify-center">
                 {isActive && (
                   <motion.span
                     layoutId={layoutId}
-                    transition={{ type: 'spring', stiffness: 380, damping: 34 }}
-                    className="absolute inset-0 rounded-lg bg-brand-100 dark:bg-brand-500/15"
-                  />
+                    transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+                    className="absolute -top-6 flex h-11 w-11 items-center justify-center"
+                  >
+                    <motion.span
+                      initial={{ scale: 0.5 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: 'spring', stiffness: 380, damping: 22, mass: 0.7 }}
+                      className="nx-tab-drop h-11 w-11 -rotate-45"
+                    />
+                  </motion.span>
                 )}
                 {ItemIcon && (
                   <motion.span
+                    animate={{ y: isActive ? -24 : 0 }}
+                    transition={{ type: 'spring', stiffness: 420, damping: 32 }}
                     className="relative z-10 flex items-center justify-center"
                   >
                     <ItemIcon
-                      className={`h-5 w-5 ${isActive ? 'text-brand-700 dark:text-brand-300' : 'text-slate-500 dark:text-slate-400'}`}
+                      className={`h-5 w-5 ${isActive ? 'text-white' : 'text-slate-500 dark:text-slate-400'}`}
                     />
                   </motion.span>
                 )}
@@ -48,7 +74,7 @@ export default function BottomTabBar({ items, layoutId }) {
                     <motion.span
                       aria-hidden="true"
                       initial={{ scale: 0, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
+                      animate={{ scale: 1, opacity: 1, y: isActive ? -24 : 0 }}
                       exit={{ scale: 0, opacity: 0 }}
                       transition={{ type: 'spring', stiffness: 420, damping: 32 }}
                       className="absolute -right-0.5 -top-1 z-20 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white tabular-nums"

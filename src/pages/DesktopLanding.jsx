@@ -184,10 +184,10 @@ export default function DesktopLanding() {
         transition={{ duration: 0.5, ease: EASE_OUT_EXPO }}
         style={{
           background:
-            'linear-gradient(160deg, #1f122b 0%, #35185a 58%, #4c1d95 100%)',
-          '--auth-bg': '#1f122b',
-          '--auth-sd': 'rgba(0, 0, 0, 0.35)',
-          '--auth-sl': 'rgba(255, 255, 255, 0.08)',
+            'linear-gradient(160deg in oklch, var(--color-brand-900) 0%, var(--color-brand-700) 55%, var(--color-brand-500) 100%)',
+          '--auth-bg': '#201033',
+          '--auth-sd': '#130a1f',
+          '--auth-sl': '#2f1a48',
           '--auth-accent': 'var(--color-cta-500)',
         }}
         className="relative z-10 flex h-screen w-full max-w-[460px] flex-col justify-center overflow-y-auto border-r border-white/10 px-12 py-10 shadow-2xl will-change-transform"

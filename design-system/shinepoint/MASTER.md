@@ -20,11 +20,9 @@
 |------|-----|--------------|
 | Primary | `#7C3AED` | `--color-primary` |
 | Secondary | `#A78BFA` | `--color-secondary` |
-| CTA/Accent | `#16A34A` | `--color-cta` |
-| Background | `#FAF8FC` | `--color-background` |
-| Surface | `#FFFFFF` | `--surface-card` |
-| Border | `#E8E1F0` | `--surface-border` |
-| Text | `#21172E` | `--color-text` |
+| CTA/Accent | `#22C55E` | `--color-cta` |
+| Background | `#FAF5FF` | `--color-background` |
+| Text | `#4C1D95` | `--color-text` |
 
 **Color Notes:** Trust purple + transaction green
 
@@ -57,9 +55,9 @@
 | Level | Value | Usage |
 |-------|-------|-------|
 | `--shadow-sm` | `0 1px 2px rgba(0,0,0,0.05)` | Subtle lift |
-| `--shadow-md` | `0 1px 2px rgba(41,25,55,.04), 0 10px 30px rgba(76,29,149,.07)` | Cards |
-| `--shadow-lg` | `0 18px 48px rgba(49,27,70,.16)` | Modals, dropdowns |
-| `--shadow-xl` | `0 24px 64px rgba(49,27,70,.2)` | Hero media only |
+| `--shadow-md` | `0 4px 6px rgba(0,0,0,0.1)` | Cards, buttons |
+| `--shadow-lg` | `0 10px 15px rgba(0,0,0,0.1)` | Modals, dropdowns |
+| `--shadow-xl` | `0 20px 25px rgba(0,0,0,0.15)` | Hero images, featured cards |
 
 ---
 
@@ -70,10 +68,10 @@
 ```css
 /* Primary Button */
 .btn-primary {
-  background: #16A34A;
+  background: #22C55E;
   color: white;
   padding: 12px 24px;
-  border-radius: 12px;
+  border-radius: 8px;
   font-weight: 600;
   transition: all 200ms ease;
   cursor: pointer;
@@ -90,7 +88,7 @@
   color: #7C3AED;
   border: 2px solid #7C3AED;
   padding: 12px 24px;
-  border-radius: 12px;
+  border-radius: 8px;
   font-weight: 600;
   transition: all 200ms ease;
   cursor: pointer;
@@ -101,9 +99,8 @@
 
 ```css
 .card {
-  background: #FFFFFF;
-  border: 1px solid #E8E1F0;
-  border-radius: 20px;
+  background: #FAF5FF;
+  border-radius: 12px;
   padding: 24px;
   box-shadow: var(--shadow-md);
   transition: all 200ms ease;
@@ -122,7 +119,7 @@
 .input {
   padding: 12px 16px;
   border: 1px solid #E2E8F0;
-  border-radius: 12px;
+  border-radius: 8px;
   font-size: 16px;
   transition: border-color 200ms ease;
 }
@@ -156,21 +153,21 @@
 
 ## Style Guidelines
 
-**Style:** Warm premium marketplace
+**Style:** Vibrant & Block-based
 
-**Keywords:** Trustworthy, warm, restrained, polished, service-led, legible, confident
+**Keywords:** Bold, energetic, playful, block layout, geometric shapes, high color contrast, duotone, modern, energetic
 
-**Best For:** A local-services marketplace where customers compare trust signals and book from a phone
+**Best For:** Startups, creative agencies, gaming, social media, youth-focused, entertainment, consumer
 
-**Key Effects:** Clear hierarchy, white/lavender surfaces, subtle elevation, 150-200ms feedback, motion reserved for state changes and confirmation
+**Key Effects:** Large sections (48px+ gaps), animated patterns, bold hover (color shift), scroll-snap, large type (32px+), 200-300ms
 
 ### Page Pattern
 
 **Pattern Name:** Marketplace / Directory
 
-- **Conversion Strategy:** map-first discovery, visible trust signals, transparent price, short guided booking
-- **CTA Placement:** green for booking/payment/account creation; purple for selection, navigation and trust
-- **Section Order:** 1. Search/discovery, 2. Detailer trust profile, 3. Service selection, 4. Schedule, 5. Review/payment
+- **Conversion Strategy:**  map hover pins,  card carousel, Search bar is the CTA. Reduce friction to search. Popular searches suggestions.
+- **CTA Placement:** Hero Search Bar + Navbar 'List your item'
+- **Section Order:** 1. Hero (Search focused), 2. Categories, 3. Featured Listings, 4. Trust/Safety, 5. CTA (Become a host/seller)
 
 ---
 
@@ -178,9 +175,6 @@
 
 - ❌ Low trust signals
 - ❌ Confusing layout
-- ❌ Neumorphic shadows or inset fields as the default surface language
-- ❌ Brand colors that change between sessions or theme switches
-- ❌ Decorative glow on routine actions
 
 ### Additional Forbidden Patterns
 

@@ -12,7 +12,7 @@ export default function LanguageToggle({ className = '' }) {
       onClick={toggle}
       aria-label={isEs ? 'Switch to English' : 'Cambiar a español'}
       aria-pressed={isEs}
-      className={`press-spring flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl text-xs font-bold text-slate-600 hover:bg-brand-50 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-brand-200 ${className}`}
+      className={`press-spring flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-xs font-bold text-slate-600 hover:bg-brand-50 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-brand-200 ${className}`}
     >
       <AnimatePresence mode="wait" initial={false}>
         <motion.span
