@@ -102,7 +102,7 @@ function NotificationBell({ role }) {
             // same root stacking context — 30 lost, so the dropdown opened
             // behind the map. Comfortably above that and Leaflet's own
             // internal panes (popups top out around z-700).
-            className="absolute right-0 top-11 z-[1000] w-80 rounded-2xl border border-brand-100 bg-white p-2 shadow-xl dark:border-white/10 dark:bg-[#1E1730] dark:shadow-black/40"
+            className="absolute right-0 top-12 z-[1000] w-80 rounded-2xl border border-brand-100 bg-white p-2 shadow-[var(--shadow-float)] dark:border-white/10 dark:bg-[#1d1826]"
           >
             <h2 className="px-3 pt-2 font-display text-sm font-semibold text-slate-900 dark:text-slate-100">
               {t('notifications')}
@@ -172,26 +172,26 @@ export default function AppShell({ role, children }) {
           panel included, was stacking in plain DOM order below <main>'s map
           overlay chrome (z-[500]), regardless of the panel's own z-index.
           Now header's context outranks it directly. */}
-      <header className="relative z-[600] border-b border-brand-100 bg-white/90 backdrop-blur dark:border-white/10 dark:bg-[#1A1430]/90">
-        <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6">
-          <div className="flex items-center gap-4">
+      <header className="relative z-[600] border-b border-brand-100/80 bg-white/88 backdrop-blur-xl dark:border-white/10 dark:bg-[#17131f]/88">
+        <div className="mx-auto flex min-h-16 max-w-[1440px] items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+          <div className="flex min-w-0 items-center gap-5">
             <Link
               to={role === 'detailer' ? '/detailer' : '/home'}
               className="rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
             >
-              <Logo />
+              <Logo compactOnMobile />
             </Link>
-            <nav aria-label="Main" className="hidden items-center gap-1 sm:flex">
+            <nav aria-label="Main" className="hidden items-center gap-1 rounded-xl bg-brand-50/70 p-1 sm:flex dark:bg-white/5">
               {nav.map(({ to, label, end }) => (
                 <NavLink
                   key={to}
                   to={to}
                   end={end}
                   className={({ isActive }) =>
-                    `rounded-lg px-3 py-1.5 text-sm font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
+                    `rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
                       isActive
-                        ? 'bg-brand-100 text-brand-800 dark:bg-brand-500/20 dark:text-brand-200'
-                        : 'text-slate-600 hover:bg-brand-50 hover:text-brand-800 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-brand-200'
+                        ? 'bg-white text-brand-800 shadow-sm dark:bg-white/10 dark:text-brand-200'
+                        : 'text-slate-600 hover:text-brand-800 dark:text-slate-300 dark:hover:text-brand-200'
                     }`
                   }
                 >
@@ -200,7 +200,7 @@ export default function AppShell({ role, children }) {
               ))}
             </nav>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             {isDemo && (
               <span className="chip hidden bg-amber-500/15 text-amber-700 dark:text-amber-300 sm:inline-flex">
                 {t('demoAs', { name: profile?.full_name })}
@@ -209,7 +209,7 @@ export default function AppShell({ role, children }) {
             <ThemeToggle />
             <LanguageToggle />
             <NotificationBell role={role} />
-            <button onClick={handleSignOut} className="btn btn-outline h-9 px-3 text-sm">
+            <button onClick={handleSignOut} className="btn btn-outline h-10 px-3 text-sm">
               {isDemo ? t('exitDemo') : t('signOut')}
             </button>
           </div>
