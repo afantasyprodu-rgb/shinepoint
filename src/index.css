@@ -27,23 +27,24 @@
      vividly as the saturated mid-transition sheen instead of looking flat
      by comparison. ThemeContext.jsx rotates the hue — see the comment
      above the :root block below for why. */
-  /* Brand colors stay fixed across themes. A marketplace that asks for trust
-     cannot look like a different company every time the theme is changed. */
-  --color-brand-50: #faf5ff;
-  --color-brand-100: #f3e8ff;
-  --color-brand-200: #e9d5ff;
-  --color-brand-300: #d8b4fe;
-  --color-brand-400: #c084fc;
-  --color-brand-500: #a78bfa;
-  --color-brand-600: #7c3aed;
-  --color-brand-700: #6d28d9;
-  --color-brand-800: #5b21b6;
-  --color-brand-900: #4c1d95;
+  /* Purple/green are the defaults. PaintContext changes only the hue tokens,
+     preserving each step's tested lightness so vehicle personalization can
+     recolor the mark and actions without flattening their hierarchy. */
+  --color-brand-50: oklch(from #faf5ff L calc(C * 1.15) var(--brand-h));
+  --color-brand-100: oklch(from #f3e8ff L calc(C * 1.15) var(--brand-h));
+  --color-brand-200: oklch(from #e9d5ff L calc(C * 1.15) var(--brand-h));
+  --color-brand-300: oklch(from #d8b4fe L calc(C * 1.15) var(--brand-h));
+  --color-brand-400: oklch(from #c084fc L calc(C * 1.15) var(--brand-h));
+  --color-brand-500: oklch(from #a78bfa L calc(C * 1.15) var(--brand-h));
+  --color-brand-600: oklch(from #7c3aed L calc(C * 1.15) var(--brand-h));
+  --color-brand-700: oklch(from #6d28d9 L calc(C * 1.15) var(--brand-h));
+  --color-brand-800: oklch(from #5b21b6 L calc(C * 1.15) var(--brand-h));
+  --color-brand-900: oklch(from #4c1d95 L calc(C * 1.15) var(--brand-h));
 
-  --color-cta-500: #22c55e;
-  --color-cta-600: #16a34a;
-  --color-cta-700: #15803d;
-  --color-cta-800: #166534;
+  --color-cta-500: oklch(from #22c55e L calc(C * 1.15) var(--cta-h));
+  --color-cta-600: oklch(from #16a34a L calc(C * 1.15) var(--cta-h));
+  --color-cta-700: oklch(from #15803d L calc(C * 1.15) var(--cta-h));
+  --color-cta-800: oklch(from #166534 L calc(C * 1.15) var(--cta-h));
 
   /* Third analytics accent — donut/chart segments beyond brand+cta (revenue
      and earnings breakdowns need a 3rd hue that isn't a full extra ramp).
