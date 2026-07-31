@@ -114,9 +114,9 @@ export default function AdminShell({ children }) {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Mobile header — pt-[env(safe-area-inset-top)] clears the Dynamic
-            Island/notch on iOS, same as the customer/detailer shell. */}
-        <header className="flex items-center justify-between px-4 py-3 pt-[env(safe-area-inset-top)] sm:hidden">
+        {/* Mobile header — floored safe-area padding, same as the
+            customer/detailer shell (see AppShell.jsx for why the floor). */}
+        <header className="flex items-center justify-between px-4 py-3 pt-[max(env(safe-area-inset-top),2.75rem)] sm:hidden">
           <Logo />
           <div className="flex items-center gap-1">
             <LanguageToggle />
