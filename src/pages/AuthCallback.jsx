@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { homePathForRole, signupHomePath } from '../context/AuthContext'
+import { homePathForRole, signupHomePath, useAuth } from '../context/AuthContext'
 import { needsMfaChallenge } from '../lib/mfa'
 import { markArrival } from '../lib/transition'
 import Logo from '../components/Logo'
@@ -11,6 +11,7 @@ import { useT } from '../i18n/useT'
 // pending detailer role if one was requested, then routes to the right home.
 export default function AuthCallback() {
   const navigate = useNavigate()
+  const { refreshProfile } = useAuth()
   const [error, setError] = useState('')
   const t = useT('authCallback')
 
@@ -46,6 +47,10 @@ export default function AuthCallback() {
       if (pendingRole === 'detailer') {
         const { error: rpcError } = await supabase.rpc('claim_detailer_role')
         if (rpcError) console.error('claim_detailer_role failed:', rpcError)
+        // AuthContext's cached profile was fetched (possibly) before this
+        // RPC flipped the role — refresh it now so ProtectedRoute on the
+        // destination page sees 'detailer', not the stale cached 'customer'.
+        await refreshProfile()
       }
       try { localStorage.removeItem('pendingRole') } catch { /* private mode, ignore */ }
 

@@ -46,27 +46,38 @@ export function AuthProvider({ children }) {
     return () => subscription.unsubscribe()
   }, [])
 
+  async function fetchProfile(userId) {
+    const { data, error } = await supabase.from('users').select('*').eq('id', userId).single()
+    if (error) console.error('Failed to load user profile:', error.message)
+    return data ?? null
+  }
+
   useEffect(() => {
     const userId = session?.user?.id
     if (!userId) return
 
     let cancelled = false
-    supabase
-      .from('users')
-      .select('*')
-      .eq('id', userId)
-      .single()
-      .then(({ data, error }) => {
-        if (cancelled) return
-        if (error) console.error('Failed to load user profile:', error.message)
-        setProfile(data ?? null)
-        setLoading(false)
-      })
+    fetchProfile(userId).then((data) => {
+      if (cancelled) return
+      setProfile(data)
+      setLoading(false)
+    })
 
     return () => {
       cancelled = true
     }
   }, [session?.user?.id])
+
+  // Role can change server-side without the session itself changing (e.g.
+  // claim_detailer_role during OAuth signup) — the effect above won't
+  // refetch since session.user.id is the same. Callers that just changed
+  // the role must call this before navigating anywhere that role-gates.
+  async function refreshProfile() {
+    const userId = session?.user?.id
+    if (!userId) return
+    const data = await fetchProfile(userId)
+    setProfile(data)
+  }
 
   async function signOut() {
     if (demo) {
@@ -101,6 +112,7 @@ export function AuthProvider({ children }) {
         isDemo: false,
         signOut,
         enterDemo,
+        refreshProfile,
       }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
