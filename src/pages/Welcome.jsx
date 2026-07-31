@@ -71,38 +71,32 @@ export default function Welcome() {
   return (
     <div className="overflow-x-clip">
       <div className="fixed right-4 top-4 z-50 flex gap-2">
-        <ThemeToggle className="bg-[var(--neu-bg)] shadow-[4px_4px_10px_var(--neu-sd),-4px_-4px_10px_var(--neu-sl)]" />
-        <LanguageToggle className="bg-[var(--neu-bg)] shadow-[4px_4px_10px_var(--neu-sd),-4px_-4px_10px_var(--neu-sl)]" />
+        <ThemeToggle className="border border-brand-100 bg-white/90 shadow-sm backdrop-blur dark:border-white/10 dark:bg-[#1d1826]/90" />
+        <LanguageToggle className="border border-brand-100 bg-white/90 shadow-sm backdrop-blur dark:border-white/10 dark:bg-[#1d1826]/90" />
       </div>
 
-      {/* ===== Hero — neumorphic panel on the putty surface ===== */}
+      {/* ===== Hero ===== */}
       <section
         ref={heroRef}
-        className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-[var(--neu-bg)] px-6 text-center"
+        className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 py-24 text-center"
       >
-        {/* Subtle floating sparkles only — neumorphism reads through shadow,
-            not saturated color blobs, so the old gradient blobs are gone. */}
-        <div aria-hidden="true" className="animate-float-slow absolute bottom-10 left-10 hidden text-brand-400/50 lg:block">
-          <SparklesIcon className="h-10 w-10" />
-        </div>
-        <div aria-hidden="true" className="animate-float-slower absolute right-14 top-24 hidden text-cta-500/50 lg:block">
-          <SparklesIcon className="h-8 w-8" />
-        </div>
+        <div aria-hidden="true" className="absolute left-1/2 top-[12%] h-80 w-80 -translate-x-1/2 rounded-full bg-brand-200/40 blur-3xl dark:bg-brand-800/15" />
+        <div aria-hidden="true" className="absolute bottom-[12%] right-[-6rem] h-64 w-64 rounded-full bg-cta-500/10 blur-3xl" />
 
         <motion.div
           style={reduce ? undefined : { opacity: heroOpacity }}
-          className="relative z-10 w-full max-w-2xl rounded-[2.5rem] bg-[var(--neu-bg)] px-8 py-14 shadow-[10px_10px_24px_var(--neu-sd),-10px_-10px_24px_var(--neu-sl)] sm:px-14"
+          className="relative z-10 w-full max-w-3xl py-12 sm:px-12"
         >
           <FadeIn y={18}>
             <Logo size="lg" />
           </FadeIn>
           <FadeIn delay={0.05}>
-            <span className="mt-7 inline-block rounded-lg bg-cta-600 px-3 py-1.5 font-display text-xs font-semibold uppercase tracking-[0.14em] text-white shadow-lg shadow-cta-600/40">
+            <span className="mt-8 inline-flex items-center rounded-full border border-cta-600/15 bg-cta-600/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-cta-700 dark:border-cta-500/20 dark:bg-cta-500/10 dark:text-cta-500">
               {t('badge')}
             </span>
           </FadeIn>
           <FadeIn delay={0.1} y={22}>
-            <h1 className="mx-auto mt-5 max-w-2xl font-display text-5xl font-bold leading-tight text-slate-900 dark:text-slate-100 sm:text-6xl">
+            <h1 className="mx-auto mt-5 max-w-2xl font-display text-4xl font-bold leading-[1.08] text-slate-950 dark:text-slate-100 sm:text-6xl">
               {t('titlePre')} <span className="text-cta-600 dark:text-cta-400">{t('titleAccent')}</span> {t('titlePost')}
             </h1>
           </FadeIn>
@@ -117,26 +111,24 @@ export default function Welcome() {
           </TextEffect>
           <FadeIn delay={0.3}>
             <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <Link to="/signup" onClick={haptic} className="btn btn-cta-gradient glow-cta press-spring w-64 sm:w-auto">
+              <Link to="/signup" onClick={haptic} className="btn btn-cta press-spring w-full sm:w-auto">
                 {t('bookCta')} <ArrowRightIcon className="h-4 w-4" />
               </Link>
-              <Link to="/login" onClick={haptic} className="btn btn-brand press-spring w-64 sm:w-auto">
+              <Link to="/login" onClick={haptic} className="btn btn-brand press-spring w-full sm:w-auto">
                 {t('loginCta')}
               </Link>
             </div>
           </FadeIn>
           <FadeIn delay={0.4}>
-            <div className="mx-auto mt-10 grid w-full max-w-md grid-cols-3 gap-2.5">
+            <div className="mx-auto mt-12 grid w-full max-w-lg grid-cols-3 divide-x divide-brand-100 border-y border-brand-100 py-4 dark:divide-white/10 dark:border-white/10">
               {stats.map(({ value, label }) => (
-                <button
+                <div
                   key={label}
-                  type="button"
-                  onClick={haptic}
-                  className="press-spring rounded-2xl px-3 py-3 shadow-[3px_3px_7px_var(--neu-sd),-3px_-3px_7px_var(--neu-sl)] active:shadow-[inset_3px_3px_7px_var(--neu-sd),inset_-3px_-3px_7px_var(--neu-sl)]"
+                  className="px-2 py-1"
                 >
                   <p className="font-display text-xl font-bold tabular-nums text-slate-900 dark:text-slate-100">{value}</p>
                   <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">{label}</p>
-                </button>
+                </div>
               ))}
             </div>
           </FadeIn>
@@ -180,7 +172,7 @@ export default function Welcome() {
       </section>
 
       {/* ===== Featured detailers ===== */}
-      <section className="py-24">
+      <section className="border-y border-brand-100/70 bg-white/55 py-24 dark:border-white/8 dark:bg-white/[0.02]">
         <div className="mx-auto max-w-5xl px-6">
           <FadeIn>
             <div className="text-center">
@@ -258,7 +250,7 @@ export default function Welcome() {
       </section>
 
       {/* ===== Detailer CTA ===== */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-brand-800 to-brand-900 py-24">
+      <section className="relative overflow-hidden bg-brand-900 py-24">
         <div aria-hidden="true" className="absolute -right-20 -top-20 h-72 w-72 rounded-full bg-cta-500/20 blur-3xl" />
         <div className="relative mx-auto max-w-3xl px-6 text-center">
           <FadeIn>
@@ -269,7 +261,7 @@ export default function Welcome() {
             <p className="mx-auto mt-3 max-w-md text-brand-200">
               {t('detailerCtaBody')}
             </p>
-            <Link to="/signup/detailer" className="btn btn-cta-gradient glow-cta mt-8">
+            <Link to="/signup/detailer" className="btn btn-cta mt-8">
               {t('joinAsDetailer')} <ArrowRightIcon className="h-4 w-4" />
             </Link>
           </FadeIn>

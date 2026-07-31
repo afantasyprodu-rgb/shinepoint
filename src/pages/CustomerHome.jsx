@@ -46,7 +46,7 @@ export default function CustomerHome() {
             placeholder={t('searchPlaceholder')}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="input pointer-events-auto h-11 w-full !border !border-solid !border-slate-200 !bg-white !text-slate-900 placeholder-slate-500 !shadow-[0_10px_26px_-10px_rgba(30,41,59,0.35)] dark:!border-0 dark:!bg-[var(--neu-bg)] dark:!text-slate-100 dark:!shadow-[inset_3px_3px_7px_var(--neu-sd),inset_-3px_-3px_7px_var(--neu-sl)]"
+            className="input pointer-events-auto h-11 w-full !border !border-solid !border-slate-200 !bg-white !text-slate-900 placeholder-slate-500 !shadow-[0_10px_26px_-10px_rgba(30,41,59,0.35)] dark:!border-white/10 dark:!bg-slate-800 dark:!text-slate-100 dark:placeholder-slate-400 dark:!shadow-[0_10px_26px_-10px_rgba(0,0,0,0.6)]"
           />
           <div className="mt-2 flex flex-wrap justify-center gap-1.5">
             {FILTERS.map(({ key, labelKey }) => (
@@ -58,7 +58,7 @@ export default function CustomerHome() {
                 className={`press-spring pointer-events-auto cursor-pointer rounded-full px-3 py-1.5 text-xs font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
                   active.includes(key)
                     ? 'nx-neu-active text-white'
-                    : 'border border-slate-200/70 bg-white text-slate-700 shadow-[0_6px_16px_-8px_rgba(30,41,59,0.35)] hover:-translate-y-0.5 dark:border-0 dark:!bg-[var(--neu-bg)] dark:!shadow-[6px_6px_13px_var(--neu-sd),-6px_-6px_13px_var(--neu-sl)] dark:text-slate-300'
+                    : 'border border-slate-200/70 bg-white text-slate-700 shadow-[0_6px_16px_-8px_rgba(30,41,59,0.35)] hover:-translate-y-0.5 dark:border-white/10 dark:!bg-slate-800 dark:!shadow-[0_6px_16px_-8px_rgba(0,0,0,0.6)] dark:text-slate-300'
                 }`}
               >
                 {t(labelKey)}
