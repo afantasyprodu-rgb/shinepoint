@@ -8,6 +8,7 @@ import LanguageToggle from '../components/LanguageToggle'
 import { useAuth, homePathForRole } from '../context/AuthContext'
 import { markArrival } from '../lib/transition'
 import { useT } from '../i18n/useT'
+import { TextEffect } from '../components/motion-primitives/text-effect'
 
 // Background video montage. Clips live in public/videos/. There are more clips
 // than grid cells, and they're shuffled per load, so the montage varies and has
@@ -201,9 +202,15 @@ export default function DesktopLanding() {
         <h1 className="mt-10 font-display text-3xl font-bold leading-tight text-white">
           {t('title')}
         </h1>
-        <p className="mt-2.5 text-sm text-white/60">
+        <TextEffect
+          as="p"
+          per="word"
+          preset="fade-in-blur"
+          delay={0.3}
+          className="mt-2.5 text-sm text-white/60"
+        >
           {t('subtitle')}
-        </p>
+        </TextEffect>
 
         <div className="mt-8">
           <AuthCard defaultMode="login" onAuthenticated={handleAuthed} standalone={false} />

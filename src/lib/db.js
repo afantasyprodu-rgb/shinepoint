@@ -307,7 +307,11 @@ export async function fetchBookingsForDetailer(detailerProfileId) {
       services(service_name),
       customer_profiles!bookings_customer_id_fkey(
         id,
-        users!inner(full_name)
+        users!inner(full_name),
+        vehicle_make,
+        vehicle_model,
+        vehicle_type,
+        vehicle_photo
       ),
       reviews_of_customers(rating, is_hard_to_handle),
       photos(id, photo_type, url, area_label)

@@ -7,6 +7,7 @@ import LanguageToggle from '../components/LanguageToggle'
 import { useAuth, homePathForRole } from '../context/AuthContext'
 import { markArrival } from '../lib/transition'
 import { FadeIn, Stagger, StaggerItem } from '../components/ui/Motion'
+import { TextEffect } from '../components/motion-primitives/text-effect'
 import { Stars } from '../components/ui/bits'
 import { useT } from '../i18n/useT'
 import {
@@ -105,11 +106,15 @@ export default function Welcome() {
               {t('titlePre')} <span className="text-cta-600 dark:text-cta-400">{t('titleAccent')}</span> {t('titlePost')}
             </h1>
           </FadeIn>
-          <FadeIn delay={0.2}>
-            <p className="mx-auto mt-4 max-w-md text-lg text-slate-600 dark:text-slate-400">
-              {t('subtitle')}
-            </p>
-          </FadeIn>
+          <TextEffect
+            as="p"
+            per="word"
+            preset="fade-in-blur"
+            delay={0.2}
+            className="mx-auto mt-4 max-w-md text-lg text-slate-600 dark:text-slate-400"
+          >
+            {t('subtitle')}
+          </TextEffect>
           <FadeIn delay={0.3}>
             <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link to="/signup" onClick={haptic} className="btn btn-cta-gradient glow-cta press-spring w-64 sm:w-auto">

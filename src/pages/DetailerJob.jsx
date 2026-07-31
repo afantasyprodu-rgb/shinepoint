@@ -11,6 +11,7 @@ import PhotoCapture from '../components/PhotoCapture'
 import { AnimatedPage } from '../components/ui/Motion'
 import { StatusPill, StarInput } from '../components/ui/bits'
 import {
+  CarIcon,
   CheckIcon,
   ChevronLeftIcon,
   CameraIcon,
@@ -215,9 +216,22 @@ export default function DetailerJob() {
                   <span className="text-slate-500 dark:text-slate-400">{t('service')}</span>
                   <span className="font-semibold text-slate-900 dark:text-slate-100">{b.service}</span>
                 </div>
-                <div className="mt-2 flex items-center justify-between text-sm">
-                  <span className="text-slate-500 dark:text-slate-400">{t('vehicle')}</span>
-                  <span className="font-semibold text-slate-900 dark:text-slate-100">{b.vehicleType ?? 'SUV'}</span>
+                <div className="mt-3 flex flex-col gap-2.5">
+                  <div className="flex items-center gap-3">
+                    {b.vehiclePhoto ? (
+                      <img src={b.vehiclePhoto} alt="Vehicle" className="h-12 w-12 rounded-lg object-cover" />
+                    ) : (
+                      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-brand-50 text-brand-600 dark:bg-white/5 dark:text-brand-300">
+                        <CarIcon className="h-6 w-6" />
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <p className="text-xs text-slate-500 dark:text-slate-400">{t('vehicle')}</p>
+                      <p className="font-semibold text-slate-900 dark:text-slate-100">
+                        {b.vehicleMake} {b.vehicleModel} · {b.vehicleType}
+                      </p>
+                    </div>
+                  </div>
                 </div>
                 <div className="mt-2 flex items-center justify-between text-sm">
                   <span className="text-slate-500 dark:text-slate-400">{t('yourTake')}</span>
