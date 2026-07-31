@@ -47,6 +47,10 @@ export const STRINGS = {
     },
     auth: {
       createAccount: 'Create your account',
+      detailerSignupEyebrow: 'Detailer application',
+      detailerCreateAccount: 'Join as a detailer',
+      detailerJoinTagline: 'Create your professional profile, set your service area, and start receiving jobs.',
+      detailerNextStep: 'Next: add your services, coverage area, insurance, and verification details.',
       welcomeBack: 'Welcome back',
       joinTagline: "Join ShinePoint — LA's detailing marketplace.",
       signInTagline: 'Sign in to continue.',
@@ -1072,6 +1076,10 @@ export const STRINGS = {
     },
     auth: {
       createAccount: 'Crea tu cuenta',
+      detailerSignupEyebrow: 'Solicitud de detallista',
+      detailerCreateAccount: 'Regístrate como detallista',
+      detailerJoinTagline: 'Crea tu perfil profesional, define tu zona de servicio y empieza a recibir trabajos.',
+      detailerNextStep: 'Después: agrega servicios, cobertura, seguro y datos de verificación.',
       welcomeBack: 'Bienvenido de nuevo',
       joinTagline: 'Únete a ShinePoint — el mercado de detallado de LA.',
       signInTagline: 'Inicia sesión para continuar.',

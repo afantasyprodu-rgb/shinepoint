@@ -8,7 +8,7 @@ import { markArrival } from '../lib/transition'
 import Logo from './Logo'
 import LanguageToggle from './LanguageToggle'
 import OtpBoxInput from './OtpBoxInput'
-import { GoogleIcon, MailIcon, PhoneIcon, ChevronLeftIcon, LockIcon } from './icons'
+import { GoogleIcon, MailIcon, PhoneIcon, ChevronLeftIcon, LockIcon, SparklesIcon } from './icons'
 import { useT } from '../i18n/useT'
 
 const COUNTRIES = [
@@ -218,6 +218,7 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
   }
 
   const isSignup = mode === 'signup'
+  const isDetailerSignup = isSignup && role === 'detailer'
 
   const content = (
     <AnimatePresence mode="wait">
@@ -237,11 +238,17 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
           exit="exit"
           transition={{ duration: 0.22, ease: EASE }}
         >
-          <h2 className="font-display text-xl font-bold text-white mb-1">
-            {isSignup ? t('createAccount') : t('welcomeBack')}
+          {isDetailerSignup && (
+            <span className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-cta-500/25 bg-cta-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-cta-500">
+              <SparklesIcon className="h-3.5 w-3.5" />
+              {t('detailerSignupEyebrow')}
+            </span>
+          )}
+          <h2 className="mb-1 font-display text-xl font-bold text-white">
+            {isDetailerSignup ? t('detailerCreateAccount') : isSignup ? t('createAccount') : t('welcomeBack')}
           </h2>
           <p className="text-sm text-white/60 mb-6">
-            {isSignup ? t('joinTagline') : t('signInTagline')}
+            {isDetailerSignup ? t('detailerJoinTagline') : isSignup ? t('joinTagline') : t('signInTagline')}
           </p>
 
           <div className="flex flex-col gap-2.5">
@@ -294,6 +301,12 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
             {' & '}
             <Link to="/privacy" className="underline underline-offset-2 hover:text-white">{t('privacyPolicy')}</Link>
           </p>
+
+          {isDetailerSignup && (
+            <p className="mt-4 rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2.5 text-center text-xs leading-relaxed text-white/60">
+              {t('detailerNextStep')}
+            </p>
+          )}
         </motion.div>
       )}
 
