@@ -195,8 +195,12 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
   async function handleGoogle() {
     setError('')
     setBusy(true)
-    if (role === 'detailer') localStorage.setItem('pendingRole', 'detailer')
-    else localStorage.removeItem('pendingRole')
+    // iOS Safari Private Browsing throws on localStorage access instead of
+    // no-op'ing — swallow it; the ?role= param below is the real signal.
+    try {
+      if (role === 'detailer') localStorage.setItem('pendingRole', 'detailer')
+      else localStorage.removeItem('pendingRole')
+    } catch { /* private mode, ignore */ }
     // Role also rides in the redirect URL itself (not just localStorage) since
     // storage can be partitioned/cleared across the Google redirect hop.
     const redirectTo = `${window.location.origin}/auth/callback${role === 'detailer' ? '?role=detailer' : ''}`

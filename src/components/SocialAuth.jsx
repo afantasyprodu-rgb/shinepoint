@@ -15,8 +15,12 @@ export default function SocialAuth({ role = 'customer', label = 'Continue' }) {
   async function signInWith(provider) {
     setError('')
     setBusy(provider)
-    if (role === 'detailer') localStorage.setItem('pendingRole', 'detailer')
-    else localStorage.removeItem('pendingRole')
+    // iOS Safari Private Browsing throws on localStorage access instead of
+    // no-op'ing — swallow it; the ?role= param below is the real signal.
+    try {
+      if (role === 'detailer') localStorage.setItem('pendingRole', 'detailer')
+      else localStorage.removeItem('pendingRole')
+    } catch { /* private mode, ignore */ }
 
     // Role also rides in the redirect URL itself (not just localStorage) since
     // storage can be partitioned/cleared across the OAuth redirect hop.

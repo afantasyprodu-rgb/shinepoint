@@ -18,7 +18,9 @@ export function LanguageProvider({ children }) {
   const [lang, setLang] = useState(initialLang)
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, lang)
+    // iOS Safari Private Browsing throws on localStorage writes instead of
+    // no-op'ing — swallow so it degrades to "doesn't persist" not a crash.
+    try { localStorage.setItem(STORAGE_KEY, lang) } catch { /* private mode, ignore */ }
     document.documentElement.lang = lang
   }, [lang])
 

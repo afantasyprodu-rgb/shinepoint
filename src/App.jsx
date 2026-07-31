@@ -1,6 +1,5 @@
 import { Routes, Route, useLocation } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute'
-import ErrorBoundary from './components/ErrorBoundary'
 import TransitionOverlay from './components/TransitionOverlay'
 import NativeBridge from './components/NativeBridge'
 import CustomerHome from './pages/CustomerHome'
@@ -42,7 +41,6 @@ export default function App() {
   // AnimatedPage entrance plays. (Route-level exit animations via
   // AnimatePresence proved wedge-prone with rapid history changes.)
   return (
-    <ErrorBoundary>
     <TransitionOverlay>
       <NativeBridge />
       <Routes location={location} key={location.pathname}>
@@ -88,6 +86,5 @@ export default function App() {
         <Route path="/admin/analytics" element={guard('admin', <AdminAnalytics />)} />
       </Routes>
     </TransitionOverlay>
-    </ErrorBoundary>
   )
 }

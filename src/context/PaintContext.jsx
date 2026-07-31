@@ -58,7 +58,9 @@ export function PaintProvider({ children }) {
 
   useEffect(() => {
     document.documentElement.style.setProperty('--accent', safeAccent)
-    localStorage.setItem(STORAGE_KEY, accent)
+    // iOS Safari Private Browsing throws on localStorage writes instead of
+    // no-op'ing — swallow so it degrades to "doesn't persist" not a crash.
+    try { localStorage.setItem(STORAGE_KEY, accent) } catch { /* private mode, ignore */ }
   }, [accent, safeAccent])
 
   const setAccent = (hex) => {

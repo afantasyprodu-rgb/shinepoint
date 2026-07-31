@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { Analytics } from '@vercel/analytics/react'
 import App from './App.jsx'
+import ErrorBoundary from './components/ErrorBoundary.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
 import { StoreProvider } from './context/StoreContext.jsx'
 import { ThemeProvider } from './context/ThemeContext.jsx'
@@ -12,19 +13,21 @@ import './index.css'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <BrowserRouter>
-      <ThemeProvider>
-        <LanguageProvider>
-          <PaintProvider>
-            <AuthProvider>
-              <StoreProvider>
-                <App />
-                <Analytics />
-              </StoreProvider>
-            </AuthProvider>
-          </PaintProvider>
-        </LanguageProvider>
-      </ThemeProvider>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <ThemeProvider>
+          <LanguageProvider>
+            <PaintProvider>
+              <AuthProvider>
+                <StoreProvider>
+                  <App />
+                  <Analytics />
+                </StoreProvider>
+              </AuthProvider>
+            </PaintProvider>
+          </LanguageProvider>
+        </ThemeProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   </StrictMode>
 )

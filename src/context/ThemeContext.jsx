@@ -28,6 +28,13 @@ function hexToHue(hex) {
   return Math.round(h * 360)
 }
 
+// iOS Safari Private Browsing (and some locked-down webviews) throws on
+// localStorage writes instead of just no-op'ing — swallow that so it
+// degrades to "preference doesn't persist" instead of crashing the app.
+function safeSetItem(key, value) {
+  try { localStorage.setItem(key, value) } catch { /* private mode, ignore */ }
+}
+
 const STORAGE_KEY = 'shinepoint-theme'
 const hueKey = (mode) => `shinepoint-hue-${mode}`
 const hueIndexKey = (mode) => `shinepoint-hue-index-${mode}`
@@ -71,7 +78,7 @@ function nextHueFor(mode) {
 
   const currentIndex = storedHueIndex(mode)
   const nextIndex = (currentIndex + 1) % HUE_CYCLE.length
-  localStorage.setItem(hueIndexKey(mode), String(nextIndex))
+  safeSetItem(hueIndexKey(mode), String(nextIndex))
   return HUE_CYCLE[nextIndex]
 }
 
@@ -97,7 +104,7 @@ export function ThemeProvider({ children }) {
   useEffect(() => {
     const root = document.documentElement
     root.classList.toggle('dark', theme === 'dark')
-    localStorage.setItem(STORAGE_KEY, theme)
+    safeSetItem(STORAGE_KEY, theme)
   }, [theme])
 
   // Resuming a mode (page load, or a role's own theme reads) applies its
@@ -127,7 +134,7 @@ export function ThemeProvider({ children }) {
   const toggle = () => {
     const next = theme === 'dark' ? 'light' : 'dark'
     const hue = nextHueFor(next)
-    localStorage.setItem(hueKey(next), String(hue))
+    safeSetItem(hueKey(next), String(hue))
     applyHue(hue)
     setTheme(next)
   }
