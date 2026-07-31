@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import Logo from '../components/Logo'
 import Combobox from '../components/ui/Combobox'
+import CarPhotoUpload from '../components/CarPhotoUpload'
 import { CarIcon, MapPinIcon } from '../components/icons'
 import { useStore } from '../context/StoreContext'
 import { CA_ZIP_CENTROIDS } from '../lib/fuzzyPin'
@@ -32,6 +33,7 @@ export default function CustomerOnboarding() {
   const [make, setMake] = useState('')
   const [model, setModel] = useState('')
   const [type, setType] = useState('')
+  const [vehiclePhoto, setVehiclePhoto] = useState(null)
 
   const [address, setAddress] = useState('')
   const [zip, setZip] = useState('')
@@ -41,8 +43,8 @@ export default function CustomerOnboarding() {
   async function advance() {
     setBusy(true)
     try {
-      if (step === 0 && (make || model || type)) {
-        await updateCustomer({ vehicle: { make, model, type } })
+      if (step === 0 && (make || model || type || vehiclePhoto)) {
+        await updateCustomer({ vehicle: { make, model, type, photo: vehiclePhoto } })
       } else if (step === 1 && (address || zip)) {
         await updateCustomer({ address, zip })
       }
@@ -149,6 +151,23 @@ export default function CustomerOnboarding() {
                       {vt}
                     </button>
                   ))}
+                </div>
+              </div>
+
+              <div className="auth-field">
+                <label className="auth-label">{t('photoLabel', 'Vehicle Photo')}</label>
+                <div className="flex justify-center mt-1">
+                  <CarPhotoUpload
+                    photo={vehiclePhoto}
+                    onChange={setVehiclePhoto}
+                    onFile={async (file) => {
+                      // For now just set the file as data URL for demo
+                      // In production, uploadImage would be called via onFile handler
+                      const reader = new FileReader()
+                      reader.onload = (e) => setVehiclePhoto(e.target.result)
+                      reader.readAsDataURL(file)
+                    }}
+                  />
                 </div>
               </div>
 

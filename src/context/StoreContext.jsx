@@ -274,6 +274,7 @@ export function StoreProvider({ children }) {
             make: customerProfile?.vehicle_make ?? '',
             model: customerProfile?.vehicle_model ?? '',
             type: customerProfile?.vehicle_type ?? '',
+            photo: customerProfile?.vehicle_photo ?? null,
           },
           // Additional cars beyond the primary one (013_customer_vehicles.sql).
           vehicles: customerProfile?.vehicles ?? [],
@@ -354,6 +355,7 @@ export function StoreProvider({ children }) {
           cols.vehicle_make = patch.vehicle.make ?? ''
           cols.vehicle_model = patch.vehicle.model ?? ''
           cols.vehicle_type = patch.vehicle.type ?? ''
+          if ('photo' in patch.vehicle) cols.vehicle_photo = patch.vehicle.photo
         }
         if (patch.vehicles) cols.vehicles = patch.vehicles
         if (Object.keys(cols).length) {

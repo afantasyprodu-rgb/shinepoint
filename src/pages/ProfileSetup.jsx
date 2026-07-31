@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import Logo from '../components/Logo'
 import AvatarUpload from '../components/AvatarUpload'
+import CarPhotoUpload from '../components/CarPhotoUpload'
 import Combobox from '../components/ui/Combobox'
 import { AnimatedPage } from '../components/ui/Motion'
 import { ArrowRightIcon, CheckIcon, SparklesIcon } from '../components/icons'
@@ -39,6 +40,7 @@ export default function ProfileSetup() {
   const [vehMake, setVehMake] = useState(customer.vehicle?.make ?? '')
   const [vehModel, setVehModel] = useState(customer.vehicle?.model ?? '')
   const [vehType, setVehType] = useState(customer.vehicle?.type ?? '')
+  const [vehPhoto, setVehPhoto] = useState(customer.vehicle?.photo ?? null)
 
   // Detailer-only gallery
   const [gallery, setGallery] = useState(isDetailer ? me?.gallery ?? [] : [])
@@ -58,7 +60,7 @@ export default function ProfileSetup() {
           name,
           photo,
           bio,
-          vehicle: { make: vehMake, model: vehModel, type: vehType },
+          vehicle: { make: vehMake, model: vehModel, type: vehType, photo: vehPhoto },
         })
       }
       done()
@@ -210,6 +212,18 @@ export default function ProfileSetup() {
                             {vt}
                           </button>
                         ))}
+                      </div>
+                      <div className="mt-3 flex flex-col items-center gap-2">
+                        <p className="text-xs font-medium text-slate-600 dark:text-slate-400">Vehicle Photo (optional)</p>
+                        <CarPhotoUpload
+                          photo={vehPhoto}
+                          onChange={setVehPhoto}
+                          onFile={async (file) => {
+                            const reader = new FileReader()
+                            reader.onload = (e) => setVehPhoto(e.target.result)
+                            reader.readAsDataURL(file)
+                          }}
+                        />
                       </div>
                     </div>
                   )}
