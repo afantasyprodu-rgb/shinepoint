@@ -4,22 +4,13 @@ const ThemeContext = createContext(null)
 
 const STORAGE_KEY = 'shinepoint-theme'
 const hueKey = (mode) => `shinepoint-hue-${mode}`
+const hueIndexKey = (mode) => `shinepoint-hue-index-${mode}`
 
-// Bounded purple->pink->blue arc — same range the login wipe and the map's
-// "you are here" pulse ride (see TransitionOverlay.jsx / DetailerMap.jsx),
-// so a rotated hue always still reads as "the brand," never an arbitrary
-// color from anywhere on the wheel.
-const ARC_MIN = 208
-const ARC_MAX = 322
-const DEFAULT_HUE = 262
-
-// How far a fresh hue must land from the mode's last one. The transition's
-// mid-animation shimmer (nx-theme-hue in index.css) is a wide, saturated
-// sweep — if the *settled* colors were only nudged a little, the switch
-// felt like it changed more mid-flight than it actually kept. 45° is
-// close to half the 114°-wide arc, so back-to-back presses land on
-// clearly distinct colors, not neighbors.
-const MIN_GAP = 45
+// Preset hue cycles: each toggle cycles to next hue in this array.
+// All hues stay in the purple->pink->blue arc (208-322°) so brand always
+// reads as "the brand"; triadic CTA relationship is maintained via ctaHueFor().
+const HUE_CYCLE = [262, 200, 320]
+const DEFAULT_HUE = HUE_CYCLE[0]
 
 function ctaHueFor(brandHue) {
   return (brandHue - 120 + 360) % 360
@@ -30,20 +21,17 @@ function storedHue(mode) {
   return Number.isFinite(v) && v ? v : DEFAULT_HUE
 }
 
-// A fresh hue for `mode`, constructed (not rejection-sampled) to guarantee
-// at least MIN_GAP° from whatever that mode used last time — so flipping
-// back and forth never just bounces between the same two colors. Picks
-// uniformly from whichever side(s) of the arc still have room at that gap;
-// if the previous hue sat too close to the arc's center for either side to
-// have room, jumps to whichever end is farther away.
+function storedHueIndex(mode) {
+  const v = Number(localStorage.getItem(hueIndexKey(mode)))
+  return Number.isFinite(v) ? v : 0
+}
+
+// Cycle to next hue in preset array. Advances index, wraps at end.
 function nextHueFor(mode) {
-  const prev = storedHue(mode)
-  const belowLen = Math.max(0, prev - MIN_GAP - ARC_MIN)
-  const aboveLen = Math.max(0, ARC_MAX - (prev + MIN_GAP))
-  const total = belowLen + aboveLen
-  if (total <= 0) return prev - ARC_MIN > ARC_MAX - prev ? ARC_MIN : ARC_MAX
-  const r = Math.random() * total
-  return r < belowLen ? ARC_MIN + r : prev + MIN_GAP + (r - belowLen)
+  const currentIndex = storedHueIndex(mode)
+  const nextIndex = (currentIndex + 1) % HUE_CYCLE.length
+  localStorage.setItem(hueIndexKey(mode), String(nextIndex))
+  return HUE_CYCLE[nextIndex]
 }
 
 function applyHue(hue) {
