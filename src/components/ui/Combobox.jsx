@@ -27,7 +27,8 @@ export default function Combobox({
   const filtered = query
     ? options.filter((o) => o.toLowerCase().includes(query))
     : options
-  const shown = filtered.slice(0, 8)
+  // Show all filtered options (max-h-56 on ul provides scroll constraint)
+  const shown = filtered
 
   useEffect(() => {
     function onDocClick(e) {
