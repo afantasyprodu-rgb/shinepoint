@@ -21,8 +21,8 @@ const VEHICLE_TYPES = ['Sedan', 'SUV', 'Truck', 'Van', 'Coupe', 'EV']
 // (on-device in production); the swatches are the manual override. Only these
 // personal surfaces read --accent — never the app chrome.
 function GarageCard({ make, model, type, t }) {
-  const { rawAccent, setAccent } = usePaint()
-  const current = PAINTS.find((p) => p.hex.toLowerCase() === rawAccent.toLowerCase())
+  const { accent, setAccent } = usePaint()
+  const current = PAINTS.find((p) => p.hex.toLowerCase() === accent.toLowerCase())
 
   const title = [make, model].filter(Boolean).join(' ') || type || t('yourVehicle')
   const hasVehicle = Boolean(make || model || type)
@@ -51,7 +51,7 @@ function GarageCard({ make, model, type, t }) {
       </p>
       <div className="flex flex-wrap gap-3">
         {PAINTS.map((p) => {
-          const selected = p.hex.toLowerCase() === rawAccent.toLowerCase()
+          const selected = p.hex.toLowerCase() === accent.toLowerCase()
           return (
             <button
               key={p.hex}
@@ -59,18 +59,11 @@ function GarageCard({ make, model, type, t }) {
               onClick={() => setAccent(p.hex)}
               aria-label={`Paint: ${p.name}`}
               aria-pressed={selected}
-              title={p.name}
-              className={`press-spring inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border-[3px] border-white shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:border-white/20 ${
+              className={`press-spring h-10 w-10 cursor-pointer rounded-full border-[3px] border-white shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:border-white/20 ${
                 selected ? 'paint-accent-ring' : ''
               }`}
               style={{ background: p.hex }}
-            >
-              {selected && (
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-slate-900 shadow-sm" aria-hidden="true">
-                  <CheckIcon className="h-3.5 w-3.5" />
-                </span>
-              )}
-            </button>
+            />
           )
         })}
       </div>

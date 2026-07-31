@@ -26,7 +26,7 @@
 | Border | `#E8E1F0` | `--surface-border` |
 | Text | `#21172E` | `--color-text` |
 
-**Color Notes:** Trust purple + transaction green are the defaults. A saved vehicle paint may shift the live brand/action hue while preserving the token lightness and contrast hierarchy.
+**Color Notes:** Trust purple + transaction green
 
 ### Typography
 
@@ -179,7 +179,7 @@
 - ❌ Low trust signals
 - ❌ Confusing layout
 - ❌ Neumorphic shadows or inset fields as the default surface language
-- ❌ Unbounded or random brand color changes; personalization must come from the explicitly selected vehicle paint
+- ❌ Brand colors that change between sessions or theme switches
 - ❌ Decorative glow on routine actions
 
 ### Additional Forbidden Patterns
