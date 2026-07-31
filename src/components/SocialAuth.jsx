@@ -18,9 +18,12 @@ export default function SocialAuth({ role = 'customer', label = 'Continue' }) {
     if (role === 'detailer') localStorage.setItem('pendingRole', 'detailer')
     else localStorage.removeItem('pendingRole')
 
+    // Role also rides in the redirect URL itself (not just localStorage) since
+    // storage can be partitioned/cleared across the OAuth redirect hop.
+    const redirectTo = `${window.location.origin}/auth/callback${role === 'detailer' ? '?role=detailer' : ''}`
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider,
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: { redirectTo },
     })
 
     if (oauthError) {

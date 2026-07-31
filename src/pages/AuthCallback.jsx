@@ -28,11 +28,15 @@ export default function AuthCallback() {
       }
 
       const userId = data.session.user.id
-      const pendingRole = localStorage.getItem('pendingRole')
+      // URL param survives the OAuth redirect even if localStorage got
+      // partitioned/cleared cross-origin; localStorage is the fallback.
+      const pendingRole =
+        new URLSearchParams(window.location.search).get('role') || localStorage.getItem('pendingRole')
 
       // Convert a fresh OAuth account to a detailer if that's what they chose.
       if (pendingRole === 'detailer') {
-        await supabase.rpc('claim_detailer_role')
+        const { error: rpcError } = await supabase.rpc('claim_detailer_role')
+        if (rpcError) console.error('claim_detailer_role failed:', rpcError)
       }
       localStorage.removeItem('pendingRole')
 

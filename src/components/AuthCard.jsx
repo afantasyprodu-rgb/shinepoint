@@ -207,9 +207,12 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
     setBusy(true)
     if (role === 'detailer') localStorage.setItem('pendingRole', 'detailer')
     else localStorage.removeItem('pendingRole')
+    // Role also rides in the redirect URL itself (not just localStorage) since
+    // storage can be partitioned/cleared across the Google redirect hop.
+    const redirectTo = `${window.location.origin}/auth/callback${role === 'detailer' ? '?role=detailer' : ''}`
     const { error: err } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: { redirectTo },
     })
     if (err) { setBusy(false); setError(err.message) }
   }
