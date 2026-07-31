@@ -172,7 +172,12 @@ export default function AppShell({ role, children }) {
           panel included, was stacking in plain DOM order below <main>'s map
           overlay chrome (z-[500]), regardless of the panel's own z-index.
           Now header's context outranks it directly. */}
-      <header className="relative z-[600] border-b border-brand-100 bg-white/90 backdrop-blur dark:border-white/10 dark:bg-[#1A1430]/90">
+      {/* pt-[env(safe-area-inset-top)] clears the Dynamic Island/notch on iOS
+          (needs viewport-fit=cover in index.html's <meta viewport> to be
+          non-zero at all) — without it the header sits flush against the
+          island with no breathing room. The py-3 base padding stays under
+          it so older/non-notch devices are unaffected. */}
+      <header className="relative z-[600] border-b border-brand-100 bg-white/90 pt-[env(safe-area-inset-top)] backdrop-blur dark:border-white/10 dark:bg-[#1A1430]/90">
         <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="flex items-center gap-4">
             <Link
