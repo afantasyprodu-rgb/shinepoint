@@ -134,30 +134,42 @@ export function StoreProvider({ children }) {
   useEffect(() => {
     if (isDemo || !profile?.id) return
 
-    const channel = supabase
-      .channel(`bookings:${profile.id}`)
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'bookings' },
-        (payload) => {
-          setRealBookings((bs) =>
-            bs.map((b) =>
-              b.id === payload.new.id
-                ? { ...b, status: payload.new.status, tip: payload.new.tip_amount }
-                : b
+    // Realtime opens a WebSocket derived from VITE_SUPABASE_URL — if that env
+    // var is ever misconfigured as http:// instead of https://, the browser
+    // throws synchronously ("insecure" mixed content) rather than failing
+    // gracefully, which would otherwise take down the whole app for every
+    // signed-in user. Live booking updates degrading to "refresh to see
+    // changes" is a much smaller price than a hard crash.
+    let channel
+    try {
+      channel = supabase
+        .channel(`bookings:${profile.id}`)
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'bookings' },
+          (payload) => {
+            setRealBookings((bs) =>
+              bs.map((b) =>
+                b.id === payload.new.id
+                  ? { ...b, status: payload.new.status, tip: payload.new.tip_amount }
+                  : b
+              )
             )
-          )
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'bookings' },
-        () => {
-          const dp = detailerProfileRef.current
-          if (dp) fetchBookingsForDetailer(dp.id).then(setRealBookings)
-        }
-      )
-      .subscribe()
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'bookings' },
+          () => {
+            const dp = detailerProfileRef.current
+            if (dp) fetchBookingsForDetailer(dp.id).then(setRealBookings)
+          }
+        )
+        .subscribe()
+    } catch (err) {
+      console.error('Realtime subscribe failed (check VITE_SUPABASE_URL uses https://):', err)
+      return
+    }
 
     return () => supabase.removeChannel(channel)
   }, [isDemo, profile?.id])
