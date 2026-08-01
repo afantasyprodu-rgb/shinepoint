@@ -44,15 +44,35 @@ export default function AuthCallback() {
         new Date(user.last_sign_in_at).getTime() - new Date(user.created_at).getTime() < 5000
 
       // Convert a fresh OAuth account to a detailer if that's what they chose.
+      // The on_auth_user_created trigger that creates the `users` row can
+      // still be in flight right after the OAuth redirect, so the RPC's
+      // `where role = 'customer'` update may match 0 rows on the first try —
+      // retry a few times before giving up, and surface a real error instead
+      // of silently falling through to the customer flow.
+      let claimError = null
       if (pendingRole === 'detailer') {
-        const { error: rpcError } = await supabase.rpc('claim_detailer_role')
-        if (rpcError) console.error('claim_detailer_role failed:', rpcError)
+        for (let attempt = 0; attempt < 4; attempt++) {
+          const { error: rpcError } = await supabase.rpc('claim_detailer_role')
+          claimError = rpcError
+          if (!rpcError) {
+            const { data: check } = await supabase.from('users').select('role').eq('id', userId).single()
+            if (check?.role === 'detailer') { claimError = null; break }
+          }
+          await new Promise((r) => setTimeout(r, 500 * (attempt + 1)))
+        }
+        if (claimError) console.error('claim_detailer_role failed after retries:', claimError)
         // AuthContext's cached profile was fetched (possibly) before this
         // RPC flipped the role — refresh it now so ProtectedRoute on the
         // destination page sees 'detailer', not the stale cached 'customer'.
         await refreshProfile()
       }
       try { localStorage.removeItem('pendingRole') } catch { /* private mode, ignore */ }
+
+      if (pendingRole === 'detailer' && claimError) {
+        setError(t('detailerClaimError') ?? 'Could not finish setting up your detailer account. Please try signing up again.')
+        setTimeout(() => navigate('/signup/detailer', { replace: true }), 2500)
+        return
+      }
 
       const { data: userRow } = await supabase
         .from('users')
