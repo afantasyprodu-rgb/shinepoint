@@ -36,12 +36,13 @@ export default function AuthCallback() {
       try { storedPendingRole = localStorage.getItem('pendingRole') } catch { /* private mode, ignore */ }
       const pendingRole = new URLSearchParams(window.location.search).get('role') || storedPendingRole
       // OAuth has no separate signup/login step — Supabase issues the same
-      // callback either way. A brand-new account's created_at and
-      // last_sign_in_at land within a couple seconds of each other; a
-      // returning user's created_at is old. That's the only signal we have
-      // for "just signed up" vs "logging back in".
-      const isNewSignup =
-        new Date(user.last_sign_in_at).getTime() - new Date(user.created_at).getTime() < 5000
+      // callback either way. Comparing last_sign_in_at to created_at instead
+      // of wall-clock time measures how long the Google consent screen took
+      // (noisy, often several seconds) rather than account age — it flaked
+      // false on a slow OAuth round trip and sent brand-new detailers
+      // straight to the dashboard, skipping onboarding entirely. Compare
+      // against now() and widen the window so a slow redirect can't misfire.
+      const isNewSignup = Date.now() - new Date(user.created_at).getTime() < 60_000
 
       // Convert a fresh OAuth account to a detailer if that's what they chose.
       // The on_auth_user_created trigger that creates the `users` row can
