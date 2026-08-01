@@ -39,7 +39,6 @@ const SERVICE_ADVICE_KEYS = {
   'Full Detail': 'adviceFullDetail',
 }
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-const VEHICLES = ['Sedan', 'SUV', 'Truck', 'Coupe', 'Van']
 
 const STEP_KEYS = ['stepIdentity', 'stepInsurance', 'stepProfile', 'stepServices', 'stepSchedule', 'stepPayout']
 
@@ -180,7 +179,7 @@ export default function DetailerOnboarding() {
   const canContinue = [
     idStatus === 'passed' || idStatus === 'pending',
     insurance === 'insured' || (insurance === 'none' && noInsuranceAck),
-    bio.length > 0 && zip.length === 5 && vehicles.length > 0,
+    bio.length > 0 && zip.length === 5,
     Object.keys(services).length > 0,
     days.length > 0,
     bank.length >= 4,
@@ -408,19 +407,6 @@ export default function DetailerOnboarding() {
                   <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
                     {t('zipHint')}
                   </p>
-                </div>
-                <div>
-                  <p className="label">{t('vehicleTypesLabel')}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {VEHICLES.map((v) => (
-                      <button key={v} type="button" aria-pressed={vehicles.includes(v)} onClick={() => toggle(vehicles, setVehicles, v)}
-                        className={`cursor-pointer rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
-                          vehicles.includes(v) ? 'bg-brand-600 text-white shadow-md' : 'bg-brand-50 text-slate-600 hover:bg-brand-100 dark:bg-white/5 dark:text-slate-400 dark:hover:bg-white/10'
-                        }`}>
-                        {v}
-                      </button>
-                    ))}
-                  </div>
                 </div>
                 </div>
               </div>
