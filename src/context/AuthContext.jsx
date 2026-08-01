@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
 // Provides the current session plus the user's row from public.users
@@ -52,20 +52,24 @@ export function AuthProvider({ children }) {
     return data ?? null
   }
 
+  // Concurrent fetchProfile calls (the auto-fetch effect below plus a
+  // manual refreshProfile, e.g. right after claim_detailer_role flips the
+  // role during OAuth signup) can resolve out of order — whichever finishes
+  // LAST would otherwise win and clobber fresher data with a stale read.
+  // A monotonic counter lets every caller discard its result if a newer
+  // fetch has since started.
+  const profileRequestId = useRef(0)
+
   useEffect(() => {
     const userId = session?.user?.id
     if (!userId) return
 
-    let cancelled = false
+    const requestId = ++profileRequestId.current
     fetchProfile(userId).then((data) => {
-      if (cancelled) return
+      if (requestId !== profileRequestId.current) return
       setProfile(data)
       setLoading(false)
     })
-
-    return () => {
-      cancelled = true
-    }
   }, [session?.user?.id])
 
   // Role can change server-side without the session itself changing (e.g.
@@ -75,7 +79,9 @@ export function AuthProvider({ children }) {
   async function refreshProfile() {
     const userId = session?.user?.id
     if (!userId) return
+    const requestId = ++profileRequestId.current
     const data = await fetchProfile(userId)
+    if (requestId !== profileRequestId.current) return
     setProfile(data)
   }
 
