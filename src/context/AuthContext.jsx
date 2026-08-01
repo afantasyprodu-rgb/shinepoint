@@ -76,8 +76,16 @@ export function AuthProvider({ children }) {
   // claim_detailer_role during OAuth signup) — the effect above won't
   // refetch since session.user.id is the same. Callers that just changed
   // the role must call this before navigating anywhere that role-gates.
-  async function refreshProfile() {
-    const userId = session?.user?.id
+  //
+  // Accepts an optional explicit userId: this context's own `session` state
+  // is populated by its own independent onAuthStateChange/getSession call,
+  // a separate timing track from a caller (e.g. AuthCallback) that already
+  // resolved its own session directly. If context session hasn't caught up
+  // yet, `session?.user?.id` reads undefined and this silently no-ops —
+  // the auto-fetch effect above then becomes the only thing that ever
+  // calls setProfile, and it can still be holding a pre-RPC stale read.
+  async function refreshProfile(explicitUserId) {
+    const userId = explicitUserId ?? session?.user?.id
     if (!userId) return
     const requestId = ++profileRequestId.current
     const data = await fetchProfile(userId)

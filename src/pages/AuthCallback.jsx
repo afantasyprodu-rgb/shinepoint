@@ -65,7 +65,10 @@ export default function AuthCallback() {
         // AuthContext's cached profile was fetched (possibly) before this
         // RPC flipped the role — refresh it now so ProtectedRoute on the
         // destination page sees 'detailer', not the stale cached 'customer'.
-        await refreshProfile()
+        // Pass userId explicitly: AuthContext's own session state is set by
+        // its own independent listener and may not have caught up yet, in
+        // which case refreshProfile() would silently no-op on a missing id.
+        await refreshProfile(userId)
       }
       try { localStorage.removeItem('pendingRole') } catch { /* private mode, ignore */ }
 
