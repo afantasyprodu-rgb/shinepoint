@@ -549,6 +549,17 @@
 }
 
 @layer utilities {
+  /* Hides the scrollbar on a scrollable container without disabling scroll
+     — used by wheel-style pickers (TimePicker) where a visible scrollbar
+     would break the illusion of a spinning dial. */
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
   @keyframes skeleton-shimmer {
     from { background-position: 180% 0; }
     to   { background-position: -20% 0; }
