@@ -3,7 +3,7 @@ import { AnimatedPage, FadeIn } from '../components/ui/Motion'
 import { CountUp } from '../components/ui/bits'
 import { NxLineChart, NxDonut } from '../components/ui/AnalyticsCharts'
 import { useStore } from '../context/StoreContext'
-import { TrendingUpIcon, PieChartIcon, LightbulbIcon, TrophyIcon } from '../components/icons'
+import { TrendingUpIcon, PieChartIcon, LightbulbIcon, TrophyIcon, ClockIcon } from '../components/icons'
 import { useT } from '../i18n/useT'
 
 const ME = 'det-1'
@@ -11,6 +11,28 @@ const ME = 'det-1'
 // into two three-week windows so it reads as a period-over-period chart.
 const WEEKLY = [240, 310, 285, 390, 364, 412]
 const SEGMENT_COLORS = ['var(--color-cta-500)', 'var(--color-brand-400)', 'var(--color-accent-teal)']
+
+function fmtDuration(mins) {
+  const rounded = Math.round(mins)
+  const h = Math.floor(rounded / 60)
+  const m = rounded % 60
+  if (h === 0) return `${m}m`
+  if (m === 0) return `${h}h`
+  return `${h}h ${m}m`
+}
+
+// Demo bookings carry a canned durationMinutes; real ones derive it from the
+// started_at/completed_at timestamps stamped in updateBookingStatusInDB.
+// Older real bookings from before that stamping existed have neither, so
+// they're simply excluded rather than showing a bogus duration.
+function durationOf(b) {
+  if (typeof b.durationMinutes === 'number') return b.durationMinutes
+  if (b.startedAt && b.completedAt) {
+    const mins = (new Date(b.completedAt) - new Date(b.startedAt)) / 60000
+    return mins > 0 ? mins : null
+  }
+  return null
+}
 
 export default function DetailerAnalytics() {
   const { bookings } = useStore()
@@ -45,6 +67,23 @@ export default function DetailerAnalytics() {
   const bestService = services[0]
   const worstService = services[services.length - 1]
   const hasComparison = services.length > 1 && bestService.avgNet > worstService.avgNet
+
+  // Average time per job, overall and broken down by vehicle type.
+  const timedJobs = complete
+    .map((b) => ({ vehicle: b.vehicle || 'Sedan', minutes: durationOf(b) }))
+    .filter((b) => b.minutes != null)
+  const overallAvgMinutes = timedJobs.length
+    ? timedJobs.reduce((sum, b) => sum + b.minutes, 0) / timedJobs.length
+    : 0
+  const vehicleTimeStats = {}
+  timedJobs.forEach((b) => {
+    const v = (vehicleTimeStats[b.vehicle] ??= { vehicle: b.vehicle, count: 0, total: 0 })
+    v.count += 1
+    v.total += b.minutes
+  })
+  const byVehicleTime = Object.values(vehicleTimeStats)
+    .map((v) => ({ ...v, avg: v.total / v.count }))
+    .sort((a, b) => b.count - a.count || a.vehicle.localeCompare(b.vehicle))
   const gapPct = hasComparison ? Math.round((1 - worstService.avgNet / bestService.avgNet) * 100) : 0
   // A modest bump relative to the service's own price reads sensibly at any
   // gap size — unlike splitting the raw dollar gap, which turns absurd when
@@ -155,6 +194,41 @@ export default function DetailerAnalytics() {
                 </ul>
               ) : (
                 <p className="nx-sub text-sm">{t('completeToSeePerformance')}</p>
+              )}
+            </div>
+          </FadeIn>
+
+          <FadeIn delay={0.22}>
+            <div className="nx-card mt-3">
+              <p className="mb-1 text-sm font-semibold text-slate-900 dark:text-white">{t('avgTimeTitle')}</p>
+              <p className="nx-sub mb-4 text-xs">{t('avgTimeBlurb')}</p>
+              {byVehicleTime.length > 0 ? (
+                <>
+                  <div className="flex items-center justify-between gap-3 rounded-xl bg-brand-50 px-3 py-2.5 dark:bg-brand-500/10">
+                    <div className="flex items-center gap-2.5">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-600 text-white">
+                        <ClockIcon className="h-3.5 w-3.5" />
+                      </span>
+                      <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{t('overallAverage')}</p>
+                    </div>
+                    <p className="font-display text-lg font-bold text-slate-900 dark:text-slate-100">{fmtDuration(overallAvgMinutes)}</p>
+                  </div>
+                  <ul className="mt-2.5 space-y-2">
+                    {byVehicleTime.map((v) => (
+                      <li key={v.vehicle} className="flex items-center justify-between gap-3 px-3 py-1 text-sm">
+                        <div>
+                          <p className="font-medium text-slate-900 dark:text-slate-100">{v.vehicle}</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            {t('jobsCount', { count: v.count, s: v.count === 1 ? '' : 's' })}
+                          </p>
+                        </div>
+                        <p className="font-display text-base font-bold text-slate-900 dark:text-slate-100">{fmtDuration(v.avg)}</p>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              ) : (
+                <p className="nx-sub text-sm">{t('completeToSeeTime')}</p>
               )}
             </div>
           </FadeIn>

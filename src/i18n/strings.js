@@ -765,6 +765,11 @@ export const STRINGS = {
       completeToSeePerformance: 'Complete jobs to see per-service performance here.',
       boostTitle: 'Boost your {service} jobs',
       boostBody: '{worstService} nets you ${worstAvg}/job — {gapPct}% less than your top earner, {bestService} at ${bestAvg}/job. Try raising the price by ~${bump}, bundling it with a quick add-on (wax, tire shine, odor treatment), or upselling to {bestService} on-site once you\'re already there.',
+      avgTimeTitle: 'Average time per job',
+      avgTimeBlurb: 'How long jobs actually take, overall and by vehicle type.',
+      overallAverage: 'Overall average',
+      jobsCount: '{count} job{s}',
+      completeToSeeTime: 'Complete jobs to see average time here.',
     },
     taxWriteOffs: {
       title: 'Tax write-off ideas',
@@ -1854,6 +1859,11 @@ export const STRINGS = {
       completeToSeePerformance: 'Completa trabajos para ver el rendimiento por servicio aquí.',
       boostTitle: 'Mejora tus trabajos de {service}',
       boostBody: '{worstService} te da ${worstAvg}/trabajo — {gapPct}% menos que tu mejor servicio, {bestService} con ${bestAvg}/trabajo. Intenta subir el precio ~${bump}, agrupar un complemento rápido (cera, brillo de llantas, tratamiento de olores), o vender {bestService} en el momento ya que estás ahí.',
+      avgTimeTitle: 'Tiempo promedio por trabajo',
+      avgTimeBlurb: 'Cuánto tardan realmente los trabajos, en general y por tipo de vehículo.',
+      overallAverage: 'Promedio general',
+      jobsCount: '{count} trabajo{s}',
+      completeToSeeTime: 'Completa trabajos para ver el tiempo promedio aquí.',
     },
     taxWriteOffs: {
       title: 'Ideas de deducciones de impuestos',

@@ -74,9 +74,13 @@ function normalizeDetailerBooking(row) {
     transferredAt: row.transferred_at,
     status: row.status,
     scheduledTime: row.scheduled_time,
+    startedAt: row.started_at,
+    completedAt: row.completed_at,
     address: row.booking_address ?? '',
     zip: row.booking_zip ?? '',
-    vehicle: row.vehicle_type ?? 'Sedan',
+    // vehicle_type lives on the customer's profile, not the booking row
+    // itself — read it through the same nested select as their name.
+    vehicle: row.customer_profiles?.vehicle_type ?? 'Sedan',
     // A customer-review row means this detailer already rated the customer.
     customerRated: custReview
       ? { rating: custReview.rating, hardToHandle: custReview.is_hard_to_handle }
@@ -299,7 +303,7 @@ export async function fetchBookingsForDetailer(detailerProfileId) {
   const { data, error } = await supabase
     .from('bookings')
     .select(`
-      id, status, scheduled_time, total_price, tip_amount,
+      id, status, scheduled_time, started_at, completed_at, total_price, tip_amount,
       booking_address, booking_zip, created_at,
       service_id, customer_id,
       damage_report_submitted, damage_report_acknowledged,
@@ -364,6 +368,10 @@ export async function updateBookingStatusInDB(bookingId, patch) {
   const dbPatch = {}
   if (patch.status) dbPatch.status = patch.status
   if (patch.tip !== undefined) dbPatch.tip_amount = patch.tip
+  // Stamp the job-duration timestamps at the moment they actually happen —
+  // analytics (average time per job/vehicle) reads these back later.
+  if (patch.status === 'in_progress') dbPatch.started_at = new Date().toISOString()
+  if (patch.status === 'complete') dbPatch.completed_at = new Date().toISOString()
   const { error } = await supabase.from('bookings').update(dbPatch).eq('id', bookingId)
   if (error) console.error('updateBookingStatus:', error.message)
 }
