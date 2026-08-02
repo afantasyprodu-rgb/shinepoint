@@ -6,7 +6,7 @@ import AppShell from '../components/AppShell'
 import TimePicker from '../components/TimePicker'
 import PaymentForm from '../components/PaymentForm'
 import Modal from '../components/ui/Modal'
-import { CheckIcon, AlertTriangleIcon, ChevronLeftIcon, SparklesIcon } from '../components/icons'
+import { CheckIcon, AlertTriangleIcon, ChevronLeftIcon, SparklesIcon, CarIcon } from '../components/icons'
 import { useStore } from '../context/StoreContext'
 import { useTheme } from '../context/ThemeContext'
 import { stripePromise, isStripeConfigured, createPaymentIntent } from '../lib/stripe'
@@ -60,16 +60,43 @@ export default function BookingWizard() {
   const [step, setStep] = useState(0) // 0 service, 1 schedule, 2 review, 3 processing, 4 confirmed, 5 card
   const [service, setService] = useState(null)
   const [vehicle, setVehicle] = useState('Sedan')
+  const [vehicleMake, setVehicleMake] = useState('')
+  const [vehicleModel, setVehicleModel] = useState('')
   const [vehicleTouched, setVehicleTouched] = useState(false)
+  const [selectedVehicleId, setSelectedVehicleId] = useState('primary')
 
-  // Pre-fill from the customer's own car (e.g. auto-detected "Toyota Camry"
-  // -> "Sedan" at profile setup) once it's loaded, so the detailer sees the
-  // right vehicle without the customer re-picking it every time — but never
-  // clobber a type they've deliberately changed for this specific booking
-  // (they may be booking a different car than their profile default).
+  // Every car on file — the profile's primary vehicle plus any extras added
+  // in Settings — so a customer with more than one can pick which one this
+  // job is actually for instead of always booking their default car.
+  const vehicleOptions = useMemo(() => {
+    const opts = []
+    if (customer.vehicle?.make || customer.vehicle?.model || customer.vehicle?.type) {
+      opts.push({ id: 'primary', make: customer.vehicle.make, model: customer.vehicle.model, type: customer.vehicle.type })
+    }
+    ;(customer.vehicles ?? []).forEach((v) => {
+      if (v.make || v.model || v.type) opts.push({ id: v.id, make: v.make, model: v.model, type: v.type })
+    })
+    return opts
+  }, [customer.vehicle, customer.vehicles])
+
+  function selectVehicle(opt) {
+    setSelectedVehicleId(opt.id)
+    setVehicle(opt.type || 'Sedan')
+    setVehicleMake(opt.make || '')
+    setVehicleModel(opt.model || '')
+    setVehicleTouched(true)
+  }
+
+  // Pre-fill from the customer's primary car (e.g. auto-detected "Toyota
+  // Camry" -> "Sedan" at profile setup) once it's loaded, so the detailer
+  // sees the right vehicle without the customer picking it every time — but
+  // never clobber a car they've deliberately picked for this booking.
   useEffect(() => {
-    if (!vehicleTouched && customer.vehicle?.type) setVehicle(customer.vehicle.type)
-  }, [customer.vehicle?.type, vehicleTouched])
+    if (vehicleTouched) return
+    if (customer.vehicle?.type) setVehicle(customer.vehicle.type)
+    if (customer.vehicle?.make) setVehicleMake(customer.vehicle.make)
+    if (customer.vehicle?.model) setVehicleModel(customer.vehicle.model)
+  }, [customer.vehicle?.type, customer.vehicle?.make, customer.vehicle?.model, vehicleTouched])
   const [date, setDate] = useState(null)
   const [time, setTime] = useState('')
   const [weatherAck, setWeatherAck] = useState(false)
@@ -108,15 +135,11 @@ export default function BookingWizard() {
       // DetailerJob.jsx reads vehicleType/vehicleMake/vehicleModel (matching
       // the real-booking normalizer's field names) — vehicleType mirrors
       // `vehicle` so demo bookings created here render the same as real
-      // ones instead of showing a blank vehicle card.
+      // ones instead of showing a blank vehicle card. make/model come from
+      // whichever car was picked above (defaults to the profile's primary).
       vehicleType: vehicle,
-      // Only attach the profile's make/model when the type is still their
-      // auto-filled default — if they picked a different vehicle type for
-      // this booking, that's a different car and we don't know its make/
-      // model (no per-booking vehicle picker yet), so leave those blank
-      // rather than mislabel it.
-      vehicleMake: vehicleTouched ? undefined : customer.vehicle?.make,
-      vehicleModel: vehicleTouched ? undefined : customer.vehicle?.model,
+      vehicleMake: vehicleMake || undefined,
+      vehicleModel: vehicleModel || undefined,
       rewardId: useReward && reward ? reward.id : undefined,
       creditUsed: creditUsed || undefined,
       is_loyalty_redemption: Boolean(useReward && reward),
@@ -233,6 +256,37 @@ export default function BookingWizard() {
                 ))}
               </div>
 
+              {vehicleOptions.length > 1 && (
+                <>
+                  <h2 className="mt-6 text-sm font-semibold text-slate-700 dark:text-slate-300">{t('whichCar')}</h2>
+                  <div className="mt-2 flex flex-wrap gap-2" role="radiogroup" aria-label={t('whichCar')}>
+                    {vehicleOptions.map((opt) => {
+                      const label = [opt.make, opt.model].filter(Boolean).join(' ') || opt.type || t('vehicleFallback')
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          role="radio"
+                          aria-checked={selectedVehicleId === opt.id}
+                          onClick={() => selectVehicle(opt)}
+                          className={`flex items-center gap-2 rounded-2xl border px-4 py-2.5 text-left text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
+                            selectedVehicleId === opt.id
+                              ? 'border-brand-600 bg-brand-600 text-white shadow-md'
+                              : 'border-brand-100 bg-white text-slate-700 hover:border-brand-300 hover:bg-brand-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10'
+                          }`}
+                        >
+                          <CarIcon className="h-4 w-4 shrink-0" />
+                          <span>
+                            {label}
+                            {opt.type && <span className="ml-1 opacity-70">· {opt.type}</span>}
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </>
+              )}
+
               <h2 className="mt-6 text-sm font-semibold text-slate-700 dark:text-slate-300">{t('vehicleType')}</h2>
               <div className="mt-2 flex flex-wrap gap-2" role="radiogroup" aria-label="Vehicle type">
                 {VEHICLES.map((v) => (
@@ -244,6 +298,7 @@ export default function BookingWizard() {
                     onClick={() => {
                       setVehicle(v)
                       setVehicleTouched(true)
+                      setSelectedVehicleId(null)
                     }}
                     className={`cursor-pointer rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
                       vehicle === v
