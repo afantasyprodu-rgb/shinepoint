@@ -4,13 +4,15 @@ import AppShell from '../components/AppShell'
 import { AnimatedPage } from '../components/ui/Motion'
 import DilutionCalculator from '../components/tools/DilutionCalculator'
 import JobTimeEstimator from '../components/tools/JobTimeEstimator'
+import PricingCalculator from '../components/tools/PricingCalculator'
 import ChemicalGuide from '../components/tools/ChemicalGuide'
-import { FlaskIcon, ClockIcon, ShieldCheckIcon } from '../components/icons'
+import { FlaskIcon, ClockIcon, TagIcon, ShieldCheckIcon } from '../components/icons'
 import { useT } from '../i18n/useT'
 
 const TOOLS = [
   { key: 'dilution', labelKey: 'tabDilution', icon: FlaskIcon, Component: DilutionCalculator },
   { key: 'time', labelKey: 'tabTimeEstimate', icon: ClockIcon, Component: JobTimeEstimator },
+  { key: 'pricing', labelKey: 'tabPricing', icon: TagIcon, Component: PricingCalculator },
   { key: 'chemical', labelKey: 'tabChemicalGuide', icon: ShieldCheckIcon, Component: ChemicalGuide },
 ]
 

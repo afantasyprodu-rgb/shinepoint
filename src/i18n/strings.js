@@ -847,6 +847,15 @@ export const STRINGS = {
       chem_ceramic_dwell: 'Flash/cure time varies by product — always check the label',
       chem_ceramic_surface: 'Apply out of direct sun; keep it dry for the full cure window',
       chem_ceramic_safety: 'Use in a ventilated area — some formulas are flammable',
+      // Pricing / quote builder
+      tabPricing: 'Pricing',
+      priceTitle: 'Pricing calculator',
+      priceSubtitle: 'Build a quote from suggested market prices, adjusted for vehicle size, travel, and any discount or markup.',
+      priceDisclaimer: 'Suggested LA-market starting prices — adjust freely to match your own rates.',
+      travelFeeLabel: 'Travel fee',
+      adjustmentLabel: 'Adjustment %',
+      totalLabel: 'Total to charge',
+      takeHomeLabel: "You'll take home ({pct}%)",
     },
     detailerEarnings: {
       earnings: 'Earnings',
@@ -1927,6 +1936,15 @@ export const STRINGS = {
       chem_ceramic_dwell: 'El tiempo de curado varía según el producto — revisa siempre la etiqueta',
       chem_ceramic_surface: 'Aplica fuera de la luz solar directa; manténlo seco durante todo el curado',
       chem_ceramic_safety: 'Usa en un área ventilada — algunas fórmulas son inflamables',
+      // Calculadora de precios / cotizaciones
+      tabPricing: 'Precios',
+      priceTitle: 'Calculadora de precios',
+      priceSubtitle: 'Arma una cotización a partir de precios sugeridos del mercado, ajustados por tamaño de vehículo, viaje y cualquier descuento o recargo.',
+      priceDisclaimer: 'Precios iniciales sugeridos para el mercado de LA — ajústalos libremente a tus propias tarifas.',
+      travelFeeLabel: 'Tarifa de viaje',
+      adjustmentLabel: 'Ajuste %',
+      totalLabel: 'Total a cobrar',
+      takeHomeLabel: 'Te quedarás con ({pct}%)',
     },
     detailerEarnings: {
       earnings: 'Ganancias',
