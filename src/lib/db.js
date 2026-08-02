@@ -48,7 +48,13 @@ function normalizeCustomerBooking(row) {
     scheduledTime: row.scheduled_time,
     address: row.booking_address ?? '',
     zip: row.booking_zip ?? '',
-    vehicle: row.vehicle_type ?? 'Sedan',
+    // The vehicle actually booked for this job — see 024_booking_vehicle.sql.
+    // Falls back to the customer's profile default for bookings made before
+    // that column existed.
+    vehicle: row.vehicle_type ?? row.customer_profiles?.vehicle_type ?? 'Sedan',
+    vehicleType: row.vehicle_type ?? row.customer_profiles?.vehicle_type ?? 'Sedan',
+    vehicleMake: row.vehicle_make ?? row.customer_profiles?.vehicle_make ?? '',
+    vehicleModel: row.vehicle_model ?? row.customer_profiles?.vehicle_model ?? '',
     // A review row for this booking means the customer already rated it.
     reviewed: (row.reviews_of_detailers?.length ?? 0) > 0,
     ...mapBookingPhotos(row),
@@ -78,9 +84,13 @@ function normalizeDetailerBooking(row) {
     completedAt: row.completed_at,
     address: row.booking_address ?? '',
     zip: row.booking_zip ?? '',
-    // vehicle_type lives on the customer's profile, not the booking row
-    // itself — read it through the same nested select as their name.
-    vehicle: row.customer_profiles?.vehicle_type ?? 'Sedan',
+    // The vehicle actually booked for this job — see 024_booking_vehicle.sql.
+    // Falls back to the customer's profile default (their most-recently-set
+    // car) for bookings made before that column existed.
+    vehicle: row.vehicle_type ?? row.customer_profiles?.vehicle_type ?? 'Sedan',
+    vehicleType: row.vehicle_type ?? row.customer_profiles?.vehicle_type ?? 'Sedan',
+    vehicleMake: row.vehicle_make ?? row.customer_profiles?.vehicle_make ?? '',
+    vehicleModel: row.vehicle_model ?? row.customer_profiles?.vehicle_model ?? '',
     // A customer-review row means this detailer already rated the customer.
     customerRated: custReview
       ? { rating: custReview.rating, hardToHandle: custReview.is_hard_to_handle }
@@ -280,6 +290,7 @@ export async function fetchBookingsForCustomer(customerProfileId) {
       id, status, scheduled_time, total_price, tip_amount,
       booking_address, booking_zip, created_at,
       service_id, detailer_id,
+      vehicle_type, vehicle_make, vehicle_model,
       damage_report_submitted, damage_report_acknowledged,
       services(service_name),
       detailer_profiles!bookings_detailer_id_fkey(
@@ -306,6 +317,7 @@ export async function fetchBookingsForDetailer(detailerProfileId) {
       id, status, scheduled_time, started_at, completed_at, total_price, tip_amount,
       booking_address, booking_zip, created_at,
       service_id, customer_id,
+      vehicle_type, vehicle_make, vehicle_model,
       damage_report_submitted, damage_report_acknowledged,
       platform_cut, detailer_payout, payout_hold_until, transferred_at,
       services(service_name),
@@ -340,6 +352,9 @@ export async function createBookingInDB({
   zip,
   totalPrice,
   tipAmount,
+  vehicleType,
+  vehicleMake,
+  vehicleModel,
 }) {
   const { data, error } = await supabase
     .from('bookings')
@@ -352,6 +367,9 @@ export async function createBookingInDB({
       booking_zip: zip,
       total_price: totalPrice,
       tip_amount: tipAmount ?? 0,
+      vehicle_type: vehicleType || null,
+      vehicle_make: vehicleMake || null,
+      vehicle_model: vehicleModel || null,
       status: 'pending',
     })
     .select('id')

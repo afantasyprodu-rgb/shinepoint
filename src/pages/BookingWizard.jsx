@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { Elements } from '@stripe/react-stripe-js'
@@ -60,6 +60,16 @@ export default function BookingWizard() {
   const [step, setStep] = useState(0) // 0 service, 1 schedule, 2 review, 3 processing, 4 confirmed, 5 card
   const [service, setService] = useState(null)
   const [vehicle, setVehicle] = useState('Sedan')
+  const [vehicleTouched, setVehicleTouched] = useState(false)
+
+  // Pre-fill from the customer's own car (e.g. auto-detected "Toyota Camry"
+  // -> "Sedan" at profile setup) once it's loaded, so the detailer sees the
+  // right vehicle without the customer re-picking it every time — but never
+  // clobber a type they've deliberately changed for this specific booking
+  // (they may be booking a different car than their profile default).
+  useEffect(() => {
+    if (!vehicleTouched && customer.vehicle?.type) setVehicle(customer.vehicle.type)
+  }, [customer.vehicle?.type, vehicleTouched])
   const [date, setDate] = useState(null)
   const [time, setTime] = useState('')
   const [weatherAck, setWeatherAck] = useState(false)
@@ -95,6 +105,18 @@ export default function BookingWizard() {
       price: total,
       tip: 0,
       vehicle,
+      // DetailerJob.jsx reads vehicleType/vehicleMake/vehicleModel (matching
+      // the real-booking normalizer's field names) — vehicleType mirrors
+      // `vehicle` so demo bookings created here render the same as real
+      // ones instead of showing a blank vehicle card.
+      vehicleType: vehicle,
+      // Only attach the profile's make/model when the type is still their
+      // auto-filled default — if they picked a different vehicle type for
+      // this booking, that's a different car and we don't know its make/
+      // model (no per-booking vehicle picker yet), so leave those blank
+      // rather than mislabel it.
+      vehicleMake: vehicleTouched ? undefined : customer.vehicle?.make,
+      vehicleModel: vehicleTouched ? undefined : customer.vehicle?.model,
       rewardId: useReward && reward ? reward.id : undefined,
       creditUsed: creditUsed || undefined,
       is_loyalty_redemption: Boolean(useReward && reward),
@@ -219,7 +241,10 @@ export default function BookingWizard() {
                     type="button"
                     role="radio"
                     aria-checked={vehicle === v}
-                    onClick={() => setVehicle(v)}
+                    onClick={() => {
+                      setVehicle(v)
+                      setVehicleTouched(true)
+                    }}
                     className={`cursor-pointer rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
                       vehicle === v
                         ? 'bg-brand-600 text-white shadow-md'

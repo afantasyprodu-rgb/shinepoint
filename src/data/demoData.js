@@ -591,7 +591,10 @@ export const DEMO_CUSTOMER = {
   address: '2200 Sunset Blvd, Los Angeles',
   photo: null,
   bio: '',
-  vehicle: { make: '', model: '', type: '' },
+  // Seeded so the booking wizard demonstrates the auto-fill flow (vehicle
+  // type pre-selected from the customer's own car) without first requiring
+  // a trip through onboarding to set one.
+  vehicle: { make: 'Toyota', model: 'Camry', type: 'Sedan' },
   vehicles: [],
   points: 4,
   pointsToNextReward: 5,

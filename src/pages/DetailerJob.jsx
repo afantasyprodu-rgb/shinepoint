@@ -228,7 +228,9 @@ export default function DetailerJob() {
                     <div className="flex-1">
                       <p className="text-xs text-slate-500 dark:text-slate-400">{t('vehicle')}</p>
                       <p className="font-semibold text-slate-900 dark:text-slate-100">
-                        {b.vehicleMake} {b.vehicleModel} · {b.vehicleType}
+                        {[b.vehicleMake, b.vehicleModel].filter(Boolean).join(' ')}
+                        {(b.vehicleMake || b.vehicleModel) && b.vehicleType ? ' · ' : ''}
+                        {b.vehicleType}
                       </p>
                     </div>
                   </div>
