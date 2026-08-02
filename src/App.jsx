@@ -20,6 +20,7 @@ import DetailerJob from './pages/DetailerJob'
 import DetailerOnboarding from './pages/DetailerOnboarding'
 import DetailerEarnings from './pages/DetailerEarnings'
 import DetailerAnalytics from './pages/DetailerAnalytics'
+import DetailerTools from './pages/DetailerTools'
 import DetailerProfileEditor from './pages/DetailerProfileEditor'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminPeople from './pages/admin/AdminPeople'
@@ -76,6 +77,7 @@ export default function App() {
         <Route path="/detailer/onboarding" element={guard('detailer', <DetailerOnboarding />)} />
         <Route path="/detailer/earnings" element={guard('detailer', <DetailerEarnings />)} />
         <Route path="/detailer/analytics" element={guard('detailer', <DetailerAnalytics />)} />
+        <Route path="/detailer/tools" element={guard('detailer', <DetailerTools />)} />
         <Route path="/detailer/profile" element={guard('detailer', <DetailerProfileEditor />)} />
 
         {/* Admin */}

@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import Logo from './Logo'
 import ThemeToggle from './ThemeToggle'
 import LanguageToggle from './LanguageToggle'
-import { BellIcon, ClipboardCheckIcon, TrendingUpIcon, UsersIcon, PieChartIcon, MapPinIcon } from './icons'
+import { BellIcon, ClipboardCheckIcon, TrendingUpIcon, UsersIcon, PieChartIcon, MapPinIcon, FlaskIcon } from './icons'
 import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
 import BottomTabBar from './ui/BottomTabBar'
@@ -148,6 +148,7 @@ const NAVS = {
     { to: '/detailer', labelKey: 'jobs', end: true, icon: ClipboardCheckIcon },
     { to: '/detailer/earnings', labelKey: 'earnings', icon: TrendingUpIcon },
     { to: '/detailer/analytics', labelKey: 'analytics', icon: PieChartIcon },
+    { to: '/detailer/tools', labelKey: 'tools', icon: FlaskIcon },
     { to: '/detailer/profile', labelKey: 'account', icon: UsersIcon },
   ],
 }

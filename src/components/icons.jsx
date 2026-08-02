@@ -382,6 +382,18 @@ export function LayersIcon(props) {
   )
 }
 
+export function FlaskIcon(props) {
+  return (
+    <Icon {...props}>
+      <path d="M10 2v7.31" />
+      <path d="M14 9.3V2" />
+      <path d="M8.5 2h7" />
+      <path d="M14 9.3a6.5 6.5 0 1 1-4 0" />
+      <path d="M5.52 16h12.96" />
+    </Icon>
+  )
+}
+
 // Brand logos — multi-path, use their own fills (not currentColor).
 export function PhoneIcon(props) {
   return (
