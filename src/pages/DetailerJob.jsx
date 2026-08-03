@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import AppShell from '../components/AppShell'
@@ -17,7 +17,7 @@ import {
   CameraIcon,
   LayersIcon,
   MapPinIcon,
-  MenuIcon,
+  MenuIconFlat,
   NavigationIcon,
 } from '../components/icons'
 import { useStore } from '../context/StoreContext'
@@ -39,6 +39,52 @@ export default function DetailerJob() {
   const [stepsExpanded, setStepsExpanded] = useState(false)
   const b = getBooking(id)
   const t = useT('detailerJob')
+
+  // Flick in from the right screen edge to open the "more" drawer, mirroring
+  // a native app's edge-swipe gesture. Only arms when a touch starts within
+  // 24px of the edge, and requires a mostly-horizontal drag so vertical
+  // scrolling elsewhere on the page isn't hijacked.
+  useEffect(() => {
+    if (menuOpen) return
+    const EDGE = 24
+    const THRESHOLD = 60
+    let startX = null
+    let startY = null
+
+    function onTouchStart(e) {
+      const touch = e.touches[0]
+      if (touch.clientX >= window.innerWidth - EDGE) {
+        startX = touch.clientX
+        startY = touch.clientY
+      } else {
+        startX = null
+      }
+    }
+    function onTouchMove(e) {
+      if (startX == null) return
+      const touch = e.touches[0]
+      const dx = touch.clientX - startX
+      const dy = Math.abs(touch.clientY - startY)
+      if (startX - touch.clientX > THRESHOLD && dy < THRESHOLD) {
+        setMenuOpen(true)
+        startX = null
+      } else if (Math.abs(dx) < dy) {
+        startX = null
+      }
+    }
+    function onTouchEnd() {
+      startX = null
+    }
+
+    window.addEventListener('touchstart', onTouchStart, { passive: true })
+    window.addEventListener('touchmove', onTouchMove, { passive: true })
+    window.addEventListener('touchend', onTouchEnd)
+    return () => {
+      window.removeEventListener('touchstart', onTouchStart)
+      window.removeEventListener('touchmove', onTouchMove)
+      window.removeEventListener('touchend', onTouchEnd)
+    }
+  }, [menuOpen])
 
   if (!b) {
     return (
@@ -308,9 +354,9 @@ export default function DetailerJob() {
               <button
                 onClick={() => setMenuOpen(true)}
                 aria-label={t('openJobMenu')}
-                className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-brand-100 text-slate-600 transition-colors duration-200 hover:bg-brand-50 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:border-white/10 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-brand-300"
+                className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-brand-100 text-brand-600 transition-colors duration-200 hover:bg-brand-50 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:border-white/10 dark:text-brand-300 dark:hover:bg-white/10 dark:hover:text-brand-200"
               >
-                <MenuIcon className="h-5 w-5" />
+                <MenuIconFlat className="h-5 w-5" />
               </button>
             </div>
           </div>

@@ -255,6 +255,16 @@ export function XIcon(props) {
   )
 }
 
+// Flat (filled, no stroke) variant — for drawer/menu triggers that want a
+// solid glyph instead of the default outline treatment.
+export function XIconFlat({ className = 'h-6 w-6' }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+      <path d="M13.06 12l5.72-5.72a.75.75 0 1 0-1.06-1.06L12 10.94 6.28 5.22a.75.75 0 0 0-1.06 1.06L10.94 12l-5.72 5.72a.75.75 0 1 0 1.06 1.06L12 13.06l5.72 5.72a.75.75 0 0 0 1.06-1.06z" />
+    </svg>
+  )
+}
+
 export function StarIcon({ className = 'h-4 w-4' }) {
   return (
     <svg
@@ -305,6 +315,17 @@ export function MenuIcon(props) {
       <path d="M4 12h16" />
       <path d="M4 18h16" />
     </Icon>
+  )
+}
+
+// Flat (filled, no stroke) variant — solid bars instead of stroked lines.
+export function MenuIconFlat({ className = 'h-6 w-6' }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+      <rect x="4" y="5" width="16" height="2.2" rx="1.1" />
+      <rect x="4" y="10.9" width="16" height="2.2" rx="1.1" />
+      <rect x="4" y="16.8" width="16" height="2.2" rx="1.1" />
+    </svg>
   )
 }
 
