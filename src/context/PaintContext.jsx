@@ -58,13 +58,18 @@ export function PaintProvider({ children }) {
 
   useEffect(() => {
     document.documentElement.style.setProperty('--accent', safeAccent)
-    // iOS Safari Private Browsing throws on localStorage writes instead of
-    // no-op'ing — swallow so it degrades to "doesn't persist" not a crash.
-    try { localStorage.setItem(STORAGE_KEY, accent) } catch { /* private mode, ignore */ }
-  }, [accent, safeAccent])
+  }, [safeAccent])
 
+  // Only an explicit pick persists — the DEFAULT_ACCENT seed above is purely
+  // a visual fallback for car-paint UI (--accent) on a fresh visit. Writing
+  // it to storage unconditionally on mount would make ThemeContext read it
+  // back as "the user chose blue" and derive the app-wide brand hue from it,
+  // stomping the purple default before anyone touched anything.
   const setAccent = (hex) => {
     setAccentRaw(hex)
+    // iOS Safari Private Browsing throws on localStorage writes instead of
+    // no-op'ing — swallow so it degrades to "doesn't persist" not a crash.
+    try { localStorage.setItem(STORAGE_KEY, hex) } catch { /* private mode, ignore */ }
     // Dispatch custom event for ThemeContext to listen to (real-time, same-tab)
     window.dispatchEvent(new CustomEvent('shinepoint:paint-changed', { detail: { hex } }))
   }
