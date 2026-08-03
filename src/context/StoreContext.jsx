@@ -297,6 +297,26 @@ export function StoreProvider({ children }) {
           rewards: [],
         }
 
+    // Declared as a function (not the object-literal method further down)
+    // so patchBooking below can call it directly — function declarations are
+    // hoisted through this whole closure regardless of source order.
+    function setAvailability(detailerId, patch) {
+      if (isDemo || !profile?.id) {
+        setDemoDetailers((ds) => ds.map((d) => (d.id === detailerId ? { ...d, ...patch } : d)))
+        return
+      }
+      const cols = {}
+      if (patch.status != null) cols.status = patch.status
+      if (patch.acceptsWhenBusy != null) cols.accepts_bookings_when_busy = patch.acceptsWhenBusy
+      if (patch.acceptsRewards != null) cols.accepts_reward_bookings = patch.acceptsRewards
+      if (patch.travelMiles != null) cols.free_travel_miles = patch.travelMiles
+      if (Object.keys(cols).length) {
+        updateDetailerProfile(profile.id, cols)
+        setDetailerProfile((dp) => ({ ...(dp ?? {}), ...cols }))
+        setRealDetailers((ds) => ds.map((d) => (d.id === detailerId ? { ...d, ...patch } : d)))
+      }
+    }
+
     function demoPatchBooking(id, patch) {
       setDemoBookings((bs) => bs.map((b) => (b.id === id ? { ...b, ...patch } : b)))
       if (patch.status && STATUS_NOTIFICATIONS[patch.status]) {
@@ -318,6 +338,25 @@ export function StoreProvider({ children }) {
     // depends on the new status) can await it. Demo path resolves immediately.
     function patchBooking(id, patch) {
       const booking = bookings.find((b) => b.id === id)
+
+      // Starting a job means hands-on-car, so nudge availability to Busy
+      // automatically instead of expecting the detailer to remember to flip
+      // it themselves — then let them know they can still receive new
+      // requests by turning on "accept bookings while busy".
+      if (patch.status === 'in_progress' && booking?.detailerId) {
+        const detailer = allDetailers.find((d) => d.id === booking.detailerId)
+        if (detailer && detailer.status !== 'busy') {
+          setAvailability(booking.detailerId, { status: 'busy' })
+          notify(
+            'detailer',
+            "You're now set to Busy",
+            'Starting a job marks you Busy automatically. Turn on "Accept bookings while busy" in Availability if you want to keep getting new requests while you work.',
+            id,
+            'in_progress'
+          )
+        }
+      }
+
       if (!isDemo && booking?._real) {
         return realPatchBooking(id, patch)
       }
@@ -535,23 +574,7 @@ export function StoreProvider({ children }) {
       getDetailer: (id) => allDetailers.find((d) => d.id === id),
       getBooking: (id) => bookings.find((b) => b.id === id),
 
-      setAvailability(detailerId, patch) {
-        if (isDemo || !profile?.id) {
-          setDemoDetailers((ds) => ds.map((d) => (d.id === detailerId ? { ...d, ...patch } : d)))
-          return
-        }
-        // Map app-shaped keys to detailer_profiles columns.
-        const cols = {}
-        if (patch.status != null) cols.status = patch.status
-        if (patch.acceptsWhenBusy != null) cols.accepts_bookings_when_busy = patch.acceptsWhenBusy
-        if (patch.acceptsRewards != null) cols.accepts_reward_bookings = patch.acceptsRewards
-        if (patch.travelMiles != null) cols.free_travel_miles = patch.travelMiles
-        if (Object.keys(cols).length) {
-          updateDetailerProfile(profile.id, cols)
-          setDetailerProfile((dp) => ({ ...(dp ?? {}), ...cols }))
-          setRealDetailers((ds) => ds.map((d) => (d.id === detailerId ? { ...d, ...patch } : d)))
-        }
-      },
+      setAvailability,
 
       // Persist the detailer onboarding wizard. Demo users skip the DB.
       async saveOnboarding(draft) {
