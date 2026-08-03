@@ -81,9 +81,9 @@
    (which is a deliberately fixed-dark surface, see .auth-card-shell)
    reads through these three variables. */
 :root {
-  --neu-bg: #e3e7ee;
-  --neu-sd: #b9c1d1;
-  --neu-sl: #ffffff;
+  --neu-bg: #ffffff;
+  --neu-sd: rgba(15, 23, 42, 0.2);
+  --neu-sl: rgba(255, 255, 255, 0);
 }
 /* :root.dark (not :where(.dark)) — :where() zeroes specificity, which would
    lose to the plain :root rule above regardless of source order. */
@@ -91,6 +91,24 @@
   --neu-bg: #1a2029;
   --neu-sd: #0e1218;
   --neu-sl: #262e3a;
+}
+
+/* --neu-sd is now a semi-transparent dark color (pronounced drop shadow on
+   flat white cards/buttons) rather than a solid light gray — great at card
+   scale, but an *inset* shadow of it fills a whole small input with a muddy
+   wash instead of reading as a crisp white field. Light mode only: give
+   inputs a plain border instead of inheriting that inset shadow. Dark
+   mode's --neu-sd is still a solid color, so its pressed-in inputs are
+   unaffected and keep the original look. */
+:root:not(.dark) .input,
+:root:not(.dark) .input-flat {
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  box-shadow: none;
+}
+:root:not(.dark) .input:focus,
+:root:not(.dark) .input-flat:focus {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-cta-600) 35%, transparent);
 }
 
 /* Soap-sheen hue arc — bounded purple→pink→blue→purple (real soap-film
