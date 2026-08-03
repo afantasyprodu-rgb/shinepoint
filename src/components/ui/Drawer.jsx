@@ -3,10 +3,12 @@ import { AnimatePresence, motion } from 'motion/react'
 import { XIconFlat } from '../icons'
 
 // Slide-out side menu. Mirrors Modal.jsx (backdrop, ESC + click-out close, focus
-// trap entry), but the panel anchors to the right edge and slides in horizontally.
-// Holds secondary actions so the main page stays uncluttered on mobile.
-export default function Drawer({ open, onClose, title, children }) {
+// trap entry). Anchors to the right edge by default; pass side="left" to anchor
+// and swipe from the left instead. Holds secondary actions so the main page
+// stays uncluttered on mobile.
+export default function Drawer({ open, onClose, title, children, side = 'right' }) {
   const panelRef = useRef(null)
+  const fromLeft = side === 'left'
 
   useEffect(() => {
     if (!open) return
@@ -35,17 +37,25 @@ export default function Drawer({ open, onClose, title, children }) {
             role="dialog"
             aria-modal="true"
             aria-label={title}
-            initial={{ x: '100%' }}
+            initial={{ x: fromLeft ? '-100%' : '100%' }}
             animate={{ x: 0 }}
-            exit={{ x: '100%' }}
+            exit={{ x: fromLeft ? '-100%' : '100%' }}
             transition={{ type: 'spring', stiffness: 320, damping: 34 }}
             drag="x"
             dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={{ left: 0, right: 0.6 }}
+            dragElastic={fromLeft ? { left: 0.6, right: 0 } : { left: 0, right: 0.6 }}
             onDragEnd={(_, info) => {
-              if (info.offset.x > 80 || info.velocity.x > 500) onClose?.()
+              if (fromLeft) {
+                if (info.offset.x < -80 || info.velocity.x < -500) onClose?.()
+              } else if (info.offset.x > 80 || info.velocity.x > 500) {
+                onClose?.()
+              }
             }}
-            className="absolute inset-y-0 right-0 flex w-full max-w-sm flex-col border-l border-brand-100 bg-[var(--neu-bg)] shadow-2xl focus-visible:outline-none dark:border-white/10"
+            className={`absolute inset-y-0 flex w-full max-w-sm flex-col shadow-2xl focus-visible:outline-none ${
+              fromLeft
+                ? 'left-0 border-r border-brand-100 dark:border-white/10'
+                : 'right-0 border-l border-brand-100 dark:border-white/10'
+            } bg-[var(--neu-bg)]`}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-brand-100 bg-[var(--neu-bg)]/95 px-5 py-4 backdrop-blur dark:border-white/10">

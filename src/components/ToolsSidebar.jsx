@@ -3,16 +3,17 @@ import Drawer from './ui/Drawer'
 import { FlaskIcon, ClockIcon, TagIcon, ShieldCheckIcon, FileTextIcon, ArrowRightIcon } from './icons'
 import { useT } from '../i18n/useT'
 
-// Deliberately not styled like the rest of the app's neumorphic cards/chips —
-// this is the entry point into Tools, so it gets its own darker, higher-
-// contrast identity (gradient tiles, bolder type) to read as a distinct
-// "toolbox" rather than another settings list.
+// Distinct "toolbox" identity, but built from the same puffy claymorphism
+// surfaces as the admin dashboard (.admin-clay scopes --clay-bg/shadows and
+// its own .card/.btn treatments) — a soft, tactile container instead of the
+// app's usual flat neumorphic list. Each tool keeps its own accent color as
+// a small icon chip so they stay easy to tell apart at a glance.
 const TOOLS = [
-  { key: 'dilution', labelKey: 'dilutionTitle', blurbKey: 'dilutionSubtitle', icon: FlaskIcon, from: 'from-violet-500', to: 'to-fuchsia-600' },
-  { key: 'time', labelKey: 'timeTitle', blurbKey: 'timeSubtitle', icon: ClockIcon, from: 'from-amber-500', to: 'to-orange-600' },
-  { key: 'pricing', labelKey: 'priceTitle', blurbKey: 'priceSubtitle', icon: TagIcon, from: 'from-emerald-500', to: 'to-teal-600' },
-  { key: 'chemical', labelKey: 'chemTitle', blurbKey: 'chemSubtitle', icon: ShieldCheckIcon, from: 'from-rose-500', to: 'to-red-600' },
-  { key: 'cheatsheet', labelKey: 'cheatTitle', blurbKey: 'cheatSubtitle', icon: FileTextIcon, from: 'from-sky-500', to: 'to-blue-600' },
+  { key: 'dilution', labelKey: 'dilutionTitle', blurbKey: 'dilutionSubtitle', icon: FlaskIcon, tint: 'text-violet-600 bg-violet-500/15 dark:text-violet-300' },
+  { key: 'time', labelKey: 'timeTitle', blurbKey: 'timeSubtitle', icon: ClockIcon, tint: 'text-amber-600 bg-amber-500/15 dark:text-amber-300' },
+  { key: 'pricing', labelKey: 'priceTitle', blurbKey: 'priceSubtitle', icon: TagIcon, tint: 'text-emerald-600 bg-emerald-500/15 dark:text-emerald-300' },
+  { key: 'chemical', labelKey: 'chemTitle', blurbKey: 'chemSubtitle', icon: ShieldCheckIcon, tint: 'text-rose-600 bg-rose-500/15 dark:text-rose-300' },
+  { key: 'cheatsheet', labelKey: 'cheatTitle', blurbKey: 'cheatSubtitle', icon: FileTextIcon, tint: 'text-sky-600 bg-sky-500/15 dark:text-sky-300' },
 ]
 
 export default function ToolsSidebar({ open, onClose }) {
@@ -26,31 +27,27 @@ export default function ToolsSidebar({ open, onClose }) {
   }
 
   return (
-    <Drawer open={open} onClose={onClose} title={tNav('tools')}>
-      <div className="-mx-5 -my-5 min-h-full bg-slate-950 px-4 py-5">
-        <p className="px-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+    <Drawer open={open} onClose={onClose} title={tNav('tools')} side="left">
+      <div className="admin-clay -mx-5 -my-5 min-h-full bg-[var(--clay-bg)] px-4 py-5">
+        <p className="px-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
           {t('title')}
         </p>
         <div className="mt-3 space-y-3">
-          {TOOLS.map(({ key, labelKey, blurbKey, icon: Icon, from, to }) => (
+          {TOOLS.map(({ key, labelKey, blurbKey, icon: Icon, tint }) => (
             <button
               key={key}
               type="button"
               onClick={() => openTool(key)}
-              className={`group relative flex w-full cursor-pointer items-center gap-4 overflow-hidden rounded-2xl bg-gradient-to-br ${from} ${to} p-4 text-left shadow-lg transition-transform duration-200 hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60`}
+              className="card card-hover group flex w-full cursor-pointer items-center gap-4 !p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
             >
-              <span
-                aria-hidden="true"
-                className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/10 blur-sm transition-transform duration-300 group-hover:scale-125"
-              />
-              <span className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/15 text-white backdrop-blur-sm">
+              <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${tint}`}>
                 <Icon className="h-6 w-6" />
               </span>
-              <span className="relative min-w-0 flex-1">
-                <span className="block font-display text-base font-bold text-white">{t(labelKey)}</span>
-                <span className="mt-0.5 block truncate text-xs text-white/75">{t(blurbKey)}</span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-display text-base font-bold text-slate-900 dark:text-slate-100">{t(labelKey)}</span>
+                <span className="mt-0.5 block truncate text-xs text-slate-500 dark:text-slate-400">{t(blurbKey)}</span>
               </span>
-              <ArrowRightIcon className="relative h-4 w-4 shrink-0 text-white/70 transition-transform duration-200 group-hover:translate-x-1" />
+              <ArrowRightIcon className="h-4 w-4 shrink-0 text-slate-400 transition-transform duration-200 group-hover:translate-x-1 dark:text-slate-500" />
             </button>
           ))}
         </div>
