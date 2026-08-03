@@ -210,7 +210,7 @@ export default function InvoiceBuilder({ booking, detailer }) {
   const { patchBooking } = useStore()
   const t = useT('invoiceBuilder')
   const [items, setItems] = useState(() => seedRows(booking, t('tip')))
-  const [templates, setTemplates] = useState(() => listTemplates())
+  const [templates, setTemplates] = useState(() => listTemplates(detailer?.id))
   const [templateName, setTemplateName] = useState('')
   const [attached, setAttached] = useState(Boolean(booking.invoice))
 
@@ -243,9 +243,9 @@ export default function InvoiceBuilder({ booking, detailer }) {
   }
 
   function handleSaveTemplate() {
-    const rec = saveTemplate(templateName, items)
+    const rec = saveTemplate(detailer?.id, templateName, items)
     if (rec) {
-      setTemplates(listTemplates())
+      setTemplates(listTemplates(detailer?.id))
       setTemplateName('')
     }
   }
@@ -256,8 +256,8 @@ export default function InvoiceBuilder({ booking, detailer }) {
   }
 
   function removeTemplate(id) {
-    deleteTemplate(id)
-    setTemplates(listTemplates())
+    deleteTemplate(detailer?.id, id)
+    setTemplates(listTemplates(detailer?.id))
   }
 
   const liveInvoice = { items: cleanItems(), total, issuedAt: booking.invoice?.issuedAt }
