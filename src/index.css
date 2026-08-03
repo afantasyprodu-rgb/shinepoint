@@ -211,14 +211,37 @@
     background-image: linear-gradient(135deg in oklch, var(--color-cta-800), var(--color-cta-700));
   }
 
+  /* Has its own label text ("Exit demo" etc.) rather than being a field to
+     type into, so it reads as a little raised button — outward by default,
+     like .btn-brand — not a pressed-in well. The gradient is a glass/plastic
+     sheen (lighter top edge, darker bottom) over the same --neu-bg any
+     neumorphic surface uses. On press it dips inward AND flashes a glow in
+     whatever hue --color-brand-* currently resolves to (the app's live
+     theme accent), so the "light" always matches the active color scheme
+     instead of being hardcoded. */
   .btn-outline {
+    position: relative;
     border: none;
-    background: var(--neu-bg);
+    background: linear-gradient(
+      165deg,
+      color-mix(in srgb, var(--neu-bg), white 20%) 0%,
+      var(--neu-bg) 45%,
+      color-mix(in srgb, var(--neu-bg), black 6%) 100%
+    );
     @apply text-slate-700 dark:text-slate-300 focus-visible:ring-brand-600;
-    box-shadow: inset 3px 3px 7px var(--neu-sd), inset -3px -3px 7px var(--neu-sl);
+    box-shadow: 5px 5px 11px var(--neu-sd), -5px -5px 11px var(--neu-sl);
+    transition: box-shadow 200ms ease, color 200ms ease;
   }
   .btn-outline:hover {
     @apply text-brand-700 dark:text-brand-200;
+    box-shadow: 6px 6px 14px var(--neu-sd), -6px -6px 14px var(--neu-sl);
+  }
+  .btn-outline:active {
+    box-shadow:
+      inset 3px 3px 7px var(--neu-sd),
+      inset -3px -3px 7px var(--neu-sl),
+      0 0 0 1px color-mix(in srgb, var(--color-brand-500) 45%, transparent),
+      0 0 18px 3px color-mix(in srgb, var(--color-brand-500) 60%, transparent);
   }
 
   .btn-outline-light {
@@ -981,13 +1004,28 @@
 
 .admin-clay .btn-outline {
   border: none;
-  background: var(--clay-bg);
+  background: linear-gradient(
+    165deg,
+    color-mix(in srgb, var(--clay-bg), white 20%) 0%,
+    var(--clay-bg) 45%,
+    color-mix(in srgb, var(--clay-bg), black 6%) 100%
+  );
   box-shadow:
-    inset 3px 3px 7px var(--clay-shadow-1),
-    inset -3px -3px 7px var(--clay-shadow-2);
+    5px 5px 10px var(--clay-shadow-1),
+    -5px -5px 10px var(--clay-shadow-2);
+  transition: box-shadow 200ms ease;
 }
 .admin-clay .btn-outline:hover {
-  background: var(--clay-bg);
+  box-shadow:
+    6px 6px 14px var(--clay-shadow-1),
+    -6px -6px 14px var(--clay-shadow-2);
+}
+.admin-clay .btn-outline:active {
+  box-shadow:
+    inset 3px 3px 6px var(--clay-shadow-1),
+    inset -3px -3px 6px var(--clay-shadow-2),
+    0 0 0 1px color-mix(in srgb, var(--color-brand-500) 45%, transparent),
+    0 0 18px 3px color-mix(in srgb, var(--color-brand-500) 60%, transparent);
 }
 
 .admin-clay .input {
