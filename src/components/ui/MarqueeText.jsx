@@ -1,9 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
 
+// Slow, constant px/s so a long sentence doesn't blow past in the same time
+// as a short one — duration scales with distance instead of being fixed.
+const PX_PER_SECOND = 28
+const MIN_DURATION_S = 5
+
 // Drop-in replacement for a truncated one-line label. Measures whether the
-// text actually overflows its box and, only then, auto-scrolls it back and
-// forth so the full sentence becomes readable without any tap/hover — text
-// that already fits just renders as a normal static line.
+// text actually overflows its box and, only then, auto-scrolls it — once,
+// left, at a steady speed — so the full sentence becomes readable without
+// any tap/hover. Loops by resetting to the start rather than animating a
+// return trip. Text that already fits just renders as a normal static line.
 export default function MarqueeText({ children, className = '' }) {
   // Two refs on purpose: measuring against the element whose own class we
   // toggle creates a feedback loop (switching it to inline-block for the
@@ -37,7 +43,14 @@ export default function MarqueeText({ children, className = '' }) {
       <span
         ref={innerRef}
         className={distance ? 'marquee-text' : 'block truncate'}
-        style={distance ? { '--marquee-distance': `-${distance}px` } : undefined}
+        style={
+          distance
+            ? {
+                '--marquee-distance': `-${distance}px`,
+                '--marquee-duration': `${Math.max(MIN_DURATION_S, distance / PX_PER_SECOND)}s`,
+              }
+            : undefined
+        }
       >
         {children}
       </span>

@@ -280,16 +280,17 @@
 
   /* Auto-scrolling one-liner (see MarqueeText.jsx) — only applied once JS
      measures real overflow, so text that already fits never animates.
-     Dwells at each end long enough to actually read, eases through the
-     middle. prefers-reduced-motion is handled globally above. */
+     Single direction, constant slow speed (--marquee-duration scales with
+     distance in JS): dwells at the start, scrolls left once, dwells at the
+     full-scrolled end, then the loop resets straight to the start — no
+     animated return trip. prefers-reduced-motion is handled globally above. */
   .marquee-text {
     display: inline-block;
-    animation: marquee-scroll 7s ease-in-out infinite;
+    animation: marquee-scroll var(--marquee-duration, 6s) linear infinite;
   }
   @keyframes marquee-scroll {
-    0%, 15% { transform: translateX(0); }
-    50%, 65% { transform: translateX(var(--marquee-distance)); }
-    100% { transform: translateX(0); }
+    0%, 10% { transform: translateX(0); }
+    90%, 100% { transform: translateX(var(--marquee-distance)); }
   }
 
   .card {
