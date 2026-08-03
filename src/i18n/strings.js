@@ -797,7 +797,6 @@ export const STRINGS = {
     },
     detailerTools: {
       title: 'Tools',
-      swipeHint: 'Swipe to browse',
       dilutionTitle: 'Dilution calculator',
       dilutionSubtitle: "Figure out how much product vs. water for any container size and mix ratio — pick a common product below or set your own.",
       productLabel: 'Product',
@@ -864,6 +863,13 @@ export const STRINGS = {
       adjustmentLabel: 'Adjustment %',
       totalLabel: 'Total to charge',
       takeHomeLabel: "You'll take home ({pct}%)",
+      // Cheat sheet
+      cheatTitle: 'Cheat sheet',
+      cheatSubtitle: 'Every ratio, time, and price at a glance — no inputs, just a fast reference.',
+      cheatRatios: 'Dilution ratios',
+      cheatTimes: 'Typical job times',
+      cheatPrices: 'Suggested prices',
+      cheatDisclaimer: 'Starting points, not fixed rules — every number here adjusts freely in its full calculator.',
     },
     detailerEarnings: {
       earnings: 'Earnings',
@@ -1894,7 +1900,6 @@ export const STRINGS = {
     },
     detailerTools: {
       title: 'Herramientas',
-      swipeHint: 'Desliza para explorar',
       dilutionTitle: 'Calculadora de dilución',
       dilutionSubtitle: 'Calcula cuánto producto y agua necesitas según el tamaño del recipiente y la proporción — elige un producto común o define la tuya.',
       productLabel: 'Producto',
@@ -1961,6 +1966,12 @@ export const STRINGS = {
       adjustmentLabel: 'Ajuste %',
       totalLabel: 'Total a cobrar',
       takeHomeLabel: 'Te quedarás con ({pct}%)',
+      cheatTitle: 'Hoja de referencia',
+      cheatSubtitle: 'Todas las proporciones, tiempos y precios de un vistazo — sin campos que llenar, solo consulta rápida.',
+      cheatRatios: 'Proporciones de dilución',
+      cheatTimes: 'Tiempos típicos de trabajo',
+      cheatPrices: 'Precios sugeridos',
+      cheatDisclaimer: 'Puntos de partida, no reglas fijas — cada número aquí se puede ajustar libremente en su calculadora completa.',
     },
     detailerEarnings: {
       earnings: 'Ganancias',

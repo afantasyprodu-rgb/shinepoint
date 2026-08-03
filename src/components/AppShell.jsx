@@ -5,7 +5,7 @@ import Logo from './Logo'
 import ThemeToggle from './ThemeToggle'
 import LanguageToggle from './LanguageToggle'
 import ToolsSidebar from './ToolsSidebar'
-import { BellIcon, ClipboardCheckIcon, TrendingUpIcon, UsersIcon, PieChartIcon, MapPinIcon, FlaskIcon } from './icons'
+import { BellIcon, ClipboardCheckIcon, TrendingUpIcon, UsersIcon, PieChartIcon, MapPinIcon, MoreIcon } from './icons'
 import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
 import BottomTabBar from './ui/BottomTabBar'
@@ -217,15 +217,6 @@ export default function AppShell({ role, children }) {
                 {t('demoAs', { name: profile?.full_name })}
               </span>
             )}
-            {role === 'detailer' && (
-              <button
-                onClick={() => setToolsOpen(true)}
-                aria-label={t('tools')}
-                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-slate-600 transition-colors duration-200 hover:bg-brand-50 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-brand-200"
-              >
-                <FlaskIcon className="h-5 w-5" />
-              </button>
-            )}
             <ThemeToggle />
             <LanguageToggle />
             <NotificationBell role={role} />
@@ -239,7 +230,23 @@ export default function AppShell({ role, children }) {
           so content never sits underneath the taller notch-device bar. */}
       <div className="flex-1 pb-[calc(4rem+env(safe-area-inset-bottom))] sm:pb-0">{children}</div>
       <BottomTabBar items={nav} layoutId={`${role}-tab-bubble`} />
-      {role === 'detailer' && <ToolsSidebar open={toolsOpen} onClose={() => setToolsOpen(false)} />}
+      {role === 'detailer' && (
+        <>
+          {/* Fixed (not inside <header>, which scrolls away with the page)
+              so this stays reachable from anywhere on any detailer screen —
+              a floating "more" launcher for Tools instead of competing for
+              space in the header row or the bottom tab bar. */}
+          <button
+            onClick={() => setToolsOpen(true)}
+            aria-label={t('tools')}
+            className="fixed right-3 z-[550] flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-white/90 text-slate-700 shadow-[0_4px_14px_-2px_rgba(30,41,59,0.35)] backdrop-blur transition-transform duration-200 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:bg-[#1E1730]/90 dark:text-slate-200"
+            style={{ top: 'max(env(safe-area-inset-top), 2.25rem)' }}
+          >
+            <MoreIcon className="h-5 w-5" />
+          </button>
+          <ToolsSidebar open={toolsOpen} onClose={() => setToolsOpen(false)} />
+        </>
+      )}
     </div>
   )
 }

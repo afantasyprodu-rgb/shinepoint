@@ -1,17 +1,18 @@
 import { useNavigate } from 'react-router-dom'
 import Drawer from './ui/Drawer'
-import { FlaskIcon, ClockIcon, TagIcon, ShieldCheckIcon, ArrowRightIcon } from './icons'
+import { FlaskIcon, ClockIcon, TagIcon, ShieldCheckIcon, FileTextIcon, ArrowRightIcon } from './icons'
 import { useT } from '../i18n/useT'
 
 // Deliberately not styled like the rest of the app's neumorphic cards/chips —
-// this is the entry point into the Tools card stack, so it gets its own
-// darker, higher-contrast identity (gradient tiles, bolder type) to read as
-// a distinct "toolbox" rather than another settings list.
+// this is the entry point into Tools, so it gets its own darker, higher-
+// contrast identity (gradient tiles, bolder type) to read as a distinct
+// "toolbox" rather than another settings list.
 const TOOLS = [
   { key: 'dilution', labelKey: 'dilutionTitle', blurbKey: 'dilutionSubtitle', icon: FlaskIcon, from: 'from-violet-500', to: 'to-fuchsia-600' },
   { key: 'time', labelKey: 'timeTitle', blurbKey: 'timeSubtitle', icon: ClockIcon, from: 'from-amber-500', to: 'to-orange-600' },
   { key: 'pricing', labelKey: 'priceTitle', blurbKey: 'priceSubtitle', icon: TagIcon, from: 'from-emerald-500', to: 'to-teal-600' },
   { key: 'chemical', labelKey: 'chemTitle', blurbKey: 'chemSubtitle', icon: ShieldCheckIcon, from: 'from-rose-500', to: 'to-red-600' },
+  { key: 'cheatsheet', labelKey: 'cheatTitle', blurbKey: 'cheatSubtitle', icon: FileTextIcon, from: 'from-sky-500', to: 'to-blue-600' },
 ]
 
 export default function ToolsSidebar({ open, onClose }) {
