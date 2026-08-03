@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import Drawer from './ui/Drawer'
+import MarqueeText from './ui/MarqueeText'
 import { FlaskIcon, ClockIcon, TagIcon, ShieldCheckIcon, FileTextIcon, ArrowRightIcon } from './icons'
 import { useT } from '../i18n/useT'
 
@@ -45,7 +46,7 @@ export default function ToolsSidebar({ open, onClose }) {
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block font-display text-base font-bold text-slate-900 dark:text-slate-100">{t(labelKey)}</span>
-                <span className="mt-0.5 block truncate text-xs text-slate-500 dark:text-slate-400">{t(blurbKey)}</span>
+                <MarqueeText className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{t(blurbKey)}</MarqueeText>
               </span>
               <ArrowRightIcon className="h-4 w-4 shrink-0 text-slate-400 transition-transform duration-200 group-hover:translate-x-1 dark:text-slate-500" />
             </button>

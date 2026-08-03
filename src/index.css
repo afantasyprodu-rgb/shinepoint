@@ -278,6 +278,20 @@
     @apply mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300;
   }
 
+  /* Auto-scrolling one-liner (see MarqueeText.jsx) — only applied once JS
+     measures real overflow, so text that already fits never animates.
+     Dwells at each end long enough to actually read, eases through the
+     middle. prefers-reduced-motion is handled globally above. */
+  .marquee-text {
+    display: inline-block;
+    animation: marquee-scroll 7s ease-in-out infinite;
+  }
+  @keyframes marquee-scroll {
+    0%, 15% { transform: translateX(0); }
+    50%, 65% { transform: translateX(var(--marquee-distance)); }
+    100% { transform: translateX(0); }
+  }
+
   .card {
     border: none;
     border-radius: 1.25rem;
