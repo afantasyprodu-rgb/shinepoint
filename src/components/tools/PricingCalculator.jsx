@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react'
 import { FadeIn } from '../ui/Motion'
-import { TagIcon } from '../icons'
 import { useT } from '../../i18n/useT'
 
 // Suggested LA-market base prices at "Sedan" — starting points (see the
@@ -62,18 +61,8 @@ export default function PricingCalculator() {
 
   return (
     <div>
-      <div className="flex items-center gap-3">
-        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-md">
-          <TagIcon className="h-6 w-6" />
-        </span>
-        <div>
-          <h2 className="font-display text-xl font-bold text-slate-900 dark:text-slate-100">{t('priceTitle')}</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400">{t('priceSubtitle')}</p>
-        </div>
-      </div>
-
       <FadeIn>
-        <div className="card mt-6 space-y-4 !p-5">
+        <div className="card space-y-4 !p-5">
           <div>
             <p className="label mb-2">{t('servicesLabel')}</p>
             <div className="flex flex-wrap gap-1.5">

@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import Logo from './Logo'
 import ThemeToggle from './ThemeToggle'
 import LanguageToggle from './LanguageToggle'
+import ToolsSidebar from './ToolsSidebar'
 import { BellIcon, ClipboardCheckIcon, TrendingUpIcon, UsersIcon, PieChartIcon, MapPinIcon, FlaskIcon } from './icons'
 import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
@@ -148,7 +149,6 @@ const NAVS = {
     { to: '/detailer', labelKey: 'jobs', end: true, icon: ClipboardCheckIcon },
     { to: '/detailer/earnings', labelKey: 'earnings', icon: TrendingUpIcon },
     { to: '/detailer/analytics', labelKey: 'analytics', icon: PieChartIcon },
-    { to: '/detailer/tools', labelKey: 'tools', icon: FlaskIcon },
     { to: '/detailer/profile', labelKey: 'account', icon: UsersIcon },
   ],
 }
@@ -158,6 +158,7 @@ export default function AppShell({ role, children }) {
   const navigate = useNavigate()
   const t = useT('nav')
   const nav = (NAVS[role] ?? []).map((item) => ({ ...item, label: t(item.labelKey) }))
+  const [toolsOpen, setToolsOpen] = useState(false)
 
   // Land on the public welcome page, not the /login redirect ProtectedRoute fires.
   async function handleSignOut() {
@@ -216,6 +217,15 @@ export default function AppShell({ role, children }) {
                 {t('demoAs', { name: profile?.full_name })}
               </span>
             )}
+            {role === 'detailer' && (
+              <button
+                onClick={() => setToolsOpen(true)}
+                aria-label={t('tools')}
+                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-slate-600 transition-colors duration-200 hover:bg-brand-50 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-brand-200"
+              >
+                <FlaskIcon className="h-5 w-5" />
+              </button>
+            )}
             <ThemeToggle />
             <LanguageToggle />
             <NotificationBell role={role} />
@@ -229,6 +239,7 @@ export default function AppShell({ role, children }) {
           so content never sits underneath the taller notch-device bar. */}
       <div className="flex-1 pb-[calc(4rem+env(safe-area-inset-bottom))] sm:pb-0">{children}</div>
       <BottomTabBar items={nav} layoutId={`${role}-tab-bubble`} />
+      {role === 'detailer' && <ToolsSidebar open={toolsOpen} onClose={() => setToolsOpen(false)} />}
     </div>
   )
 }

@@ -797,6 +797,7 @@ export const STRINGS = {
     },
     detailerTools: {
       title: 'Tools',
+      swipeHint: 'Swipe to browse',
       dilutionTitle: 'Dilution calculator',
       dilutionSubtitle: "Figure out how much product vs. water for any container size and mix ratio — pick a common product below or set your own.",
       productLabel: 'Product',
@@ -1893,6 +1894,7 @@ export const STRINGS = {
     },
     detailerTools: {
       title: 'Herramientas',
+      swipeHint: 'Desliza para explorar',
       dilutionTitle: 'Calculadora de dilución',
       dilutionSubtitle: 'Calcula cuánto producto y agua necesitas según el tamaño del recipiente y la proporción — elige un producto común o define la tuya.',
       productLabel: 'Producto',

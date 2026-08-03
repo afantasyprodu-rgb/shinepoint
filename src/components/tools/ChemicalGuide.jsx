@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { FadeIn, Stagger, StaggerItem } from '../ui/Motion'
-import { ShieldCheckIcon, AlertTriangleIcon } from '../icons'
+import { AlertTriangleIcon } from '../icons'
 import { useT } from '../../i18n/useT'
 
 // Quick-reference keys resolved through the detailerTools i18n namespace —
@@ -27,16 +27,6 @@ export default function ChemicalGuide() {
 
   return (
     <div>
-      <div className="flex items-center gap-3">
-        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-md">
-          <ShieldCheckIcon className="h-6 w-6" />
-        </span>
-        <div>
-          <h2 className="font-display text-xl font-bold text-slate-900 dark:text-slate-100">{t('chemTitle')}</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400">{t('chemSubtitle')}</p>
-        </div>
-      </div>
-
       <FadeIn>
         <input
           type="search"
@@ -44,7 +34,7 @@ export default function ChemicalGuide() {
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t('chemSearchPlaceholder')}
           aria-label={t('chemSearchPlaceholder')}
-          className="input mt-6 h-11 w-full"
+          className="input h-11 w-full"
         />
       </FadeIn>
 
