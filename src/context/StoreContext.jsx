@@ -182,32 +182,46 @@ export function StoreProvider({ children }) {
     fetchNotifications(profile.id, profile.role).then((ns) => {
       if (!cancelled) setRealNotifications(ns)
     })
-    const channel = supabase
-      .channel(`notifications:${profile.id}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${profile.id}` },
-        (payload) => {
-          const n = payload.new
-          setRealNotifications((prev) =>
-            prev.some((x) => x.id === n.id)
-              ? prev
-              : [
-                  {
-                    id: n.id,
-                    audience: profile.role,
-                    title: n.title,
-                    body: n.body ?? '',
-                    bookingId: n.booking_id,
-                    read: false,
-                    at: n.created_at,
-                  },
-                  ...prev,
-                ]
-          )
-        }
-      )
-      .subscribe()
+
+    // Same guard as the bookings channel above — this .subscribe() throws
+    // synchronously ("WebSocket not available: The operation is insecure.")
+    // on a misconfigured VITE_SUPABASE_URL instead of failing gracefully.
+    // Uncaught, that crash hit every real signed-in user (e.g. right after
+    // finishing Google OAuth signup) straight to the ErrorBoundary. Falling
+    // back to "load once, no live updates" is a much smaller price.
+    let channel
+    try {
+      channel = supabase
+        .channel(`notifications:${profile.id}`)
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${profile.id}` },
+          (payload) => {
+            const n = payload.new
+            setRealNotifications((prev) =>
+              prev.some((x) => x.id === n.id)
+                ? prev
+                : [
+                    {
+                      id: n.id,
+                      audience: profile.role,
+                      title: n.title,
+                      body: n.body ?? '',
+                      bookingId: n.booking_id,
+                      read: false,
+                      at: n.created_at,
+                    },
+                    ...prev,
+                  ]
+            )
+          }
+        )
+        .subscribe()
+    } catch (err) {
+      console.error('Realtime subscribe failed (check VITE_SUPABASE_URL uses https://):', err)
+      return () => { cancelled = true }
+    }
+
     return () => { cancelled = true; supabase.removeChannel(channel) }
   }, [isDemo, profile?.id, profile?.role])
 
