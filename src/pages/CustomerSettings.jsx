@@ -8,7 +8,7 @@ import { AnimatedPage } from '../components/ui/Motion'
 import { CheckIcon, MapPinIcon, PlusIcon, TrashIcon } from '../components/icons'
 import { useStore } from '../context/StoreContext'
 import { usePaint, PAINTS } from '../context/PaintContext'
-import { CA_ZIP_CENTROIDS } from '../lib/fuzzyPin'
+import { CA_ZIP_CENTROIDS, closestDetailer } from '../lib/fuzzyPin'
 import { CAR_MAKES, CAR_MODELS, MODEL_TO_TYPE } from '../lib/vehicleData'
 import { useTiltShadow } from '../hooks/useTiltShadow'
 import { useT } from '../i18n/useT'
@@ -72,7 +72,7 @@ function GarageCard({ make, model, type, t }) {
 }
 
 export default function CustomerSettings() {
-  const { customer, uploadImage, updateCustomer } = useStore()
+  const { customer, uploadImage, updateCustomer, detailers } = useStore()
   const tiltRef = useTiltShadow()
   const t = useT('customerSettings')
 
@@ -90,6 +90,7 @@ export default function CustomerSettings() {
   const [busy, setBusy] = useState(false)
 
   const knownZip = zip.length === 5 && zip in CA_ZIP_CENTROIDS
+  const nearest = zip.length === 5 && !knownZip ? closestDetailer(zip, detailers) : null
 
   // Persist photo immediately so the avatar updates everywhere without a save.
   async function changePhoto(url) {
@@ -321,9 +322,13 @@ export default function CustomerSettings() {
                 onChange={(e) => setZip(e.target.value.replace(/\D/g, ''))} className="input w-32" placeholder="90026"
               />
               {zip.length === 5 && (
-                <p className={`mt-1.5 flex items-center gap-1 text-xs ${knownZip ? 'text-cta-700' : 'text-amber-600'}`}>
+                <p className="mt-1.5 flex items-center gap-1 text-xs text-cta-700">
                   <MapPinIcon className="h-3.5 w-3.5" />
-                  {knownZip ? t('inServiceArea') : t('outsideServiceArea')}
+                  {knownZip
+                    ? t('inServiceArea')
+                    : nearest
+                      ? t('closestDetailer', { name: nearest.detailer.name, miles: Math.round(nearest.miles) })
+                      : t('outsideServiceArea')}
                 </p>
               )}
             </div>

@@ -23,6 +23,30 @@ const PIN_COLORS = {
 // LA-only.
 const SOCAL_CENTER = [33.85, -118.1]
 
+// Last geolocation fix, cached so re-opening the app centers on it
+// instantly with no fresh permission prompt or GPS round-trip — only a
+// brand-new browser profile (no cache yet) asks.
+const LAST_LOCATION_KEY = 'shinepoint:last-location'
+
+function readCachedLocation() {
+  try {
+    const raw = localStorage.getItem(LAST_LOCATION_KEY)
+    if (!raw) return null
+    const { lat, lng } = JSON.parse(raw)
+    return typeof lat === 'number' && typeof lng === 'number' ? [lat, lng] : null
+  } catch {
+    return null
+  }
+}
+
+function cacheLocation(lat, lng) {
+  try {
+    localStorage.setItem(LAST_LOCATION_KEY, JSON.stringify({ lat, lng }))
+  } catch {
+    // Storage full/unavailable (private browsing) — not worth surfacing.
+  }
+}
+
 // Both themes use CartoDB no-labels tiles — plain OSM tiles crammed every
 // street name, route shield, and POI icon onto the map, which read as
 // noisy/cluttered next to the pins. nolabels keeps just the road/park/water
@@ -107,8 +131,9 @@ export default function DetailerMap({ detailers, focus }) {
   // Create the map once.
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
+    const cached = readCachedLocation()
     const map = L.map(containerRef.current, {
-      center: SOCAL_CENTER,
+      center: cached ?? SOCAL_CENTER,
       zoom: 9,
       // No on-screen zoom buttons — pinch/scroll zoom still works, and one
       // less floating control keeps the map itself the focus.
@@ -118,6 +143,30 @@ export default function DetailerMap({ detailers, focus }) {
     const t = TILES[theme] ?? TILES.light
     tileRef.current = L.tileLayer(t.url, { attribution: t.attribution, maxZoom: 19 }).addTo(map)
     mapRef.current = map
+    if (cached) {
+      userRef.current = L.marker(cached, { icon: userIcon, interactive: false, zIndexOffset: 500 }).addTo(map)
+    }
+
+    // Ask once (the browser only prompts the first time anyway) and cache
+    // the fix so every later app open centers on it instantly — no repeat
+    // prompt, no GPS wait. Recenters only, same zoom — no fly-to/zoom-in,
+    // unlike the manual "locate me" button below.
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        ({ coords }) => {
+          const m = mapRef.current
+          if (!m) return
+          const ll = [coords.latitude, coords.longitude]
+          cacheLocation(coords.latitude, coords.longitude)
+          if (userRef.current) userRef.current.setLatLng(ll)
+          else userRef.current = L.marker(ll, { icon: userIcon, interactive: false, zIndexOffset: 500 }).addTo(m)
+          m.setView(ll, m.getZoom())
+        },
+        () => {}, // silent — denial/timeout just leaves the cached or default view
+        { enableHighAccuracy: false, timeout: 8000 }
+      )
+    }
+
     return () => {
       map.remove()
       mapRef.current = null
@@ -236,6 +285,7 @@ export default function DetailerMap({ detailers, focus }) {
         const map = mapRef.current
         if (!map) return
         const ll = [coords.latitude, coords.longitude]
+        cacheLocation(coords.latitude, coords.longitude)
         if (userRef.current) userRef.current.setLatLng(ll)
         else userRef.current = L.marker(ll, { icon: userIcon, interactive: false, zIndexOffset: 500 }).addTo(map)
         map.flyTo(ll, 14, { duration: 1.2 })

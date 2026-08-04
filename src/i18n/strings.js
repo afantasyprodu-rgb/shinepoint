@@ -1072,6 +1072,7 @@ export const STRINGS = {
       zipLabel: 'Zip code',
       inServiceArea: 'In our SoCal service area',
       outsideServiceArea: 'Outside the demo service area — map centers on SoCal',
+      closestDetailer: 'Closest pro: {name}, about {miles} mi away',
       saving: 'Saving…',
       saveChanges: 'Save changes',
       saved: 'Saved',
@@ -1092,6 +1093,7 @@ export const STRINGS = {
       zipLabel: 'Zip code',
       inServiceArea: 'In our SoCal service area',
       outsideServiceArea: 'Outside demo area — map centers on SoCal',
+      closestDetailer: 'Closest pro: {name}, about {miles} mi away',
       saveAndOpenMap: 'Save & open map',
     },
     status: {
@@ -2174,6 +2176,7 @@ export const STRINGS = {
       zipLabel: 'Código postal',
       inServiceArea: 'En nuestra área de servicio del sur de California',
       outsideServiceArea: 'Fuera del área de servicio demo — el mapa se centra en el sur de California',
+      closestDetailer: 'Profesional más cercano: {name}, a unas {miles} mi',
       saving: 'Guardando…',
       saveChanges: 'Guardar cambios',
       saved: 'Guardado',
@@ -2194,6 +2197,7 @@ export const STRINGS = {
       zipLabel: 'Código postal',
       inServiceArea: 'En nuestra área de servicio del sur de California',
       outsideServiceArea: 'Fuera del área demo — el mapa se centra en el sur de California',
+      closestDetailer: 'Profesional más cercano: {name}, a unas {miles} mi',
       saveAndOpenMap: 'Guardar y abrir mapa',
     },
     status: {
