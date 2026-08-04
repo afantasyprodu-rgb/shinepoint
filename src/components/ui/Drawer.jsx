@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { AnimatePresence, motion } from 'motion/react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { XIconFlat } from '../icons'
 
 // Slide-out side menu. Mirrors Modal.jsx (backdrop, ESC + click-out close, focus
@@ -9,6 +9,11 @@ import { XIconFlat } from '../icons'
 export default function Drawer({ open, onClose, title, children, side = 'right' }) {
   const panelRef = useRef(null)
   const fromLeft = side === 'left'
+  // Motion's spring/drag transitions run outside the CSS engine, so the
+  // global prefers-reduced-motion rule in index.css can't reach them —
+  // check it here instead and collapse to an instant cut.
+  const reduceMotion = useReducedMotion()
+  const panelTransition = reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 320, damping: 34 }
 
   useEffect(() => {
     if (!open) return
@@ -27,7 +32,7 @@ export default function Drawer({ open, onClose, title, children, side = 'right' 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
+          transition={{ duration: reduceMotion ? 0 : 0.2 }}
           className="fixed inset-0 z-[700] bg-brand-900/50 backdrop-blur-sm"
           onClick={onClose}
         >
@@ -40,7 +45,7 @@ export default function Drawer({ open, onClose, title, children, side = 'right' 
             initial={{ x: fromLeft ? '-100%' : '100%' }}
             animate={{ x: 0 }}
             exit={{ x: fromLeft ? '-100%' : '100%' }}
-            transition={{ type: 'spring', stiffness: 320, damping: 34 }}
+            transition={panelTransition}
             drag="x"
             dragConstraints={{ left: 0, right: 0 }}
             dragElastic={fromLeft ? { left: 0.6, right: 0 } : { left: 0, right: 0.6 }}

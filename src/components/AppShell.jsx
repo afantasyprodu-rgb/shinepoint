@@ -244,7 +244,7 @@ export default function AppShell({ role, children }) {
             // visually and functionally buried under the header — "Exit
             // demo" et al. were eating its clicks) and below Drawer's
             // z-[700] so the open drawer still layers over it correctly.
-            className="fixed right-3 z-[650] flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-white/90 text-slate-700 shadow-[0_4px_14px_-2px_rgba(30,41,59,0.35)] backdrop-blur transition-transform duration-200 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:bg-[#1E1730]/90 dark:text-slate-200"
+            className="fixed left-3 z-[650] flex h-11 w-11 cursor-pointer items-center justify-center rounded-full bg-white/90 text-slate-700 shadow-[0_4px_14px_-2px_rgba(30,41,59,0.35)] backdrop-blur transition-transform duration-200 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:bg-[#1E1730]/90 dark:text-slate-200"
             style={{ top: 'max(env(safe-area-inset-top), 2.25rem)' }}
           >
             <MoreIcon className="h-5 w-5" />

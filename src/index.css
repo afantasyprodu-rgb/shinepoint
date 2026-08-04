@@ -289,8 +289,10 @@
     animation: marquee-scroll var(--marquee-duration, 6s) linear infinite;
   }
   @keyframes marquee-scroll {
-    0%, 10% { transform: translateX(0); }
-    90%, 100% { transform: translateX(var(--marquee-distance)); }
+    0% { transform: translateX(0); opacity: 0; }
+    2%, 10% { opacity: 1; }
+    90% { transform: translateX(var(--marquee-distance)); opacity: 1; }
+    100% { transform: translateX(var(--marquee-distance)); opacity: 0; }
   }
 
   .card {
