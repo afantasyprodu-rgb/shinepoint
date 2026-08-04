@@ -6,15 +6,15 @@ product
 
 ## Users
 
-**Customers**: LA residents who want mobile car detailing on demand. Phone-first, bilingual (English/Spanish market). They're time-poor, convenience-driven, and value trust signals — they need to know the detailer is vetted before someone comes to their home or workplace.
+**Customers**: Southern California residents (LA, Orange County, Inland Empire, San Diego) who want mobile car detailing on demand. Phone-first, bilingual (English/Spanish market). They're time-poor, convenience-driven, and value trust signals — they need to know the detailer is vetted before someone comes to their home or workplace.
 
-**Detailers**: Independent car detailers in the LA area looking to grow their client base. Hustle-minded, often self-employed, want reliable booking flow and fast payout.
+**Detailers**: Independent car detailers across SoCal looking to grow their client base. Hustle-minded, often self-employed, want reliable booking flow and fast payout.
 
 **Context**: Customers open the app outdoors or in a parked car, often one-handed on mobile. First session likely mid-day or weekend morning when they decide "I want my car cleaned."
 
 ## Product Purpose
 
-ShinePoint is LA's two-sided mobile detailing marketplace. Customers find vetted local detailers, book appointments at their location, and pay in-app. Detailers receive bookings, navigate to the job, and get paid without chasing invoices.
+ShinePoint is SoCal's two-sided mobile detailing marketplace. Customers find vetted local detailers, book appointments at their location, and pay in-app. Detailers receive bookings, navigate to the job, and get paid without chasing invoices.
 
 Success for a customer: found a detailer nearby, booked in under 2 minutes, car looks great.
 

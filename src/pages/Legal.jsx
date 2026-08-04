@@ -32,7 +32,7 @@ function LegalShell({ title, children }) {
         </div>
 
         <p className="mt-6 text-center text-xs text-slate-400">
-          ShinePoint · Los Angeles, CA ·{' '}
+          ShinePoint · Southern California ·{' '}
           <Link to="/terms" className="underline hover:text-slate-600">{t('footerTerms')}</Link>
           {' · '}
           <Link to="/privacy" className="underline hover:text-slate-600">{t('footerPrivacy')}</Link>

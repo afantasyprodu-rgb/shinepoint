@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { FadeIn } from '../ui/Motion'
 import { useT } from '../../i18n/useT'
 
-// Suggested LA-market base prices at "Sedan" — starting points (see the
+// Suggested SoCal-market base prices at "Sedan" — starting points (see the
 // disclaimer), same spirit as the dilution/time tools: a sane default a
 // detailer can override, not a fixed rule.
 const SERVICES = [

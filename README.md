@@ -1,4 +1,4 @@
-# ShinePoint — Car Detailing Marketplace (Los Angeles)
+# ShinePoint — Car Detailing Marketplace (Southern California)
 
 Two-sided marketplace connecting customers with mobile car detailers.
 Built with React + Tailwind CSS, Supabase (database + auth), Mapbox (map), and Stripe (payments).

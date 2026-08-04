@@ -3,7 +3,7 @@
 Guidance for AI coding sessions in this repo. Read before editing.
 
 ## What this is
-Two-sided car-detailing marketplace (LA). Three roles: **customer**, **detailer**, **admin**.
+Two-sided car-detailing marketplace (Southern California / SoCal). Three roles: **customer**, **detailer**, **admin**.
 Full animated demo of every blueprint screen, running on an in-memory store; real backend
 (Supabase/Stripe/Mapbox) wires in when env keys are present. "ShinePoint" is a placeholder name.
 

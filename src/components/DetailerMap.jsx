@@ -18,7 +18,10 @@ const PIN_COLORS = {
   offline: '#94a3b8',
 }
 
-const LA_CENTER = [34.05, -118.33]
+// Midpoint of the demo footprint (Santa Barbara down to San Diego), not
+// just downtown LA, so the default view reads as SoCal-wide rather than
+// LA-only.
+const SOCAL_CENTER = [33.85, -118.1]
 
 // Both themes use CartoDB no-labels tiles — plain OSM tiles crammed every
 // street name, route shield, and POI icon onto the map, which read as
@@ -105,8 +108,8 @@ export default function DetailerMap({ detailers, focus }) {
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
     const map = L.map(containerRef.current, {
-      center: LA_CENTER,
-      zoom: 11,
+      center: SOCAL_CENTER,
+      zoom: 9,
       // No on-screen zoom buttons — pinch/scroll zoom still works, and one
       // less floating control keeps the map itself the focus.
       zoomControl: false,

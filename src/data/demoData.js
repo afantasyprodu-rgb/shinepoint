@@ -117,7 +117,7 @@ const detailerRows = [
     rating: 4.6,
     reviews: 152,
     zip: '90013',
-    area: 'Downtown LA',
+    area: 'Downtown Los Angeles',
     status: 'busy',
     acceptsWhenBusy: false,
     insurance: 'insured',
@@ -132,8 +132,8 @@ const detailerRows = [
     ],
   },
 
-  // Coastal expansion: Santa Barbara down to San Diego, so the demo shows
-  // detailer coverage beyond just LA if you pan/zoom the map out.
+  // Coastal expansion: Santa Barbara down to San Diego, showing the full
+  // SoCal footprint (not just LA proper) if you pan/zoom the map out.
   {
     id: 'det-7',
     name: 'Santa Barbara Shine Co.',
