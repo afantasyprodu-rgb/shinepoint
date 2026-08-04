@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import AppShell from '../components/AppShell'
+import AccountDangerZone from '../components/AccountDangerZone'
 import AvatarUpload from '../components/AvatarUpload'
 import CarPhotoUpload from '../components/CarPhotoUpload'
 import Combobox from '../components/ui/Combobox'
@@ -351,6 +352,10 @@ export default function CustomerSettings() {
             </AnimatePresence>
           </div>
         </form>
+
+        <div className="mt-6">
+          <AccountDangerZone />
+        </div>
       </AnimatedPage>
     </AppShell>
   )

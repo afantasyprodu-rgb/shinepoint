@@ -113,6 +113,9 @@ export async function fetchDetailers() {
       users!inner(full_name),
       services(id, service_name, description, price, vehicle_types, is_active)
     `)
+    // A deactivated (self soft-deleted) detailer shouldn't keep showing up
+    // for customers to book.
+    .is('users.deactivated_at', null)
 
   if (error) {
     console.error('fetchDetailers:', error.message)
@@ -687,7 +690,7 @@ export async function adminOverrideDamage(bookingId, decision) {
 export async function fetchAllUsersForAdmin() {
   const { data, error } = await supabase
     .from('users')
-    .select('id, email, phone, role, full_name, created_at, is_suspended, is_banned')
+    .select('id, email, phone, role, full_name, created_at, is_suspended, is_banned, deactivated_at')
     .order('created_at', { ascending: false })
   if (error) { console.error('fetchAllUsersForAdmin:', error.message); return [] }
   return data
@@ -698,4 +701,37 @@ export async function fetchAllUsersForAdmin() {
 // account has bookings blocking the cascade — ban instead in that case.
 export async function adminDeleteUser(userId) {
   await invokeFn('admin-delete-user', { userId })
+}
+
+// Soft delete: hides a detailer from the map / pauses the account without
+// touching any data. Plain RLS self-update (see 025_account_deactivation.sql
+// — deliberately not server-managed) rather than an edge function, since a
+// user flipping their own flag needs no privileged check. Reversible by
+// logging back in (AuthCard.jsx finishLogin clears it).
+export async function setAccountDeactivated(userId, deactivated) {
+  const { error } = await supabase
+    .from('users')
+    .update({ deactivated_at: deactivated ? new Date().toISOString() : null })
+    .eq('id', userId)
+  if (error) throw error
+}
+
+// Hard delete, self-service. Edge function because it needs the
+// service-role key to remove the auth.users row, and it checks for
+// unresolved bookings/pending payouts before doing so — see
+// delete-own-account/index.ts. `reason` (optional, freeform) is snapshotted
+// into account_deletion_feedback before the row is gone for good.
+export async function deleteOwnAccount(reason) {
+  await invokeFn('delete-own-account', { reason })
+}
+
+// Admin-only history of self-service hard deletes (migration 012-style RLS:
+// admins can read; the account row itself no longer exists to look up).
+export async function fetchAccountDeletionFeedback() {
+  const { data, error } = await supabase
+    .from('account_deletion_feedback')
+    .select('id, role, email, phone, full_name, reason, deleted_at')
+    .order('deleted_at', { ascending: false })
+  if (error) { console.error('fetchAccountDeletionFeedback:', error.message); return [] }
+  return data
 }

@@ -93,12 +93,17 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
   // otherwise hand off to the caller (fly-through) or navigate home.
   async function finishLogin(userId) {
     const { data: userRow } = await supabase
-      .from('users').select('role, is_suspended, is_banned').eq('id', userId).single()
+      .from('users').select('role, is_suspended, is_banned, deactivated_at').eq('id', userId).single()
     if (userRow?.is_banned || userRow?.is_suspended) {
       setBusy(false)
       await supabase.auth.signOut()
       setError(userRow.is_banned ? t('accountBanned') : t('accountSuspended'))
       return
+    }
+    // Soft-deleted (deactivated_at set): logging back in is the un-delete —
+    // clear it and continue straight through, no separate "reactivate" step.
+    if (userRow?.deactivated_at) {
+      await supabase.from('users').update({ deactivated_at: null }).eq('id', userId)
     }
     const homePath = homePathForRole(userRow?.role)
     if (await needsMfaChallenge()) {

@@ -16,7 +16,7 @@ import {
   TrashIcon,
 } from '../../components/icons'
 import { useStore } from '../../context/StoreContext'
-import { fetchAllUsersForAdmin, adminDeleteUser } from '../../lib/db'
+import { fetchAllUsersForAdmin, adminDeleteUser, fetchAccountDeletionFeedback } from '../../lib/db'
 import { useT } from '../../i18n/useT'
 
 const TAB_KEYS = [
@@ -24,6 +24,7 @@ const TAB_KEYS = [
   { key: 'Detailers', labelKey: 'tabDetailers' },
   { key: 'Customers', labelKey: 'tabCustomers' },
   { key: 'Accounts', labelKey: 'tabAccounts' },
+  { key: 'Deleted', labelKey: 'tabDeleted' },
   { key: 'Team', labelKey: 'tabTeam' },
 ]
 
@@ -233,12 +234,16 @@ export default function AdminPeople() {
   const [deleting, setDeleting] = useState(null) // account being confirmed
   const [deleteError, setDeleteError] = useState('')
   const [deleteBusy, setDeleteBusy] = useState(false)
+  const [deletions, setDeletions] = useState(null) // self-service hard-delete history
 
   useEffect(() => {
     if (tab === 'Accounts' && accounts === null) {
       fetchAllUsersForAdmin().then(setAccounts)
     }
-  }, [tab, accounts])
+    if (tab === 'Deleted' && deletions === null) {
+      fetchAccountDeletionFeedback().then(setDeletions)
+    }
+  }, [tab, accounts, deletions])
 
   async function confirmDeleteAccount() {
     setDeleteBusy(true)
@@ -414,10 +419,20 @@ export default function AdminPeople() {
                               {a.is_banned ? t('banned') : t('suspended')}
                             </span>
                           )}
+                          {a.deactivated_at && !a.is_banned && !a.is_suspended && (
+                            <span className="ml-2 chip bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-300">
+                              {t('deactivated')}
+                            </span>
+                          )}
                         </p>
                         <p className="text-sm text-slate-500 dark:text-slate-400">
                           {a.email || a.phone || t('noContact')} · {a.role} · {t('joined', { date: new Date(a.created_at).toLocaleDateString() })}
                         </p>
+                        {a.deactivated_at && (
+                          <p className="mt-0.5 text-xs text-slate-400 dark:text-slate-500">
+                            {t('selfDeactivatedOn', { date: new Date(a.deactivated_at).toLocaleDateString() })}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <button
@@ -426,6 +441,39 @@ export default function AdminPeople() {
                     >
                       <TrashIcon className="h-4 w-4" /> {t('delete')}
                     </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {tab === 'Deleted' && (
+              <div className="space-y-3">
+                <p className="text-xs text-slate-400 dark:text-slate-500">{t('deletedTabBlurb')}</p>
+                {deletions === null && (
+                  <p className="text-sm text-slate-500 dark:text-slate-400">{t('loadingAccounts')}</p>
+                )}
+                {deletions?.length === 0 && (
+                  <p className="text-sm text-slate-500 dark:text-slate-400">{t('noDeletions')}</p>
+                )}
+                {deletions?.map((d) => (
+                  <div key={d.id} className="card !p-5">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="font-semibold text-slate-900 dark:text-slate-100">
+                        {d.full_name || t('unnamed')}
+                        <span className="ml-2 chip bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-300">{d.role}</span>
+                      </p>
+                      <p className="shrink-0 text-xs text-slate-400 dark:text-slate-500">
+                        {t('deletedOn', { date: new Date(d.deleted_at).toLocaleDateString() })}
+                      </p>
+                    </div>
+                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                      {d.email || d.phone || t('noContact')}
+                    </p>
+                    {d.reason && (
+                      <p className="mt-2 rounded-lg bg-brand-50 px-3 py-2 text-sm text-slate-700 dark:bg-white/5 dark:text-slate-300">
+                        “{d.reason}”
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>
