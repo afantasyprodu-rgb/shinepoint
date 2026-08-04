@@ -1,6 +1,9 @@
 import { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import AppShell from '../components/AppShell'
 import DetailerMap from '../components/DetailerMap'
+import Modal from '../components/ui/Modal'
+import { CarIcon } from '../components/icons'
 import { useStore } from '../context/StoreContext'
 import { useT } from '../i18n/useT'
 
@@ -14,9 +17,17 @@ const FILTERS = [
 // Blueprint screen 2.1 — Customer Home (Map Screen). Fully map-driven: tap a
 // pin to grow a quick-info bubble, tap the map to dismiss it. No card strip.
 export default function CustomerHome() {
-  const { detailers } = useStore()
+  const { detailers, customer } = useStore()
+  const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [active, setActive] = useState([])
+  // Signup drops customers straight on the map now instead of forcing the
+  // setup wizard first (see AuthContext.signupHomePath) — this prompt is
+  // the soft version. Dismissing it just hides it for this visit; browsing
+  // and picking a detailer stays open either way, booking is what actually
+  // gates on finishing setup (DetailerProfile.jsx).
+  const needsSetup = !customer?.address || !customer?.vehicle?.make
+  const [promptDismissed, setPromptDismissed] = useState(false)
   const t = useT('customerHome')
 
   const filtered = useMemo(() => {
@@ -72,6 +83,30 @@ export default function CustomerHome() {
           )}
         </div>
       </main>
+
+      <Modal open={needsSetup && !promptDismissed} onClose={() => setPromptDismissed(true)} labelledBy="configure-account-title">
+        <div className="p-5 text-center">
+          <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-300">
+            <CarIcon className="h-6 w-6" />
+          </span>
+          <h2 id="configure-account-title" className="mt-3 font-display text-lg font-bold text-slate-900 dark:text-slate-100">
+            {t('configureTitle')}
+          </h2>
+          <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">{t('configureBody')}</p>
+          <div className="mt-5 flex flex-col gap-2">
+            <button type="button" onClick={() => navigate('/onboarding')} className="btn btn-cta w-full">
+              {t('configureYes')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setPromptDismissed(true)}
+              className="w-full py-2 text-center text-sm text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+            >
+              {t('configureSkip')}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </AppShell>
   )
 }

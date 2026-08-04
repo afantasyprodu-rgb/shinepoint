@@ -33,7 +33,7 @@ export default function Modal({ open, onClose, children, labelledBy }) {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-50 flex items-end justify-center bg-brand-900/50 p-4 backdrop-blur-sm sm:items-center"
+          className="fixed inset-0 z-[900] flex items-end justify-center bg-brand-900/50 p-4 backdrop-blur-sm sm:items-center"
           onClick={onClose}
         >
           <motion.div

@@ -143,12 +143,13 @@ export function homePathForRole(role) {
   return '/home'
 }
 
-// A brand-new account always lands on its role's onboarding wizard, never
-// straight on the dashboard — a detailer isn't verified/insured yet and
-// shouldn't be shown live jobs before finishing that. Returning users
-// (login) skip this and go via homePathForRole instead.
+// A brand-new detailer account always lands on the onboarding wizard, never
+// straight on the dashboard — they aren't verified/insured yet and
+// shouldn't be shown live jobs before finishing that. A brand-new customer
+// goes straight to the map instead: CustomerHome prompts them to configure
+// their account (vehicle + address) rather than forcing the wizard up
+// front, and booking gates on it later if they skipped.
 export function signupHomePath(role) {
   if (role === 'detailer') return '/detailer/onboarding'
-  if (role === 'customer') return '/onboarding'
   return homePathForRole(role)
 }

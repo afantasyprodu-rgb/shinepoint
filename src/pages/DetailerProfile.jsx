@@ -26,9 +26,19 @@ const FAKE_REVIEWS = [
 export default function DetailerProfile() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { getDetailer } = useStore()
+  const { getDetailer, customer } = useStore()
   const d = getDetailer(id)
   const t = useT('detailerProfile')
+  // Vehicle + address are collected by the setup wizard, not required at
+  // signup anymore (see CustomerHome's configure-account prompt) — but
+  // booking still needs both, so send anyone who skipped it there first,
+  // then bounce them straight back to finish booking this detailer.
+  const needsSetup = !customer?.address || !customer?.vehicle?.make
+
+  function bookOrSetup() {
+    if (needsSetup) navigate('/onboarding', { state: { returnTo: `/book/${d.id}` } })
+    else navigate(`/book/${d.id}`)
+  }
 
   if (!d) {
     return (
@@ -150,7 +160,7 @@ export default function DetailerProfile() {
 
         <div className="sticky bottom-4 mt-8">
           <button
-            onClick={() => navigate(`/book/${d.id}`)}
+            onClick={bookOrSetup}
             disabled={!bookable}
             className="btn btn-cta w-full shadow-xl"
           >
