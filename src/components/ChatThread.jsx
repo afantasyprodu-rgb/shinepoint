@@ -26,21 +26,33 @@ export default function ChatThread({ bookingId, me }) {
       if (!cancelled) setRealThread(rows)
     })
 
-    const channel = supabase
-      .channel(`messages:${bookingId}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages', filter: `booking_id=eq.${bookingId}` },
-        (payload) => {
-          const m = payload.new
-          setRealThread((prev) =>
-            prev.some((x) => x.id === m.id)
-              ? prev
-              : [...prev, { id: m.id, text: m.content, at: m.sent_at, flagged: m.is_flagged, senderId: m.sender_id }]
-          )
-        }
-      )
-      .subscribe()
+    // .subscribe() throws synchronously ("WebSocket not available: The
+    // operation is insecure.") on a misconfigured VITE_SUPABASE_URL instead
+    // of failing gracefully — same guard as the realtime channels in
+    // StoreContext.jsx, needed here too so opening a chat can't crash the
+    // whole app to the ErrorBoundary. Falls back to "loaded once, no live
+    // updates" instead.
+    let channel
+    try {
+      channel = supabase
+        .channel(`messages:${bookingId}`)
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'messages', filter: `booking_id=eq.${bookingId}` },
+          (payload) => {
+            const m = payload.new
+            setRealThread((prev) =>
+              prev.some((x) => x.id === m.id)
+                ? prev
+                : [...prev, { id: m.id, text: m.content, at: m.sent_at, flagged: m.is_flagged, senderId: m.sender_id }]
+            )
+          }
+        )
+        .subscribe()
+    } catch (err) {
+      console.error('Realtime subscribe failed (check VITE_SUPABASE_URL uses https://):', err)
+      return () => { cancelled = true }
+    }
 
     return () => {
       cancelled = true
