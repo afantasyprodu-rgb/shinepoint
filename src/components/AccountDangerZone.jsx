@@ -58,22 +58,31 @@ export default function AccountDangerZone() {
   }
 
   return (
-    <div className="card border border-red-200 dark:border-red-500/20">
-      <h2 className="text-sm font-semibold text-red-700 dark:text-red-400">{t('title')}</h2>
-      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{t('body')}</p>
-
-      <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+    <>
+      {/* Offered on the way in, not as a peer of "delete" — a real
+          alternative someone can reach for before they'd ever consider
+          the permanent option below. */}
+      <div className="card">
+        <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{t('pauseTitle')}</h2>
+        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{t('pauseBody')}</p>
         <button
           type="button"
           onClick={() => { setError(''); setConfirming('deactivate') }}
-          className="btn btn-outline flex-1"
+          className="btn btn-outline mt-4 w-full sm:w-auto"
         >
           {t('deactivateCta')}
         </button>
+      </div>
+
+      {/* Quieter than the pause option above on purpose — reached
+          deliberately, not offered as an equal-weight choice. */}
+      <div className="card mt-4 border border-red-200 dark:border-red-500/20">
+        <h2 className="text-sm font-semibold text-red-700 dark:text-red-400">{t('title')}</h2>
+        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{t('body')}</p>
         <button
           type="button"
           onClick={() => { setError(''); setConfirming('delete') }}
-          className="inline-flex h-12 flex-1 cursor-pointer items-center justify-center rounded-xl bg-red-600 px-5 text-sm font-semibold text-white transition-colors duration-200 hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600"
+          className="mt-4 cursor-pointer text-sm font-semibold text-red-700 underline decoration-red-300 underline-offset-2 hover:text-red-800 hover:decoration-red-500 dark:text-red-400 dark:decoration-red-500/40 dark:hover:text-red-300"
         >
           {t('deleteCta')}
         </button>
@@ -147,6 +156,6 @@ export default function AccountDangerZone() {
           </div>
         </div>
       </Modal>
-    </div>
+    </>
   )
 }
