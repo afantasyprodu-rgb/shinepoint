@@ -4,7 +4,7 @@ import { ChevronLeftIcon } from '../components/icons'
 import Logo from '../components/Logo'
 import { useT } from '../i18n/useT'
 
-const UPDATED = 'June 2026'
+const UPDATED = 'August 2026'
 
 function LegalShell({ title, children }) {
   const t = useT('legal')
