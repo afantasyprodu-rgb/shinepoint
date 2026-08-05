@@ -457,9 +457,20 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
               </div>
             </Field>
 
+            {isSignup && (
+              <Field index={isSignup ? 2 : 1}>
+                <p className="text-xs leading-relaxed text-white/50">
+                  {t('smsConsent')}{' '}
+                  <Link to="/terms" className="underline hover:text-white/70">{t('smsConsentTerms')}</Link>
+                  {' '}{t('smsConsentAnd')}{' '}
+                  <Link to="/privacy" className="underline hover:text-white/70">{t('smsConsentPrivacy')}</Link>.
+                </p>
+              </Field>
+            )}
+
             {error && <p role="alert" className="auth-error">{error}</p>}
 
-            <Field index={isSignup ? 2 : 1}>
+            <Field index={isSignup ? 3 : 1}>
               <button type="submit" disabled={busy} className="auth-btn-primary w-full">
                 {busy
                   ? <span className="inline-flex items-center gap-2"><BtnSpinner />{t('sending')}</span>
