@@ -227,7 +227,7 @@ export default function AdminPeople() {
   const [rejecting, setRejecting] = useState(null)
   const [rejectReason, setRejectReason] = useState('')
   const [toast, setToast] = useState(null)
-  const { admin, detailers, decideApplication } = useStore()
+  const { admin, detailers, decideApplication, isDemo } = useStore()
   const t = useT('adminPeople')
 
   const [accounts, setAccounts] = useState(null) // null = loading
@@ -236,14 +236,17 @@ export default function AdminPeople() {
   const [deleteBusy, setDeleteBusy] = useState(false)
   const [deletions, setDeletions] = useState(null) // self-service hard-delete history
 
+  // Customers/Team also read from this same real user list (filtered by
+  // role below) — FAKE_CUSTOMERS/DEMO_ADMINS were rendering unconditionally,
+  // showing made-up named people to real admins with no real data behind them.
   useEffect(() => {
-    if (tab === 'Accounts' && accounts === null) {
+    if (!isDemo && ['Accounts', 'Customers', 'Team'].includes(tab) && accounts === null) {
       fetchAllUsersForAdmin().then(setAccounts)
     }
     if (tab === 'Deleted' && deletions === null) {
       fetchAccountDeletionFeedback().then(setDeletions)
     }
-  }, [tab, accounts, deletions])
+  }, [tab, accounts, deletions, isDemo])
 
   async function confirmDeleteAccount() {
     setDeleteBusy(true)
@@ -373,29 +376,57 @@ export default function AdminPeople() {
 
             {tab === 'Customers' && (
               <div className="space-y-3">
-                {FAKE_CUSTOMERS.map((c) => (
-                  <div key={c.id} className="card flex flex-wrap items-center justify-between gap-3 !p-5">
-                    <div className="flex items-center gap-3">
-                      <Avatar name={c.name} />
-                      <div>
-                        <p className="font-semibold text-slate-900 dark:text-slate-100">{c.name}</p>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">
-                          {t('bookingsDisputes', { bookings: c.bookings, disputes: c.disputes })}
-                        </p>
+                {isDemo ? (
+                  <>
+                    {FAKE_CUSTOMERS.map((c) => (
+                      <div key={c.id} className="card flex flex-wrap items-center justify-between gap-3 !p-5">
+                        <div className="flex items-center gap-3">
+                          <Avatar name={c.name} />
+                          <div>
+                            <p className="font-semibold text-slate-900 dark:text-slate-100">{c.name}</p>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                              {t('bookingsDisputes', { bookings: c.bookings, disputes: c.disputes })}
+                            </p>
+                          </div>
+                        </div>
+                        <span
+                          className={`chip ${
+                            c.reliability >= 4 ? 'bg-cta-700/10 text-cta-700 dark:text-cta-500' : 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300'
+                          }`}
+                        >
+                          {t('reliability', { score: c.reliability.toFixed(1) })}
+                        </span>
                       </div>
-                    </div>
-                    <span
-                      className={`chip ${
-                        c.reliability >= 4 ? 'bg-cta-700/10 text-cta-700 dark:text-cta-500' : 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300'
-                      }`}
-                    >
-                      {t('reliability', { score: c.reliability.toFixed(1) })}
-                    </span>
-                  </div>
-                ))}
-                <p className="text-xs text-slate-400 dark:text-slate-500">
-                  {t('reliabilityNote')}
-                </p>
+                    ))}
+                    <p className="text-xs text-slate-400 dark:text-slate-500">
+                      {t('reliabilityNote')}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    {accounts === null && (
+                      <p className="text-sm text-slate-500 dark:text-slate-400">{t('loadingAccounts')}</p>
+                    )}
+                    {accounts?.filter((a) => a.role === 'customer').length === 0 && (
+                      <p className="text-sm text-slate-500 dark:text-slate-400">{t('noAccountsRegistered')}</p>
+                    )}
+                    {accounts?.filter((a) => a.role === 'customer').map((c) => (
+                      <div key={c.id} className="card flex flex-wrap items-center justify-between gap-3 !p-5">
+                        <div className="flex items-center gap-3">
+                          <Avatar name={c.full_name || c.email || c.phone || '?'} />
+                          <div>
+                            <p className="font-semibold text-slate-900 dark:text-slate-100">{c.full_name || t('unnamed')}</p>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                              {c.email || c.phone || t('noContact')} · {t('joined', { date: new Date(c.created_at).toLocaleDateString() })}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {/* Reliability/dispute-count stats aren't wired to a real
+                        source yet — no fabricated numbers shown here. */}
+                  </>
+                )}
               </div>
             )}
 
@@ -484,18 +515,38 @@ export default function AdminPeople() {
                 {/* Current admins */}
                 <div className="space-y-2">
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">{t('currentAdmins')}</p>
-                  {DEMO_ADMINS.map((a) => (
-                    <div key={a.id} className="card flex items-center gap-3 !p-4">
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">
-                        <ShieldCheckIcon className="h-5 w-5" />
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-slate-900 dark:text-slate-100">{a.name}</p>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">{a.email}</p>
+                  {isDemo ? (
+                    DEMO_ADMINS.map((a) => (
+                      <div key={a.id} className="card flex items-center gap-3 !p-4">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">
+                          <ShieldCheckIcon className="h-5 w-5" />
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-slate-900 dark:text-slate-100">{a.name}</p>
+                          <p className="text-sm text-slate-500 dark:text-slate-400">{a.email}</p>
+                        </div>
+                        <span className="chip bg-brand-100 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">{t('admin')}</span>
                       </div>
-                      <span className="chip bg-brand-100 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">{t('admin')}</span>
-                    </div>
-                  ))}
+                    ))
+                  ) : (
+                    <>
+                      {accounts === null && (
+                        <p className="text-sm text-slate-500 dark:text-slate-400">{t('loadingAccounts')}</p>
+                      )}
+                      {accounts?.filter((a) => a.role === 'admin').map((a) => (
+                        <div key={a.id} className="card flex items-center gap-3 !p-4">
+                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">
+                            <ShieldCheckIcon className="h-5 w-5" />
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-slate-900 dark:text-slate-100">{a.full_name || t('unnamed')}</p>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">{a.email || a.phone || t('noContact')}</p>
+                          </div>
+                          <span className="chip bg-brand-100 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">{t('admin')}</span>
+                        </div>
+                      ))}
+                    </>
+                  )}
                 </div>
 
                 {/* Adding an admin is an ops action, not a self-service flow.

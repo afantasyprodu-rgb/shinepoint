@@ -15,14 +15,19 @@ const MILESTONE_KEYS = {
 
 // Blueprint screen 6.1 — Admin Dashboard.
 export default function AdminDashboard() {
-  const { admin, bookings } = useStore()
+  const { admin, bookings, isDemo } = useStore()
   const t = useT('adminDashboard')
+  const tFinance = useT('adminFinance')
   const activeNow = bookings.filter((b) => ['en_route', 'arrived', 'in_progress'].includes(b.status)).length
   const openDisputes = admin.disputes.filter((d) => d.status !== 'resolved').length
+  const todayKey = new Date().toISOString().slice(0, 10)
+  const bookingsToday = isDemo
+    ? 14
+    : bookings.filter((b) => b.scheduledTime?.slice(0, 10) === todayKey).length
 
   const cards = [
     { label: t('activeJobsNow'), value: activeNow },
-    { label: t('bookingsToday'), value: 14 },
+    { label: t('bookingsToday'), value: bookingsToday },
     { label: t('platformEarningsToday'), value: admin.finance.today, prefix: '$' },
     { label: t('pendingApplications'), value: admin.applications.length },
   ]
@@ -31,6 +36,12 @@ export default function AdminDashboard() {
     <AdminShell>
       <AnimatedPage>
         <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">{t('missionControl')}</h1>
+
+        {!isDemo && (
+          <p className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">
+            {tFinance('notWiredNotice')}
+          </p>
+        )}
 
         <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
           {cards.map(({ label, value, prefix }, i) => (
