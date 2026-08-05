@@ -27,17 +27,32 @@ function formatTime(t) {
   return `${h12}:${String(m).padStart(2, '0')} ${ampm}`
 }
 
-function nextDays(n) {
+function nextDays(n, isDemo, rainDays) {
   return Array.from({ length: n }, (_, i) => {
     const d = new Date(Date.now() + (i + 1) * 86400_000)
+    const key = d.toISOString().slice(0, 10)
     return {
-      key: d.toISOString().slice(0, 10),
+      key,
       label: d.toLocaleDateString('en-US', { weekday: 'short' }),
       day: d.getDate(),
       // Demo weather: rain forecast every 4th day to exercise the warning flow.
-      rainy: d.getDate() % 4 === 0,
+      // Real accounts: actual rain days from Open-Meteo (see weather fetch below).
+      rainy: isDemo ? d.getDate() % 4 === 0 : rainDays?.has(key) ?? false,
     }
   })
+}
+
+// Open-Meteo daily forecast, no API key required.
+async function fetchRainDays(lat, lng) {
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=precipitation_probability_max&forecast_days=10&timezone=auto`
+  const res = await fetch(url)
+  if (!res.ok) throw new Error('weather fetch failed')
+  const data = await res.json()
+  const rainDays = new Set()
+  data.daily?.time?.forEach((date, i) => {
+    if ((data.daily.precipitation_probability_max?.[i] ?? 0) >= 50) rainDays.add(date)
+  })
+  return rainDays
 }
 
 const stepVariants = {
@@ -107,7 +122,19 @@ export default function BookingWizard() {
   const [clientSecret, setClientSecret] = useState(null)
   const [payError, setPayError] = useState('')
 
-  const days = useMemo(() => nextDays(10), [])
+  const [rainDays, setRainDays] = useState(null)
+  useEffect(() => {
+    if (isDemo || !d?.pin) return
+    let cancelled = false
+    fetchRainDays(d.pin.lat, d.pin.lng)
+      .then((days) => !cancelled && setRainDays(days))
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [isDemo, d?.pin?.lat, d?.pin?.lng])
+
+  const days = useMemo(() => nextDays(10, isDemo, rainDays), [isDemo, rainDays])
   if (!d) return null
   const uninsured = d.insurance === 'none'
   // Loyalty rewards only redeemable with insured detailers (blueprint rule).
