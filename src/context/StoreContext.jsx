@@ -340,11 +340,13 @@ export function StoreProvider({ children }) {
 
     function realPatchBooking(id, patch) {
       setRealBookings((bs) => bs.map((b) => (b.id === id ? { ...b, ...patch } : b)))
-      const written = updateBookingStatusInDB(id, patch)
-      if (patch.status && STATUS_NOTIFICATIONS[patch.status]) {
-        notify(...STATUS_NOTIFICATIONS[patch.status], id, patch.status)
-      }
-      return written
+      // No client-side notify() here: the notify_booking_change DB trigger
+      // (migration 010) already inserts the real notification row on status
+      // UPDATE, delivered via the realtime subscription above. Calling
+      // notify() here would write into the demo-only `notifications` state,
+      // which real accounts never read (see `notifications: isDemo ? ... `
+      // below) — a silent no-op that looked like it worked.
+      return updateBookingStatusInDB(id, patch)
     }
 
     // Returns a promise for the real (DB) path so callers that need the
@@ -361,13 +363,21 @@ export function StoreProvider({ children }) {
         const detailer = allDetailers.find((d) => d.id === booking.detailerId)
         if (detailer && detailer.status !== 'busy') {
           setAvailability(booking.detailerId, { status: 'busy' })
-          notify(
-            'detailer',
-            "You're now set to Busy",
-            'Starting a job marks you Busy automatically. Turn on "Accept bookings while busy" in Availability if you want to keep getting new requests while you work.',
-            id,
-            'in_progress'
-          )
+          // Demo-only: this nudge has no DB-backed equivalent (no trigger
+          // fires on an availability flip), so notify() would silently
+          // write into the demo-only `notifications` state for real
+          // accounts — a no-op they'd never see. Real detailers just don't
+          // get this specific toast until a real notifications-insert path
+          // exists.
+          if (isDemo) {
+            notify(
+              'detailer',
+              "You're now set to Busy",
+              'Starting a job marks you Busy automatically. Turn on "Accept bookings while busy" in Availability if you want to keep getting new requests while you work.',
+              id,
+              'in_progress'
+            )
+          }
         }
       }
 
@@ -620,7 +630,8 @@ export function StoreProvider({ children }) {
           })
           const refreshed = await fetchBookingsForCustomer(customerProfile.id)
           setRealBookings(refreshed)
-          notify('detailer', 'New booking request', `${draft.service} — new request waiting`, bookingId)
+          // No notify() here — the notify_booking_change DB trigger already
+          // inserts the detailer's "New booking request" row on INSERT.
           return bookingId
         }
 
