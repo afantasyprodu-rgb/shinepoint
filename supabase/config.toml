@@ -75,6 +75,13 @@ otp_length = 8
 subject = "Your ShinePoint login code"
 content_path = "./supabase/templates/magic_link.html"
 
+# Brand-new signups (shouldCreateUser: true) send this "confirmation"
+# template instead of magic_link — a separate GoTrue email type, same
+# ConfirmationURL-only default problem, same fix.
+[auth.email.template.confirmation]
+subject = "Your ShinePoint signup code"
+content_path = "./supabase/templates/confirmation.html"
+
 [storage.vector]
 enabled = false
 
