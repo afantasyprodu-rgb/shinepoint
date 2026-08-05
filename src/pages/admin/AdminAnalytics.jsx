@@ -14,9 +14,10 @@ const SEGMENT_COLORS = ['var(--color-cta-500)', 'var(--color-brand-400)', 'var(-
 // AdminFinance already uses — no fabricated series, just reshaped for a
 // period-over-period view.
 export default function AdminAnalytics() {
-  const { admin, bookings } = useStore()
+  const { admin, bookings, isDemo } = useStore()
   const f = admin.finance
   const t = useT('adminAnalytics')
+  const tFinance = useT('adminFinance')
 
   const revenueDelta = f.monthly[4] ? ((f.month - f.monthly[4]) / f.monthly[4]) * 100 : 0
   const currentQuarter = f.monthly.slice(3, 6)
@@ -35,6 +36,12 @@ export default function AdminAnalytics() {
     <AdminShell>
       <AnimatedPage>
         <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">{t('title')}</h1>
+
+        {!isDemo && (
+          <p className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">
+            {tFinance('notWiredNotice')}
+          </p>
+        )}
 
         <div className="mt-6">
           <div className="grid gap-3 sm:grid-cols-2">

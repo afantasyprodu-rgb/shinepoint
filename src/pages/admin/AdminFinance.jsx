@@ -6,7 +6,7 @@ import { useT } from '../../i18n/useT'
 
 // Blueprint screen 6.8 — Financial Dashboard.
 export default function AdminFinance() {
-  const { admin } = useStore()
+  const { admin, isDemo } = useStore()
   const f = admin.finance
   const t = useT('adminFinance')
 
@@ -36,6 +36,12 @@ export default function AdminFinance() {
             {t('exportCsv')}
           </button>
         </div>
+
+        {!isDemo && (
+          <p className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">
+            {t('notWiredNotice')}
+          </p>
+        )}
 
         <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
           {stats.map(({ label, value, prefix }, i) => (
