@@ -55,16 +55,25 @@ verify_enabled = true
 #   the rest               -> per 5 minutes, per IP
 [auth.rate_limit]
 sms_sent = 30
-email_sent = 60
-sign_in_sign_ups = 10
-token_verifications = 10
+email_sent = 30
+sign_in_sign_ups = 30
+token_verifications = 30
 token_refresh = 150
-anonymous_users = 10
+anonymous_users = 30
 
 [auth.email]
 enable_confirmations = true
 max_frequency = "1m0s"
 otp_length = 8
+
+# Supabase's built-in "Magic Link" template only renders {{ .ConfirmationURL
+# }} (a clickable link) by default — but AuthCard.jsx's email flow always
+# expects the user to type a code into OtpBoxInput, never follows a link.
+# Override with a template that surfaces {{ .Token }} instead, or users get
+# an email with nothing they can actually use.
+[auth.email.template.magic_link]
+subject = "Your ShinePoint login code"
+content_path = "./supabase/templates/magic_link.html"
 
 [storage.vector]
 enabled = false
