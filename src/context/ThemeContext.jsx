@@ -1,6 +1,32 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 
 const ThemeContext = createContext(null)
+const PAINT_STORAGE_KEY = 'shinepoint-paint'
+
+// Extract HSL hue (0-360) from hex color. Used to derive brand hue from car paint.
+function hexToHue(hex) {
+  const n = parseInt(hex.slice(1), 16)
+  const r = ((n >> 16) & 255) / 255
+  const g = ((n >> 8) & 255) / 255
+  const b = (n & 255) / 255
+
+  const max = Math.max(r, g, b)
+  const min = Math.min(r, g, b)
+  const l = (max + min) / 2
+  let h = 0
+
+  if (max !== min) {
+    const d = max - min
+    const s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
+    switch (max) {
+      case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break
+      case g: h = ((b - r) / d + 2) / 6; break
+      case b: h = ((r - g) / d + 4) / 6; break
+    }
+  }
+
+  return Math.round(h * 360)
+}
 
 // iOS Safari Private Browsing (and some locked-down webviews) throws on
 // localStorage writes instead of just no-op'ing — swallow that so it
@@ -24,6 +50,9 @@ function ctaHueFor(brandHue) {
 }
 
 function storedHue(mode) {
+  const paintHue = paintDerivedHue()
+  if (paintHue !== null) return paintHue
+
   const v = Number(localStorage.getItem(hueKey(mode)))
   return Number.isFinite(v) && v ? v : DEFAULT_HUE
 }
@@ -33,8 +62,23 @@ function storedHueIndex(mode) {
   return Number.isFinite(v) ? v : 0
 }
 
+// PAINT_STORAGE_KEY is only ever written by an explicit swatch click in
+// CustomerSettings (PaintContext.setAccent) — never on mount, never from
+// the picker's DEFAULT_ACCENT seed — so this is null (-> DEFAULT_HUE,
+// purple) until the user actually picks a car color, then follows it.
+function paintDerivedHue() {
+  if (typeof window === 'undefined') return null
+  const paintHex = localStorage.getItem(PAINT_STORAGE_KEY)
+  return paintHex ? hexToHue(paintHex) : null
+}
+
 // Cycle to next hue in preset array. Advances index, wraps at end.
+// Skipped if paint-derived hue is active — a chosen car color wins over
+// the toggle's own cycling until the user clears/changes it.
 function nextHueFor(mode) {
+  const paintHue = paintDerivedHue()
+  if (paintHue !== null) return paintHue
+
   const currentIndex = storedHueIndex(mode)
   const nextIndex = (currentIndex + 1) % HUE_CYCLE.length
   safeSetItem(hueIndexKey(mode), String(nextIndex))
@@ -58,6 +102,7 @@ function initialTheme() {
 
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(initialTheme)
+  const [paintVersion, setPaintVersion] = useState(0)
 
   useEffect(() => {
     const root = document.documentElement
@@ -67,16 +112,25 @@ export function ThemeProvider({ children }) {
 
   // Resuming a mode (page load, or a role's own theme reads) applies its
   // last-rotated hue as-is — only an actual toggle press rolls a new one.
-  // Car paint (PaintContext's --accent) is deliberately NOT read here — it
-  // used to override --brand-h/--cta-h globally, which meant picking a car
-  // color repainted every button and nav highlight in the app, not just the
-  // "your car" surfaces --accent is actually scoped to in index.css
-  // (.paint-surface/.paint-accent-*). That's why the same account could show
-  // an all-blue brand ramp with olive/yellow CTAs (its triadic partner) on
-  // one screen and the intended purple/pink on another.
+  // Purple by default: paintDerivedHue() is null until the user explicitly
+  // picks a car color (see its comment above), so a first-time visitor
+  // always gets DEFAULT_HUE regardless of this branch. If car paint changes,
+  // re-derive hue from it.
   useEffect(() => {
-    applyHue(storedHue(theme))
-  }, [theme])
+    const paintHue = paintDerivedHue()
+    const hue = paintHue !== null ? paintHue : storedHue(theme)
+    applyHue(hue)
+  }, [theme, paintVersion])
+
+  // Listen for paint changes (custom event from PaintContext).
+  // Real-time re-apply when user clicks a color swatch.
+  useEffect(() => {
+    const handlePaintChange = () => {
+      setPaintVersion((v) => v + 1)
+    }
+    window.addEventListener('shinepoint:paint-changed', handlePaintChange)
+    return () => window.removeEventListener('shinepoint:paint-changed', handlePaintChange)
+  }, [])
 
   // Rolls a new hue for the mode being entered — persisted immediately, so
   // it survives past this one animated switch — then flips the mode. The

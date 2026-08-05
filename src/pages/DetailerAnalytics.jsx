@@ -7,10 +7,27 @@ import { TrendingUpIcon, PieChartIcon, LightbulbIcon, TrophyIcon, ClockIcon } fr
 import { useT } from '../i18n/useT'
 
 const ME = 'det-1'
-// Same six-week net-earnings trend as the Earnings hero sparkline, split
-// into two three-week windows so it reads as a period-over-period chart.
-const WEEKLY = [240, 310, 285, 390, 364, 412]
+// Demo-only six-week net-earnings trend, split into two three-week windows
+// so it reads as a period-over-period chart — see weeklyNetFor for the real
+// equivalent computed from actual completed jobs.
+const DEMO_WEEKLY = [240, 310, 285, 390, 364, 412]
 const SEGMENT_COLORS = ['var(--color-cta-500)', 'var(--color-brand-400)', 'var(--color-accent-teal)']
+
+const DAY_MS = 86_400_000
+const payoutFor = (b) => b.detailerPayout ?? b.price * 0.85
+
+// Same computation as DetailerEarnings.jsx's weeklyNetFor — real net by
+// week from `complete` bookings, bucketed by completedAt.
+function weeklyNetFor(complete) {
+  const weeks = Array(6).fill(0)
+  const now = Date.now()
+  complete.forEach((b) => {
+    const at = new Date(b.completedAt ?? b.scheduledTime ?? now).getTime()
+    const weeksAgo = Math.floor((now - at) / (DAY_MS * 7))
+    if (weeksAgo >= 0 && weeksAgo < 6) weeks[5 - weeksAgo] += payoutFor(b)
+  })
+  return weeks.map((v) => Math.round(v))
+}
 
 function fmtDuration(mins) {
   const rounded = Math.round(mins)
@@ -35,13 +52,19 @@ function durationOf(b) {
 }
 
 export default function DetailerAnalytics() {
-  const { bookings } = useStore()
-  const complete = bookings.filter((b) => b.detailerId === ME && b.status === 'complete')
+  const { bookings, isDemo, detailerProfile } = useStore()
+  // Was hardcoded to the demo detailer's id even for real accounts — same
+  // bug as DetailerEarnings.jsx, meant a real detailer's own completed jobs
+  // never matched this filter and every number below was always 0 for them
+  // while the demo numbers below (WEEKLY) rendered as if they were history.
+  const meId = isDemo ? ME : detailerProfile?.id
+  const complete = bookings.filter((b) => b.detailerId === meId && b.status === 'complete')
   const t = useT('detailerAnalytics')
 
-  const currentWeeks = WEEKLY.slice(3, 6)
-  const comparisonWeeks = WEEKLY.slice(0, 3)
-  const weekDelta = ((WEEKLY[5] - WEEKLY[4]) / WEEKLY[4]) * 100
+  const weeklyNet = isDemo ? DEMO_WEEKLY : weeklyNetFor(complete)
+  const currentWeeks = weeklyNet.slice(3, 6)
+  const comparisonWeeks = weeklyNet.slice(0, 3)
+  const weekDelta = weeklyNet[4] > 0 ? ((weeklyNet[5] - weeklyNet[4]) / weeklyNet[4]) * 100 : 0
 
   const byService = {}
   complete.forEach((b) => {
@@ -104,7 +127,7 @@ export default function DetailerAnalytics() {
                   <span className="nx-icon-tile"><TrendingUpIcon className="h-4 w-4" /></span>
                 </div>
                 <p className="mt-2 font-display text-3xl font-bold text-slate-900 dark:text-white">
-                  <CountUp value={WEEKLY[5]} prefix="$" />
+                  <CountUp value={weeklyNet[5]} prefix="$" />
                 </p>
                 <p className={`mt-1 text-sm font-medium ${weekDelta >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                   {t('vsLastWeek', { sign: weekDelta >= 0 ? '+' : '', pct: weekDelta.toFixed(1) })}
