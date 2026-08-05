@@ -32,6 +32,9 @@ import MfaSetup from './pages/MfaSetup'
 import MfaChallenge from './pages/MfaChallenge'
 import CustomerOnboarding from './pages/CustomerOnboarding'
 import { Terms, Privacy } from './pages/Legal'
+import MatchingTest from './pages/dev/MatchingTest'
+import HeroTest from './pages/dev/HeroTest'
+import BubblesTest from './pages/dev/BubblesTest'
 
 const guard = (role, el) => <ProtectedRoute role={role}>{el}</ProtectedRoute>
 
@@ -46,6 +49,9 @@ export default function App() {
       <NativeBridge />
       <Routes location={location} key={location.pathname}>
         <Route path="/" element={<Landing />} />
+        <Route path="/dev/matching-test" element={<MatchingTest />} />
+        <Route path="/dev/hero-test" element={<HeroTest />} />
+        <Route path="/dev/bubbles-test" element={<BubblesTest />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<CustomerSignup />} />
         <Route path="/signup/detailer" element={<DetailerSignup />} />

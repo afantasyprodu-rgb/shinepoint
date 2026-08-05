@@ -9,6 +9,7 @@ import { markArrival } from '../lib/transition'
 import { FadeIn, Stagger, StaggerItem } from '../components/ui/Motion'
 import { TextEffect } from '../components/motion-primitives/text-effect'
 import { Stars } from '../components/ui/bits'
+import HeroBubbles from '../components/ui/HeroBubbles'
 import { useT } from '../i18n/useT'
 import {
   ShieldCheckIcon,
@@ -82,6 +83,11 @@ export default function Welcome() {
       >
         <div aria-hidden="true" className="absolute left-1/2 top-[12%] h-80 w-80 -translate-x-1/2 rounded-full bg-brand-200/40 blur-3xl dark:bg-brand-800/15" />
         <div aria-hidden="true" className="absolute bottom-[12%] right-[-6rem] h-64 w-64 rounded-full bg-cta-500/10 blur-3xl" />
+        {!reduce && (
+          <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+            <HeroBubbles seed={7} />
+          </div>
+        )}
 
         <motion.div
           style={reduce ? undefined : { opacity: heroOpacity }}
