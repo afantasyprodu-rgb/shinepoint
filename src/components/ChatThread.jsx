@@ -23,7 +23,16 @@ export default function ChatThread({ bookingId, me }) {
     if (isDemo || !bookingId) return
     let cancelled = false
     fetchMessages(bookingId).then((rows) => {
-      if (!cancelled) setRealThread(rows)
+      if (cancelled) return
+      // Merge, don't overwrite: a message can arrive over the realtime
+      // channel (subscribed just below) before this fetch resolves and get
+      // appended to state — a plain setRealThread(rows) here would silently
+      // drop it the moment this slower, already-in-flight fetch lands.
+      setRealThread((prev) => {
+        const ids = new Set(rows.map((r) => r.id))
+        const extra = prev.filter((p) => !ids.has(p.id))
+        return [...rows, ...extra].sort((a, b) => new Date(a.at) - new Date(b.at))
+      })
     })
 
     // .subscribe() throws synchronously ("WebSocket not available: The
