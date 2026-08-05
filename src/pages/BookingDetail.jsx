@@ -65,7 +65,7 @@ const STAGE_KEYS = {
 export default function BookingDetail() {
   const { id } = useParams()
   const [searchParams] = useSearchParams()
-  const { getBooking, getDetailer, patchBooking, submitReview, cancelBooking, fileDispute } = useStore()
+  const { getBooking, getDetailer, patchBooking, submitReview, cancelBooking, fileDispute, isDemo } = useStore()
   const { lang } = useLanguage()
   const t = useT('bookingDetail')
   const [rating, setRating] = useState(0)
@@ -309,7 +309,7 @@ const shownStage = openStage ?? stageIdx
             </>
           )}
 
-          {stageIdx < TIMELINE.length - 1 && b.status !== 'cancelled' && b.status !== 'disputed' && (
+          {isDemo && stageIdx < TIMELINE.length - 1 && b.status !== 'cancelled' && b.status !== 'disputed' && (
             <button onClick={advance} className="btn btn-outline mt-5 h-9 w-full text-xs">
               {t('simulateNext')}
             </button>
