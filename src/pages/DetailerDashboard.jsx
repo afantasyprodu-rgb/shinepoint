@@ -163,7 +163,7 @@ export default function DetailerDashboard() {
           <div>
             <p className="font-semibold text-slate-900 dark:text-slate-100">{t('newDetailerOnboarding')}</p>
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              {t('onboardingPreview')}
+              {isDemo ? t('onboardingPreview') : t('onboardingPreviewReal')}
             </p>
           </div>
           <span className="text-sm font-semibold text-brand-600 dark:text-brand-300">{t('openArrow')}</span>
