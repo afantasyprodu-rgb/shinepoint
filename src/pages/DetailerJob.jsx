@@ -123,25 +123,14 @@ export default function DetailerJob() {
       cta: t('gateArrivedCta'),
     },
     {
+      // No action/secondary/cta here — renderGate always swaps this gate for
+      // the real <DamageInspection> component when ready (see below), so a
+      // fallback action here would never actually run.
       key: 'damage',
       title: t('gateDamageTitle'),
       desc: t('gateDamageDesc'),
       done: damageDone,
       ready: b.status === 'arrived' && !damageDone,
-      action: () =>
-        patchBooking(b.id, {
-          damageReport: {
-            submitted: true,
-            acknowledged: false,
-            items: [{ area: 'Driver door', note: 'Small ding, pre-existing' }],
-          },
-        }),
-      cta: t('gateDamageCta'),
-      secondary: {
-        label: t('noDamageFound'),
-        action: () =>
-          patchBooking(b.id, { damageReport: { submitted: true, acknowledged: true, items: [] } }),
-      },
     },
     {
       key: 'before',
