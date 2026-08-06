@@ -82,11 +82,19 @@ export default function DetailerDashboard() {
     .filter((b) => b.status === 'complete')
     .reduce((sum, b) => sum + b.price * 0.85 + (b.tip ?? 0), 0)
 
+  // Real rate = accepted-or-beyond / decided (declines are recorded as
+  // status:'cancelled', cancelledBy:'detailer' — see the decline button
+  // below). No decided bookings yet -> 0, same "no data" convention used
+  // for earningsToday above rather than a misleading fake percentage.
+  const decided = mine.filter((b) => b.status !== 'pending')
+  const declined = decided.filter((b) => b.status === 'cancelled' && b.cancelledBy === 'detailer')
+  const acceptanceRate = decided.length ? Math.round(((decided.length - declined.length) / decided.length) * 100) : 0
+
   const stats = [
     { label: t('statEarnings'), value: earningsToday || (isDemo ? 1284 : 0), prefix: '$' },
     { label: t('statRating'), value: me?.rating ?? detailerProfile?.average_rating ?? 5.0, suffix: ' ★' },
     { label: t('statJobsCompleted'), value: me?.completedJobs ?? detailerProfile?.total_completed_jobs ?? 0 },
-    { label: t('statAcceptanceRate'), value: 96, suffix: '%' },
+    { label: t('statAcceptanceRate'), value: isDemo ? 96 : acceptanceRate, suffix: '%' },
   ]
 
   return (
