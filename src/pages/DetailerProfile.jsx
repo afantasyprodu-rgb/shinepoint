@@ -26,7 +26,7 @@ const FAKE_REVIEWS = [
 export default function DetailerProfile() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { getDetailer, customer } = useStore()
+  const { getDetailer, customer, isDemo } = useStore()
   const d = getDetailer(id)
   const t = useT('detailerProfile')
   // Vehicle + address are collected by the setup wizard, not required at
@@ -140,23 +140,32 @@ export default function DetailerProfile() {
         )}
 
         <h2 className="mt-8 font-display text-lg font-semibold text-slate-900 dark:text-slate-100">{t('reviews')}</h2>
-        <Stagger className="mt-3 space-y-3">
-          {FAKE_REVIEWS.map((r) => (
-            <StaggerItem key={r.id}>
-              <div className="card !p-5">
-                <div className="flex items-center gap-3">
-                  <Avatar name={r.name} size="sm" />
-                  <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">{r.name}</span>
-                  <Stars rating={r.rating} className="h-3 w-3" />
+        {isDemo ? (
+          <Stagger className="mt-3 space-y-3">
+            {FAKE_REVIEWS.map((r) => (
+              <StaggerItem key={r.id}>
+                <div className="card !p-5">
+                  <div className="flex items-center gap-3">
+                    <Avatar name={r.name} size="sm" />
+                    <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">{r.name}</span>
+                    <Stars rating={r.rating} className="h-3 w-3" />
+                  </div>
+                  <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">{t(r.textKey)}</p>
+                  <div className="mt-3 max-w-[168px]">
+                    <EvidencePhotos items={[{ area: t('before'), photo: null }, { area: t('after'), photo: null }]} columns={2} />
+                  </div>
                 </div>
-                <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">{t(r.textKey)}</p>
-                <div className="mt-3 max-w-[168px]">
-                  <EvidencePhotos items={[{ area: t('before'), photo: null }, { area: t('after'), photo: null }]} columns={2} />
-                </div>
-              </div>
-            </StaggerItem>
-          ))}
-        </Stagger>
+              </StaggerItem>
+            ))}
+          </Stagger>
+        ) : (
+          // Real reviews are rating-only (reviews_of_detailers has no text
+          // column) — the rating/count already shown in the header above is
+          // the real data. No fabricated review cards for real accounts.
+          <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
+            {d.reviews > 0 ? t('ratingSummary', { rating: d.rating.toFixed(1), reviews: d.reviews, jobs: d.completedJobs }) : t('noReviewsYet')}
+          </p>
+        )}
 
         <div className="sticky bottom-4 mt-8">
           <button
