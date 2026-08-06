@@ -214,7 +214,7 @@ function OverrideCard({ override, booking, onApprove, onCancel }) {
 
 export default function AdminOps() {
   const [tab, setTab] = useState('Disputes')
-  const { bookings, getBooking, getDetailer, admin, resolveDispute, approveOverride, clearFlag } = useStore()
+  const { bookings, getBooking, getDetailer, admin, resolveDispute, approveOverride, clearFlag, warnFlaggedSender, suspendFlaggedSender } = useStore()
   const t = useT('adminOps')
 
   const badges = {
@@ -336,10 +336,10 @@ export default function AdminOps() {
                         <button onClick={() => clearFlag(f.id)} className="btn btn-outline h-9 px-3 text-xs">
                           {t('dismissFlag')}
                         </button>
-                        <button onClick={() => clearFlag(f.id)} className="btn h-9 bg-amber-500 px-3 text-xs text-white hover:bg-amber-600 focus-visible:ring-amber-500">
+                        <button onClick={() => warnFlaggedSender(f.id, f.senderId, f.reason)} className="btn h-9 bg-amber-500 px-3 text-xs text-white hover:bg-amber-600 focus-visible:ring-amber-500">
                           {t('issueWarning')}
                         </button>
-                        <button onClick={() => clearFlag(f.id)} className="btn h-9 bg-red-600 px-3 text-xs text-white hover:bg-red-700 focus-visible:ring-red-600">
+                        <button onClick={() => suspendFlaggedSender(f.id, f.senderId)} className="btn h-9 bg-red-600 px-3 text-xs text-white hover:bg-red-700 focus-visible:ring-red-600">
                           {t('suspendAccount')}
                         </button>
                       </div>
