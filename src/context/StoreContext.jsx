@@ -35,6 +35,8 @@ import {
   adminVerifyDetailer,
   adminResolveDispute,
   adminClearFlag,
+  adminWarnUser,
+  adminSetUserSuspended,
   adminOverrideDamage,
 } from '../lib/db'
 
@@ -324,6 +326,7 @@ export function StoreProvider({ children }) {
       if (patch.acceptsWhenBusy != null) cols.accepts_bookings_when_busy = patch.acceptsWhenBusy
       if (patch.acceptsRewards != null) cols.accepts_reward_bookings = patch.acceptsRewards
       if (patch.travelMiles != null) cols.free_travel_miles = patch.travelMiles
+      if (patch.serviceDays != null) cols.service_days = patch.serviceDays
       if (Object.keys(cols).length) {
         updateDetailerProfile(profile.id, cols)
         setDetailerProfile((dp) => ({ ...(dp ?? {}), ...cols }))
@@ -753,6 +756,27 @@ export function StoreProvider({ children }) {
       clearFlag(id) {
         if (!isDemo) {
           adminClearFlag(id).then(() => loadRealAdmin.current())
+          return
+        }
+        setDemoAdmin((a) => ({ ...a, flagged: a.flagged.filter((f) => f.id !== id) }))
+      },
+
+      // Warn/suspend the sender of a flagged message. Demo flagged items
+      // have no real user id behind them (just a display string like
+      // "Customer · Sam T."), so demo just dismisses the flag like
+      // clearFlag — same as it already did before these existed, not a
+      // downgrade.
+      warnFlaggedSender(id, senderId, reason) {
+        if (!isDemo && senderId) {
+          adminWarnUser(senderId, reason).then(() => adminClearFlag(id)).then(() => loadRealAdmin.current())
+          return
+        }
+        setDemoAdmin((a) => ({ ...a, flagged: a.flagged.filter((f) => f.id !== id) }))
+      },
+
+      suspendFlaggedSender(id, senderId) {
+        if (!isDemo && senderId) {
+          adminSetUserSuspended(senderId, true).then(() => adminClearFlag(id)).then(() => loadRealAdmin.current())
           return
         }
         setDemoAdmin((a) => ({ ...a, flagged: a.flagged.filter((f) => f.id !== id) }))

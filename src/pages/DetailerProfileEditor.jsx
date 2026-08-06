@@ -26,7 +26,7 @@ export default function DetailerProfileEditor() {
     (me.services ?? []).map((s) => ({ id: s.id, name: s.name, price: String(s.price), desc: s.desc ?? '' }))
   )
   const [travel, setTravel] = useState(me.travelMiles ?? 10)
-  const [days, setDays] = useState(['Mon', 'Tue', 'Wed', 'Thu', 'Fri'])
+  const [days, setDays] = useState(me.serviceDays?.length ? me.serviceDays : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'])
   const [rewardsOptIn, setRewardsOptIn] = useState(me.acceptsRewards ?? false)
   const [saved, setSaved] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -68,7 +68,7 @@ export default function DetailerProfileEditor() {
           .filter((s) => s.name.trim())
           .map((s) => ({ id: s.id, name: s.name.trim(), price: Number(s.price) || 0, desc: s.desc }))
       )
-      if (me.id) setAvailability(me.id, { travelMiles: Number(travel), acceptsRewards: rewardsOptIn })
+      if (me.id) setAvailability(me.id, { travelMiles: Number(travel), acceptsRewards: rewardsOptIn, serviceDays: days })
       setSaved(true)
       setTimeout(() => setSaved(false), 2500)
     } finally {

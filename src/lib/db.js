@@ -22,6 +22,8 @@ function normalizeDetailer(row) {
     photo: row.profile_photo_url ?? null,
     gallery: row.gallery_urls ?? [],
     probationRemaining: row.probation_jobs_remaining ?? 0,
+    serviceDays: row.service_days ?? [],
+    travelMiles: row.free_travel_miles ?? 10,
     services: (row.services ?? [])
       .filter((s) => s.is_active)
       .map((s) => ({
@@ -109,7 +111,7 @@ export async function fetchDetailers() {
       accepts_bookings_when_busy, accepts_reward_bookings,
       insurance_status, total_completed_jobs, average_rating, bio,
       profile_photo_url, gallery_urls,
-      probation_jobs_remaining,
+      probation_jobs_remaining, service_days, free_travel_miles,
       users!inner(full_name),
       services(id, service_name, description, price, vehicle_types, is_active)
     `)
@@ -645,13 +647,14 @@ export async function fetchPendingApplications() {
 export async function fetchFlaggedMessages() {
   const { data, error } = await supabase
     .from('messages')
-    .select('id, booking_id, content, flag_reason, sent_at, users(full_name)')
+    .select('id, booking_id, content, flag_reason, sent_at, sender_id, users(full_name)')
     .eq('is_flagged', true)
     .order('sent_at', { ascending: false })
   if (error) { console.error('fetchFlaggedMessages:', error.message); return [] }
   return (data ?? []).map((m) => ({
     id: m.id,
     bookingId: m.booking_id,
+    senderId: m.sender_id,
     sender: m.users?.full_name ?? 'User',
     text: m.content,
     reason: m.flag_reason ?? 'Flagged',
@@ -679,6 +682,16 @@ export async function adminResolveDispute(disputeId, resolution, refundAmount = 
 export async function adminClearFlag(messageId) {
   const { error } = await supabase.rpc('admin_clear_flag', { p_message_id: messageId })
   if (error) console.error('adminClearFlag:', error.message)
+}
+
+export async function adminWarnUser(userId, reason) {
+  const { error } = await supabase.rpc('admin_warn_user', { p_user_id: userId, p_reason: reason })
+  if (error) console.error('adminWarnUser:', error.message)
+}
+
+export async function adminSetUserSuspended(userId, suspended) {
+  const { error } = await supabase.rpc('admin_set_user_suspended', { p_user_id: userId, p_suspended: suspended })
+  if (error) console.error('adminSetUserSuspended:', error.message)
 }
 
 export async function adminOverrideDamage(bookingId, decision) {
