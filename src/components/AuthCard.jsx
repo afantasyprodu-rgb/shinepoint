@@ -399,7 +399,7 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
           <Field index={2}>
             <div className="mt-3">
               <OtpBoxInput
-                length={6}
+                length={8}
                 value={otpCode}
                 onChange={setOtpCode}
                 onComplete={handleVerifyEmailCode}
