@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import AppShell from '../components/AppShell'
@@ -7,7 +7,8 @@ import { useStore } from '../context/StoreContext'
 import { useTheme } from '../context/ThemeContext'
 import { CheckIcon, ShieldCheckIcon, CreditCardIcon, ClipboardCheckIcon, UsersIcon, ChevronLeftIcon, PlusIcon, XIcon, LightbulbIcon, ClockIcon, StarIcon } from '../components/icons'
 import { InfoPopover } from '../components/ui/bits'
-import { startIdentityVerification, isStripeConfigured, stripePromise } from '../lib/stripe'
+import { startIdentityVerification, startConnectOnboarding, isStripeConfigured, stripePromise } from '../lib/stripe'
+import { fetchMyPayoutStatus } from '../lib/db'
 import { useT } from '../i18n/useT'
 
 // Maps the real detailer_profiles.identity_status ('unverified' | 'pending' |
@@ -80,6 +81,26 @@ export default function DetailerOnboarding() {
   const [travel, setTravel] = useState(10)
   const [chargePerMile, setChargePerMile] = useState(2)
   const [bank, setBank] = useState('')
+  const [payoutStatus, setPayoutStatus] = useState(null)
+  const [connectingBank, setConnectingBank] = useState(false)
+  const [connectError, setConnectError] = useState('')
+
+  useEffect(() => {
+    if (isDemo) return
+    fetchMyPayoutStatus().then(setPayoutStatus)
+  }, [isDemo])
+
+  async function handleConnectBank() {
+    setConnectError('')
+    setConnectingBank(true)
+    try {
+      const url = await startConnectOnboarding()
+      window.location.assign(url)
+    } catch (e) {
+      setConnectingBank(false)
+      setConnectError(e.message || t('idStartError'))
+    }
+  }
 
   // Anything in `services` that isn't on the standard menu is a custom add.
   const customServices = Object.keys(services).filter((n) => !SERVICE_MENU.includes(n))
@@ -182,7 +203,11 @@ export default function DetailerOnboarding() {
     bio.length > 0 && zip.length === 5,
     Object.keys(services).length > 0,
     days.length > 0,
-    bank.length >= 4,
+    // Real payout connection is a redirect-away Stripe flow, not something
+    // that can gate synchronous submission — the wizard doesn't send `bank`
+    // to the backend at all (submit_detailer_onboarding never takes it).
+    // Demo keeps the fake digits gate so the simulated flow still feels real.
+    isDemo ? bank.length >= 4 : true,
   ][step]
 
   if (submitted) {
@@ -601,13 +626,46 @@ export default function DetailerOnboarding() {
                     <p className="text-sm text-slate-600 dark:text-slate-400">{t('payoutSetupBlurb')}</p>
                   </div>
                 </div>
-                <div>
-                  <label htmlFor="ob-bank" className="label">{t('bankLabel')}</label>
-                  <input id="ob-bank" inputMode="numeric" maxLength={4} value={bank} onChange={(e) => setBank(e.target.value.replace(/\D/g, ''))} className="input w-32" placeholder="4242" />
-                </div>
-                <p className="text-xs text-slate-400 dark:text-slate-500">
-                  {t('payoutRealFlow')}
-                </p>
+                {isDemo ? (
+                  <>
+                    <div>
+                      <label htmlFor="ob-bank" className="label">{t('bankLabel')}</label>
+                      <input id="ob-bank" inputMode="numeric" maxLength={4} value={bank} onChange={(e) => setBank(e.target.value.replace(/\D/g, ''))} className="input w-32" placeholder="4242" />
+                    </div>
+                    <p className="text-xs text-slate-400 dark:text-slate-500">
+                      {t('payoutRealFlow')}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    {!isStripeConfigured ? (
+                      <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
+                        {t('idNotConfigured')}
+                      </p>
+                    ) : payoutStatus?.stripe_charges_enabled ? (
+                      <p className="flex items-center gap-2 text-sm font-medium text-cta-700 dark:text-cta-400">
+                        <CheckIcon className="h-4 w-4" /> {t('bankConnected')}
+                      </p>
+                    ) : (
+                      <>
+                        <button type="button" onClick={handleConnectBank} disabled={connectingBank} className="btn btn-brand">
+                          {connectingBank
+                            ? <span className="inline-flex items-center gap-2"><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />{t('connecting')}</span>
+                            : t('connectBank')}
+                        </button>
+                        {payoutStatus?.stripe_account_id && (
+                          <p className="text-xs text-amber-600 dark:text-amber-400">{t('bankPending')}</p>
+                        )}
+                      </>
+                    )}
+                    {connectError && (
+                      <p role="alert" className="text-sm text-red-600 dark:text-red-400">{connectError}</p>
+                    )}
+                    <p className="text-xs text-slate-400 dark:text-slate-500">
+                      {t('payoutRealFlow')}
+                    </p>
+                  </>
+                )}
                 </div>
               </div>
             )}

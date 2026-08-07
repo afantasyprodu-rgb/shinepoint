@@ -458,6 +458,20 @@ export async function updateBookingStatusInDB(bookingId, patch) {
   if (error) console.error('updateBookingStatus:', error.message)
 }
 
+// stripe_account_id / stripe_charges_enabled are withheld from the normal
+// detailer_profiles column grant (019) since that table's SELECT policy is
+// `using (true)` — this RPC (029) is scoped to auth.uid() so the logged-in
+// detailer can read their own Stripe Connect status without widening the
+// grant for every other user.
+export async function fetchMyPayoutStatus() {
+  const { data, error } = await supabase.rpc('get_my_payout_status')
+  if (error) {
+    console.error('fetchMyPayoutStatus:', error.message)
+    return null
+  }
+  return data?.[0] ?? null
+}
+
 // Persist the detailer onboarding wizard: profile fields + the full service
 // list. Services are replaced wholesale (delete + insert) so re-submitting the
 // wizard is idempotent. `userId` is the auth user id (profile.id) — RLS keys

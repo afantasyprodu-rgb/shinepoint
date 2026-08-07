@@ -761,6 +761,10 @@ export const STRINGS = {
       whyTaxInfoBody: "As an independent contractor, we're required to report what we pay you to the IRS on a 1099 each year, so we need a valid taxpayer ID to file it under. That's an SSN for most people, or an EIN if you run your detailing business as an LLC — an ITIN works too if you don't have an SSN, since the IRS issues those specifically so anyone can file and pay taxes regardless of immigration status.",
       payoutSetupBlurb: 'Stripe Connect — bank + W-9 for 1099 reporting.',
       bankLabel: 'Bank account (last 4 digits — demo)',
+      connectBank: 'Connect bank via Stripe',
+      connecting: 'Connecting…',
+      bankConnected: 'Bank account connected',
+      bankPending: "Onboarding started — you'll be redirected back once Stripe finishes verifying your account.",
       payoutRealFlow: "Real flow collects legal name, address, and SSN/EIN/ITIN through Stripe's hosted onboarding — never stored on our servers. Simulated in demo.",
     },
     detailerAnalytics: {
@@ -1909,6 +1913,10 @@ export const STRINGS = {
       whyTaxInfoBody: 'Como contratista independiente, estamos obligados a reportar lo que te pagamos al IRS en un 1099 cada año, así que necesitamos un ID fiscal válido para presentarlo. Eso es un SSN para la mayoría de las personas, o un EIN si diriges tu negocio de detallado como una LLC — un ITIN también funciona si no tienes SSN, ya que el IRS los emite específicamente para que cualquiera pueda declarar y pagar impuestos sin importar su estatus migratorio.',
       payoutSetupBlurb: 'Stripe Connect — banco + W-9 para reporte 1099.',
       bankLabel: 'Cuenta bancaria (últimos 4 dígitos — demo)',
+      connectBank: 'Conectar banco vía Stripe',
+      connecting: 'Conectando…',
+      bankConnected: 'Cuenta bancaria conectada',
+      bankPending: 'Proceso iniciado — serás redirigido de vuelta cuando Stripe termine de verificar tu cuenta.',
       payoutRealFlow: 'El flujo real recopila nombre legal, dirección y SSN/EIN/ITIN a través del proceso alojado de Stripe — nunca almacenado en nuestros servidores. Simulado en la demo.',
     },
     detailerAnalytics: {
