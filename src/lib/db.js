@@ -103,6 +103,65 @@ function normalizeDetailerBooking(row) {
   }
 }
 
+const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+// Real platform finance numbers for AdminFinance — sourced from completed
+// bookings' platform_cut, pending payouts, and resolved-dispute refunds.
+// No aggregation RPC needed at this data volume; summed client-side.
+export async function fetchAdminFinance() {
+  const now = new Date()
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const startOfWeek = new Date(startOfToday)
+  startOfWeek.setDate(startOfToday.getDate() - startOfToday.getDay())
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+  const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1)
+  const startOfYear = new Date(now.getFullYear(), 0, 1)
+
+  const [bookingsRes, payoutsRes, disputesRes, yearPayoutsRes] = await Promise.all([
+    supabase.from('bookings').select('platform_cut, completed_at')
+      .eq('status', 'complete').gte('completed_at', sixMonthsAgo.toISOString()),
+    supabase.from('payouts').select('amount').in('status', ['pending', 'held', 'processing']),
+    supabase.from('disputes').select('refund_amount')
+      .eq('status', 'resolved').not('refund_amount', 'is', null).gte('resolved_at', startOfMonth.toISOString()),
+    supabase.from('payouts').select('detailer_id, amount')
+      .eq('status', 'paid').gte('completed_at', startOfYear.toISOString()),
+  ])
+  for (const { error } of [bookingsRes, payoutsRes, disputesRes, yearPayoutsRes]) {
+    if (error) console.error('fetchAdminFinance:', error.message)
+  }
+
+  let today = 0, week = 0, month = 0
+  const monthly = Array(6).fill(0)
+  for (const b of bookingsRes.data ?? []) {
+    const cut = Number(b.platform_cut ?? 0)
+    const at = new Date(b.completed_at)
+    if (at >= startOfToday) today += cut
+    if (at >= startOfWeek) week += cut
+    if (at >= startOfMonth) month += cut
+    const monthIdx = (at.getFullYear() - sixMonthsAgo.getFullYear()) * 12 + (at.getMonth() - sixMonthsAgo.getMonth())
+    if (monthIdx >= 0 && monthIdx < 6) monthly[monthIdx] += cut
+  }
+
+  const pendingPayouts = (payoutsRes.data ?? []).reduce((sum, p) => sum + Number(p.amount ?? 0), 0)
+
+  const refunds = disputesRes.data ?? []
+  const refundsIssued = refunds.reduce((sum, d) => sum + Number(d.refund_amount ?? 0), 0)
+  const refundsCount = refunds.length
+
+  const earningsByDetailer = new Map()
+  for (const p of yearPayoutsRes.data ?? []) {
+    earningsByDetailer.set(p.detailer_id, (earningsByDetailer.get(p.detailer_id) ?? 0) + Number(p.amount ?? 0))
+  }
+  const tracker1099Count = [...earningsByDetailer.values()].filter((total) => total > 600).length
+
+  const monthLabels = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(sixMonthsAgo.getFullYear(), sixMonthsAgo.getMonth() + i, 1)
+    return MONTH_LABELS[d.getMonth()]
+  })
+
+  return { today, week, month, pendingPayouts, refundsIssued, refundsCount, monthly, monthLabels, tracker1099Count }
+}
+
 export async function fetchDetailers() {
   const { data, error } = await supabase
     .from('detailer_profiles')

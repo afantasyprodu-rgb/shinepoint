@@ -32,6 +32,7 @@ import {
   fetchDisputes,
   fetchPendingApplications,
   fetchFlaggedMessages,
+  fetchAdminFinance,
   adminVerifyDetailer,
   adminResolveDispute,
   adminClearFlag,
@@ -227,18 +228,19 @@ export function StoreProvider({ children }) {
     return () => { cancelled = true; supabase.removeChannel(channel) }
   }, [isDemo, profile?.id, profile?.role])
 
-  // Admin moderation queues, loaded from live tables. Analytics the schema
-  // doesn't back yet (finance, milestones, dispute evidence) reuse the demo
-  // seed so the dashboards render — see loadRealAdmin.
+  // Admin moderation queues + finance, loaded from live tables. Milestones
+  // (growth targets vs. a business plan) has no real source — that's a
+  // product-configured target, not derivable from data — so it stays demo.
   const loadRealAdmin = useRef(() => {})
   useEffect(() => {
     if (isDemo || profile?.role !== 'admin') return
     let cancelled = false
     const load = async () => {
-      const [applications, disputes, flagged] = await Promise.all([
+      const [applications, disputes, flagged, finance] = await Promise.all([
         fetchPendingApplications(),
         fetchDisputes(),
         fetchFlaggedMessages(),
+        fetchAdminFinance(),
       ])
       if (cancelled) return
       setRealAdmin({
@@ -246,8 +248,8 @@ export function StoreProvider({ children }) {
         disputes,
         flagged,
         overrides: [],                 // derived override queue: not wired (needs a rule)
-        finance: DEMO_ADMIN.finance,   // analytics: no real source yet
-        milestones: DEMO_ADMIN.milestones,
+        finance,
+        milestones: DEMO_ADMIN.milestones, // growth targets: product-configured, not data-derived
         decided: [],
       })
     }
@@ -402,7 +404,12 @@ export function StoreProvider({ children }) {
         ? demoAdmin
         : (realAdmin ?? {
             applications: [], disputes: [], flagged: [], overrides: [], decided: [],
-            finance: DEMO_ADMIN.finance, milestones: DEMO_ADMIN.milestones,
+            finance: {
+              today: 0, week: 0, month: 0, pendingPayouts: 0,
+              refundsIssued: 0, refundsCount: 0, monthly: [0, 0, 0, 0, 0, 0],
+              monthLabels: ['', '', '', '', '', ''], tracker1099Count: 0,
+            },
+            milestones: DEMO_ADMIN.milestones,
           }),
       notifications: isDemo ? notifications : realNotifications,
       customerProfile,

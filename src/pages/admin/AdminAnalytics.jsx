@@ -10,14 +10,13 @@ const SEGMENT_COLORS = ['var(--color-cta-500)', 'var(--color-brand-400)', 'var(-
 
 // Analytics — same neumorphism as the rest of the claymorphism admin
 // section, following the light/dark toggle like every other admin page.
-// Every number here comes from the same admin.finance / bookings data
-// AdminFinance already uses — no fabricated series, just reshaped for a
-// period-over-period view.
+// Revenue numbers come from the same admin.finance data AdminFinance uses
+// (real). Jobs-completed goal still reads admin.milestones, a
+// product-configured growth target with no real source — disclosed inline.
 export default function AdminAnalytics() {
   const { admin, bookings, isDemo } = useStore()
   const f = admin.finance
   const t = useT('adminAnalytics')
-  const tFinance = useT('adminFinance')
 
   const revenueDelta = f.monthly[4] ? ((f.month - f.monthly[4]) / f.monthly[4]) * 100 : 0
   const currentQuarter = f.monthly.slice(3, 6)
@@ -36,12 +35,6 @@ export default function AdminAnalytics() {
     <AdminShell>
       <AnimatedPage>
         <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">{t('title')}</h1>
-
-        {!isDemo && (
-          <p className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">
-            {tFinance('notWiredNotice')}
-          </p>
-        )}
 
         <div className="mt-6">
           <div className="grid gap-3 sm:grid-cols-2">
@@ -68,7 +61,11 @@ export default function AdminAnalytics() {
                 <p className="mt-2 font-display text-3xl font-bold text-slate-900 dark:text-white">
                   <CountUp value={admin.milestones.jobs.current} />
                 </p>
-                <p className="mt-1 text-sm nx-sub">{t('ofGoal', { target: admin.milestones.jobs.target.toLocaleString() })}</p>
+                <p className="mt-1 text-sm nx-sub">
+                  {isDemo
+                    ? t('ofGoal', { target: admin.milestones.jobs.target.toLocaleString() })
+                    : t('goalNotWired')}
+                </p>
               </div>
             </FadeIn>
           </div>

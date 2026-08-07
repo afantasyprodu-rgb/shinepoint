@@ -6,7 +6,7 @@ import { useT } from '../../i18n/useT'
 
 // Blueprint screen 6.8 — Financial Dashboard.
 export default function AdminFinance() {
-  const { admin, isDemo } = useStore()
+  const { admin } = useStore()
   const f = admin.finance
   const t = useT('adminFinance')
 
@@ -36,12 +36,6 @@ export default function AdminFinance() {
             {t('exportCsv')}
           </button>
         </div>
-
-        {!isDemo && (
-          <p className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">
-            {t('notWiredNotice')}
-          </p>
-        )}
 
         <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
           {stats.map(({ label, value, prefix }, i) => (
@@ -80,7 +74,7 @@ export default function AdminFinance() {
           <FadeIn delay={0.3}>
             <div className="card !p-5">
               <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">{t('tracker1099')}</h2>
-              <p className="mt-1 font-display text-2xl font-bold text-brand-800 dark:text-brand-300">{t('detailersCount', { count: 3 })}</p>
+              <p className="mt-1 font-display text-2xl font-bold text-brand-800 dark:text-brand-300">{t('detailersCount', { count: f.tracker1099Count })}</p>
               <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                 {t('tracker1099Body')}
               </p>

@@ -17,7 +17,6 @@ const MILESTONE_KEYS = {
 export default function AdminDashboard() {
   const { admin, bookings, isDemo } = useStore()
   const t = useT('adminDashboard')
-  const tFinance = useT('adminFinance')
   const activeNow = bookings.filter((b) => ['en_route', 'arrived', 'in_progress'].includes(b.status)).length
   const openDisputes = admin.disputes.filter((d) => d.status !== 'resolved').length
   const todayKey = new Date().toISOString().slice(0, 10)
@@ -36,12 +35,6 @@ export default function AdminDashboard() {
     <AdminShell>
       <AnimatedPage>
         <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">{t('missionControl')}</h1>
-
-        {!isDemo && (
-          <p className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">
-            {tFinance('notWiredNotice')}
-          </p>
-        )}
 
         <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
           {cards.map(({ label, value, prefix }, i) => (
@@ -94,6 +87,11 @@ export default function AdminDashboard() {
               <h2 className="mb-4 font-display text-lg font-semibold text-slate-900 dark:text-slate-100">
                 {t('milestoneTracker')}
               </h2>
+              {!isDemo && (
+                <p className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">
+                  {t('milestonesNotWiredNotice')}
+                </p>
+              )}
               <div className="space-y-4">
                 {Object.entries(admin.milestones).map(([key, { current, target }]) => (
                   <ProgressBar
