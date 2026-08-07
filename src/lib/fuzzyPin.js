@@ -147,9 +147,11 @@ function seededFloat(seed) {
 }
 
 // Returns { lat, lng } jittered up to roughly ±0.8 miles from the zip
-// centroid, or null for an unknown zip.
+// centroid. Falls back to the nearest known zip's centroid (same logic as
+// approxCentroidForZip) so a real detailer with a zip outside the table
+// still gets a usable pin instead of silently vanishing from the map.
 export function fuzzyPinForZip(zip, seed = '') {
-  const centroid = CA_ZIP_CENTROIDS[zip]
+  const centroid = approxCentroidForZip(zip)
   if (!centroid) return null
 
   const dLat = (seededFloat(`${zip}:${seed}:lat`) - 0.5) * 0.024
