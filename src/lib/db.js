@@ -404,6 +404,13 @@ export async function updateBookingStatusInDB(bookingId, patch) {
 // wizard is idempotent. `userId` is the auth user id (profile.id) — RLS keys
 // every write to auth.uid() = user_id, so this only ever touches the caller's
 // own rows.
+// Goes through the submit_detailer_onboarding RPC (028) rather than a plain
+// table update, since it also handles the optional auto-verify path — a
+// DB-level setting (`app.auto_verify_detailers`) that, when on, skips the
+// normal admin-review queue so a new detailer is immediately bookable.
+// Intended for early/friends-and-family testing; flip it off with
+// `alter database postgres set app.auto_verify_detailers = 'false'` once a
+// real review process is staffed.
 export async function saveDetailerOnboarding(userId, {
   bio,
   zip,
@@ -415,26 +422,19 @@ export async function saveDetailerOnboarding(userId, {
   serviceDays,
   featuredService,
 }) {
-  const { data: prof, error: profErr } = await supabase
-    .from('detailer_profiles')
-    .update({
-      bio,
-      zip_code: zip,
-      insurance_status: insurance,
-      free_travel_miles: freeTravelMiles,
-      charge_per_extra_mile: chargePerMile,
-      service_days: serviceDays,
-    })
-    .eq('user_id', userId)
-    .select('id')
-    .single()
+  const { data: detailerId, error: profErr } = await supabase.rpc('submit_detailer_onboarding', {
+    p_bio: bio,
+    p_zip: zip,
+    p_insurance: insurance,
+    p_free_travel_miles: freeTravelMiles,
+    p_charge_per_mile: chargePerMile,
+    p_service_days: serviceDays,
+  })
 
   if (profErr) {
     console.error('saveDetailerOnboarding profile:', profErr.message)
     throw profErr
   }
-
-  const detailerId = prof.id
 
   const { error: delErr } = await supabase
     .from('services')
