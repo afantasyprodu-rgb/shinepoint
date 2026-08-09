@@ -11,10 +11,14 @@
 -- is_admin() is security-definer and reads public.users.role, so these
 -- policies can't be spoofed by a client setting its own claims.
 
+-- Dropped first so this file is safe to re-run (create policy has no
+-- "if not exists" form).
+drop policy if exists "admins read users" on public.users;
 create policy "admins read users"
   on public.users for select
   using (public.is_admin());
 
+drop policy if exists "admins read customer profiles" on public.customer_profiles;
 create policy "admins read customer profiles"
   on public.customer_profiles for select
   using (public.is_admin());
