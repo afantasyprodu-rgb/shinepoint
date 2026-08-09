@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import AppShell from '../components/AppShell'
 import EvidencePhotos from '../components/EvidencePhotos'
@@ -11,12 +12,16 @@ import {
   ArrowRightIcon,
 } from '../components/icons'
 import { useStore } from '../context/StoreContext'
+import { fetchDetailerReviews } from '../lib/db'
 import { useT } from '../i18n/useT'
 
 // before/after photo is null (no real job photo in the demo) — EvidencePhotos
 // falls back to a labeled gradient tile, same as everywhere else in the app
 // that doesn't have a real photo to show, so nothing here is fabricated.
-const FAKE_REVIEWS = [
+// Demo-only sample testimonials. These must never render for a real
+// detailer — showing invented 5-star reviews on a live profile is fake
+// social proof a customer would make a booking decision on.
+const DEMO_REVIEWS = [
   { id: 1, name: 'Dana M.', rating: 5, textKey: 'review1' },
   { id: 2, name: 'Chris P.', rating: 5, textKey: 'review2' },
   { id: 3, name: 'Sam T.', rating: 4, textKey: 'review3' },
@@ -39,6 +44,22 @@ export default function DetailerProfile() {
     if (needsSetup) navigate('/onboarding', { state: { returnTo: `/book/${d.id}` } })
     else navigate(`/book/${d.id}`)
   }
+
+  // Demo shows the sample testimonials; a real profile shows only reviews
+  // customers actually left (empty state until someone does).
+  const [realReviews, setRealReviews] = useState([])
+  useEffect(() => {
+    if (isDemo || !d?._real) return
+    let cancelled = false
+    fetchDetailerReviews(id).then((rows) => {
+      if (!cancelled) setRealReviews(rows)
+    })
+    return () => { cancelled = true }
+  }, [id, isDemo, d?._real])
+
+  const reviews = isDemo
+    ? DEMO_REVIEWS.map((r) => ({ ...r, text: t(r.textKey) }))
+    : realReviews
 
   if (!d) {
     return (
@@ -140,9 +161,13 @@ export default function DetailerProfile() {
         )}
 
         <h2 className="mt-8 font-display text-lg font-semibold text-slate-900 dark:text-slate-100">{t('reviews')}</h2>
-        {isDemo ? (
+        {reviews.length === 0 ? (
+          <p className="mt-3 rounded-2xl bg-brand-50/60 px-4 py-6 text-center text-sm text-slate-500 dark:bg-white/5 dark:text-slate-400">
+            {t('noReviewsYet')}
+          </p>
+        ) : (
           <Stagger className="mt-3 space-y-3">
-            {FAKE_REVIEWS.map((r) => (
+            {reviews.map((r) => (
               <StaggerItem key={r.id}>
                 <div className="card !p-5">
                   <div className="flex items-center gap-3">
@@ -150,21 +175,18 @@ export default function DetailerProfile() {
                     <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">{r.name}</span>
                     <Stars rating={r.rating} className="h-3 w-3" />
                   </div>
-                  <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">{t(r.textKey)}</p>
-                  <div className="mt-3 max-w-[168px]">
-                    <EvidencePhotos items={[{ area: t('before'), photo: null }, { area: t('after'), photo: null }]} columns={2} />
-                  </div>
+                  {r.text && (
+                    <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">{r.text}</p>
+                  )}
+                  {isDemo && (
+                    <div className="mt-3 max-w-[168px]">
+                      <EvidencePhotos items={[{ area: t('before'), photo: null }, { area: t('after'), photo: null }]} columns={2} />
+                    </div>
+                  )}
                 </div>
               </StaggerItem>
             ))}
           </Stagger>
-        ) : (
-          // Real reviews are rating-only (reviews_of_detailers has no text
-          // column) — the rating/count already shown in the header above is
-          // the real data. No fabricated review cards for real accounts.
-          <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
-            {d.reviews > 0 ? t('ratingSummary', { rating: d.rating.toFixed(1), reviews: d.reviews, jobs: d.completedJobs }) : t('noReviewsYet')}
-          </p>
         )}
 
         <div className="sticky bottom-4 mt-8">

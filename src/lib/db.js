@@ -185,6 +185,31 @@ export async function fetchDetailers() {
   return (data ?? []).map(normalizeDetailer)
 }
 
+// Public reviews for one detailer's profile page. Admin-removed rows are
+// filtered out. Returns [] on any error so the profile renders its empty
+// state rather than falling back to invented testimonials.
+export async function fetchDetailerReviews(detailerId) {
+  const { data, error } = await supabase
+    .from('reviews_of_detailers')
+    .select('id, rating, comment, created_at, customer_profiles(users(full_name))')
+    .eq('detailer_id', detailerId)
+    .eq('is_removed', false)
+    .order('created_at', { ascending: false })
+    .limit(20)
+
+  if (error) {
+    console.error('fetchDetailerReviews:', error.message)
+    return []
+  }
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    name: row.customer_profiles?.users?.full_name ?? 'Customer',
+    rating: row.rating,
+    text: row.comment ?? '',
+    at: row.created_at,
+  }))
+}
+
 export async function fetchCustomerProfile(userId) {
   const { data, error } = await supabase
     .from('customer_profiles')
@@ -697,6 +722,27 @@ export async function fetchDisputes() {
     amount: d.refund_amount ?? undefined,
   }))
 }
+
+// Admin: headcounts + completed-job total for the growth-milestone tiles.
+// Only the milestone TARGETS are product-configured; these current values
+// must be real (they used to come from the demo seed). Customer count needs
+// the admin read policy added in 025_admin_read_people.sql.
+export async function fetchAdminCounts() {
+  const [detailers, customers, jobs] = await Promise.all([
+    supabase.from('detailer_profiles').select('id', { count: 'exact', head: true }),
+    supabase.from('customer_profiles').select('id', { count: 'exact', head: true }),
+    supabase.from('bookings').select('id', { count: 'exact', head: true }).eq('status', 'complete'),
+  ])
+  for (const [what, res] of [['detailers', detailers], ['customers', customers], ['jobs', jobs]]) {
+    if (res.error) console.error(`fetchAdminCounts ${what}:`, res.error.message)
+  }
+  return {
+    detailers: detailers.count ?? 0,
+    customers: customers.count ?? 0,
+    jobsCompleted: jobs.count ?? 0,
+  }
+}
+
 
 // Admin: detailers awaiting verification, shaped for the People console.
 export async function fetchPendingApplications() {

@@ -31,6 +31,7 @@ import {
   insertDispute,
   fetchDisputes,
   fetchPendingApplications,
+  fetchAdminCounts,
   fetchFlaggedMessages,
   fetchAdminFinance,
   adminVerifyDetailer,
@@ -51,6 +52,10 @@ function fileToDataUrl(file) {
     reader.readAsDataURL(file)
   })
 }
+
+// Milestone targets are a product/business-plan decision, not data — the
+// only part of DEMO_ADMIN.milestones a real admin legitimately shares.
+const M = DEMO_ADMIN.milestones
 
 const StoreContext = createContext(null)
 
@@ -228,19 +233,25 @@ export function StoreProvider({ children }) {
     return () => { cancelled = true; supabase.removeChannel(channel) }
   }, [isDemo, profile?.id, profile?.role])
 
-  // Admin moderation queues + finance, loaded from live tables. Milestones
-  // (growth targets vs. a business plan) has no real source — that's a
-  // product-configured target, not derivable from data — so it stays demo.
+  // Admin moderation queues + finance, loaded from live tables.
+  //
+  // Milestone TARGETS are product-configured (a business plan, not something
+  // derivable from data), so they're read from the demo seed. The milestone
+  // CURRENT values are not — they used to come from DEMO_ADMIN too, which
+  // showed real admins a seeded "311 jobs / 142 customers" indistinguishable
+  // from real figures. Those now come from live counts (fetchAdminCounts),
+  // so a pre-launch platform honestly reads zero.
   const loadRealAdmin = useRef(() => {})
   useEffect(() => {
     if (isDemo || profile?.role !== 'admin') return
     let cancelled = false
     const load = async () => {
-      const [applications, disputes, flagged, finance] = await Promise.all([
+      const [applications, disputes, flagged, finance, counts] = await Promise.all([
         fetchPendingApplications(),
         fetchDisputes(),
         fetchFlaggedMessages(),
         fetchAdminFinance(),
+        fetchAdminCounts(),
       ])
       if (cancelled) return
       setRealAdmin({
@@ -248,9 +259,14 @@ export function StoreProvider({ children }) {
         disputes,
         flagged,
         overrides: [],                 // derived override queue: not wired (needs a rule)
-        finance,
-        milestones: DEMO_ADMIN.milestones, // growth targets: product-configured, not data-derived
         decided: [],
+        finance,
+        milestones: {
+          detailers: { current: counts.detailers, target: M.detailers.target },
+          customers: { current: counts.customers, target: M.customers.target },
+          jobs: { current: counts.jobsCompleted, target: M.jobs.target },
+          revenue: { current: finance.month, target: M.revenue.target },
+        },
       })
     }
     loadRealAdmin.current = load
@@ -400,6 +416,8 @@ export function StoreProvider({ children }) {
       bookings,
       messages,
       customer,
+      // Pre-load shape for a real admin: everything empty/zero, never the
+      // demo seed — a blank dashboard is honest, seeded revenue is not.
       admin: isDemo
         ? demoAdmin
         : (realAdmin ?? {
@@ -409,7 +427,14 @@ export function StoreProvider({ children }) {
               refundsIssued: 0, refundsCount: 0, monthly: [0, 0, 0, 0, 0, 0],
               monthLabels: ['', '', '', '', '', ''], tracker1099Count: 0,
             },
-            milestones: DEMO_ADMIN.milestones,
+            // Zero current values (never the demo seed) against the same
+            // product-configured targets.
+            milestones: {
+              detailers: { current: 0, target: M.detailers.target },
+              customers: { current: 0, target: M.customers.target },
+              jobs: { current: 0, target: M.jobs.target },
+              revenue: { current: 0, target: M.revenue.target },
+            },
           }),
       notifications: isDemo ? notifications : realNotifications,
       customerProfile,
