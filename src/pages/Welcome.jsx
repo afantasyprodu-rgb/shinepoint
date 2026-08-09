@@ -204,10 +204,19 @@ export default function Welcome() {
                   </div>
                   <h3 className="mt-3 font-display text-lg font-semibold text-slate-900 dark:text-slate-100">{d.name}</h3>
                   <div className="mt-1 flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                    <Stars rating={d.rating} className="h-3.5 w-3.5" />
-                    <span>
-                      {d.rating.toFixed(1)} · {d.reviews} {t('reviewsSuffix')}
-                    </span>
+                    {/* No stars until someone has actually rated them. */}
+                    {d.isRated === false ? (
+                      <span className="chip bg-brand-50 text-brand-700 dark:bg-white/5 dark:text-brand-300">
+                        {t('newDetailerChip')}
+                      </span>
+                    ) : (
+                      <>
+                        <Stars rating={d.rating} className="h-3.5 w-3.5" />
+                        <span>
+                          {d.rating.toFixed(1)} · {d.reviews} {t('reviewsSuffix')}
+                        </span>
+                      </>
+                    )}
                   </div>
                   <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
                     {d.area}

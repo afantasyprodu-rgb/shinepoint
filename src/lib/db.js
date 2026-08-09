@@ -12,8 +12,10 @@ function normalizeDetailer(row) {
     // 0, not a flattering 5.0, when nobody has rated them yet — pair with
     // isRated so the UI can show "New" instead of a fake perfect score.
     rating: Number(row.average_rating ?? 0),
-    isRated: row.average_rating != null,
-    reviews: row.total_completed_jobs ?? 0,
+    isRated: (row.total_reviews ?? 0) > 0,
+    // Real review count (026). Was total_completed_jobs, which counted every
+    // finished job as a review whether or not the customer left one.
+    reviews: row.total_reviews ?? 0,
     completedJobs: row.total_completed_jobs ?? 0,
     area: row.zip_code ?? '',
     zip: row.zip_code ?? '',
@@ -171,7 +173,7 @@ export async function fetchDetailers() {
     .select(`
       id, zip_code, pin_lat, pin_lng, status,
       accepts_bookings_when_busy, accepts_reward_bookings,
-      insurance_status, total_completed_jobs, average_rating, bio,
+      insurance_status, total_completed_jobs, average_rating, total_reviews, bio,
       profile_photo_url, gallery_urls,
       probation_jobs_remaining, service_days, free_travel_miles,
       users!inner(full_name),
@@ -276,7 +278,12 @@ export async function uploadBookingPhoto(userId, bookingId, file, photoType, are
 // demo `damageReport` object).
 export async function setDamageReportFlags(bookingId, { submitted, acknowledged }) {
   const patch = {}
-  if (submitted !== undefined) patch.damage_report_submitted = submitted
+  if (submitted !== undefined) {
+    patch.damage_report_submitted = submitted
+    // Stamped so the admin Overrides queue can rank stalled jobs by how long
+    // the customer has left the report unacknowledged (026).
+    if (submitted) patch.damage_report_submitted_at = new Date().toISOString()
+  }
   if (acknowledged !== undefined) patch.damage_report_acknowledged = acknowledged
   if (!Object.keys(patch).length) return
   const { error } = await supabase.from('bookings').update(patch).eq('id', bookingId)
@@ -746,6 +753,61 @@ export async function fetchAdminCounts() {
   }
 }
 
+
+// Admin: the damage-report override queue. A detailer submits a damage
+// report on arrival and work is blocked until the customer acknowledges it —
+// if the customer goes quiet, the job stalls and an admin has to step in
+// (admin_override_damage: approve to proceed, or cancel the booking).
+//
+// This is a derived queue, not a table: any live booking whose report is
+// submitted but not acknowledged is waiting on someone. Previously hardcoded
+// to [] on the real path, so the Overrides tab always read "all clear" no
+// matter how many jobs were actually stuck.
+export async function fetchOverrides() {
+  const { data, error } = await supabase
+    .from('bookings')
+    .select(`
+      id, damage_report_submitted_at, scheduled_time,
+      detailer_profiles(users(full_name)),
+      photos(photo_type, area_label, uploaded_at)
+    `)
+    .eq('damage_report_submitted', true)
+    .eq('damage_report_acknowledged', false)
+    .not('status', 'in', '(cancelled,complete,disputed)')
+
+  if (error) {
+    console.error('fetchOverrides:', error.message)
+    return []
+  }
+
+  return (data ?? [])
+    .map((row) => {
+      const damagePhotos = (row.photos ?? []).filter((p) => p.photo_type === 'damage_report')
+      // Fall back to the earliest damage photo for rows written before the
+      // 026 timestamp column existed, then to the slot time.
+      const submittedAt =
+        row.damage_report_submitted_at ??
+        damagePhotos.map((p) => p.uploaded_at).sort()[0] ??
+        row.scheduled_time
+      return {
+        // id IS the booking id here — StoreContext.approveOverride passes it
+        // straight to admin_override_damage(p_booking_id). The demo store
+        // uses synthetic 'ovr-*' ids and looks the booking up separately.
+        id: row.id,
+        bookingId: row.id,
+        detailer: row.detailer_profiles?.users?.full_name ?? 'Detailer',
+        waitingMins: submittedAt
+          ? Math.max(0, Math.round((Date.now() - new Date(submittedAt).getTime()) / 60000))
+          : 0,
+        damageItems: damagePhotos.map((p) => {
+          const [area, ...rest] = (p.area_label ?? '').split(' — ')
+          return { area: area ?? '', note: rest.join(' — ') }
+        }),
+      }
+    })
+    // Longest-waiting first — that's the one an admin should action.
+    .sort((a, b) => b.waitingMins - a.waitingMins)
+}
 
 // Admin: detailers awaiting verification, shaped for the People console.
 export async function fetchPendingApplications() {

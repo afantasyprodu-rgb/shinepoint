@@ -32,6 +32,7 @@ import {
   fetchDisputes,
   fetchPendingApplications,
   fetchAdminCounts,
+  fetchOverrides,
   fetchFlaggedMessages,
   fetchAdminFinance,
   adminVerifyDetailer,
@@ -246,10 +247,11 @@ export function StoreProvider({ children }) {
     if (isDemo || profile?.role !== 'admin') return
     let cancelled = false
     const load = async () => {
-      const [applications, disputes, flagged, finance, counts] = await Promise.all([
+      const [applications, disputes, flagged, overrides, finance, counts] = await Promise.all([
         fetchPendingApplications(),
         fetchDisputes(),
         fetchFlaggedMessages(),
+        fetchOverrides(),
         fetchAdminFinance(),
         fetchAdminCounts(),
       ])
@@ -258,7 +260,7 @@ export function StoreProvider({ children }) {
         applications,
         disputes,
         flagged,
-        overrides: [],                 // derived override queue: not wired (needs a rule)
+        overrides,
         decided: [],
         finance,
         milestones: {
