@@ -9,7 +9,10 @@ function normalizeDetailer(row) {
   return {
     id: row.id,
     name: row.users?.full_name ?? 'Detailer',
-    rating: Number(row.average_rating ?? 5.0),
+    // 0, not a flattering 5.0, when nobody has rated them yet — pair with
+    // isRated so the UI can show "New" instead of a fake perfect score.
+    rating: Number(row.average_rating ?? 0),
+    isRated: row.average_rating != null,
     reviews: row.total_completed_jobs ?? 0,
     completedJobs: row.total_completed_jobs ?? 0,
     area: row.zip_code ?? '',
