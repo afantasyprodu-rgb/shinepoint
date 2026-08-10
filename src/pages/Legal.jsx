@@ -103,9 +103,6 @@ export function Privacy() {
       <H>{t('privacyH6')}</H>
       <p>{t('privacyP6')}</p>
 
-      <H>{t('privacyH8')}</H>
-      <p>{t('privacyP8')}</p>
-
       <H>{t('privacyH7')}</H>
       <p>{t('privacyP7')}</p>
     </LegalShell>

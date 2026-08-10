@@ -8,37 +8,8 @@ import { markArrival } from '../lib/transition'
 import Logo from './Logo'
 import LanguageToggle from './LanguageToggle'
 import OtpBoxInput from './OtpBoxInput'
-import { GoogleIcon, MailIcon, PhoneIcon, ChevronLeftIcon, LockIcon } from './icons'
+import { GoogleIcon, MailIcon, ChevronLeftIcon, LockIcon } from './icons'
 import { useT } from '../i18n/useT'
-
-const COUNTRIES = [
-  { code: '+1',   flag: '🇺🇸', name: 'United States' },
-  { code: '+1',   flag: '🇨🇦', name: 'Canada' },
-  { code: '+52',  flag: '🇲🇽', name: 'Mexico' },
-  { code: '+54',  flag: '🇦🇷', name: 'Argentina' },
-  { code: '+55',  flag: '🇧🇷', name: 'Brazil' },
-  { code: '+56',  flag: '🇨🇱', name: 'Chile' },
-  { code: '+57',  flag: '🇨🇴', name: 'Colombia' },
-  { code: '+51',  flag: '🇵🇪', name: 'Peru' },
-  { code: '+58',  flag: '🇻🇪', name: 'Venezuela' },
-  { code: '+502', flag: '🇬🇹', name: 'Guatemala' },
-  { code: '+503', flag: '🇸🇻', name: 'El Salvador' },
-  { code: '+504', flag: '🇭🇳', name: 'Honduras' },
-  { code: '+505', flag: '🇳🇮', name: 'Nicaragua' },
-  { code: '+506', flag: '🇨🇷', name: 'Costa Rica' },
-  { code: '+507', flag: '🇵🇦', name: 'Panama' },
-  { code: '+53',  flag: '🇨🇺', name: 'Cuba' },
-  { code: '+1',   flag: '🇵🇷', name: 'Puerto Rico' },
-  { code: '+34',  flag: '🇪🇸', name: 'Spain' },
-  { code: '+44',  flag: '🇬🇧', name: 'United Kingdom' },
-  { code: '+33',  flag: '🇫🇷', name: 'France' },
-  { code: '+49',  flag: '🇩🇪', name: 'Germany' },
-  { code: '+39',  flag: '🇮🇹', name: 'Italy' },
-  { code: '+351', flag: '🇵🇹', name: 'Portugal' },
-  { code: '+91',  flag: '🇮🇳', name: 'India' },
-  { code: '+63',  flag: '🇵🇭', name: 'Philippines' },
-  { code: '+61',  flag: '🇦🇺', name: 'Australia' },
-]
 
 // ease-out-expo — decisive and quick
 const EASE = [0.16, 1, 0.3, 1]
@@ -66,15 +37,12 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
 
   const [mode, setMode] = useState(defaultMode)  // 'signup' | 'login'
   const [modeDir, setModeDir] = useState(1)       // 1 = forward (signup), -1 = back (login)
-  const [view, setView] = useState('methods')     // 'methods' | 'email' | 'phone' | 'otp'
+  const [view, setView] = useState('methods')     // 'methods' | 'email' | 'emailOtp'
 
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
 
-  const [countryIdx, setCountryIdx] = useState(0)
-  const [localNumber, setLocalNumber] = useState('')
-  const [fullPhone, setFullPhone] = useState('')
   const [otpCode, setOtpCode] = useState('')
 
   const [error, setError] = useState('')
@@ -82,11 +50,6 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
 
   function switchMode(m) { setModeDir(m === 'signup' ? 1 : -1); setMode(m); setError('') }
   function goBack() { setView('methods'); setError('') }
-
-  function buildE164() {
-    const c = COUNTRIES[countryIdx]
-    return `${c.code}${localNumber.replace(/\D/g, '').replace(/^0+/, '')}`
-  }
 
   // Shared post-login step for every auth method: block banned/suspended
   // accounts, step up to MFA if the account has a verified TOTP factor,
@@ -159,44 +122,6 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
     await finishLogin(data.user.id)
   }
 
-  async function handleSendCode(e) {
-    e.preventDefault()
-    setError('')
-    setBusy(true)
-    const phone = buildE164()
-    setFullPhone(phone)
-    const { error: err } = await supabase.auth.signInWithOtp({
-      phone,
-      options: mode === 'signup'
-        ? { shouldCreateUser: true, data: { full_name: fullName, role } }
-        : { shouldCreateUser: false },
-    })
-    setBusy(false)
-    if (err) {
-      setError(
-        err.message?.includes('provider is not enabled') || err.message?.includes('Unsupported phone provider')
-          ? t('phoneNotEnabled')
-          : err.message
-      )
-      return
-    }
-    setView('otp')
-  }
-
-  async function handleVerifyCode(code) {
-    setError('')
-    setBusy(true)
-    const { data, error: err } = await supabase.auth.verifyOtp({ phone: fullPhone, token: code, type: 'sms' })
-    if (err) { setBusy(false); setError(err.message); setOtpCode(''); return }
-    if (mode === 'signup') {
-      setBusy(false)
-      const homePath = signupHomePath(role)
-      navigate('/mfa-setup', { state: { next: homePath } })
-      return
-    }
-    await finishLogin(data.user.id)
-  }
-
   async function handleGoogle() {
     setError('')
     setBusy(true)
@@ -257,13 +182,6 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
               disabled={busy}
             >
               {t('continueEmail')}
-            </MethodButton>
-            <MethodButton
-              icon={<PhoneIcon className="h-5 w-5 text-slate-400" />}
-              onClick={() => { setView('phone'); setError('') }}
-              disabled={busy}
-            >
-              {t('continuePhone')}
             </MethodButton>
           </div>
 
@@ -410,122 +328,6 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
           </Field>
 
           {error && <p role="alert" className="auth-error mt-3 text-center">{error}</p>}
-        </motion.div>
-      )}
-
-      {/* ── Phone form ───────────────────────────────────── */}
-      {view === 'phone' && (
-        <motion.div
-          key="phone"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0, y: 8 }}
-          transition={{ duration: 0.16, ease: EASE }}
-        >
-          <BackButton onClick={goBack} />
-
-          <form onSubmit={handleSendCode} className="flex flex-col gap-3">
-            {isSignup && (
-              <Field index={0}>
-                <div className="auth-field">
-                  <label className="auth-label">{t('fullNameLabel')}</label>
-                  <input type="text" autoComplete="name" required value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder={t('fullNamePlaceholder')} className="auth-input" autoFocus />
-                </div>
-              </Field>
-            )}
-
-            <Field index={isSignup ? 1 : 0}>
-              <div className="auth-field">
-                <label className="auth-label">{t('phoneNumberLabel')}</label>
-                <div className="flex gap-2">
-                  <select value={countryIdx} onChange={(e) => setCountryIdx(Number(e.target.value))}
-                    className="auth-input auth-select" aria-label="Country code">
-                    {COUNTRIES.map((c, i) => (
-                      <option key={`${c.name}-${i}`} value={i}>{c.flag} {c.code}</option>
-                    ))}
-                  </select>
-                  <input type="tel" inputMode="numeric" autoComplete="tel-national" required
-                    value={localNumber} onChange={(e) => setLocalNumber(e.target.value)}
-                    placeholder={t('phonePlaceholder')} className="auth-input flex-1 min-w-0"
-                    autoFocus={!isSignup} />
-                </div>
-                <p className="mt-1 text-xs text-white/50">
-                  {COUNTRIES[countryIdx].flag} {COUNTRIES[countryIdx].name}
-                </p>
-              </div>
-            </Field>
-
-            {isSignup && (
-              <Field index={isSignup ? 2 : 1}>
-                <p className="text-xs leading-relaxed text-white/50">
-                  {t('smsConsent')}{' '}
-                  <Link to="/terms" className="underline hover:text-white/70">{t('smsConsentTerms')}</Link>
-                  {' '}{t('smsConsentAnd')}{' '}
-                  <Link to="/privacy" className="underline hover:text-white/70">{t('smsConsentPrivacy')}</Link>.
-                </p>
-              </Field>
-            )}
-
-            {error && <p role="alert" className="auth-error">{error}</p>}
-
-            <Field index={isSignup ? 3 : 1}>
-              <button type="submit" disabled={busy} className="auth-btn-primary w-full">
-                {busy
-                  ? <span className="inline-flex items-center gap-2"><BtnSpinner />{t('sending')}</span>
-                  : t('sendCode')}
-              </button>
-            </Field>
-          </form>
-        </motion.div>
-      )}
-
-      {/* ── OTP verify ───────────────────────────────────── */}
-      {view === 'otp' && (
-        <motion.div
-          key="otp"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0, y: 8 }}
-          transition={{ duration: 0.16, ease: EASE }}
-        >
-          <Field index={0}>
-            <div className="mb-5 flex justify-center">
-              <div className="otp-lock-badge flex h-14 w-14 items-center justify-center rounded-full">
-                <LockIcon className="h-6 w-6" />
-              </div>
-            </div>
-          </Field>
-
-          <Field index={1}>
-            <p className="pb-1 text-center text-sm text-white/70">
-              {busy ? t('verifyingCode') : t('enterTheCode')}
-              <br />
-              {t('sentTo')} <span className="font-semibold text-white">{fullPhone}</span>
-            </p>
-          </Field>
-
-          <Field index={2}>
-            <div className="mt-3">
-              <OtpBoxInput
-                length={6}
-                value={otpCode}
-                onChange={setOtpCode}
-                onComplete={handleVerifyCode}
-                error={Boolean(error)}
-                disabled={busy}
-              />
-            </div>
-          </Field>
-
-          {error && <p role="alert" className="auth-error mt-3 text-center">{error}</p>}
-
-          <button type="button"
-            onClick={() => { setView('phone'); setOtpCode(''); setError('') }}
-            className="mt-5 w-full py-1 text-center text-sm text-white/50 hover:text-white transition-colors">
-            {t('useDifferentNumber')}
-          </button>
         </motion.div>
       )}
 
