@@ -12,6 +12,7 @@ import {
   fetchDetailers,
   fetchCustomerProfile,
   fetchLoyalty,
+  claimReferralCode,
   fetchDetailerProfileRow,
   fetchBookingsForCustomer,
   fetchBookingsForDetailer,
@@ -334,7 +335,7 @@ export function StoreProvider({ children }) {
           // Additional cars beyond the primary one (013_customer_vehicles.sql).
           vehicles: customerProfile?.vehicles ?? [],
           referralCode: customerProfile?.referral_code ?? '',
-          referralCredits: 0,
+          referralCredits: Number(customerProfile?.referral_credit ?? 0),
           points: loyalty.points,
           pointsToNextReward: [5, 15, 25].find((n) => loyalty.points < n) ?? 25,
           rewards: loyalty.rewards,
@@ -639,6 +640,19 @@ export function StoreProvider({ children }) {
         patchBooking(bookingId, { customerRated: { rating, hardToHandle } })
       },
 
+      // Enter a friend's referral code. Returns the server's verdict string
+      // ('ok' | 'self_referral' | 'already_claimed' | 'not_a_new_customer' |
+      // 'invalid_code'); the advocate is not credited until this customer's
+      // first booking actually completes.
+      async claimReferral(code) {
+        if (isDemo) return 'ok'
+        const result = await claimReferralCode(code)
+        if (result === 'ok' && profile?.id) {
+          fetchCustomerProfile(profile.id).then(setCustomerProfile)
+        }
+        return result
+      },
+
       getDetailer: (id) => allDetailers.find((d) => d.id === id),
       getBooking: (id) => bookings.find((b) => b.id === id),
 
@@ -744,12 +758,13 @@ export function StoreProvider({ children }) {
             )
             const newRewards = newlyUnlocked.map((m) => ({
               id: `rw-${idCounter++}`,
-              type: m.reward,
+              credit: m.credit,
+              type: `$${m.credit} service credit`,
               tier: m.tier,
               expiresDays: 90,
             }))
             if (newlyUnlocked.length) {
-              notify('customer', '🎉 Reward unlocked!', newlyUnlocked[0].reward)
+              notify('customer', '🎉 Reward unlocked!', `$${newlyUnlocked[0].credit} service credit`)
             }
             return {
               ...c,

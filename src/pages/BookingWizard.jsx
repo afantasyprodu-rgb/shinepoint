@@ -139,7 +139,10 @@ export default function BookingWizard() {
   const uninsured = d.insurance === 'none'
   // Loyalty rewards only redeemable with insured detailers (blueprint rule).
   const reward = !uninsured ? customer.rewards[0] : null
-  const baseAfterReward = useReward && reward ? 0 : (service?.price ?? 0)
+  // Rewards are fixed-dollar credits (036), not "this service is free" —
+  // so a $45 credit against a $450 ceramic coating saves $45, not $450.
+  const rewardCredit = useReward && reward ? Math.min(reward.credit ?? 0, service?.price ?? 0) : 0
+  const baseAfterReward = Math.max(0, (service?.price ?? 0) - rewardCredit)
   const creditUsed = Math.min(customer.referralCredits, baseAfterReward)
   const total = baseAfterReward - creditUsed
 

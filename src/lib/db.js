@@ -228,10 +228,6 @@ export async function fetchDetailerReviews(detailerId) {
 //
 // Shape matches what Rewards.jsx renders for the demo customer:
 //   { points, rewards: [{ id, type, tier, expiresDays }] }
-const REWARD_LABELS = {
-  exterior: 'Free exterior wash',
-  full_detail: 'Free exterior + interior detail',
-}
 
 export async function fetchLoyalty(customerProfileId) {
   const empty = { points: 0, rewards: [] }
@@ -241,7 +237,7 @@ export async function fetchLoyalty(customerProfileId) {
     supabase.from('loyalty_points').select('total_points, available_points')
       .eq('customer_id', customerProfileId).maybeSingle(),
     supabase.from('loyalty_rewards')
-      .select('id, reward_type, tier, expires_at')
+      .select('id, reward_type, tier, credit_amount, expires_at')
       .eq('customer_id', customerProfileId)
       .is('redeemed_at', null)
       .eq('is_expired', false)
@@ -255,7 +251,10 @@ export async function fetchLoyalty(customerProfileId) {
     points: pointsRes.data?.total_points ?? 0,
     rewards: (rewardsRes.data ?? []).map((r) => ({
       id: r.id,
-      type: REWARD_LABELS[r.reward_type] ?? r.reward_type,
+      credit: Number(r.credit_amount ?? 0),
+      // Rewards are fixed-dollar credits (036), not "a free <service>" — the
+      // label is derived from the amount so it can never drift from it.
+      type: `$${Number(r.credit_amount ?? 0)} service credit`,
       // Pre-035 rows have no tier; fall back so the UI never crashes on
       // r.tier.charAt().
       tier: r.tier ?? 'bronze',
@@ -267,10 +266,22 @@ export async function fetchLoyalty(customerProfileId) {
   }
 }
 
+// Claim a friend's referral code. All the fraud rules (self-referral, one
+// claim per customer, new-customers-only) are enforced inside the
+// security-definer function — this just relays its verdict.
+export async function claimReferralCode(code) {
+  const { data, error } = await supabase.rpc('claim_referral_code', { p_code: code })
+  if (error) {
+    console.error('claimReferralCode:', error.message)
+    return 'error'
+  }
+  return data
+}
+
 export async function fetchCustomerProfile(userId) {
   const { data, error } = await supabase
     .from('customer_profiles')
-    .select('id, referral_code, default_address, default_zip, profile_photo_url, bio, vehicle_make, vehicle_model, vehicle_type, vehicles')
+    .select('id, referral_code, referral_credit, default_address, default_zip, profile_photo_url, bio, vehicle_make, vehicle_model, vehicle_type, vehicles')
     .eq('user_id', userId)
     .single()
   if (error) {
