@@ -64,6 +64,9 @@ function normalizeCustomerBooking(row) {
     vehicleModel: row.vehicle_model ?? row.customer_profiles?.vehicle_model ?? '',
     // A review row for this booking means the customer already rated it.
     reviewed: (row.reviews_of_detailers?.length ?? 0) > 0,
+    cancelledBy: row.cancelled_by ?? undefined,
+    // Detailer-issued invoice snapshot (034); customer views it read-only.
+    invoice: row.invoice ?? undefined,
     ...mapBookingPhotos(row),
     weather: { ok: true, summary: 'Clear' },
     _real: true,
@@ -102,6 +105,10 @@ function normalizeDetailerBooking(row) {
     customerRated: custReview
       ? { rating: custReview.rating, hardToHandle: custReview.is_hard_to_handle }
       : undefined,
+    // Drives the acceptance-rate stat (only detailer-initiated declines count)
+    // and gives support an audit trail of who cancelled.
+    cancelledBy: row.cancelled_by ?? undefined,
+    invoice: row.invoice ?? undefined,
     ...mapBookingPhotos(row),
     weather: { ok: true, summary: 'Clear' },
     _real: true,
@@ -391,6 +398,7 @@ export async function fetchBookingsForCustomer(customerProfileId) {
       service_id, detailer_id,
       vehicle_type, vehicle_make, vehicle_model,
       damage_report_submitted, damage_report_acknowledged,
+      cancelled_by, invoice,
       services(service_name),
       detailer_profiles!bookings_detailer_id_fkey(
         id,
@@ -418,6 +426,7 @@ export async function fetchBookingsForDetailer(detailerProfileId) {
       service_id, customer_id,
       vehicle_type, vehicle_make, vehicle_model,
       damage_report_submitted, damage_report_acknowledged,
+      cancelled_by, invoice,
       platform_cut, detailer_payout, payout_hold_until, transferred_at,
       services(service_name),
       customer_profiles!bookings_customer_id_fkey(
@@ -481,14 +490,33 @@ export async function createBookingInDB({
   return data.id
 }
 
+// Persist a booking patch. This is a WHITELIST: any app-shaped key not
+// mapped here is silently discarded, while patchBooking's optimistic React
+// update still succeeds — so a dropped field looks like it saved until the
+// next reload. Anything patchBooking is called with must be handled here (or
+// deliberately handled by a dedicated helper, e.g. damage-report photos go
+// through setDamageReportFlags/uploadBookingPhoto instead).
 export async function updateBookingStatusInDB(bookingId, patch) {
   const dbPatch = {}
   if (patch.status) dbPatch.status = patch.status
   if (patch.tip !== undefined) dbPatch.tip_amount = patch.tip
+  // Who cancelled matters: the detailer's acceptance rate counts only
+  // detailer-initiated declines, and support needs the audit trail.
+  if (patch.cancelledBy !== undefined) dbPatch.cancelled_by = patch.cancelledBy
+  // Detailer's itemised invoice snapshot (034_booking_invoice).
+  if (patch.invoice !== undefined) dbPatch.invoice = patch.invoice
+  // The customer approving the damage report is what unblocks the job.
+  if (patch.damageReport?.acknowledged !== undefined) {
+    dbPatch.damage_report_acknowledged = patch.damageReport.acknowledged
+  }
+  if (patch.damageReport?.submitted !== undefined) {
+    dbPatch.damage_report_submitted = patch.damageReport.submitted
+  }
   // Stamp the job-duration timestamps at the moment they actually happen —
   // analytics (average time per job/vehicle) reads these back later.
   if (patch.status === 'in_progress') dbPatch.started_at = new Date().toISOString()
   if (patch.status === 'complete') dbPatch.completed_at = new Date().toISOString()
+  if (!Object.keys(dbPatch).length) return
   const { error } = await supabase.from('bookings').update(dbPatch).eq('id', bookingId)
   if (error) console.error('updateBookingStatus:', error.message)
 }
