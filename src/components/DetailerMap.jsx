@@ -108,7 +108,7 @@ function popupHtml(d) {
   return `
     <div class="nx-pop">
       <p class="nx-pop-name">${d.name}</p>
-      <p class="nx-pop-meta">★ ${d.rating.toFixed(1)} (${d.reviews}) · ${d.area} · ${d.travelMiles} mi radius</p>
+      <p class="nx-pop-meta">${d.isRated === false ? 'New' : `★ ${d.rating.toFixed(1)} (${d.reviews})`} · ${d.area} · ${d.travelMiles} mi radius</p>
       <p class="nx-pop-status" style="color:${color}">${statusLine(d)} · ${d.completedJobs} jobs done</p>
       ${badges ? `<div class="nx-pop-badges">${badges}</div>` : ''}
       <ul class="nx-pop-services">${services}</ul>

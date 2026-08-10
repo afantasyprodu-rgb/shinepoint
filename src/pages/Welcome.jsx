@@ -22,7 +22,7 @@ import {
   UsersIcon,
   TrendingUpIcon,
 } from '../components/icons'
-import { DEMO_DETAILERS } from '../data/demoData'
+import { useStore } from '../context/StoreContext'
 
 const steps = [
   { icon: MapPinIcon, titleKey: 'step1Title', bodyKey: 'step1Body' },
@@ -43,6 +43,7 @@ function haptic() {
 export default function Welcome() {
   const navigate = useNavigate()
   const { enterDemo } = useAuth()
+  const { detailers } = useStore()
   const reduce = useReducedMotion()
   const heroRef = useRef(null)
   const t = useT('welcome')
@@ -56,17 +57,19 @@ export default function Welcome() {
     navigate(homePathForRole(role))
   }
 
-  const featured = DEMO_DETAILERS.filter((d) => d.status === 'available').slice(0, 3)
+  // Real signed-up detailers only — never the demo roster. Pre-launch there
+  // are none, so the whole "Available now" section hides itself rather than
+  // advertising seeded people as if they were real, bookable pros.
+  const featured = detailers.filter((d) => d.status === 'available').slice(0, 3)
 
-  // Trust stats straight from the marketplace data — no invented numbers.
-  const totalJobs = DEMO_DETAILERS.reduce((n, d) => n + d.completedJobs, 0)
-  const avgRating = (
-    DEMO_DETAILERS.reduce((n, d) => n + d.rating, 0) / DEMO_DETAILERS.length
-  ).toFixed(1)
+  // Product guarantees, not metrics. The app hasn't launched, so there is no
+  // honest job count or average rating to show — these are things the
+  // platform actually enforces (onboarding checks ID + insurance, the job
+  // flow gates on before/after photos), so they stay true at zero users.
   const stats = [
-    { value: `${totalJobs.toLocaleString()}+`, label: t('statDetailsDone') },
-    { value: avgRating, label: t('statAvgRating') },
-    { value: '<2 min', label: t('statToBook') },
+    { value: t('statVettedValue'), label: t('statVetted') },
+    { value: t('statPhotoValue'), label: t('statPhoto') },
+    { value: t('statToBookValue'), label: t('statToBook') },
   ]
 
   return (
@@ -178,6 +181,7 @@ export default function Welcome() {
       </section>
 
       {/* ===== Featured detailers ===== */}
+      {featured.length > 0 && (
       <section className="border-y border-brand-100/70 bg-white/55 py-24 dark:border-white/8 dark:bg-white/[0.02]">
         <div className="mx-auto max-w-5xl px-6">
           <FadeIn>
@@ -200,13 +204,26 @@ export default function Welcome() {
                   </div>
                   <h3 className="mt-3 font-display text-lg font-semibold text-slate-900 dark:text-slate-100">{d.name}</h3>
                   <div className="mt-1 flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                    <Stars rating={d.rating} className="h-3.5 w-3.5" />
-                    <span>
-                      {d.rating.toFixed(1)} · {d.reviews} {t('reviewsSuffix')}
-                    </span>
+                    {/* No stars until someone has actually rated them. */}
+                    {d.isRated === false ? (
+                      <span className="chip bg-brand-50 text-brand-700 dark:bg-white/5 dark:text-brand-300">
+                        {t('newDetailerChip')}
+                      </span>
+                    ) : (
+                      <>
+                        <Stars rating={d.rating} className="h-3.5 w-3.5" />
+                        <span>
+                          {d.rating.toFixed(1)} · {d.reviews} {t('reviewsSuffix')}
+                        </span>
+                      </>
+                    )}
                   </div>
                   <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-                    {d.area} · {t('fromPrefix')} ${Math.min(...d.services.map((s) => s.price))}
+                    {d.area}
+                    {/* A real detailer who hasn't priced any services yet
+                        would render "from $Infinity" via Math.min([]). */}
+                    {d.services?.length > 0 &&
+                      ` · ${t('fromPrefix')} $${Math.min(...d.services.map((s) => s.price))}`}
                   </p>
                 </div>
               </FadeIn>
@@ -219,6 +236,7 @@ export default function Welcome() {
           </FadeIn>
         </div>
       </section>
+      )}
 
       {/* ===== Live demo entry ===== */}
       <section id="demo" className="mx-auto max-w-5xl scroll-mt-12 px-6 py-24">

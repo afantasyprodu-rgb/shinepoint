@@ -2470,6 +2470,8 @@ export const DEMO_ADMIN = {
     refundsCount: 4,
     monthly: [4200, 5100, 4800, 6300, 7900, 9875],
     monthLabels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+    // Detailers over the $600/yr IRS threshold — AdminFinance's 1099 tile.
+    tracker1099Count: 3,
   },
   milestones: {
     detailers: { current: 6, target: 25 },
