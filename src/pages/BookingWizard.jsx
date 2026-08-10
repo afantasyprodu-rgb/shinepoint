@@ -10,6 +10,7 @@ import { CheckIcon, AlertTriangleIcon, ChevronLeftIcon, SparklesIcon, CarIcon } 
 import { useStore } from '../context/StoreContext'
 import { useTheme } from '../context/ThemeContext'
 import { stripePromise, isStripeConfigured, createPaymentIntent } from '../lib/stripe'
+import { checkPromoCode } from '../lib/db'
 import { useT } from '../i18n/useT'
 
 const VEHICLES = ['Sedan', 'SUV', 'Truck', 'Coupe', 'Van']
@@ -119,6 +120,27 @@ export default function BookingWizard() {
   const [showUninsured, setShowUninsured] = useState(false)
   const [bookingId, setBookingId] = useState(null)
   const [useReward, setUseReward] = useState(false)
+  const [promoInput, setPromoInput] = useState('')
+  const [promoApplied, setPromoApplied] = useState(null)  // { code, discount }
+  const [promoError, setPromoError] = useState(null)      // i18n key suffix
+  const [promoChecking, setPromoChecking] = useState(false)
+  const promoDiscount = promoApplied?.discount ?? 0
+
+  // Demo has no server to ask, so it accepts any code at a flat 10% — enough
+  // to exercise the UI without pretending a real code exists.
+  async function applyPromo() {
+    const code = promoInput.trim()
+    if (!code || promoChecking) return
+    setPromoChecking(true)
+    setPromoError(null)
+    const price = service?.price ?? 0
+    const result = isDemo
+      ? { valid: true, discount: Math.round(price * 0.1 * 100) / 100 }
+      : await checkPromoCode(d.id, code, price)
+    setPromoChecking(false)
+    if (result.valid) setPromoApplied({ code, discount: result.discount })
+    else setPromoError(result.reason ?? 'invalid')
+  }
   const [clientSecret, setClientSecret] = useState(null)
   const [payError, setPayError] = useState('')
 
@@ -139,10 +161,15 @@ export default function BookingWizard() {
   const uninsured = d.insurance === 'none'
   // Loyalty rewards only redeemable with insured detailers (blueprint rule).
   const reward = !uninsured ? customer.rewards[0] : null
+  // Order matters and mirrors create-payment-intent: the detailer's promo
+  // sets the price the platform's commission is based on, THEN the
+  // platform-funded credits come off what remains.
+  const listPrice = service?.price ?? 0
+  const discountedPrice = Math.max(0, listPrice - promoDiscount)
   // Rewards are fixed-dollar credits (036), not "this service is free" —
   // so a $45 credit against a $450 ceramic coating saves $45, not $450.
-  const rewardCredit = useReward && reward ? Math.min(reward.credit ?? 0, service?.price ?? 0) : 0
-  const baseAfterReward = Math.max(0, (service?.price ?? 0) - rewardCredit)
+  const rewardCredit = useReward && reward ? Math.min(reward.credit ?? 0, discountedPrice) : 0
+  const baseAfterReward = Math.max(0, discountedPrice - rewardCredit)
   const creditUsed = Math.min(customer.referralCredits, baseAfterReward)
   const total = baseAfterReward - creditUsed
 
@@ -173,6 +200,7 @@ export default function BookingWizard() {
       rewardId: useReward && reward ? reward.id : undefined,
       creditUsed: creditUsed || undefined,
       is_loyalty_redemption: Boolean(useReward && reward),
+      promoCode: promoApplied?.code,
       address: customer.address,
       zip: customer.zip,
       scheduledTime: `${date.key}T${parseTime(time)}`,
@@ -431,15 +459,65 @@ export default function BookingWizard() {
                 </button>
               )}
 
+              {/* Detailer-run discount code. Validated server-side so the
+                  discount shown here is the one that will actually be
+                  charged, and so a targeted code can't be probed by others. */}
+              <div className="card mt-4 !p-4">
+                <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{t('promoTitle')}</p>
+                {promoApplied ? (
+                  <div className="mt-2 flex items-center justify-between gap-3">
+                    <span className="chip bg-cta-700/10 font-mono font-bold tracking-widest text-cta-700 dark:text-cta-500">
+                      {promoApplied.code}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => { setPromoApplied(null); setPromoInput(''); setPromoError(null) }}
+                      className="cursor-pointer text-xs font-semibold text-slate-500 underline hover:text-slate-700 dark:text-slate-400"
+                    >
+                      {t('promoRemove')}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mt-2 flex gap-2">
+                    <input
+                      value={promoInput}
+                      onChange={(e) => { setPromoInput(e.target.value.toUpperCase()); setPromoError(null) }}
+                      placeholder={t('promoPlaceholder')}
+                      aria-label={t('promoTitle')}
+                      className="input flex-1 font-mono tracking-widest"
+                    />
+                    <button
+                      type="button"
+                      disabled={!promoInput.trim() || promoChecking}
+                      onClick={applyPromo}
+                      className="btn btn-brand h-11 shrink-0 px-4 text-sm disabled:opacity-40"
+                    >
+                      {t('promoApply')}
+                    </button>
+                  </div>
+                )}
+                {promoError && (
+                  <p role="status" className="mt-2 text-xs text-red-600 dark:text-red-400">
+                    {t(`promo_${promoError}`)}
+                  </p>
+                )}
+              </div>
+
               <div className="card mt-6 !p-5">
                 <div className="flex justify-between text-sm text-slate-600 dark:text-slate-400">
                   <span>{service.name}</span>
                   <span>${service.price}</span>
                 </div>
-                {useReward && reward && (
+                {promoDiscount > 0 && (
+                  <div className="flex justify-between text-sm font-medium text-cta-700 dark:text-cta-400">
+                    <span>{t('promoApplied', { code: promoApplied.code })}</span>
+                    <span>−${promoDiscount}</span>
+                  </div>
+                )}
+                {useReward && reward && rewardCredit > 0 && (
                   <div className="flex justify-between text-sm font-medium text-cta-700 dark:text-cta-400">
                     <span>{t('loyaltyApplied')}</span>
-                    <span>−${service.price}</span>
+                    <span>−${rewardCredit}</span>
                   </div>
                 )}
                 {creditUsed > 0 && (
