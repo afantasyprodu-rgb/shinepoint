@@ -13,7 +13,7 @@ function normalizeDetailer(row) {
     // isRated so the UI can show "New" instead of a fake perfect score.
     rating: Number(row.average_rating ?? 0),
     isRated: (row.total_reviews ?? 0) > 0,
-    // Real review count (026). Was total_completed_jobs, which counted every
+    // Real review count (032). Was total_completed_jobs, which counted every
     // finished job as a review whether or not the customer left one.
     reviews: row.total_reviews ?? 0,
     completedJobs: row.total_completed_jobs ?? 0,
@@ -281,7 +281,7 @@ export async function setDamageReportFlags(bookingId, { submitted, acknowledged 
   if (submitted !== undefined) {
     patch.damage_report_submitted = submitted
     // Stamped so the admin Overrides queue can rank stalled jobs by how long
-    // the customer has left the report unacknowledged (026).
+    // the customer has left the report unacknowledged (032).
     if (submitted) patch.damage_report_submitted_at = new Date().toISOString()
   }
   if (acknowledged !== undefined) patch.damage_report_acknowledged = acknowledged
@@ -736,7 +736,7 @@ export async function fetchDisputes() {
 // Admin: headcounts + completed-job total for the growth-milestone tiles.
 // Only the milestone TARGETS are product-configured; these current values
 // must be real (they used to come from the demo seed). Customer count needs
-// the admin read policy added in 025_admin_read_people.sql.
+// the admin read policy added in 031_admin_read_people.sql.
 export async function fetchAdminCounts() {
   const [detailers, customers, jobs] = await Promise.all([
     supabase.from('detailer_profiles').select('id', { count: 'exact', head: true }),
