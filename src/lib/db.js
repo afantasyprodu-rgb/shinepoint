@@ -222,6 +222,51 @@ export async function fetchDetailerReviews(detailerId) {
   }))
 }
 
+// Real loyalty balance + active rewards for a customer. Earning is granted
+// server-side by the 035 trigger on booking completion; redemption is burned
+// by the create-payment-intent edge function. This is read-only.
+//
+// Shape matches what Rewards.jsx renders for the demo customer:
+//   { points, rewards: [{ id, type, tier, expiresDays }] }
+const REWARD_LABELS = {
+  exterior: 'Free exterior wash',
+  full_detail: 'Free exterior + interior detail',
+}
+
+export async function fetchLoyalty(customerProfileId) {
+  const empty = { points: 0, rewards: [] }
+  if (!customerProfileId) return empty
+
+  const [pointsRes, rewardsRes] = await Promise.all([
+    supabase.from('loyalty_points').select('total_points, available_points')
+      .eq('customer_id', customerProfileId).maybeSingle(),
+    supabase.from('loyalty_rewards')
+      .select('id, reward_type, tier, expires_at')
+      .eq('customer_id', customerProfileId)
+      .is('redeemed_at', null)
+      .eq('is_expired', false)
+      .gt('expires_at', new Date().toISOString())
+      .order('earned_at', { ascending: true }),
+  ])
+  if (pointsRes.error) console.error('fetchLoyalty points:', pointsRes.error.message)
+  if (rewardsRes.error) console.error('fetchLoyalty rewards:', rewardsRes.error.message)
+
+  return {
+    points: pointsRes.data?.total_points ?? 0,
+    rewards: (rewardsRes.data ?? []).map((r) => ({
+      id: r.id,
+      type: REWARD_LABELS[r.reward_type] ?? r.reward_type,
+      // Pre-035 rows have no tier; fall back so the UI never crashes on
+      // r.tier.charAt().
+      tier: r.tier ?? 'bronze',
+      expiresDays: Math.max(
+        0,
+        Math.ceil((new Date(r.expires_at).getTime() - Date.now()) / 86400000)
+      ),
+    })),
+  }
+}
+
 export async function fetchCustomerProfile(userId) {
   const { data, error } = await supabase
     .from('customer_profiles')

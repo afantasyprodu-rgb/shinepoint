@@ -11,6 +11,7 @@ import {
 import {
   fetchDetailers,
   fetchCustomerProfile,
+  fetchLoyalty,
   fetchDetailerProfileRow,
   fetchBookingsForCustomer,
   fetchBookingsForDetailer,
@@ -84,6 +85,7 @@ export function StoreProvider({ children }) {
   // ── Real state from Supabase ──────────────────────────────────────────────
   const [realDetailers, setRealDetailers] = useState([])
   const [realBookings, setRealBookings] = useState([])
+  const [loyalty, setLoyalty] = useState({ points: 0, rewards: [] })
   const [customerProfile, setCustomerProfile] = useState(null)  // { id, referral_code, ... }
   const [detailerProfile, setDetailerProfile] = useState(null)  // { id, status, ... }
   const [realNotifications, setRealNotifications] = useState([])
@@ -118,6 +120,11 @@ export function StoreProvider({ children }) {
         if (cp) {
           fetchBookingsForCustomer(cp.id).then((bs) => {
             if (!cancelled) setRealBookings(bs)
+          })
+          // Points/rewards are granted server-side (035 trigger), so this is
+          // a plain read — refreshed whenever bookings reload.
+          fetchLoyalty(cp.id).then((l) => {
+            if (!cancelled) setLoyalty(l)
           })
         }
       })
@@ -328,9 +335,9 @@ export function StoreProvider({ children }) {
           vehicles: customerProfile?.vehicles ?? [],
           referralCode: customerProfile?.referral_code ?? '',
           referralCredits: 0,
-          points: 0,
-          pointsToNextReward: 5,
-          rewards: [],
+          points: loyalty.points,
+          pointsToNextReward: [5, 15, 25].find((n) => loyalty.points < n) ?? 25,
+          rewards: loyalty.rewards,
         }
 
     // Declared as a function (not the object-literal method further down)
@@ -846,7 +853,7 @@ export function StoreProvider({ children }) {
   }, [
     isDemo,
     demoDetailers, demoBookings, demoMessages, demoCustomer, demoAdmin,
-    realDetailers, realBookings,
+    realDetailers, realBookings, loyalty,
     customerProfile, detailerProfile,
     profile,
     notifications, realNotifications, realAdmin,

@@ -188,7 +188,7 @@ export default function Rewards() {
                         </div>
                       </div>
                       <Link
-                        to="/map"
+                        to="/home"
                         className={`press-spring shrink-0 rounded-xl px-3 py-1.5 text-xs font-bold hover:opacity-80 ${ms.badge}`}
                       >
                         {t('use')}
