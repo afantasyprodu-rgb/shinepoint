@@ -278,6 +278,75 @@ export async function claimReferralCode(code) {
   return data
 }
 
+// Validate a detailer's promo code and get its dollar value. Runs through a
+// security-definer function so a customer can check a code they were given
+// without being able to enumerate a detailer's other codes (including ones
+// targeted at someone else).
+export async function checkPromoCode(detailerId, code, servicePrice) {
+  const { data, error } = await supabase.rpc('check_promo_code', {
+    p_detailer_id: detailerId,
+    p_code: code,
+    p_service_price: servicePrice,
+  })
+  if (error) {
+    console.error('checkPromoCode:', error.message)
+    return { valid: false, discount: 0, reason: 'error' }
+  }
+  const row = Array.isArray(data) ? data[0] : data
+  return {
+    valid: Boolean(row?.valid),
+    discount: Number(row?.discount ?? 0),
+    reason: row?.reason ?? null,
+  }
+}
+
+// Detailer's own codes, for the management screen.
+export async function fetchMyPromoCodes(detailerProfileId) {
+  if (!detailerProfileId) return []
+  const { data, error } = await supabase
+    .from('detailer_promo_codes')
+    .select('id, code, kind, value, customer_id, max_uses, used_count, expires_at, is_active, created_at, customer_profiles(users(full_name))')
+    .eq('detailer_id', detailerProfileId)
+    .order('created_at', { ascending: false })
+  if (error) { console.error('fetchMyPromoCodes:', error.message); return [] }
+  return (data ?? []).map((r) => ({
+    id: r.id,
+    code: r.code,
+    kind: r.kind,
+    value: Number(r.value),
+    customerId: r.customer_id,
+    customerName: r.customer_profiles?.users?.full_name ?? null,
+    maxUses: r.max_uses,
+    usedCount: r.used_count,
+    expiresAt: r.expires_at,
+    isActive: r.is_active,
+  }))
+}
+
+export async function createPromoCode(detailerProfileId, { code, kind, value, customerId, maxUses, expiresAt }) {
+  const { error } = await supabase.from('detailer_promo_codes').insert({
+    detailer_id: detailerProfileId,
+    code: code.trim().toUpperCase(),
+    kind,
+    value,
+    customer_id: customerId || null,
+    max_uses: maxUses ?? 1,
+    expires_at: expiresAt || null,
+  })
+  if (error) { console.error('createPromoCode:', error.message); throw new Error(error.message) }
+}
+
+export async function setPromoCodeActive(id, isActive) {
+  const { error } = await supabase
+    .from('detailer_promo_codes').update({ is_active: isActive }).eq('id', id)
+  if (error) console.error('setPromoCodeActive:', error.message)
+}
+
+export async function deletePromoCode(id) {
+  const { error } = await supabase.from('detailer_promo_codes').delete().eq('id', id)
+  if (error) console.error('deletePromoCode:', error.message)
+}
+
 export async function fetchCustomerProfile(userId) {
   const { data, error } = await supabase
     .from('customer_profiles')
@@ -519,6 +588,7 @@ export async function createBookingInDB({
   vehicleType,
   vehicleMake,
   vehicleModel,
+  promoCode,
 }) {
   const { data, error } = await supabase
     .from('bookings')

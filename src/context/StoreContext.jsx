@@ -685,6 +685,7 @@ export function StoreProvider({ children }) {
             vehicleType: draft.vehicle,
             vehicleMake: draft.vehicleMake,
             vehicleModel: draft.vehicleModel,
+            promoCode: draft.promoCode,
           })
           const refreshed = await fetchBookingsForCustomer(customerProfile.id)
           setRealBookings(refreshed)

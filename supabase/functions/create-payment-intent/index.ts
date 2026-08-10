@@ -68,7 +68,37 @@ Deno.serve(async (req) => {
       return json({ error: 'Invalid service for this booking' }, 409)
     }
 
-    const servicePrice = Number(service.price)
+    const listPrice = Number(service.price)
+
+    // ── Detailer-funded promo code ────────────────────────────────────────
+    // Unlike loyalty credits, this is the DETAILER's own promotion, so it
+    // lowers the price the commission is calculated on: both sides give up
+    // their normal share of the discount. Validated and capped server-side
+    // (30% ceiling) — the client only ever proposes a code string.
+    let promoCodeId: string | null = null
+    let promoDiscount = 0
+    if (booking.promo_code) {
+      const { data: promo } = await admin.rpc('check_promo_code', {
+        p_detailer_id: booking.detailer_id,
+        p_code: booking.promo_code,
+        p_service_price: listPrice,
+      })
+      const row = Array.isArray(promo) ? promo[0] : promo
+      if (!row?.valid) {
+        return json({ error: `Promo code not valid (${row?.reason ?? 'invalid'})` }, 409)
+      }
+      promoDiscount = Number(row.discount ?? 0)
+      const { data: codeRow } = await admin
+        .from('detailer_promo_codes')
+        .select('id')
+        .eq('detailer_id', booking.detailer_id)
+        .ilike('code', booking.promo_code.trim())
+        .maybeSingle()
+      promoCodeId = codeRow?.id ?? null
+    }
+
+    // The commission base: what the detailer is effectively charging.
+    const servicePrice = Number((listPrice - promoDiscount).toFixed(2))
 
     // ── Discounts ─────────────────────────────────────────────────────────
     // Both are PLATFORM-FUNDED: the detailer is paid on the full service
@@ -135,6 +165,9 @@ Deno.serve(async (req) => {
           .eq('id', rewardId)
           .is('redeemed_at', null)
       }
+      if (promoCodeId) {
+        await admin.rpc('consume_promo_code', { p_code_id: promoCodeId })
+      }
       if (referralCredit > 0) {
         await admin
           .from('customer_profiles')
@@ -161,6 +194,8 @@ Deno.serve(async (req) => {
           paid_at: new Date().toISOString(),
           platform_cut: Number((0 - detailerPayout).toFixed(2)),
           detailer_payout: detailerPayout,
+          promo_code_id: promoCodeId,
+          promo_discount: promoDiscount,
         })
         .eq('id', booking.id)
       await burnCredits()
@@ -210,6 +245,8 @@ Deno.serve(async (req) => {
           // more than the platform's normal margin.
           platform_cut: Number((expected - detailerPayout).toFixed(2)),
           detailer_payout: detailerPayout,
+          promo_code_id: promoCodeId,
+          promo_discount: promoDiscount,
         })
         .eq('id', booking.id)
       await burnCredits()
