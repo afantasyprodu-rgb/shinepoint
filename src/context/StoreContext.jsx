@@ -748,9 +748,9 @@ export function StoreProvider({ children }) {
           setDemoCustomer((c) => {
             const newPoints = c.points + 1
             const MILESTONES = [
-              { at: 5,  reward: 'Free exterior wash',              tier: 'bronze' },
-              { at: 15, reward: 'Free exterior + interior detail', tier: 'silver' },
-              { at: 25, reward: 'Free full detail + priority booking', tier: 'gold' },
+              { at: 5,  credit: 15, tier: 'bronze' },
+              { at: 15, credit: 30, tier: 'silver' },
+              { at: 25, credit: 40, tier: 'gold' },
             ]
             const unlocked = c.unlockedMilestones ?? []
             const newlyUnlocked = MILESTONES.filter(
