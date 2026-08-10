@@ -17,13 +17,17 @@ const TAB_KEYS = [
 ]
 
 // Each resolution spells out exactly what happens to the money.
+// The refund each outcome implies. These used to be display-only strings —
+// the chosen option was passed on with no amount at all, so an admin who
+// clicked "refund $100" issued nothing. `amount` is what is still refundable
+// on the booking (charged minus anything already refunded).
 function resolutionOptions(amount, t) {
-  const half = Math.round(amount / 2)
+  const half = Math.round((amount / 2) * 100) / 100
   return [
-    { key: 'customer_wins', label: t('resolveRefund'), consequence: t('resolveRefundConsequence', { amount }), tone: 'cta' },
-    { key: 'detailer_wins', label: t('resolveDetailer'), consequence: t('resolveDetailerConsequence', { amount }), tone: 'brand' },
-    { key: 'split',         label: t('resolveSplit'),        consequence: t('resolveSplitConsequence', { half }), tone: 'brand' },
-    { key: 'dismissed',     label: t('resolveDismiss'),    consequence: t('resolveDismissConsequence'), tone: 'slate' },
+    { key: 'customer_wins', refund: amount, label: t('resolveRefund'), consequence: t('resolveRefundConsequence', { amount }), tone: 'cta' },
+    { key: 'detailer_wins', refund: 0,      label: t('resolveDetailer'), consequence: t('resolveDetailerConsequence', { amount }), tone: 'brand' },
+    { key: 'split',         refund: half,   label: t('resolveSplit'),    consequence: t('resolveSplitConsequence', { half }), tone: 'brand' },
+    { key: 'dismissed',     refund: 0,      label: t('resolveDismiss'),  consequence: t('resolveDismissConsequence'), tone: 'slate' },
   ]
 }
 
@@ -39,7 +43,11 @@ function DisputeCard({ dispute, onResolve }) {
   const [confirming, setConfirming] = useState(null) // resolution option
   const isResolved = dispute.status === 'resolved'
   const t = useT('adminOps')
-  const options = resolutionOptions(dispute.amount ?? 0, t)
+  const [resolving, setResolving] = useState(false)
+  const [resolveError, setResolveError] = useState(null)
+  // refundable = charged minus already refunded. dispute.amount is only set
+  // AFTER resolution, so using it here showed "$0" on every open dispute.
+  const options = resolutionOptions(dispute.refundable ?? dispute.amount ?? 0, t)
 
   return (
     <motion.div layout className={`card overflow-hidden !p-0 ${dispute.status === 'open' ? 'border-red-200 dark:border-red-500/30' : ''}`}>
@@ -138,12 +146,31 @@ function DisputeCard({ dispute, onResolve }) {
         <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
           {t('bothPartiesNotified')}
         </p>
+        {resolveError && (
+          <p role="alert" className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-400">
+            {resolveError}
+          </p>
+        )}
         <div className="mt-5 flex gap-2">
           <button
-            onClick={() => { onResolve(dispute.id, confirming.key); setConfirming(null) }}
-            className="btn btn-brand h-11 flex-1 text-sm"
+            disabled={resolving}
+            onClick={async () => {
+              setResolving(true)
+              setResolveError(null)
+              try {
+                await onResolve(dispute.id, confirming.key, confirming.refund ?? 0)
+                setConfirming(null)
+              } catch (e) {
+                // A refund is a real Stripe call — never close the modal as
+                // if it had worked when it didn't.
+                setResolveError(e.message)
+              } finally {
+                setResolving(false)
+              }
+            }}
+            className="btn btn-brand h-11 flex-1 text-sm disabled:opacity-50"
           >
-            {t('confirmResolution')}
+            {resolving ? t('resolving') : t('confirmResolution')}
           </button>
           <button onClick={() => setConfirming(null)} className="btn btn-outline h-11 flex-1 text-sm">
             {t('cancel')}

@@ -877,7 +877,7 @@ export async function insertDispute(bookingId, filedByUserId, reason) {
 export async function fetchDisputes() {
   const { data, error } = await supabase
     .from('disputes')
-    .select('id, booking_id, reason, status, resolution, refund_amount, opened_at, filer:filed_by(full_name), against:filed_against(full_name)')
+    .select('id, booking_id, reason, status, resolution, refund_amount, opened_at, filer:filed_by(full_name), against:filed_against(full_name), bookings!inner(total_price, refunded_amount, paid_at)')
     .order('opened_at', { ascending: false })
   if (error) { console.error('fetchDisputes:', error.message); return [] }
   return (data ?? []).map((d) => ({
@@ -889,6 +889,18 @@ export async function fetchDisputes() {
     openedAt: d.opened_at,
     filedBy: d.filer?.full_name ?? 'User',
     against: d.against?.full_name ?? 'User',
+    // What was actually charged for the job, and therefore the ceiling on any
+    // refund. This used to be the only amount available, but refund_amount is
+    // NULL until the dispute is resolved — so every OPEN dispute (the only
+    // kind an admin acts on) rendered "refund $0" beside the buttons.
+    bookingTotal: Number(d.bookings?.total_price ?? 0),
+    alreadyRefunded: Number(d.bookings?.refunded_amount ?? 0),
+    refundable: Math.max(
+      0,
+      Number(d.bookings?.total_price ?? 0) - Number(d.bookings?.refunded_amount ?? 0)
+    ),
+    paid: Boolean(d.bookings?.paid_at),
+    // Set only once resolved — what was actually refunded.
     amount: d.refund_amount ?? undefined,
   }))
 }
