@@ -67,6 +67,9 @@ function normalizeCustomerBooking(row) {
     cancelledBy: row.cancelled_by ?? undefined,
     // Detailer-issued invoice snapshot (034); customer views it read-only.
     invoice: row.invoice ?? undefined,
+    // A tip only counts as money once its charge succeeded (040).
+    tipPaidAt: row.tip_paid_at ?? null,
+    refundedAmount: Number(row.refunded_amount ?? 0),
     ...mapBookingPhotos(row),
     weather: { ok: true, summary: 'Clear' },
     _real: true,
@@ -109,6 +112,9 @@ function normalizeDetailerBooking(row) {
     // and gives support an audit trail of who cancelled.
     cancelledBy: row.cancelled_by ?? undefined,
     invoice: row.invoice ?? undefined,
+    // A tip only counts as money once its charge succeeded (040).
+    tipPaidAt: row.tip_paid_at ?? null,
+    refundedAmount: Number(row.refunded_amount ?? 0),
     ...mapBookingPhotos(row),
     weather: { ok: true, summary: 'Clear' },
     _real: true,
@@ -523,7 +529,7 @@ export async function fetchBookingsForCustomer(customerProfileId) {
       service_id, detailer_id,
       vehicle_type, vehicle_make, vehicle_model,
       damage_report_submitted, damage_report_acknowledged,
-      cancelled_by, invoice,
+      cancelled_by, invoice, tip_paid_at, refunded_amount,
       services(service_name),
       detailer_profiles!bookings_detailer_id_fkey(
         id,
@@ -551,7 +557,7 @@ export async function fetchBookingsForDetailer(detailerProfileId) {
       service_id, customer_id,
       vehicle_type, vehicle_make, vehicle_model,
       damage_report_submitted, damage_report_acknowledged,
-      cancelled_by, invoice,
+      cancelled_by, invoice, tip_paid_at, refunded_amount,
       platform_cut, detailer_payout, payout_hold_until, transferred_at,
       services(service_name),
       customer_profiles!bookings_customer_id_fkey(

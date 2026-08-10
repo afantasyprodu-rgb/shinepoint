@@ -91,12 +91,51 @@ Deno.serve(async (req) => {
       case 'payment_intent.succeeded': {
         const pi = event.data.object as Stripe.PaymentIntent
         const bookingId = pi.metadata?.booking_id
-        if (bookingId) {
+        if (bookingId && pi.metadata?.kind === 'tip') {
+          // Tip charge (charge-tip). Only now is tip_amount real money —
+          // release-payouts refuses to pay a tip without tip_paid_at.
           await admin
             .from('bookings')
-            .update({ paid_at: new Date().toISOString(), stripe_payment_intent: pi.id })
+            .update({ tip_paid_at: new Date().toISOString(), tip_payment_intent: pi.id })
+            .eq('id', bookingId)
+        } else if (bookingId) {
+          await admin
+            .from('bookings')
+            .update({
+              paid_at: new Date().toISOString(),
+              stripe_payment_intent: pi.id,
+              // Kept so the post-job tip can reuse the card.
+              stripe_payment_method: typeof pi.payment_method === 'string' ? pi.payment_method : null,
+            })
             .eq('id', bookingId)
           await sendBookingConfirmation(bookingId)
+        }
+        break
+      }
+
+      // Live cards fail and get charged back in ways test cards never do.
+      // Both of these previously went unhandled: a chargeback pulls money
+      // from the platform balance with no signal anywhere in the app.
+      case 'payment_intent.payment_failed': {
+        const pi = event.data.object as Stripe.PaymentIntent
+        console.error('payment failed', pi.id, pi.metadata?.booking_id, pi.last_payment_error?.message)
+        break
+      }
+
+      case 'charge.dispute.created': {
+        const d = event.data.object as Stripe.Dispute
+        const chargeId = typeof d.charge === 'string' ? d.charge : d.charge?.id
+        console.error('STRIPE CHARGEBACK opened', d.id, 'charge', chargeId, 'amount', d.amount)
+        // Freeze the payout so release-payouts cannot transfer money that is
+        // being pulled back. payout_hold_until far in the future keeps the
+        // row out of the release query until a human resolves it.
+        if (d.payment_intent) {
+          const piId = typeof d.payment_intent === 'string' ? d.payment_intent : d.payment_intent.id
+          await admin
+            .from('bookings')
+            .update({ payout_hold_until: new Date(Date.now() + 365 * 864e5).toISOString() })
+            .eq('stripe_payment_intent', piId)
+            .is('transferred_at', null)
         }
         break
       }

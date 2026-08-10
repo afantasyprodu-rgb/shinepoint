@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { chargeTip, resolveDisputeWithRefund } from '../lib/stripe'
 import { useAuth } from './AuthContext'
 import {
   DEMO_DETAILERS,
@@ -731,15 +732,32 @@ export function StoreProvider({ children }) {
         return flagged
       },
 
-      submitReview(bookingId, rating, tip) {
+      // Returns a promise so the caller can surface a failed tip charge.
+      async submitReview(bookingId, rating, tip) {
         const booking = bookings.find((b) => b.id === bookingId)
         if (!isDemo && booking?._real) {
           setRealBookings((bs) =>
             bs.map((b) => (b.id === bookingId ? { ...b, reviewed: true, tip } : b))
           )
-          updateBookingStatusInDB(bookingId, { tip })
           if (customerProfile) {
             insertDetailerReview(bookingId, customerProfile.id, booking.detailerId, rating)
+          }
+          // A tip is a real second charge against the card saved at booking
+          // time — writing tip_amount alone (what this used to do) meant the
+          // customer was never charged and the detailer never paid, while
+          // both sides saw the tip as real.
+          const newTip = Number(tip ?? 0) - Number(booking.tip ?? 0)
+          if (newTip > 0 && !booking.tipPaidAt) {
+            try {
+              await chargeTip(bookingId, newTip)
+            } catch (e) {
+              // Roll the optimistic tip back so nobody is shown money that
+              // was never collected.
+              setRealBookings((bs) =>
+                bs.map((b) => (b.id === bookingId ? { ...b, tip: booking.tip ?? 0 } : b))
+              )
+              throw e
+            }
           }
           return
         }
@@ -778,9 +796,12 @@ export function StoreProvider({ children }) {
         }
       },
 
-      resolveDispute(id, resolution) {
+      // refundAmount > 0 issues a real Stripe refund before the outcome is
+      // recorded; the RPC alone only ever wrote a number.
+      async resolveDispute(id, resolution, refundAmount = 0) {
         if (!isDemo) {
-          adminResolveDispute(id, resolution).then(() => loadRealAdmin.current())
+          await resolveDisputeWithRefund(id, resolution, refundAmount)
+          loadRealAdmin.current()
           return
         }
         const dispute = demoAdmin.disputes.find((d) => d.id === id)

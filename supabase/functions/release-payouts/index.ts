@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
 
   const { data: due, error } = await admin
     .from('bookings')
-    .select('id, detailer_payout, detailer_id, detailer_profiles!bookings_detailer_id_fkey(stripe_account_id)')
+    .select('id, detailer_payout, tip_amount, tip_paid_at, detailer_id, detailer_profiles!bookings_detailer_id_fkey(stripe_account_id)')
     .eq('status', 'complete')
     .is('transferred_at', null)
     .not('paid_at', 'is', null)
@@ -56,9 +56,14 @@ Deno.serve(async (req) => {
       skipped++
       continue
     }
+    // Tips are 100% the detailer's — no platform fee — but only once the
+    // tip charge actually succeeded. tip_amount alone is what the customer
+    // chose; tip_paid_at is what was actually collected.
+    const tip = b.tip_paid_at ? Number(b.tip_amount ?? 0) : 0
+    const payoutTotal = Number(b.detailer_payout) + tip
     try {
       const transfer = await stripe.transfers.create({
-        amount: Math.round(Number(b.detailer_payout) * 100),
+        amount: Math.round(payoutTotal * 100),
         currency: 'usd',
         destination: acctId,
         transfer_group: b.id,

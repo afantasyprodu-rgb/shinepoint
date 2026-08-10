@@ -107,3 +107,9 @@ enable_confirmations = false
 
 [auth.sms.twilio]
 enabled = false
+
+[functions.charge-tip]
+verify_jwt = true
+
+[functions.resolve-dispute]
+verify_jwt = true

@@ -227,6 +227,10 @@ Deno.serve(async (req) => {
       intent = await stripe.paymentIntents.create({
         amount,
         currency: 'usd',
+        // Save the card so the post-job tip can be charged without asking
+        // for it again. The tip is a separate PaymentIntent (charge-tip),
+        // confirmed while the customer is present so 3DS can be handled.
+        setup_future_usage: 'off_session',
         // Deliberately no application_fee_amount/transfer_data — this
         // charges the platform's own balance. The detailer's cut moves via
         // a separate Transfer later (release-payouts), not at capture time.
