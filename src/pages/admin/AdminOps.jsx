@@ -42,13 +42,29 @@ function hoursAgo(ts, t) {
 function DisputeCard({ dispute, onResolve }) {
   const [open, setOpen] = useState(dispute.status === 'open')
   const [confirming, setConfirming] = useState(null) // resolution option
+  const [customAmount, setCustomAmount] = useState('')
+  const [notes, setNotes] = useState('')
   const isResolved = dispute.status === 'resolved'
   const t = useT('adminOps')
   const [resolving, setResolving] = useState(false)
   const [resolveError, setResolveError] = useState(null)
   // refundable = charged minus already refunded. dispute.amount is only set
   // AFTER resolution, so using it here showed "$0" on every open dispute.
-  const options = resolutionOptions(dispute.refundable ?? dispute.amount ?? 0, t)
+  const refundable = dispute.refundable ?? dispute.amount ?? 0
+  const options = resolutionOptions(refundable, t)
+
+  // Any amount not exactly $0 or the full refundable total is a genuine
+  // partial credit — 'split' is the closest existing bucket (not a full win
+  // for either side) rather than forcing every custom amount through 50/50.
+  function customOption(amount) {
+    const key = amount <= 0 ? 'detailer_wins' : amount >= refundable ? 'customer_wins' : 'split'
+    return {
+      key,
+      refund: amount,
+      label: t('customRefundLabel'),
+      consequence: t('resolveRefundConsequence', { amount }),
+    }
+  }
 
   return (
     <motion.div layout className={`card overflow-hidden !p-0 ${dispute.status === 'open' ? 'border-red-200 dark:border-red-500/30' : ''}`}>
@@ -109,11 +125,36 @@ function DisputeCard({ dispute, onResolve }) {
                 </div>
               </div>
 
+              {/* The disputed-against party's chance to respond before a ruling —
+                  not enforced, just surfaced so the admin knows if they've been
+                  heard yet. */}
+              {!isResolved && dispute.responseDeadline && (
+                <div className="rounded-xl bg-slate-50 p-3 text-sm dark:bg-white/5">
+                  {dispute.respondedAt ? (
+                    <>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">{t('theirResponse', { name: dispute.against })}</p>
+                      <p className="mt-1 text-slate-700 dark:text-slate-300">{dispute.responseText}</p>
+                    </>
+                  ) : (
+                    <p className="text-slate-500 dark:text-slate-400">
+                      {new Date(dispute.responseDeadline) > new Date()
+                        ? t('awaitingResponse', { name: dispute.against, when: new Date(dispute.responseDeadline).toLocaleString() })
+                        : t('responseWindowExpired', { name: dispute.against })}
+                    </p>
+                  )}
+                </div>
+              )}
+
               {isResolved ? (
-                <p className="flex items-center gap-1.5 text-sm font-medium text-cta-700 dark:text-cta-500">
-                  <CheckIcon className="h-4 w-4" />
-                  {t('resolved', { resolution: options.find((o) => o.key === dispute.resolution)?.label ?? dispute.resolution?.replace('_', ' ') })}
-                </p>
+                <>
+                  <p className="flex items-center gap-1.5 text-sm font-medium text-cta-700 dark:text-cta-500">
+                    <CheckIcon className="h-4 w-4" />
+                    {t('resolved', { resolution: options.find((o) => o.key === dispute.resolution)?.label ?? dispute.resolution?.replace('_', ' ') })}
+                  </p>
+                  {dispute.resolutionNotes && (
+                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{dispute.resolutionNotes}</p>
+                  )}
+                </>
               ) : (
                 <div>
                   <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">{t('resolveLabel')}</p>
@@ -128,6 +169,26 @@ function DisputeCard({ dispute, onResolve }) {
                         <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{opt.consequence}</p>
                       </button>
                     ))}
+                  </div>
+                  <p className="mb-1.5 mt-3 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">{t('customRefundLabel')}</p>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      min="0"
+                      max={refundable}
+                      step="0.01"
+                      value={customAmount}
+                      onChange={(e) => setCustomAmount(e.target.value)}
+                      placeholder={t('customRefundPlaceholder', { max: refundable })}
+                      className="input h-10 flex-1 text-sm"
+                    />
+                    <button
+                      disabled={customAmount === '' || Number(customAmount) < 0 || Number(customAmount) > refundable}
+                      onClick={() => setConfirming(customOption(Math.round(Number(customAmount) * 100) / 100))}
+                      className="btn btn-outline h-10 shrink-0 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {t('reviewAmount')}
+                    </button>
                   </div>
                 </div>
               )}
@@ -147,6 +208,17 @@ function DisputeCard({ dispute, onResolve }) {
         <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
           {t('bothPartiesNotified')}
         </p>
+        <label htmlFor="resolution-notes" className="mt-3 block text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+          {t('resolutionNotesLabel')}
+        </label>
+        <textarea
+          id="resolution-notes"
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          placeholder={t('resolutionNotesPlaceholder')}
+          rows={2}
+          className="input mt-1 h-auto w-full resize-none py-2 text-sm"
+        />
         {resolveError && (
           <p role="alert" className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-400">
             {resolveError}
@@ -159,8 +231,10 @@ function DisputeCard({ dispute, onResolve }) {
               setResolving(true)
               setResolveError(null)
               try {
-                await onResolve(dispute.id, confirming.key, confirming.refund ?? 0)
+                await onResolve(dispute.id, confirming.key, confirming.refund ?? 0, notes.trim())
                 setConfirming(null)
+                setCustomAmount('')
+                setNotes('')
               } catch (e) {
                 // A refund is a real Stripe call — never close the modal as
                 // if it had worked when it didn't.

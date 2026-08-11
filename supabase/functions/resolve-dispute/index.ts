@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
     const { data: { user }, error: userErr } = await userClient.auth.getUser()
     if (userErr || !user) return json({ error: 'Not authenticated' }, 401)
 
-    const { disputeId, resolution, refundAmount } = await req.json().catch(() => ({}))
+    const { disputeId, resolution, refundAmount, resolutionNotes } = await req.json().catch(() => ({}))
     if (!disputeId || !resolution) return json({ error: 'Missing disputeId or resolution' }, 400)
 
     const admin = createClient(
@@ -89,6 +89,7 @@ Deno.serve(async (req) => {
       p_resolution: resolution,
       p_refund_amount: amount > 0 ? amount : null,
       p_stripe_refund_id: refundId,
+      p_resolution_notes: resolutionNotes || null,
     })
     if (rpcErr) {
       // The refund already went out; surface loudly rather than silently

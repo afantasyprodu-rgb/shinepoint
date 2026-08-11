@@ -42,6 +42,27 @@ function normalizeDetailer(row) {
   }
 }
 
+// Most-recent dispute row for this booking, shaped for either party — the
+// filed-against side uses filedAgainst===currentUserId to show a respond
+// form, the filer sees a read-only "waiting on response" state.
+function normalizeDispute(row) {
+  const latest = [...(row.disputes ?? [])].sort(
+    (a, b) => new Date(b.opened_at).getTime() - new Date(a.opened_at).getTime()
+  )[0]
+  if (!latest) return undefined
+  return {
+    id: latest.id,
+    filedBy: latest.filed_by,
+    filedAgainst: latest.filed_against,
+    status: latest.status,
+    reason: latest.reason,
+    resolution: latest.resolution ?? undefined,
+    responseText: latest.response_text ?? undefined,
+    respondedAt: latest.responded_at ?? undefined,
+    responseDeadline: latest.response_deadline,
+  }
+}
+
 function normalizeCustomerBooking(row) {
   return {
     id: row.id,
@@ -70,6 +91,7 @@ function normalizeCustomerBooking(row) {
     // A tip only counts as money once its charge succeeded (040).
     tipPaidAt: row.tip_paid_at ?? null,
     refundedAmount: Number(row.refunded_amount ?? 0),
+    dispute: normalizeDispute(row),
     ...mapBookingPhotos(row),
     weather: { ok: true, summary: 'Clear' },
     _real: true,
@@ -115,6 +137,7 @@ function normalizeDetailerBooking(row) {
     // A tip only counts as money once its charge succeeded (040).
     tipPaidAt: row.tip_paid_at ?? null,
     refundedAmount: Number(row.refunded_amount ?? 0),
+    dispute: normalizeDispute(row),
     ...mapBookingPhotos(row),
     weather: { ok: true, summary: 'Clear' },
     _real: true,
@@ -536,7 +559,8 @@ export async function fetchBookingsForCustomer(customerProfileId) {
         users!inner(full_name)
       ),
       reviews_of_detailers(id),
-      photos(id, photo_type, url, area_label)
+      photos(id, photo_type, url, area_label),
+      disputes(id, filed_by, filed_against, status, reason, response_text, responded_at, response_deadline, resolution, opened_at)
     `)
     .eq('customer_id', customerProfileId)
     .order('created_at', { ascending: false })
@@ -569,7 +593,8 @@ export async function fetchBookingsForDetailer(detailerProfileId) {
         vehicle_photo
       ),
       reviews_of_customers(rating, is_hard_to_handle),
-      photos(id, photo_type, url, area_label)
+      photos(id, photo_type, url, area_label),
+      disputes(id, filed_by, filed_against, status, reason, response_text, responded_at, response_deadline, resolution, opened_at)
     `)
     .eq('detailer_id', detailerProfileId)
     .not('status', 'in', '("cancelled")')
@@ -872,12 +897,22 @@ export async function insertDispute(bookingId, filedByUserId, reason) {
   if (error) { console.error('insertDispute:', error.message); throw error }
 }
 
+// The disputed-against party's response, within the 48h window shown on
+// the dispute. RLS has no update path for filed_against at all — this RPC
+// (042) is the only way in, and only once, only while unresolved.
+export async function respondToDispute(disputeId, responseText) {
+  const { error } = await supabase.rpc('respond_to_dispute', {
+    p_dispute_id: disputeId, p_response_text: responseText,
+  })
+  if (error) { console.error('respondToDispute:', error.message); throw error }
+}
+
 // Admin: all disputes with party names, shaped for the ops console. Fields the
 // schema doesn't store (statements, evidence, service, amount) are left blank.
 export async function fetchDisputes() {
   const { data, error } = await supabase
     .from('disputes')
-    .select('id, booking_id, reason, status, resolution, refund_amount, opened_at, filer:filed_by(full_name), against:filed_against(full_name), bookings!inner(total_price, refunded_amount, paid_at)')
+    .select('id, booking_id, reason, status, resolution, resolution_notes, refund_amount, opened_at, response_text, responded_at, response_deadline, filer:filed_by(full_name), against:filed_against(full_name), bookings!inner(total_price, refunded_amount, paid_at)')
     .order('opened_at', { ascending: false })
   if (error) { console.error('fetchDisputes:', error.message); return [] }
   return (data ?? []).map((d) => ({
@@ -886,9 +921,15 @@ export async function fetchDisputes() {
     reason: d.reason,
     status: d.status,
     resolution: d.resolution ?? undefined,
+    resolutionNotes: d.resolution_notes ?? undefined,
     openedAt: d.opened_at,
     filedBy: d.filer?.full_name ?? 'User',
     against: d.against?.full_name ?? 'User',
+    // The other party's chance to give their side before an admin rules —
+    // not enforced (an admin can still resolve early), just surfaced.
+    responseText: d.response_text ?? undefined,
+    respondedAt: d.responded_at ?? undefined,
+    responseDeadline: d.response_deadline,
     // What was actually charged for the job, and therefore the ceiling on any
     // refund. This used to be the only amount available, but refund_amount is
     // NULL until the dispute is resolved — so every OPEN dispute (the only

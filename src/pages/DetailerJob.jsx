@@ -30,13 +30,15 @@ import { sendReceiptEmail } from '../lib/email'
 // in progress → after photos → complete. Photos are mandatory gates.
 export default function DetailerJob() {
   const { id } = useParams()
-  const { getBooking, getDetailer, patchBooking, rateCustomer, addBookingPhotos, submitDamageReport, markNoDamage, isDemo } = useStore()
+  const { getBooking, getDetailer, patchBooking, rateCustomer, addBookingPhotos, submitDamageReport, markNoDamage, respondToDispute, isDemo } = useStore()
   const [custRating, setCustRating] = useState(0)
   const [hardToHandle, setHardToHandle] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [showInvoice, setShowInvoice] = useState(false)
   const [showPayout, setShowPayout] = useState(false)
   const [stepsExpanded, setStepsExpanded] = useState(false)
+  const [disputeResponse, setDisputeResponse] = useState('')
+  const [respondingToDispute, setRespondingToDispute] = useState(false)
   const b = getBooking(id)
   const t = useT('detailerJob')
 
@@ -350,6 +352,56 @@ export default function DetailerJob() {
             </div>
           </div>
         </div>
+
+        {b.status === 'disputed' && b.dispute && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="card mt-3 border-amber-200 !p-5 dark:border-amber-500/30"
+          >
+            <h2 className="font-display text-base font-bold text-slate-900 dark:text-slate-100">{t('disputeFiledTitle')}</h2>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{b.dispute.reason}</p>
+
+            {b.dispute.respondedAt ? (
+              <div className="mt-3 rounded-xl bg-brand-50 px-4 py-3 text-sm text-brand-800 dark:bg-white/5 dark:text-brand-200">
+                <p className="font-semibold">{t('yourResponse')}</p>
+                <p className="mt-1">{b.dispute.responseText}</p>
+                <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">{t('waitingAdminDecision')}</p>
+              </div>
+            ) : (
+              <div className="mt-3">
+                <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">
+                  {new Date(b.dispute.responseDeadline) > new Date()
+                    ? t('respondByDeadline', { when: new Date(b.dispute.responseDeadline).toLocaleString() })
+                    : t('responseWindowClosed')}
+                </p>
+                <textarea
+                  value={disputeResponse}
+                  onChange={(e) => setDisputeResponse(e.target.value)}
+                  placeholder={t('disputeResponsePlaceholder')}
+                  rows={3}
+                  className="input mt-2 h-auto w-full resize-none py-2"
+                />
+                <button
+                  type="button"
+                  disabled={disputeResponse.trim().length < 10 || respondingToDispute}
+                  onClick={async () => {
+                    setRespondingToDispute(true)
+                    try {
+                      await respondToDispute(b.dispute.id, disputeResponse.trim())
+                      setDisputeResponse('')
+                    } finally {
+                      setRespondingToDispute(false)
+                    }
+                  }}
+                  className="btn btn-brand mt-2 h-10 w-full text-sm disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {respondingToDispute ? t('submitting') : t('submitResponse')}
+                </button>
+              </div>
+            )}
+          </motion.div>
+        )}
 
         {damageDone && !damageAcked && (
           <motion.p

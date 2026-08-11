@@ -32,6 +32,7 @@ import {
   fetchNotifications,
   markNotificationsReadDB,
   insertDispute,
+  respondToDispute,
   fetchDisputes,
   fetchPendingApplications,
   fetchAdminCounts,
@@ -631,6 +632,19 @@ export function StoreProvider({ children }) {
         notify('customer', 'Dispute filed', 'An admin will review your case within 24 hours.', bookingId)
       },
 
+      // The disputed-against party's chance to give their side (042) — not
+      // enforced against the admin resolving early, just surfaced to them.
+      // Not simulated in demo (no response-window concept there).
+      async respondToDispute(disputeId, text) {
+        if (isDemo) return
+        await respondToDispute(disputeId, text)
+        if (customerProfile) {
+          setRealBookings(await fetchBookingsForCustomer(customerProfile.id))
+        } else if (detailerProfile) {
+          setRealBookings(await fetchBookingsForDetailer(detailerProfile.id))
+        }
+      },
+
       rateCustomer(bookingId, rating, hardToHandle) {
         const booking = bookings.find((b) => b.id === bookingId)
         if (!isDemo && booking?._real) {
@@ -802,9 +816,9 @@ export function StoreProvider({ children }) {
 
       // refundAmount > 0 issues a real Stripe refund before the outcome is
       // recorded; the RPC alone only ever wrote a number.
-      async resolveDispute(id, resolution, refundAmount = 0) {
+      async resolveDispute(id, resolution, refundAmount = 0, resolutionNotes = '') {
         if (!isDemo) {
-          await resolveDisputeWithRefund(id, resolution, refundAmount)
+          await resolveDisputeWithRefund(id, resolution, refundAmount, resolutionNotes)
           loadRealAdmin.current()
           return
         }
@@ -812,7 +826,7 @@ export function StoreProvider({ children }) {
         setDemoAdmin((a) => ({
           ...a,
           disputes: a.disputes.map((d) =>
-            d.id === id ? { ...d, status: 'resolved', resolution } : d
+            d.id === id ? { ...d, status: 'resolved', resolution, resolutionNotes } : d
           ),
         }))
         // Settle the linked booking (if it's a live one) so it leaves the
