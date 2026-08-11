@@ -5,7 +5,7 @@ import Modal from '../../components/ui/Modal'
 import { AnimatedPage } from '../../components/ui/Motion'
 import { StatusPill } from '../../components/ui/bits'
 import EvidencePhotos from '../../components/EvidencePhotos'
-import { AlertTriangleIcon, CheckIcon, XIcon, CameraIcon, ClockIcon } from '../../components/icons'
+import { AlertTriangleIcon, CheckIcon, XIcon, CameraIcon, ClockIcon, ShieldCheckIcon } from '../../components/icons'
 import { useStore } from '../../context/StoreContext'
 import { useT } from '../../i18n/useT'
 
@@ -13,6 +13,7 @@ const TAB_KEYS = [
   { key: 'Bookings', labelKey: 'tabBookings' },
   { key: 'Disputes', labelKey: 'tabDisputes' },
   { key: 'Overrides', labelKey: 'tabOverrides' },
+  { key: 'Payouts', labelKey: 'tabPayouts' },
   { key: 'Flagged', labelKey: 'tabFlagged' },
 ]
 
@@ -239,14 +240,59 @@ function OverrideCard({ override, booking, onApprove, onCancel }) {
   )
 }
 
+// A payout held because the detailer is still on probation (fewer than 5
+// completed jobs — 041). The 48h hold applies underneath this regardless;
+// this only clears the extra approval gate, it doesn't force a transfer.
+function PayoutCard({ payout, onApprove }) {
+  const t = useT('adminOps')
+  const holdPassed = payout.holdUntil && new Date(payout.holdUntil) <= new Date()
+
+  return (
+    <motion.div
+      layout
+      exit={{ opacity: 0, x: 100, transition: { duration: 0.25 } }}
+      className="card border-amber-200 dark:border-amber-500/30 !p-5"
+    >
+      <div className="flex items-start gap-3">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400">
+          <ShieldCheckIcon className="h-5 w-5" />
+        </span>
+        <div className="flex-1">
+          <p className="font-semibold text-slate-900 dark:text-slate-100">{payout.detailer}</p>
+          <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
+            {t('probationPayoutHeld', { remaining: payout.probationRemaining })}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <span className="chip bg-brand-100 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">
+              ${payout.amount.toFixed(2)}
+            </span>
+            <span className={`chip ${holdPassed ? 'bg-cta-700/10 text-cta-700 dark:text-cta-500' : 'bg-amber-500/15 text-amber-700 dark:text-amber-300'}`}>
+              <ClockIcon className="mr-1 h-3 w-3" />
+              {holdPassed ? t('holdCleared') : t('holdPending')}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4">
+        <button onClick={onApprove} className="btn btn-cta h-10 w-full text-sm">
+          <CheckIcon className="h-4 w-4" /> {t('approvePayout')}
+        </button>
+      </div>
+    </motion.div>
+  )
+}
+
 export default function AdminOps() {
   const [tab, setTab] = useState('Disputes')
-  const { bookings, getBooking, getDetailer, admin, resolveDispute, approveOverride, clearFlag, warnFlaggedSender, suspendFlaggedSender } = useStore()
+  const { bookings, getBooking, getDetailer, admin, resolveDispute, approveOverride, approvePayout, clearFlag, warnFlaggedSender, suspendFlaggedSender } = useStore()
   const t = useT('adminOps')
+  const pendingPayouts = admin.pendingPayouts ?? []
 
   const badges = {
     Disputes: admin.disputes.filter((d) => d.status !== 'resolved').length,
     Overrides: admin.overrides.length,
+    Payouts: pendingPayouts.length,
     Flagged: admin.flagged.length,
   }
 
@@ -323,6 +369,25 @@ export default function AdminOps() {
                       onApprove={() => approveOverride(o.id, 'approve')}
                       onCancel={() => approveOverride(o.id, 'cancel')}
                     />
+                  ))}
+                </AnimatePresence>
+              </>
+            )}
+
+            {tab === 'Payouts' && (
+              <>
+                {pendingPayouts.length === 0 && (
+                  <div className="card flex flex-col items-center py-10 text-center">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cta-700/10 text-cta-700 dark:text-cta-500">
+                      <CheckIcon className="h-6 w-6" />
+                    </span>
+                    <p className="mt-3 font-semibold text-slate-900 dark:text-slate-100">{t('allClear')}</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">{t('noPayoutsWaiting')}</p>
+                  </div>
+                )}
+                <AnimatePresence>
+                  {pendingPayouts.map((p) => (
+                    <PayoutCard key={p.id} payout={p} onApprove={() => approvePayout(p.id)} />
                   ))}
                 </AnimatePresence>
               </>

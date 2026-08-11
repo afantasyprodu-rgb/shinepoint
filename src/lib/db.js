@@ -981,6 +981,36 @@ export async function fetchOverrides() {
     .sort((a, b) => b.waitingMins - a.waitingMins)
 }
 
+// Admin: jobs whose payout is held for approval because the detailer is
+// still on probation (fewer than 5 completed jobs) — see 041. The 48h
+// hold still applies underneath this; a job can be both "not yet 48h old"
+// and "needs approval", and it stays out of release-payouts until BOTH
+// clear.
+export async function fetchPendingPayouts() {
+  const { data, error } = await supabase
+    .from('bookings')
+    .select(`
+      id, total_price, detailer_payout, payout_hold_until,
+      detailer_profiles(probation_jobs_remaining, users(full_name))
+    `)
+    .eq('status', 'complete')
+    .eq('payout_requires_approval', true)
+    .is('payout_approved_at', null)
+    .is('transferred_at', null)
+    .order('payout_hold_until', { ascending: true })
+
+  if (error) { console.error('fetchPendingPayouts:', error.message); return [] }
+  return (data ?? []).map((b) => ({
+    id: b.id,
+    bookingId: b.id,
+    detailer: b.detailer_profiles?.users?.full_name ?? 'Detailer',
+    probationRemaining: b.detailer_profiles?.probation_jobs_remaining ?? 0,
+    amount: Number(b.detailer_payout ?? 0),
+    total: Number(b.total_price ?? 0),
+    holdUntil: b.payout_hold_until,
+  }))
+}
+
 // Admin: detailers awaiting verification, shaped for the People console.
 export async function fetchPendingApplications() {
   const { data, error } = await supabase
@@ -1026,6 +1056,11 @@ export async function fetchFlaggedMessages() {
 export async function adminVerifyDetailer(detailerId, approve) {
   const { error } = await supabase.rpc('admin_verify_detailer', { p_detailer_id: detailerId, p_approve: approve })
   if (error) console.error('adminVerifyDetailer:', error.message)
+}
+
+export async function adminApprovePayout(bookingId) {
+  const { error } = await supabase.rpc('admin_approve_payout', { p_booking_id: bookingId })
+  if (error) console.error('adminApprovePayout:', error.message)
 }
 
 export async function adminResolveDispute(disputeId, resolution, refundAmount = null) {

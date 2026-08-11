@@ -36,6 +36,8 @@ import {
   fetchPendingApplications,
   fetchAdminCounts,
   fetchOverrides,
+  fetchPendingPayouts,
+  adminApprovePayout,
   fetchFlaggedMessages,
   fetchAdminFinance,
   adminVerifyDetailer,
@@ -256,11 +258,12 @@ export function StoreProvider({ children }) {
     if (isDemo || profile?.role !== 'admin') return
     let cancelled = false
     const load = async () => {
-      const [applications, disputes, flagged, overrides, finance, counts] = await Promise.all([
+      const [applications, disputes, flagged, overrides, pendingPayouts, finance, counts] = await Promise.all([
         fetchPendingApplications(),
         fetchDisputes(),
         fetchFlaggedMessages(),
         fetchOverrides(),
+        fetchPendingPayouts(),
         fetchAdminFinance(),
         fetchAdminCounts(),
       ])
@@ -270,6 +273,7 @@ export function StoreProvider({ children }) {
         disputes,
         flagged,
         overrides,
+        pendingPayouts,
         decided: [],
         finance,
         milestones: {
@@ -885,6 +889,15 @@ export function StoreProvider({ children }) {
           }
         }
         setDemoAdmin((a) => ({ ...a, overrides: a.overrides.filter((o) => o.id !== id) }))
+      },
+
+      // Clears the probation approval gate (041) on a held payout so
+      // release-payouts can transfer it once the 48h hold also clears.
+      // Not simulated in demo — no Stripe balance exists there.
+      approvePayout(id) {
+        if (!isDemo) {
+          adminApprovePayout(id).then(() => loadRealAdmin.current())
+        }
       },
     }
   }, [

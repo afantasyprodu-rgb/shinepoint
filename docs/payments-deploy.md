@@ -5,7 +5,7 @@ The payment code is already written and wired into the app:
 - `supabase/functions/create-payment-intent` — charges the platform's own Stripe balance (not a destination charge), computes `platform_cut`/`detailer_payout`, returns `clientSecret`
 - `supabase/functions/connect-onboarding` — creates the detailer's Stripe Connect account (manual payout schedule) + onboarding link
 - `supabase/functions/identity-verification` — creates a Stripe Identity VerificationSession for the detailer onboarding "Identity" step
-- `supabase/functions/release-payouts` — **scheduled job**, not user-invoked: transfers a completed booking's `detailer_payout` to the detailer's connected account once its 48-hour hold has passed with no dispute
+- `supabase/functions/release-payouts` — **scheduled job**, not user-invoked: transfers a completed booking's `detailer_payout` to the detailer's connected account once its 48-hour hold has passed with no dispute, and — for a detailer still on probation (fewer than 5 completed jobs) — once an admin has approved that specific payout (see `041_probation_payout_approval.sql`)
 - `supabase/functions/get-balance` — the logged-in detailer's live Stripe balance (available vs pending)
 - `supabase/functions/request-payout` — withdraws a detailer-chosen amount from their available balance to their bank
 - `supabase/functions/detailer-dashboard-link` — a secondary "manage in Stripe" link into their Express dashboard
@@ -60,7 +60,7 @@ supabase secrets set RESEND_FROM="ShinePoint <notifications@yourdomain.com>"
 supabase db push
 ```
 
-This applies (among earlier ones) `014_stripe_identity.sql`, `015_featured_service.sql`, and `016_payout_holds.sql` — the last one adds `bookings.payout_hold_until` / `transferred_at` / `stripe_transfer_id` and the trigger that starts a 48-hour hold every time a booking becomes `'complete'`.
+This applies (among earlier ones) `014_stripe_identity.sql`, `015_featured_service.sql`, and `016_payout_holds.sql` — the last one adds `bookings.payout_hold_until` / `transferred_at` / `stripe_transfer_id` and the trigger that starts a 48-hour hold every time a booking becomes `'complete'`. `041_probation_payout_approval.sql` adds the probation gate on top: while a detailer has fewer than 5 completed jobs, their payouts additionally sit in the admin **Ops → Payouts** tab until approved, regardless of how long the 48h clock has run.
 
 `config.toml` already sets `verify_jwt = false` for the webhook and the release job (neither can/should require a Supabase user JWT), so a plain deploy is enough for everything:
 
@@ -140,6 +140,7 @@ select cron.schedule(
 5. **Force the hold to clear** for testing — either wait 48h, or in the SQL editor: `update bookings set payout_hold_until = now() where id = '<booking id>';` — then invoke `release-payouts` manually (`curl -X POST .../release-payouts -H "x-cron-secret: ..."`, or just wait for the next scheduled run). Confirm `transferred_at`/`stripe_transfer_id` get set, and Stripe → Connect → the detailer's account shows the transfer.
 6. **Balance + withdraw:** sign in as that detailer → Earnings page → confirm "Available to withdraw" reflects the transferred amount (via `get-balance`), then withdraw a partial amount and confirm a `Payout` appears in Stripe's test-mode dashboard for the connected account.
 7. **Dispute holds it:** file a dispute on a booking before its hold clears (status → `'disputed'`) and confirm `release-payouts` does *not* transfer it (it's excluded from the query since it's no longer `'complete'`). Resolving the dispute in the detailer's favor sets it back to `'complete'`, which restarts a fresh 48-hour hold via the same trigger.
+8. **Probation gate:** complete a job for a brand-new detailer (`is_probation = true`) and confirm it shows up under admin **Ops → Payouts**, and that `release-payouts` skips it even after forcing `payout_hold_until` into the past. Click "Approve payout" and confirm it then releases on the next `release-payouts` run. Complete 5 total jobs for that detailer and confirm `detailer_profiles.is_probation` flips to `false` (check via SQL editor — `probation_jobs_remaining` should read 0) and that job 6's payout releases without needing approval.
 
 ---
 
