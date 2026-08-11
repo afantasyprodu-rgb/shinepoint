@@ -5,8 +5,11 @@
 //
 // Deploy PUBLIC (no JWT — Stripe can't send one):
 //   supabase functions deploy stripe-webhook --no-verify-jwt
-// Secrets: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, RESEND_API_KEY (optional
-// — confirmation email send is skipped, not fatal, if unset).
+// Secrets: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET (the regular "Your
+// account" endpoint's signing secret), STRIPE_CONNECT_WEBHOOK_SECRET (the
+// Connect-scoped endpoint's — see the comment below on why there are two),
+// RESEND_API_KEY (optional — confirmation email send is skipped, not fatal,
+// if unset).
 import Stripe from 'npm:stripe@^18'
 import { createClient } from 'npm:@supabase/supabase-js@^2'
 import { sendEmail } from '../_shared/resend.ts'
@@ -15,7 +18,19 @@ import { bookingConfirmationEmail } from '../_shared/email-templates.ts'
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
   apiVersion: '2026-05-27.dahlia',
 })
-const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET')!
+// Two DIFFERENT Stripe webhook endpoints point at this same URL, and Stripe
+// signs each with its own secret: a regular "Your account" endpoint (
+// payment_intent.*, charge.dispute.created, identity.verification_session.*
+// — all platform-account events, since create-payment-intent charges the
+// platform's own balance rather than a destination charge) and a Connect-
+// scoped endpoint (account.updated for a detailer's connected account —
+// Connect events are a separate scope and never delivered to a regular
+// endpoint). Try both secrets; a connected-account payload will fail
+// verification against the first and succeed against the second.
+const webhookSecrets = [
+  Deno.env.get('STRIPE_WEBHOOK_SECRET'),
+  Deno.env.get('STRIPE_CONNECT_WEBHOOK_SECRET'),
+].filter((s): s is string => Boolean(s))
 // Async/SubtleCrypto signature verification is required in Deno.
 const cryptoProvider = Stripe.createSubtleCryptoProvider()
 
@@ -72,16 +87,18 @@ Deno.serve(async (req) => {
   const sig = req.headers.get('stripe-signature')
   const body = await req.text()
 
-  let event: Stripe.Event
-  try {
-    event = await stripe.webhooks.constructEventAsync(
-      body,
-      sig!,
-      webhookSecret,
-      undefined,
-      cryptoProvider
-    )
-  } catch (e) {
+  let event: Stripe.Event | null = null
+  let lastErr: Error | null = null
+  for (const secret of webhookSecrets) {
+    try {
+      event = await stripe.webhooks.constructEventAsync(body, sig!, secret, undefined, cryptoProvider)
+      break
+    } catch (e) {
+      lastErr = e as Error
+    }
+  }
+  if (!event) {
+    const e = lastErr ?? new Error('No webhook secret configured')
     console.error('webhook signature verify failed:', (e as Error).message)
     return new Response('Bad signature', { status: 400 })
   }
