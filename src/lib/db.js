@@ -379,7 +379,7 @@ export async function deletePromoCode(id) {
 export async function fetchCustomerProfile(userId) {
   const { data, error } = await supabase
     .from('customer_profiles')
-    .select('id, referral_code, referral_credit, default_address, default_zip, profile_photo_url, bio, vehicle_make, vehicle_model, vehicle_type, vehicles')
+    .select('id, referral_code, referral_credit, identity_status, default_address, default_zip, profile_photo_url, bio, vehicle_make, vehicle_model, vehicle_type, vehicles')
     .eq('user_id', userId)
     .single()
   if (error) {

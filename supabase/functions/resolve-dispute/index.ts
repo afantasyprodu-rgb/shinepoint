@@ -23,6 +23,12 @@ const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
   apiVersion: '2026-05-27.dahlia',
 })
 
+// What Stripe Identity itself costs per check (043) — recovered from the
+// customer only when a dispute that REQUIRED verification (i.e. not their
+// first) is then also ruled against them. Never charged on a first dispute,
+// and never charged just for verifying — only on a proven-false repeat.
+const FALSE_DISPUTE_FEE = 1.5
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
@@ -51,7 +57,7 @@ Deno.serve(async (req) => {
 
     const { data: dispute } = await admin
       .from('disputes')
-      .select('id, status, booking_id, stripe_refund_id, bookings!inner(total_price, stripe_payment_intent, refunded_amount)')
+      .select('id, status, filed_by, required_identity, booking_id, stripe_refund_id, bookings!inner(total_price, stripe_payment_intent, refunded_amount, stripe_payment_method)')
       .eq('id', disputeId)
       .single()
     if (!dispute) return json({ error: 'Dispute not found' }, 404)
@@ -98,7 +104,37 @@ Deno.serve(async (req) => {
       return json({ error: `Refund issued (${refundId}) but recording it failed: ${rpcErr.message}` }, 500)
     }
 
-    return json({ ok: true, refundId, refunded: amount })
+    // False-dispute fee: only when this specific dispute required
+    // verification (i.e. it wasn't the customer's first) AND it was ruled
+    // against them. Best-effort — if the card fails or there's none on
+    // file, the dispute resolution itself has already succeeded and isn't
+    // rolled back over an unrelated $1.50.
+    let feeCharged = false
+    if (resolution === 'detailer_wins' && dispute.required_identity && booking?.stripe_payment_method) {
+      try {
+        const { data: filer } = await admin.from('users').select('stripe_customer_id').eq('id', dispute.filed_by).single()
+        if (filer?.stripe_customer_id) {
+          const feeIntent = await stripe.paymentIntents.create({
+            amount: Math.round(FALSE_DISPUTE_FEE * 100),
+            currency: 'usd',
+            customer: filer.stripe_customer_id,
+            payment_method: booking.stripe_payment_method,
+            off_session: true,
+            confirm: true,
+            metadata: { dispute_id: disputeId, kind: 'false_dispute_fee' },
+          })
+          await admin
+            .from('disputes')
+            .update({ false_dispute_fee_charged: true, false_dispute_fee_payment_intent: feeIntent.id })
+            .eq('id', disputeId)
+          feeCharged = true
+        }
+      } catch (feeErr) {
+        console.error('resolve-dispute: false-dispute fee charge failed', disputeId, (feeErr as Error).message)
+      }
+    }
+
+    return json({ ok: true, refundId, refunded: amount, feeCharged })
   } catch (e) {
     console.error('resolve-dispute:', e)
     return json({ error: (e as Error).message }, 500)

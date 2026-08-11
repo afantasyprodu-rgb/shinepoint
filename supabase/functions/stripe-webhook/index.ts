@@ -147,20 +147,20 @@ Deno.serve(async (req) => {
           .eq('stripe_account_id', acct.id)
         break
       }
+      // Sessions are created for either a detailer (onboarding) or a
+      // customer (043 — repeat-dispute gate). The session id is unique
+      // either way, so trying both tables is simpler and just as safe as
+      // reading metadata.profile_table back out — at most one row matches.
       case 'identity.verification_session.verified': {
         const vs = event.data.object as Stripe.Identity.VerificationSession
-        await admin
-          .from('detailer_profiles')
-          .update({ identity_status: 'verified' })
-          .eq('stripe_identity_session_id', vs.id)
+        await admin.from('detailer_profiles').update({ identity_status: 'verified' }).eq('stripe_identity_session_id', vs.id)
+        await admin.from('customer_profiles').update({ identity_status: 'verified' }).eq('stripe_identity_session_id', vs.id)
         break
       }
       case 'identity.verification_session.requires_input': {
         const vs = event.data.object as Stripe.Identity.VerificationSession
-        await admin
-          .from('detailer_profiles')
-          .update({ identity_status: 'failed' })
-          .eq('stripe_identity_session_id', vs.id)
+        await admin.from('detailer_profiles').update({ identity_status: 'failed' }).eq('stripe_identity_session_id', vs.id)
+        await admin.from('customer_profiles').update({ identity_status: 'failed' }).eq('stripe_identity_session_id', vs.id)
         break
       }
       default:

@@ -342,6 +342,8 @@ export function StoreProvider({ children }) {
           vehicles: customerProfile?.vehicles ?? [],
           referralCode: customerProfile?.referral_code ?? '',
           referralCredits: Number(customerProfile?.referral_credit ?? 0),
+          // Gates filing a 2nd+ dispute (043) — 'unverified'|'pending'|'verified'|'failed'.
+          identityStatus: customerProfile?.identity_status ?? 'unverified',
           points: loyalty.points,
           pointsToNextReward: [5, 15, 25].find((n) => loyalty.points < n) ?? 25,
           rewards: loyalty.rewards,

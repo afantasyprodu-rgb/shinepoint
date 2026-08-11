@@ -21,6 +21,7 @@ import {
 import { useStore } from '../context/StoreContext'
 import { useLanguage } from '../context/LanguageContext'
 import { useT } from '../i18n/useT'
+import { startIdentityVerification, stripePromise, isStripeConfigured } from '../lib/stripe'
 
 // Half the tick hit-target (.job-progress-tick is 2.75rem) — insetting every
 // tick position by this amount keeps the end ticks' centers a full radius
@@ -65,7 +66,7 @@ const STAGE_KEYS = {
 export default function BookingDetail() {
   const { id } = useParams()
   const [searchParams] = useSearchParams()
-  const { getBooking, getDetailer, patchBooking, submitReview, cancelBooking, fileDispute, isDemo } = useStore()
+  const { getBooking, getDetailer, patchBooking, submitReview, cancelBooking, fileDispute, customer, isDemo } = useStore()
   const { lang } = useLanguage()
   const t = useT('bookingDetail')
   const [rating, setRating] = useState(0)
@@ -81,6 +82,10 @@ export default function BookingDetail() {
   const [showDispute, setShowDispute] = useState(false)
   const [showInvoice, setShowInvoice] = useState(false)
   const [disputeReason, setDisputeReason] = useState('')
+  const [disputeError, setDisputeError] = useState('')
+  const [identityRequired, setIdentityRequired] = useState(false)
+  const [idStatus, setIdStatus] = useState('idle') // idle | scanning | pending
+  const [idError, setIdError] = useState('')
   // A notification bell link arrives as ?stage=en_route — jump straight to
   // that stage's preview instead of following the booking's current status,
   // so an older notification still opens the stage it was actually about.
@@ -468,34 +473,100 @@ const shownStage = openStage ?? stageIdx
           </div>
         </Modal>
 
-        <Modal open={showDispute} onClose={() => setShowDispute(false)} labelledBy="dispute-title">
-          <h2 id="dispute-title" className="text-center font-display text-xl font-bold text-slate-900">
-            {t('reportProblemTitle')}
-          </h2>
-          <p className="mt-2 text-center text-sm text-slate-600">
-            {t('reportProblemBody')}
-          </p>
-          <label htmlFor="dispute-reason" className="sr-only">
-            {t('whatWentWrongSr')}
-          </label>
-          <textarea
-            id="dispute-reason"
-            rows={4}
-            value={disputeReason}
-            onChange={(e) => setDisputeReason(e.target.value)}
-            placeholder={t('disputePlaceholder')}
-            className="input mt-4 h-auto resize-none py-2"
-          />
-          <button
-            disabled={disputeReason.trim().length < 10}
-            onClick={() => {
-              fileDispute(b.id, d?.name ?? 'Detailer', disputeReason.trim())
-              setShowDispute(false)
-            }}
-            className="btn btn-brand mt-4 w-full"
-          >
-            {t('fileDispute')}
-          </button>
+        <Modal
+          open={showDispute}
+          onClose={() => {
+            setShowDispute(false)
+            setIdentityRequired(false)
+            setDisputeError('')
+          }}
+          labelledBy="dispute-title"
+        >
+          {identityRequired ? (
+            <>
+              <h2 id="dispute-title" className="text-center font-display text-xl font-bold text-slate-900">
+                {t('verifyIdentityTitle')}
+              </h2>
+              <p className="mt-2 text-center text-sm text-slate-600">
+                {idStatus === 'pending' ? t('verifyIdentityPending') : t('verifyIdentityBody')}
+              </p>
+              {idError && (
+                <p role="alert" className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-center text-sm text-red-700">
+                  {idError}
+                </p>
+              )}
+              {idStatus !== 'pending' && (
+                <button
+                  disabled={idStatus === 'scanning' || !isStripeConfigured}
+                  onClick={async () => {
+                    setIdError('')
+                    setIdStatus('scanning')
+                    try {
+                      const clientSecret = await startIdentityVerification()
+                      const stripe = await stripePromise
+                      const { error } = await stripe.verifyIdentity(clientSecret)
+                      if (error) {
+                        setIdStatus('idle')
+                        setIdError(error.message)
+                        return
+                      }
+                      setIdStatus('pending')
+                    } catch (e) {
+                      setIdStatus('idle')
+                      setIdError(e.message || t('idStartError'))
+                    }
+                  }}
+                  className="btn btn-brand mt-4 w-full disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {idStatus === 'scanning' ? t('idScanning') : t('startVerification')}
+                </button>
+              )}
+            </>
+          ) : (
+            <>
+              <h2 id="dispute-title" className="text-center font-display text-xl font-bold text-slate-900">
+                {t('reportProblemTitle')}
+              </h2>
+              <p className="mt-2 text-center text-sm text-slate-600">
+                {t('reportProblemBody')}
+              </p>
+              <label htmlFor="dispute-reason" className="sr-only">
+                {t('whatWentWrongSr')}
+              </label>
+              <textarea
+                id="dispute-reason"
+                rows={4}
+                value={disputeReason}
+                onChange={(e) => setDisputeReason(e.target.value)}
+                placeholder={t('disputePlaceholder')}
+                className="input mt-4 h-auto resize-none py-2"
+              />
+              {disputeError && (
+                <p role="alert" className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+                  {disputeError}
+                </p>
+              )}
+              <button
+                disabled={disputeReason.trim().length < 10}
+                onClick={async () => {
+                  setDisputeError('')
+                  try {
+                    await fileDispute(b.id, d?.name ?? 'Detailer', disputeReason.trim())
+                    setShowDispute(false)
+                  } catch (e) {
+                    if (e.message?.startsWith('IDENTITY_REQUIRED')) {
+                      setIdentityRequired(true)
+                    } else {
+                      setDisputeError(e.message || t('disputeError'))
+                    }
+                  }
+                }}
+                className="btn btn-brand mt-4 w-full"
+              >
+                {t('fileDispute')}
+              </button>
+            </>
+          )}
         </Modal>
 
         <Modal open={showReview} onClose={() => setShowReview(false)} labelledBy="review-title">
