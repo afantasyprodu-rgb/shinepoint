@@ -76,7 +76,13 @@ export default function DetailerDashboard() {
 
   // Demo: filter the shared pool. Real: all bookings loaded are already ours.
   const mine = isDemo ? bookings.filter((b) => b.detailerId === meId) : bookings
-  const incoming = mine.filter((b) => b.status === 'pending')
+  // A real booking can sit at status:'pending' with no successful payment —
+  // checkout abandoned or the PaymentIntent failed after the row was
+  // created (see paidAt on the booking, set only by a real Stripe success).
+  // Never surface those as an actionable request: accepting an unpaid job
+  // was a real bug this caught (a detailer's Accept had no payment check at
+  // all). Demo bookings have no paidAt to check, so they pass through as-is.
+  const incoming = mine.filter((b) => b.status === 'pending' && (isDemo || b.paidAt))
   const active = mine.filter((b) => !['pending', 'complete', 'cancelled'].includes(b.status))
   const earningsToday = mine
     .filter((b) => b.status === 'complete')

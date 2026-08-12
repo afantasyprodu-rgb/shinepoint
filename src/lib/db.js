@@ -73,6 +73,13 @@ function normalizeCustomerBooking(row) {
     price: Number(row.total_price ?? 0),
     tip: Number(row.tip_amount ?? 0),
     status: row.status,
+    // Set only once the customer's PaymentIntent actually succeeds
+    // (create-payment-intent / stripe-webhook) — a booking can sit at
+    // status:'pending' with this still null if checkout was abandoned or
+    // failed after the row was created. See DetailerDashboard's `incoming`
+    // filter, which uses this to keep unpaid requests from ever reaching a
+    // detailer's Accept button.
+    paidAt: row.paid_at ?? null,
     scheduledTime: row.scheduled_time,
     address: row.booking_address ?? '',
     zip: row.booking_zip ?? '',
@@ -114,6 +121,9 @@ function normalizeDetailerBooking(row) {
     payoutHoldUntil: row.payout_hold_until,
     transferredAt: row.transferred_at,
     status: row.status,
+    // See normalizeCustomerBooking's paidAt comment — same field, same
+    // "can be pending-but-unpaid" caveat. Gates the Accept action below.
+    paidAt: row.paid_at ?? null,
     scheduledTime: row.scheduled_time,
     startedAt: row.started_at,
     completedAt: row.completed_at,
@@ -570,7 +580,7 @@ export async function fetchBookingsForCustomer(customerProfileId) {
       service_id, detailer_id,
       vehicle_type, vehicle_make, vehicle_model,
       damage_report_submitted, damage_report_acknowledged,
-      cancelled_by, invoice, tip_paid_at, refunded_amount,
+      cancelled_by, invoice, tip_paid_at, refunded_amount, paid_at,
       services(service_name),
       detailer_profiles!bookings_detailer_id_fkey(
         id,
@@ -599,7 +609,7 @@ export async function fetchBookingsForDetailer(detailerProfileId) {
       service_id, customer_id,
       vehicle_type, vehicle_make, vehicle_model,
       damage_report_submitted, damage_report_acknowledged,
-      cancelled_by, invoice, tip_paid_at, refunded_amount,
+      cancelled_by, invoice, tip_paid_at, refunded_amount, paid_at,
       platform_cut, detailer_payout, payout_hold_until, transferred_at,
       services(service_name),
       customer_profiles!bookings_customer_id_fkey(
