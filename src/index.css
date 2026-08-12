@@ -71,7 +71,7 @@
    are only overridden once the user actually toggles (see localStorage
    keys shinepoint-hue-light / shinepoint-hue-dark in ThemeContext.jsx). */
 :root {
-  --brand-h: 320;
+  --brand-h: 356;
   --cta-h: 142;
 }
 
