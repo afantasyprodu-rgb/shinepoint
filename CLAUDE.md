@@ -35,7 +35,7 @@ The whole app reads through two providers — understand the split before touchi
   offers the customer demo. To test detailer/admin, use a narrow viewport.
 
 ## Conventions (match existing code)
-- Design tokens in `src/index.css`: `brand-*` (purple ramp) and `cta-*` (green). Use utility
+- Design tokens in `src/index.css`: `brand-*` (pink ramp) and `cta-*` (green). Use utility
   classes `.card`, `.btn`/`.btn-brand`/`.btn-cta`/`.btn-outline`, `.chip`, `.input` — don't
   hand-roll equivalents. Fonts: `font-display` (Lexend) for headings, `font-sans` body.
 - Animations via `motion/react` (Framer Motion). Modals = `src/components/ui/Modal.jsx`,

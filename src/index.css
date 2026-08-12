@@ -10,7 +10,7 @@
 
    ── 60-30-10 Color Distribution ──────────────────────────
    • 60% Neutral: Neumorphic putty surfaces (--neu-bg), body backgrounds
-   • 30% Brand: Purple ramp (headers, cards, navigation, text hierarchy)
+   • 30% Brand: Pink ramp (headers, cards, navigation, text hierarchy)
    • 10% CTA: Green ramp (buttons, success states, CTAs only)
    • Accent: Teal for charts/analytics only (never UI chrome)
 
@@ -71,7 +71,7 @@
    are only overridden once the user actually toggles (see localStorage
    keys shinepoint-hue-light / shinepoint-hue-dark in ThemeContext.jsx). */
 :root {
-  --brand-h: 262;
+  --brand-h: 320;
   --cta-h: 142;
 }
 
