@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>ShinePoint — Reclutamiento de Detalladores</title>
+    <script src="vendor/gsap.min.js"></script>
+    <style>
+      /* Fonts vendored locally so the composition is fully self-contained —
+         no external fetch at preview or render time. Both are variable fonts. */
+      @font-face {
+        font-family: "Inter";
+        src: url("vendor/inter.woff2") format("woff2");
+        font-weight: 100 900; font-style: normal; font-display: block;
+      }
+      @font-face {
+        font-family: "Playfair Display";
+        src: url("vendor/playfair.woff2") format("woff2");
+        font-weight: 400 900; font-style: normal; font-display: block;
+      }
+
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: #4C1D95; }
+      body { font-family: "Inter", sans-serif; }
+
+      :root {
+        --brand-900: #4C1D95;
+        --brand-800: #5B21B6;
+        --brand-700: #6D28D9;
+        --brand-600: #7C3AED;
+        --brand-500: #A78BFA;
+        --brand-50:  #FAF5FF;
+        --cta:       #22C55E;
+        --cta-text:  #4ADE80;   /* green for TEXT on dark — #22C55E fails AA at label sizes */
+        --cta-700:   #15803D;
+        --gray-dim:  #6B7280;
+      }
+
+      /* Bottom 18% (346px) stays clear of platform UI — every scene pads for it. */
+      .scene {
+        position: absolute; inset: 0;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        overflow: hidden;
+        padding: 140px 80px 380px;
+        text-align: center;
+      }
+
+      .numeral {
+        font-family: "Playfair Display", serif;
+        font-weight: 600;
+        line-height: 0.9;
+        letter-spacing: -0.03em;
+        font-variant-numeric: tabular-nums;
+      }
+      .heading {
+        font-family: "Playfair Display", serif;
+        font-weight: 500;
+        line-height: 1.15;
+        letter-spacing: -0.015em;
+      }
+      .sub {
+        font-family: "Inter", sans-serif;
+        font-weight: 400;
+        line-height: 1.45;
+      }
+      .label {
+        font-family: "Inter", sans-serif;
+        font-weight: 600;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+
+      /* Seek-safe numerals. GSAP suppresses onUpdate callbacks when a timeline is
+         scrubbed rather than played, and a frame renderer scrubs every frame — so a
+         JS-driven counter silently stays at its start value in the render. Animating a
+         registered custom property instead keeps the count in the style system, where
+         it renders correctly at any arbitrary seek. */
+      @property --num {
+        syntax: "<number>";
+        initial-value: 0;
+        inherits: false;
+      }
+      /* <number>, not <integer>: mid-tween values are fractional, and a fractional
+         value against an <integer> syntax is invalid — the browser throws it away and
+         snaps back to initial-value, which stalls the count at 0. Round for display. */
+      .count { counter-reset: num calc(round(down, var(--num), 1)); }
+      .count::after { content: counter(num); }
+      .count-pct::after { content: counter(num) "%"; }
+
+      /* ── Scene 2: receipt stack ── */
+      .receipt {
+        position: absolute;
+        width: 420px; padding: 38px 40px;
+        background: #E5E7EB;
+        border-radius: 14px;
+        box-shadow: 0 24px 50px rgba(0,0,0,0.42);
+        text-align: left;
+      }
+      .receipt-amt {
+        font-family: "Playfair Display", serif;
+        font-weight: 600; font-size: 78px; color: #4B5563;
+        line-height: 1;
+      }
+      .receipt-line {
+        font-family: "Inter", sans-serif; font-size: 24px;
+        color: #9CA3AF; margin-top: 12px; font-weight: 500;
+      }
+
+      /* ── Scene 6: withdraw row ── */
+      .withdraw-card {
+        width: 780px; background: #FFFFFF;
+        border-radius: 26px; padding: 46px;
+        box-shadow: 0 30px 70px rgba(0,0,0,0.35);
+      }
+      .amount-field {
+        display: flex; align-items: center; justify-content: flex-start;
+        height: 118px; border: 3px solid #E5E7EB; border-radius: 16px;
+        padding: 0 32px; background: #F9FAFB;
+      }
+      .amount-text {
+        font-family: "Playfair Display", serif; font-weight: 600;
+        font-size: 68px; color: #111827; font-variant-numeric: tabular-nums;
+      }
+      .withdraw-btn {
+        margin-top: 26px; height: 112px; border-radius: 16px;
+        background: var(--cta-700); color: #FFFFFF;
+        display: flex; align-items: center; justify-content: center;
+        font-family: "Inter", sans-serif; font-weight: 700; font-size: 42px;
+        box-shadow: 0 14px 30px rgba(34,197,94,0.42);
+      }
+
+      /* ── Scene 7: tip badge ── */
+      .tip-badge {
+        display: inline-flex; align-items: center; gap: 18px;
+        padding: 26px 44px; border-radius: 999px;
+        background: rgba(34,197,94,0.14);
+        border: 3px solid var(--cta);
+        font-family: "Inter", sans-serif; font-weight: 700;
+        font-size: 40px; color: var(--cta-text);
+      }
+
+      /* ── Scene 9: number row ── */
+      .num-row { display: flex; gap: 26px; justify-content: center; align-items: stretch; }
+      .num-cell {
+        flex: 1; background: rgba(255,255,255,0.10);
+        border: 2px solid rgba(255,255,255,0.20);
+        border-radius: 20px; padding: 34px 12px;
+      }
+      .num-cell-v {
+        font-family: "Playfair Display", serif; font-weight: 600;
+        font-size: 76px; color: #FFFFFF; line-height: 1;
+      }
+      .num-cell-l {
+        font-family: "Inter", sans-serif; font-size: 22px;
+        color: rgba(255,255,255,0.92); margin-top: 14px; font-weight: 500;
+      }
+      .cta-btn {
+        height: 128px; border-radius: 20px; background: var(--cta-700);
+        color: #FFFFFF; display: flex; align-items: center; justify-content: center;
+        font-family: "Inter", sans-serif; font-weight: 700; font-size: 46px;
+        box-shadow: 0 16px 40px rgba(34,197,94,0.45);
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      data-composition-id="shinepoint-detailer-recruitment-es"
+      data-start="0"
+      data-duration="31"
+      data-width="1080"
+      data-height="1920"
+    >
+
+      <!-- ══ SCENE 1 · 0–3s · The receipt ══ -->
+      <section id="scene-1" class="clip scene" data-start="0" data-duration="3" data-track-index="1" style="background:#4C1D95">
+        <div id="s1-num" class="numeral" style="font-size:460px; color:#FFFFFF">$80</div>
+        <div id="s1-sub" class="sub" style="font-size:44px; color:#C4B5FD; margin-top:56px; max-width:820px">
+          por un número que nunca te contestó.
+        </div>
+      </section>
+
+      <!-- ══ SCENE 2 · 3–6.5s · It keeps happening ══ -->
+      <section id="scene-2" class="clip scene" data-start="3" data-duration="3.5" data-track-index="1" style="background:#4C1D95">
+        <div style="position:relative; width:100%; height:900px">
+          <div class="receipt" id="r1" style="left:70px;  top:40px">
+            <div class="receipt-amt">$45</div><div class="receipt-line">LEAD FEE · NO REPLY</div>
+          </div>
+          <div class="receipt" id="r2" style="right:50px; top:170px">
+            <div class="receipt-amt">$120</div><div class="receipt-line">LEAD FEE · NO REPLY</div>
+          </div>
+          <div class="receipt" id="r3" style="left:130px; top:340px">
+            <div class="receipt-amt">$80</div><div class="receipt-line">LEAD FEE · NO REPLY</div>
+          </div>
+          <div class="receipt" id="r4" style="right:110px; top:490px">
+            <div class="receipt-amt">$65</div><div class="receipt-line">LEAD FEE · NO REPLY</div>
+          </div>
+          <div class="receipt" id="r5" style="left:250px; top:640px">
+            <div class="receipt-amt">$200</div><div class="receipt-line">LEAD FEE · NO REPLY</div>
+          </div>
+        </div>
+        <div id="s2-sub" class="sub" style="font-size:40px; color:#C4B5FD; margin-top:20px; max-width:840px">
+          Apostando tu propio dinero por trabajos que quizás ni consigas.
+        </div>
+      </section>
+
+      <!-- ══ SCENE 3 · 6.5–8s · The turn ══ -->
+      <section id="scene-3" class="clip scene" data-start="6.5" data-duration="1.5" data-track-index="1" style="background:#FAF5FF">
+        <div id="s3-head" class="heading" style="font-size:104px; color:#4C1D95; max-width:900px">
+          ¿Y si solo pagaras<br />después de cobrar?
+        </div>
+      </section>
+
+      <!-- ══ SCENE 4 · 8–11s · The mark ══ -->
+      <section id="scene-4" class="clip scene" data-start="8" data-duration="3" data-track-index="1" style="background:#FAF5FF">
+        <svg id="s4-mark" width="300" height="300" viewBox="0 0 64 64" fill="none">
+          <defs>
+            <linearGradient id="spg" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#A78BFA" />
+              <stop offset="1" stop-color="#6D28D9" />
+            </linearGradient>
+          </defs>
+          <rect id="s4-sq" width="64" height="64" rx="14" fill="url(#spg)" />
+          <path id="s4-star" d="M30.5 13.5a1.6 1.6 0 0 1 3 0l3.6 11.2a4 4 0 0 0 2.6 2.6l11.2 3.6a1.6 1.6 0 0 1 0 3l-11.2 3.6a4 4 0 0 0-2.6 2.6l-3.6 11.2a1.6 1.6 0 0 1-3 0l-3.6-11.2a4 4 0 0 0-2.6-2.6l-11.2-3.6a1.6 1.6 0 0 1 0-3l11.2-3.6a4 4 0 0 0 2.6-2.6z" fill="#fff" />
+          <circle id="s4-dot" cx="48" cy="14" r="3.5" fill="#fff" opacity=".85" />
+        </svg>
+        <div id="s4-word" class="heading" style="font-size:96px; color:#4C1D95; margin-top:52px">ShinePoint</div>
+        <div id="s4-sub" class="sub" style="font-size:38px; color:#6D28D9; margin-top:26px; max-width:820px">
+          Trabajos reales de detallado en el sur de California.
+        </div>
+      </section>
+
+      <!-- ══ SCENE 5 · 11–15s · 85% ══ -->
+      <section id="scene-5" class="clip scene" data-start="11" data-duration="4" data-track-index="1" style="background:#4C1D95">
+        <div id="s5-label" class="label" style="font-size:28px; color:#A78BFA; margin-bottom:44px">Te quedas</div>
+        <div id="s5-num" class="numeral count count-pct" style="font-size:420px; color:#22C55E"></div>
+        <div id="s5-sub" class="sub" style="font-size:46px; color:#FFFFFF; margin-top:52px; max-width:820px">
+          de cada trabajo. Directo a ti.
+        </div>
+      </section>
+
+      <!-- ══ SCENE 6 · 15–19s · 48 hours ══ -->
+      <section id="scene-6" class="clip scene" data-start="15" data-duration="4" data-track-index="1" style="background:#4C1D95">
+        <div id="s6-num" class="numeral" style="font-size:230px; color:#FFFFFF">48 hrs</div>
+        <div id="s6-sub" class="sub" style="font-size:38px; color:#C4B5FD; margin-top:30px; margin-bottom:56px; max-width:840px">
+          hasta que está lista. Retira cuando quieras.
+        </div>
+        <div id="s6-card" class="withdraw-card">
+          <div class="amount-field">
+            <span class="amount-text">$</span>
+            <span id="s6-amt" class="amount-text count"></span>
+          </div>
+          <div id="s6-btn" class="withdraw-btn">Retirar</div>
+        </div>
+      </section>
+
+      <!-- ══ SCENE 7 · 19–22.5s · Tips ══ -->
+      <section id="scene-7" class="clip scene" data-start="19" data-duration="3.5" data-track-index="1" style="background:#4C1D95">
+        <div id="s7-num" class="numeral count count-pct" style="font-size:400px; color:#22C55E"></div>
+        <div id="s7-badge" class="tip-badge" style="margin-top:44px">PROPINA · AL INSTANTE</div>
+        <div id="s7-sub" class="sub" style="font-size:44px; color:#FFFFFF; margin-top:44px; max-width:840px">
+          de cada propina. No tocamos nada.
+        </div>
+      </section>
+
+      <!-- ══ SCENE 8 · 22.5–25.5s · $0 ══ -->
+      <section id="scene-8" class="clip scene" data-start="22.5" data-duration="3" data-track-index="1" style="background:#7C3AED">
+        <div id="s8-num" class="numeral" style="font-size:560px; color:#FFFFFF">$0</div>
+        <div id="s8-sub" class="sub" style="font-size:52px; color:#FFFFFF; margin-top:48px; max-width:840px; font-weight:500">
+          por recibir un trabajo. Nunca.
+        </div>
+      </section>
+
+      <!-- ══ SCENE 8.5 · 25.5–27s · Spanish app ══ -->
+      <section id="scene-8-5" class="clip scene" data-start="25.5" data-duration="1.5" data-track-index="1" style="background:#FAF5FF">
+        <div id="s8-5-text" class="heading" style="font-size:110px; color:#4C1D95; max-width:900px">
+          Toda la app.<br />En español.
+        </div>
+      </section>
+
+      <!-- ══ SCENE 9 · 27–31s · Resolve + CTA ══ -->
+      <section id="scene-9" class="clip scene" data-start="27" data-duration="4" data-track-index="1"
+               style="background:linear-gradient(160deg,#6D28D9 0%,#4C1D95 100%)">
+        <svg id="s9-mark" width="150" height="150" viewBox="0 0 64 64" fill="none">
+          <rect width="64" height="64" rx="14" fill="rgba(255,255,255,0.14)" />
+          <path d="M30.5 13.5a1.6 1.6 0 0 1 3 0l3.6 11.2a4 4 0 0 0 2.6 2.6l11.2 3.6a1.6 1.6 0 0 1 0 3l-11.2 3.6a4 4 0 0 0-2.6 2.6l-3.6 11.2a1.6 1.6 0 0 1-3 0l-3.6-11.2a4 4 0 0 0-2.6-2.6l-11.2-3.6a1.6 1.6 0 0 1 0-3l11.2-3.6a4 4 0 0 0 2.6-2.6z" fill="#fff" />
+          <circle cx="48" cy="14" r="3.5" fill="#fff" opacity=".85" />
+        </svg>
+
+        <div class="num-row" style="width:100%; margin-top:56px">
+          <div class="num-cell" id="n1"><div class="num-cell-v" style="color:#4ADE80">85%</div><div class="num-cell-l">del trabajo</div></div>
+          <div class="num-cell" id="n2"><div class="num-cell-v">48<span style="font-size:40px">hr</span></div><div class="num-cell-l">para cobrar</div></div>
+          <div class="num-cell" id="n3"><div class="num-cell-v" style="color:#4ADE80">100%</div><div class="num-cell-l">de propinas</div></div>
+          <div class="num-cell" id="n4"><div class="num-cell-v">$0</div><div class="num-cell-l">cuotas</div></div>
+        </div>
+
+        <div id="s9-url" class="heading" style="font-size:82px; color:#FFFFFF; margin-top:62px">shinepoint.app/pros</div>
+        <div id="s9-btn" class="cta-btn" style="width:720px; margin-top:40px">Empieza a trabajar</div>
+        <div id="s9-foot" class="sub" style="font-size:28px; color:rgba(255,255,255,0.86); margin-top:34px">
+          Gratis · 15% en trabajos completados · Nada más
+        </div>
+      </section>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      /* Counts a registered custom property, so the numeral is correct at any
+         seek position rather than only when the timeline is played through. */
+      const count = (sel, to, dur, at) =>
+        tl.fromTo(sel, { "--num": 0 }, { "--num": to, duration: dur, ease: "power2.out", lazy: false }, at);
+
+      /* ── SCENE 1 · 0–3 ── the $80 lands on frame one, no fade-in ── */
+      tl.fromTo("#s1-num", { scale: 1.25, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.28, ease: "power4.out" }, 0.0);
+      tl.fromTo("#s1-sub", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.7, ease: "power2.out" }, 0.9);
+
+      /* ── SCENE 2 · 3–6.5 ── receipts pile up and crowd the frame ── */
+      ["#r1", "#r2", "#r3", "#r4", "#r5"].forEach((id, i) => {
+        const rot = [-6, 5, -3, 7, -4][i];
+        tl.fromTo(id,
+          { opacity: 0, y: 70, rotate: rot - 8, scale: 0.9 },
+          { opacity: 1, y: 0, rotate: rot, scale: 1, duration: 0.42, ease: "back.out(1.6)" },
+          3.1 + i * 0.28);
+      });
+      /* the last one lands hard enough to shake the frame */
+      tl.fromTo("#scene-2", { x: 0 }, { x: 14, duration: 0.06, yoyo: true, repeat: 3, ease: "none" }, 4.5);
+      tl.fromTo("#s2-sub", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power2.out" }, 5.0);
+
+      /* ── SCENE 3 · 6.5–8 ── hard cut to calm, no VO under this ── */
+      tl.fromTo("#s3-head", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 6.65);
+
+      /* ── SCENE 4 · 8–11 ── the mark ── */
+      tl.fromTo("#s4-sq", { opacity: 0, scale: 0.75, transformOrigin: "50% 50%" }, { opacity: 1, scale: 1, duration: 0.6, ease: "back.out(1.7)" }, 8.15);
+      tl.fromTo("#s4-star", { opacity: 0, scale: 0.4, transformOrigin: "50% 50%" }, { opacity: 1, scale: 1, duration: 0.55, ease: "back.out(2)" }, 8.5);
+      tl.fromTo("#s4-dot", { opacity: 0, scale: 0 }, { opacity: 0.85, scale: 1, duration: 0.3, ease: "back.out(3)" }, 8.9);
+      tl.fromTo("#s4-word", { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 9.05);
+      tl.fromTo("#s4-sub", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" }, 9.5);
+
+      /* ── SCENE 5 · 11–15 ── 85%, counts up with a spring settle ── */
+      tl.fromTo("#s5-label", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.45, ease: "power2.out" }, 11.15);
+      tl.fromTo("#s5-num", { opacity: 0, scale: 0.85 }, { opacity: 1, scale: 1, duration: 0.5, ease: "power3.out" }, 11.3);
+      count("#s5-num", 85, 1.15, 11.35);
+      /* the app-wide bouncy press feel, --ease-spring in src/index.css */
+      tl.to("#s5-num", { scale: 1.06, duration: 0.16, ease: "power2.out" }, 12.5);
+      tl.to("#s5-num", { scale: 1, duration: 0.34, ease: "elastic.out(1, 0.45)" }, 12.66);
+      tl.fromTo("#s5-sub", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.55, ease: "power2.out" }, 12.7);
+
+      /* ── SCENE 6 · 15–19 ── 48 hours, then the withdraw ── */
+      tl.fromTo("#s6-num", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 15.15);
+      tl.fromTo("#s6-sub", { opacity: 0 }, { opacity: 1, duration: 0.45, ease: "power2.out" }, 15.5);
+      tl.fromTo("#s6-card", { opacity: 0, y: 46, scale: 0.95 }, { opacity: 1, y: 0, scale: 1, duration: 0.6, ease: "power3.out" }, 15.9);
+      /* the amount types itself up — this is the "any amount you want" beat */
+      count("#s6-amt", 840, 1.1, 16.5);   /* 3 digits: CSS counters have no thousands separator */
+      /* then the button presses itself */
+      tl.to("#s6-btn", { scale: 0.95, duration: 0.12, ease: "power2.in" }, 17.9);
+      tl.to("#s6-btn", { scale: 1, duration: 0.34, ease: "elastic.out(1, 0.5)" }, 18.02);
+
+      /* ── SCENE 7 · 19–22.5 ── tips, untouched ── */
+      tl.fromTo("#s7-num", { opacity: 0, scale: 0.88 }, { opacity: 1, scale: 1, duration: 0.5, ease: "power3.out" }, 19.15);
+      count("#s7-num", 100, 0.9, 19.2);
+      /* badge lands with coin-drop weight */
+      tl.fromTo("#s7-badge", { opacity: 0, y: -40, scale: 0.85 }, { opacity: 1, y: 0, scale: 1, duration: 0.5, ease: "back.out(2.2)" }, 20.3);
+      tl.fromTo("#s7-sub", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 20.8);
+
+      /* ── SCENE 8 · 22.5–25.5 ── $0 slams and holds dead still ──
+         deliberately NOT green: this is an absence of cost, not money earned. */
+      tl.fromTo("#s8-num", { scale: 1.4, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.3, ease: "power4.out" }, 22.6);
+      tl.fromTo("#s8-sub", { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power2.out" }, 23.3);
+
+      /* ── SCENE 8.5 · 25.5–27 ── Spanish app (Spanish cut only) ── */
+      tl.fromTo("#s8-5-text", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 25.65);
+
+      /* ── SCENE 9 · 27–31 ── the four numbers resolve, then the CTA ── */
+      tl.fromTo("#s9-mark", { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 0.5, ease: "back.out(1.8)" }, 27.15);
+      ["#n1", "#n2", "#n3", "#n4"].forEach((id, i) => {
+        tl.fromTo(id, { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.42, ease: "power3.out" }, 27.5 + i * 0.16);
+      });
+      tl.fromTo("#s9-url", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 28.3);
+      tl.fromTo("#s9-btn", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 28.65);
+      tl.fromTo("#s9-foot", { opacity: 0 }, { opacity: 1, duration: 0.45, ease: "power2.out" }, 29.0);
+      /* final frame holds still from ~29.5s to 31s — screenshot-able */
+
+      window.__timelines["shinepoint-detailer-recruitment-es"] = tl;
+    </script>
+  </body>
+</html>
