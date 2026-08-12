@@ -23,7 +23,8 @@ import {
 import { useStore } from '../context/StoreContext'
 import { MAP_APPS, openInMaps } from '../lib/navigation'
 import { useT } from '../i18n/useT'
-import { sendReceiptEmail } from '../lib/email'
+import { sendReceiptEmail, sendEnRouteEmail } from '../lib/email'
+import { startTracking, stopTracking } from '../lib/tracking'
 
 // Blueprint 5.3–5.5 — the detailer's gated job flow:
 // en route → arrived → damage report → before photos → start →
@@ -112,7 +113,13 @@ export default function DetailerJob() {
       desc: t('gateEnRouteDesc'),
       done: !['accepted'].includes(b.status),
       ready: b.status === 'accepted',
-      action: () => patchBooking(b.id, { status: 'en_route' }),
+      action: async () => {
+        await patchBooking(b.id, { status: 'en_route' })
+        if (!isDemo) {
+          startTracking(b.id).catch((e) => console.error('startTracking:', e.message))
+          sendEnRouteEmail(b.id).catch((e) => console.error('sendEnRouteEmail:', e.message))
+        }
+      },
       cta: t('gateEnRouteCta'),
     },
     {
@@ -121,7 +128,10 @@ export default function DetailerJob() {
       desc: t('gateArrivedDesc'),
       done: !['accepted', 'en_route'].includes(b.status),
       ready: b.status === 'en_route',
-      action: () => patchBooking(b.id, { status: 'arrived' }),
+      action: async () => {
+        await patchBooking(b.id, { status: 'arrived' })
+        if (!isDemo) stopTracking().catch((e) => console.error('stopTracking:', e.message))
+      },
       cta: t('gateArrivedCta'),
     },
     {

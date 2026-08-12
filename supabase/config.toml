@@ -113,3 +113,9 @@ verify_jwt = true
 
 [functions.resolve-dispute]
 verify_jwt = true
+
+[functions.post-location]
+verify_jwt = true
+
+[functions.send-en-route-email]
+verify_jwt = true

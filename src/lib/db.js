@@ -1198,3 +1198,10 @@ export async function fetchAccountDeletionFeedback() {
   if (error) { console.error('fetchAccountDeletionFeedback:', error.message); return [] }
   return data
 }
+
+// One GPS ping for an en-route booking, posted by the detailer's native app
+// (src/lib/tracking.js) roughly every ~30s. The edge function re-validates
+// the caller is the assigned detailer and the booking is actually en_route
+// server-side — this call can't be trusted to enforce that on its own.
+export const postLocation = (bookingId, lat, lng, accuracy) =>
+  invokeFn('post-location', { bookingId, lat, lng, accuracy })

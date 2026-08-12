@@ -52,4 +52,13 @@
          is required: the map's locate-me button calls navigator.geolocation. -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- Detailer-side en-route GPS tracking (src/lib/tracking.js), so pings
+         keep posting while the phone is locked/backgrounded during a drive.
+         FOREGROUND_SERVICE / FOREGROUND_SERVICE_LOCATION / POST_NOTIFICATIONS
+         and the service declaration come from
+         @capacitor-community/background-geolocation's own manifest (merged
+         automatically by `cap sync`) — only ACCESS_BACKGROUND_LOCATION needs
+         declaring here, since Play policy requires the app itself (not a
+         library) to request it explicitly. -->
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
 </manifest>

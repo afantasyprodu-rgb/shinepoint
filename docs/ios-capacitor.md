@@ -93,6 +93,29 @@ npx @capacitor/assets generate --ios
 npx cap sync ios
 ```
 
+## 7b. Background location for en-route tracking
+
+`@capacitor-community/background-geolocation` posts real GPS pings while a
+detailer's job is `en_route` (`src/lib/tracking.js`), even with the phone
+locked. `Info.plist` already has the required
+`NSLocationAlwaysAndWhenInUseUsageDescription` string + `UIBackgroundModes:
+location` array — one more step only Xcode itself can do:
+
+1. Select the `App` target → **Signing & Capabilities** → **+ Capability** →
+   add **Background Modes** → check **Location updates** (this is what
+   actually makes the `UIBackgroundModes` entry effective; the Info.plist
+   key alone doesn't enable it).
+
+**Compatibility note:** this plugin's own README compatibility table only
+lists support through Capacitor v7 — this project is on Capacitor 8. The
+peer dependency (`@capacitor/core >=3.0.0`) doesn't block installing it and
+it was republished recently (Jan 2026), so it may well work, but that's
+unverified — there's no Xcode/Android SDK available to actually build and
+test this in the environment this was written in. Confirm it builds and a
+real background fix arrives on a locked device before shipping; if it
+doesn't, `@transistorsoft/capacitor-background-geolocation` is the paid
+alternative discussed when this was planned.
+
 ## 8. Release build → App Store
 
 1. Xcode → **Product → Archive** (only works with a Release scheme + a real signing team, not
