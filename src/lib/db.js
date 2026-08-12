@@ -203,27 +203,45 @@ export async function fetchAdminFinance() {
   return { today, week, month, pendingPayouts, refundsIssued, refundsCount, monthly, monthLabels, tracker1099Count }
 }
 
+// Display names for detailers, keyed by their user id. Read from the
+// detailer_directory view (044), NOT from public.users directly: RLS on
+// users only ever allows "your own row" or "you are an admin", so a
+// customer joining users gets nothing back. See 044 for the full story.
+async function fetchDetailerNames() {
+  const { data, error } = await supabase.from('detailer_directory').select('id, full_name')
+  if (error) { console.error('fetchDetailerNames:', error.message); return new Map() }
+  return new Map((data ?? []).map((u) => [u.id, u.full_name]))
+}
+
 export async function fetchDetailers() {
-  const { data, error } = await supabase
-    .from('detailer_profiles')
-    .select(`
-      id, zip_code, pin_lat, pin_lng, status,
-      accepts_bookings_when_busy, accepts_reward_bookings,
-      insurance_status, total_completed_jobs, average_rating, total_reviews, bio,
-      profile_photo_url, gallery_urls,
-      probation_jobs_remaining, service_days, free_travel_miles,
-      users!inner(full_name),
-      services(id, service_name, description, price, vehicle_types, is_active)
-    `)
-    // A deactivated (self soft-deleted) detailer shouldn't keep showing up
-    // for customers to book.
-    .is('users.deactivated_at', null)
+  // No users join here — see fetchDetailerNames above. Joining users with
+  // !inner silently returned ZERO detailers to every real customer (RLS
+  // dropped the users row, the inner join dropped the detailer with it),
+  // which is what made the map permanently empty.
+  const [{ data, error }, names] = await Promise.all([
+    supabase
+      .from('detailer_profiles')
+      .select(`
+        id, user_id, zip_code, pin_lat, pin_lng, status,
+        accepts_bookings_when_busy, accepts_reward_bookings,
+        insurance_status, total_completed_jobs, average_rating, total_reviews, bio,
+        profile_photo_url, gallery_urls,
+        probation_jobs_remaining, service_days, free_travel_miles,
+        services(id, service_name, description, price, vehicle_types, is_active)
+      `),
+    fetchDetailerNames(),
+  ])
 
   if (error) {
     console.error('fetchDetailers:', error.message)
     return []
   }
-  return (data ?? []).map(normalizeDetailer)
+  // The directory view already excludes deactivated accounts, so a detailer
+  // missing from it is one who soft-deleted themselves — drop them, which
+  // is what the old .is('users.deactivated_at', null) filter did.
+  return (data ?? [])
+    .filter((row) => names.has(row.user_id))
+    .map((row) => normalizeDetailer({ ...row, users: { full_name: names.get(row.user_id) } }))
 }
 
 // Public reviews for one detailer's profile page. Admin-removed rows are
