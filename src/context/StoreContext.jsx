@@ -108,10 +108,17 @@ export function StoreProvider({ children }) {
     },
   ])
 
-  // Load real detailers once on mount (works even in demo — real pins appear on map).
+  // Load real detailers for the map. Keyed on user?.id, NOT [] — supabase-js
+  // restores the session from storage asynchronously, so a mount-only fetch
+  // can fire before the JWT is attached and go out as `anon`. Anon reads
+  // nothing here (detailer_profiles RLS returns [], and the detailer_directory
+  // view revokes anon outright), and with an empty dependency array it never
+  // retried — leaving a permanently empty map on any load that lost that
+  // race. Re-running when the user id resolves fixes it, and the extra call
+  // is one cheap query on sign-in.
   useEffect(() => {
     fetchDetailers().then(setRealDetailers)
-  }, [])
+  }, [user?.id])
 
   // Load user-specific data when a real user signs in.
   useEffect(() => {
