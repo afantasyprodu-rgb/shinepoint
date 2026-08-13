@@ -602,10 +602,15 @@ export default function BookingWizard() {
               <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
                 {t('serviceWithDetailer', { service: service.name, name: d.name, total })}
               </p>
+              {/* Stripe Elements renders in its own iframe and can't read our
+                  CSS custom properties, so colorPrimary below can't just
+                  reference --color-brand-600 — it's a static snapshot of
+                  that color (hue 356°, chroma x1.5). Re-derive by hand if
+                  the brand hue/chroma changes again. */}
               <div className="card mt-5">
                 <Elements
                   stripe={stripePromise}
-                  options={{ clientSecret, appearance: { theme: 'stripe', variables: { colorPrimary: '#7c3aed' } } }}
+                  options={{ clientSecret, appearance: { theme: 'stripe', variables: { colorPrimary: '#f40076' } } }}
                 >
                   <PaymentForm amount={total} onSuccess={() => setStep(4)} />
                 </Elements>
