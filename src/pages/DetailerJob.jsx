@@ -430,18 +430,18 @@ export default function DetailerJob() {
 
         {stepsExpanded ? (
           <div className="mt-6">
+            <button
+              type="button"
+              onClick={() => setStepsExpanded(false)}
+              className="mb-3 w-full cursor-pointer rounded-xl py-2 text-center text-xs font-semibold text-slate-400 transition-colors duration-200 hover:text-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-slate-500 dark:hover:text-brand-300"
+            >
+              {t('collapseSteps')}
+            </button>
             <div className="space-y-3" role="list">
               <AnimatePresence initial={false}>
                 {gates.map((g, i) => renderGate(g, i))}
               </AnimatePresence>
             </div>
-            <button
-              type="button"
-              onClick={() => setStepsExpanded(false)}
-              className="mt-3 w-full cursor-pointer rounded-xl py-2 text-center text-xs font-semibold text-slate-400 transition-colors duration-200 hover:text-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-slate-500 dark:hover:text-brand-300"
-            >
-              {t('collapseSteps')}
-            </button>
           </div>
         ) : (
           <div className="mt-6">
