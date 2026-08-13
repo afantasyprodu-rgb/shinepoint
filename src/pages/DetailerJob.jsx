@@ -111,7 +111,11 @@ export default function DetailerJob() {
       key: 'en_route',
       title: t('gateEnRouteTitle'),
       desc: t('gateEnRouteDesc'),
-      done: !['accepted'].includes(b.status),
+      // Was `!['accepted'].includes(b.status)` — true for 'pending' too,
+      // since 'pending' isn't 'accepted' either. That showed en_route (and
+      // arrived, same bug below) as already complete on a booking that
+      // hadn't even been accepted yet. Must exclude every earlier status.
+      done: !['pending', 'accepted'].includes(b.status),
       ready: b.status === 'accepted',
       action: async () => {
         await patchBooking(b.id, { status: 'en_route' })
@@ -126,7 +130,7 @@ export default function DetailerJob() {
       key: 'arrived',
       title: t('gateArrivedTitle'),
       desc: t('gateArrivedDesc'),
-      done: !['accepted', 'en_route'].includes(b.status),
+      done: !['pending', 'accepted', 'en_route'].includes(b.status),
       ready: b.status === 'en_route',
       action: async () => {
         await patchBooking(b.id, { status: 'arrived' })
