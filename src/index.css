@@ -445,55 +445,61 @@
   }
 
   /* ── Auth card ──────────────────────────────────────────── */
-  /* Deliberately fixed-dark, regardless of the app's light/dark toggle —
-     the login/signup/OTP surface has always been its own dark world (it
-     never read the .dark class before either); deep plum + transaction-green
-     accent. Local --auth-* vars (not the global --neu-* ones) so this stays
-     dark even when the rest of the app is light. */
+  /* The form itself (buttons, labels, error text below) is SHARED between
+     two very different homes: this standalone full-page shell (mobile —
+     now a white background with floating HeroBubbles, per the "make it
+     match the mobile welcome screen" ask), and embedded read-only inside
+     DesktopLanding's own dark panel (standalone=false, no .auth-card-shell
+     ancestor at all). Every color below is a --auth-* custom property with
+     a dark-friendly fallback (the historical "deep plum" look, still
+     exactly what the embedded desktop context gets by default) that this
+     shell alone overrides to a light palette. This is why the rules below
+     use var(--auth-x, <dark default>) instead of plain Tailwind color
+     utilities — a plain `text-white` can't be un-done per-context, a CSS
+     variable can. */
+  :root {
+    --auth-text: #fff;
+    --auth-text-soft: rgba(255, 255, 255, 0.65);
+    --auth-text-faint: rgba(255, 255, 255, 0.5);
+    --auth-divider: rgba(255, 255, 255, 0.2);
+    --auth-placeholder: rgba(255, 255, 255, 0.35);
+    --auth-method-bg: rgba(255, 255, 255, 0.12);
+    --auth-method-bg-hover: rgba(255, 255, 255, 0.2);
+    --auth-method-border: rgba(255, 255, 255, 0.2);
+    --auth-method-border-hover: rgba(255, 255, 255, 0.35);
+    --auth-glow: rgba(255, 255, 255, 0.15);
+    --auth-error-border: rgba(248, 113, 113, 0.3);
+    --auth-error-bg: rgba(239, 68, 68, 0.2);
+    --auth-error-text: #fecaca;
+  }
+
   .auth-card-shell {
-    --auth-bg: #201033;
-    --auth-sd: #130a1f;
-    --auth-sl: #2f1a48;
+    --auth-bg: #ffffff;
+    --auth-sd: rgba(15, 23, 42, 0.2);
+    --auth-sl: rgba(255, 255, 255, 0);
     --auth-accent: var(--color-cta-500);
+    --auth-text: #0f172a;
+    --auth-text-soft: #64748b;
+    --auth-text-faint: #94a3b8;
+    --auth-divider: #e2e8f0;
+    --auth-placeholder: #94a3b8;
+    --auth-method-bg: #fff;
+    --auth-method-bg-hover: color-mix(in srgb, var(--color-brand-500) 8%, white);
+    --auth-method-border: var(--color-brand-100);
+    --auth-method-border-hover: var(--color-brand-300);
+    --auth-glow: var(--color-brand-100);
+    --auth-error-border: #fecaca;
+    --auth-error-bg: #fef2f2;
+    --auth-error-text: #b91c1c;
     background: var(--auth-bg);
     @apply relative isolate flex min-h-screen items-center justify-center overflow-hidden px-4 py-12;
   }
 
-  .auth-card-shell::before,
-  .auth-card-shell::after {
-    content: "";
-    position: absolute;
-    z-index: -1;
-    border-radius: 50%;
-    pointer-events: none;
-  }
-
-  /* Position drift (aurora-drift-*) and color drift (aurora-hue-drift) are
-     separate animations on the same `filter`/`transform` properties so the
-     blobs keep moving *and* slowly cycle hue — the background never quite
-     repeats. Different durations (and one running in reverse) on the two
-     blobs so they drift out of phase with each other. */
-  .auth-card-shell::before {
-    width: 34rem;
-    height: 34rem;
-    top: -10rem;
-    left: -12rem;
-    background: radial-gradient(circle, rgba(167, 139, 250, 0.6), transparent 70%);
-    animation: aurora-drift-a 13s ease-in-out infinite alternate, aurora-hue-drift 42s linear infinite;
-  }
-
-  .auth-card-shell::after {
-    width: 28rem;
-    height: 28rem;
-    bottom: -12rem;
-    right: -10rem;
-    background: radial-gradient(circle, rgba(34, 197, 94, 0.35), transparent 70%);
-    animation: aurora-drift-b 11s ease-in-out infinite alternate, aurora-hue-drift 35s linear infinite reverse;
-  }
-
-  /* No card bg — content floats directly on the gradient shell */
+  /* No card bg — content floats directly on the shell (the HeroBubbles
+     canvas, mounted in AuthCard.jsx, is what actually renders the drift —
+     see Welcome.jsx's hero for the same pattern this was copied from). */
   .auth-card {
-    @apply w-full max-w-sm px-6 pt-10 pb-8 flex flex-col;
+    @apply relative z-10 w-full max-w-sm px-6 pt-10 pb-8 flex flex-col;
   }
 
   .auth-logo-block {
@@ -501,7 +507,8 @@
   }
 
   .auth-tagline {
-    @apply text-xs text-white/60 tracking-wide;
+    color: var(--auth-text-soft, rgba(255, 255, 255, 0.6));
+    @apply text-xs tracking-wide;
   }
 
   /* mode toggle — big pill, bottom of primary nav zone */
@@ -540,15 +547,19 @@
   }
 
   .auth-label {
-    @apply mb-1.5 text-xs font-medium text-white/70;
+    color: var(--auth-text-soft, rgba(255, 255, 255, 0.7));
+    @apply mb-1.5 text-xs font-medium;
   }
 
   .auth-input {
     border: none;
     background: var(--auth-bg, #1a2029);
-    color: #fff;
-    @apply h-11 w-full rounded-xl px-3.5 text-sm placeholder-white/35 transition-all duration-150 focus:outline-none;
+    color: var(--auth-text, #fff);
+    @apply h-11 w-full rounded-xl px-3.5 text-sm transition-all duration-150 focus:outline-none;
     box-shadow: inset 3px 3px 7px var(--auth-sd, #0e1218), inset -3px -3px 7px var(--auth-sl, #262e3a);
+  }
+  .auth-input::placeholder {
+    color: var(--auth-placeholder, rgba(255, 255, 255, 0.35));
   }
   .auth-input:focus {
     box-shadow:
@@ -560,7 +571,7 @@
   .auth-select {
     border: none;
     background: var(--auth-bg, #1a2029);
-    color: #fff;
+    color: var(--auth-text, #fff);
     @apply w-auto shrink-0 cursor-pointer rounded-xl;
     box-shadow: inset 3px 3px 7px var(--auth-sd, #0e1218), inset -3px -3px 7px var(--auth-sl, #262e3a);
   }
@@ -590,20 +601,32 @@
   }
 
   .auth-divider-line {
-    @apply flex-1 h-px bg-white/20;
+    background: var(--auth-divider, rgba(255, 255, 255, 0.2));
+    @apply flex-1 h-px;
   }
 
   .auth-divider-text {
-    @apply text-xs text-white/50;
+    color: var(--auth-text-faint, rgba(255, 255, 255, 0.5));
+    @apply text-xs;
   }
 
   /* terms */
   .auth-terms {
-    @apply text-center text-xs text-white/50 leading-relaxed mt-4;
+    color: var(--auth-text-faint, rgba(255, 255, 255, 0.5));
+    @apply text-center text-xs leading-relaxed mt-4;
+  }
+  .auth-terms a, .auth-terms button {
+    color: inherit;
+  }
+  .auth-terms a:hover, .auth-terms button:hover {
+    color: var(--auth-text, #fff);
   }
 
   .auth-error {
-    @apply rounded-xl border border-red-400/30 bg-red-500/20 px-4 py-2.5 text-xs text-red-200;
+    border-color: var(--auth-error-border, rgba(248, 113, 113, 0.3));
+    background: var(--auth-error-bg, rgba(239, 68, 68, 0.2));
+    color: var(--auth-error-text, #fecaca);
+    @apply rounded-xl border px-4 py-2.5 text-xs;
   }
 }
 
@@ -664,19 +687,6 @@
   .paint-accent-ring {
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent, #7c3aed), transparent 78%);
     transition: box-shadow 0.5s ease;
-  }
-
-  @keyframes aurora-drift-a {
-    to { transform: translate(4rem, 3rem) scale(1.15); }
-  }
-
-  @keyframes aurora-drift-b {
-    to { transform: translate(-3rem, -4rem) scale(1.1); }
-  }
-
-  @keyframes aurora-hue-drift {
-    from { filter: blur(70px) hue-rotate(0deg); }
-    to   { filter: blur(70px) hue-rotate(360deg); }
   }
 
   @keyframes float-slow {
@@ -843,7 +853,7 @@
   .otp-box {
     border: none;
     background: var(--auth-bg, #1a2029);
-    color: #fff;
+    color: var(--auth-text, #fff);
     @apply h-14 w-12 rounded-2xl text-center text-2xl font-bold transition-all duration-150 focus:outline-none sm:h-16 sm:w-14;
     box-shadow: inset 3px 3px 7px var(--auth-sd, #0e1218), inset -3px -3px 7px var(--auth-sl, #262e3a);
   }

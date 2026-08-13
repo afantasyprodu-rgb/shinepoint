@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { motion, AnimatePresence } from 'motion/react'
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react'
 import { supabase } from '../lib/supabase'
 import { homePathForRole, signupHomePath } from '../context/AuthContext'
 import { needsMfaChallenge } from '../lib/mfa'
@@ -8,6 +8,7 @@ import { markArrival } from '../lib/transition'
 import Logo from './Logo'
 import LanguageToggle from './LanguageToggle'
 import OtpBoxInput from './OtpBoxInput'
+import HeroBubbles from './ui/HeroBubbles'
 import { GoogleIcon, MailIcon, ChevronLeftIcon, LockIcon } from './icons'
 import { useT } from '../i18n/useT'
 
@@ -34,6 +35,7 @@ function Field({ index, children }) {
 export default function AuthCard({ defaultMode = 'login', role = 'customer', onAuthenticated, standalone = true }) {
   const navigate = useNavigate()
   const t = useT('auth')
+  const reduce = useReducedMotion()
 
   const [mode, setMode] = useState(defaultMode)  // 'signup' | 'login'
   const [modeDir, setModeDir] = useState(1)       // 1 = forward (signup), -1 = back (login)
@@ -161,10 +163,10 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
           exit="exit"
           transition={{ duration: 0.22, ease: EASE }}
         >
-          <h2 className="font-display text-xl font-bold text-white mb-1">
+          <h2 className="font-display text-xl font-bold text-[var(--auth-text)] mb-1">
             {isSignup ? t('createAccount') : t('welcomeBack')}
           </h2>
-          <p className="text-sm text-white/60 mb-6">
+          <p className="text-sm text-[var(--auth-text-soft)] mb-6">
             {isSignup ? t('joinTagline') : t('signInTagline')}
           </p>
 
@@ -187,18 +189,18 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
 
           {error && <p role="alert" className="auth-error mt-3">{error}</p>}
 
-          <p className="mt-7 text-center text-sm text-white/60">
+          <p className="mt-7 text-center text-sm text-[var(--auth-text-soft)]">
             {isSignup ? (
               <>{t('alreadyHaveAccount')}{' '}
                 <button type="button" onClick={() => switchMode('login')}
-                  className="font-semibold text-white transition-colors hover:text-white/80">
+                  className="font-semibold text-[var(--auth-text)] transition-colors hover:opacity-80">
                   {t('logIn')}
                 </button>
               </>
             ) : (
               <>{t('newHere')}{' '}
                 <button type="button" onClick={() => switchMode('signup')}
-                  className="font-semibold text-white transition-colors hover:text-white/80">
+                  className="font-semibold text-[var(--auth-text)] transition-colors hover:opacity-80">
                   {t('createAccountLink')}
                 </button>
               </>
@@ -207,9 +209,9 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
 
           <p className="auth-terms mt-3">
             {t('termsPrefix')}{' '}
-            <Link to="/terms" className="underline underline-offset-2 hover:text-white">{t('terms')}</Link>
+            <Link to="/terms" className="underline underline-offset-2">{t('terms')}</Link>
             {' & '}
-            <Link to="/privacy" className="underline underline-offset-2 hover:text-white">{t('privacyPolicy')}</Link>
+            <Link to="/privacy" className="underline underline-offset-2">{t('privacyPolicy')}</Link>
           </p>
         </motion.div>
       )}
@@ -277,7 +279,7 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
                   type="button"
                   disabled={busy}
                   onClick={() => handleSendEmailCode()}
-                  className="w-full text-center text-sm font-medium text-white/60 hover:text-white transition-colors"
+                  className="w-full text-center text-sm font-medium text-[var(--auth-text-soft)] hover:text-[var(--auth-text)] transition-colors"
                 >
                   {t('emailMeCode')}
                 </button>
@@ -307,10 +309,10 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
           </Field>
 
           <Field index={1}>
-            <p className="pb-1 text-center text-sm text-white/70">
+            <p className="pb-1 text-center text-sm text-[var(--auth-text-soft)]">
               {busy ? t('verifyingCode') : t('enterTheCode')}
               <br />
-              {t('sentTo')} <span className="font-semibold text-white">{email}</span>
+              {t('sentTo')} <span className="font-semibold text-[var(--auth-text)]">{email}</span>
             </p>
           </Field>
 
@@ -338,19 +340,24 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
 
   return (
     <div className="auth-card-shell">
-      <LanguageToggle className="fixed right-4 top-4 z-50 text-white hover:bg-white/10 hover:text-white" />
+      {!reduce && (
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+          <HeroBubbles seed={11} />
+        </div>
+      )}
+      <LanguageToggle className="fixed right-4 top-4 z-50 border border-brand-100 bg-white/90 text-slate-700 shadow-sm backdrop-blur hover:bg-slate-50" />
       <div className="auth-card">
         <Link
           to="/"
-          className="mb-2 inline-flex items-center gap-1 text-sm text-white/60 transition-colors hover:text-white"
+          className="mb-2 inline-flex items-center gap-1 text-sm text-slate-500 transition-colors hover:text-slate-700"
         >
           <ChevronLeftIcon className="h-4 w-4" />
           {t('back')}
         </Link>
         <div className="auth-logo-block">
           <div className="relative">
-            <div className="absolute inset-0 -z-10 scale-[2] rounded-full bg-white/15 blur-xl" />
-            <Logo tone="light" />
+            <div className="absolute inset-0 -z-10 scale-[2] rounded-full bg-brand-100/60 blur-xl" />
+            <Logo />
           </div>
           <p className="auth-tagline">{t('tagline')}</p>
         </div>
@@ -362,13 +369,13 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
           <p className="auth-terms mt-4 text-center">
             {role === 'detailer' ? (
               <>{t('lookingToBook')}{' '}
-                <Link to="/signup" className="underline underline-offset-2 hover:text-white">
+                <Link to="/signup" className="underline underline-offset-2">
                   {t('signUpAsCustomer')}
                 </Link>
               </>
             ) : (
               <>{t('wantToDetail')}{' '}
-                <Link to="/signup/detailer" className="underline underline-offset-2 hover:text-white">
+                <Link to="/signup/detailer" className="underline underline-offset-2">
                   {t('applyAsDetailer')}
                 </Link>
               </>
@@ -386,7 +393,7 @@ function MethodButton({ icon, onClick, disabled, children }) {
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="flex h-12 w-full cursor-pointer items-center gap-3 rounded-xl border border-white/20 bg-white/12 px-4 text-sm font-medium text-white backdrop-blur-sm transition-all duration-150 hover:border-white/35 hover:bg-white/20 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+      className="flex h-12 w-full cursor-pointer items-center gap-3 rounded-xl border border-[var(--auth-method-border)] bg-[var(--auth-method-bg)] px-4 text-sm font-medium text-[var(--auth-text)] backdrop-blur-sm transition-all duration-150 hover:border-[var(--auth-method-border-hover)] hover:bg-[var(--auth-method-bg-hover)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
     >
       <span className="shrink-0">{icon}</span>
       {children}
@@ -399,7 +406,7 @@ function BackButton({ onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className="mb-4 flex items-center gap-1 text-sm text-white/60 hover:text-white transition-colors"
+      className="mb-4 flex items-center gap-1 text-sm text-[var(--auth-text-soft)] hover:text-[var(--auth-text)] transition-colors"
     >
       <ChevronLeftIcon className="h-4 w-4" />
       Back
@@ -408,5 +415,5 @@ function BackButton({ onClick }) {
 }
 
 function BtnSpinner() {
-  return <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+  return <span className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--auth-accent)]/40 border-t-[var(--auth-accent)]" />
 }
