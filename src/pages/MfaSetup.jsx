@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import Logo from '../components/Logo'
 import { AnimatedPage } from '../components/ui/Motion'
+import OtpInput from '../components/ui/OtpInput'
 import { supabase } from '../lib/supabase'
 import { useAuth, homePathForRole } from '../context/AuthContext'
 import { useT } from '../i18n/useT'
@@ -95,25 +96,16 @@ export default function MfaSetup() {
             </p>
           )}
 
-          <form onSubmit={verify} className="space-y-3">
+          <form onSubmit={verify} className="space-y-4">
             <div>
-              <label htmlFor="mfaCode" className="label">
+              <label htmlFor="mfaCode" className="label text-center">
                 {t('codeLabel')}
               </label>
-              <input
-                id="mfaCode"
-                type="text"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                required
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                placeholder="123456"
-                className="input"
-                disabled={!factorId}
-              />
+              <div className="mt-1">
+                <OtpInput id="mfaCode" value={code} onChange={setCode} disabled={!factorId} />
+              </div>
             </div>
-            <button type="submit" disabled={busy || !factorId} className="btn btn-cta w-full">
+            <button type="submit" disabled={busy || !factorId || code.length < 6} className="btn btn-cta w-full">
               {busy ? t('verifying') : t('enable2fa')}
             </button>
           </form>
