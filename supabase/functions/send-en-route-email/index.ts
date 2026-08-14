@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
       .select(
         `id, status,
          customer_profiles!inner(user_id, users!inner(email, full_name)),
-         detailer_profiles!inner(user_id, users!inner(full_name))`
+         detailer_profiles!bookings_detailer_id_fkey!inner(user_id, users!inner(full_name))`
       )
       .eq('id', bookingId)
       .single()

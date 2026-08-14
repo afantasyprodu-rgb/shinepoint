@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
 
     const { data: booking, error: bErr } = await admin
       .from('bookings')
-      .select('id, status, detailer_id, detailer_profiles!inner(user_id)')
+      .select('id, status, detailer_id, detailer_profiles!bookings_detailer_id_fkey!inner(user_id)')
       .eq('id', bookingId)
       .single()
     if (bErr || !booking) return json({ error: 'Booking not found' }, 404)
