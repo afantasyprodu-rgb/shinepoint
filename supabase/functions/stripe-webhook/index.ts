@@ -5,8 +5,11 @@
 //
 // Deploy PUBLIC (no JWT — Stripe can't send one):
 //   supabase functions deploy stripe-webhook --no-verify-jwt
-// Secrets: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, RESEND_API_KEY (optional
-// — confirmation email send is skipped, not fatal, if unset).
+// Secrets: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET (the regular "Your
+// account" endpoint's signing secret), STRIPE_CONNECT_WEBHOOK_SECRET (the
+// Connect-scoped endpoint's — see the comment below on why there are two),
+// RESEND_API_KEY (optional — confirmation email send is skipped, not fatal,
+// if unset).
 import Stripe from 'npm:stripe@^18'
 import { createClient } from 'npm:@supabase/supabase-js@^2'
 import { sendEmail } from '../_shared/resend.ts'
@@ -15,7 +18,19 @@ import { bookingConfirmationEmail } from '../_shared/email-templates.ts'
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
   apiVersion: '2026-05-27.dahlia',
 })
-const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET')!
+// Two DIFFERENT Stripe webhook endpoints point at this same URL, and Stripe
+// signs each with its own secret: a regular "Your account" endpoint (
+// payment_intent.*, charge.dispute.created, identity.verification_session.*
+// — all platform-account events, since create-payment-intent charges the
+// platform's own balance rather than a destination charge) and a Connect-
+// scoped endpoint (account.updated for a detailer's connected account —
+// Connect events are a separate scope and never delivered to a regular
+// endpoint). Try both secrets; a connected-account payload will fail
+// verification against the first and succeed against the second.
+const webhookSecrets = [
+  Deno.env.get('STRIPE_WEBHOOK_SECRET'),
+  Deno.env.get('STRIPE_CONNECT_WEBHOOK_SECRET'),
+].filter((s): s is string => Boolean(s))
 // Async/SubtleCrypto signature verification is required in Deno.
 const cryptoProvider = Stripe.createSubtleCryptoProvider()
 
@@ -72,16 +87,18 @@ Deno.serve(async (req) => {
   const sig = req.headers.get('stripe-signature')
   const body = await req.text()
 
-  let event: Stripe.Event
-  try {
-    event = await stripe.webhooks.constructEventAsync(
-      body,
-      sig!,
-      webhookSecret,
-      undefined,
-      cryptoProvider
-    )
-  } catch (e) {
+  let event: Stripe.Event | null = null
+  let lastErr: Error | null = null
+  for (const secret of webhookSecrets) {
+    try {
+      event = await stripe.webhooks.constructEventAsync(body, sig!, secret, undefined, cryptoProvider)
+      break
+    } catch (e) {
+      lastErr = e as Error
+    }
+  }
+  if (!event) {
+    const e = lastErr ?? new Error('No webhook secret configured')
     console.error('webhook signature verify failed:', (e as Error).message)
     return new Response('Bad signature', { status: 400 })
   }
@@ -91,12 +108,51 @@ Deno.serve(async (req) => {
       case 'payment_intent.succeeded': {
         const pi = event.data.object as Stripe.PaymentIntent
         const bookingId = pi.metadata?.booking_id
-        if (bookingId) {
+        if (bookingId && pi.metadata?.kind === 'tip') {
+          // Tip charge (charge-tip). Only now is tip_amount real money —
+          // release-payouts refuses to pay a tip without tip_paid_at.
           await admin
             .from('bookings')
-            .update({ paid_at: new Date().toISOString(), stripe_payment_intent: pi.id })
+            .update({ tip_paid_at: new Date().toISOString(), tip_payment_intent: pi.id })
+            .eq('id', bookingId)
+        } else if (bookingId) {
+          await admin
+            .from('bookings')
+            .update({
+              paid_at: new Date().toISOString(),
+              stripe_payment_intent: pi.id,
+              // Kept so the post-job tip can reuse the card.
+              stripe_payment_method: typeof pi.payment_method === 'string' ? pi.payment_method : null,
+            })
             .eq('id', bookingId)
           await sendBookingConfirmation(bookingId)
+        }
+        break
+      }
+
+      // Live cards fail and get charged back in ways test cards never do.
+      // Both of these previously went unhandled: a chargeback pulls money
+      // from the platform balance with no signal anywhere in the app.
+      case 'payment_intent.payment_failed': {
+        const pi = event.data.object as Stripe.PaymentIntent
+        console.error('payment failed', pi.id, pi.metadata?.booking_id, pi.last_payment_error?.message)
+        break
+      }
+
+      case 'charge.dispute.created': {
+        const d = event.data.object as Stripe.Dispute
+        const chargeId = typeof d.charge === 'string' ? d.charge : d.charge?.id
+        console.error('STRIPE CHARGEBACK opened', d.id, 'charge', chargeId, 'amount', d.amount)
+        // Freeze the payout so release-payouts cannot transfer money that is
+        // being pulled back. payout_hold_until far in the future keeps the
+        // row out of the release query until a human resolves it.
+        if (d.payment_intent) {
+          const piId = typeof d.payment_intent === 'string' ? d.payment_intent : d.payment_intent.id
+          await admin
+            .from('bookings')
+            .update({ payout_hold_until: new Date(Date.now() + 365 * 864e5).toISOString() })
+            .eq('stripe_payment_intent', piId)
+            .is('transferred_at', null)
         }
         break
       }
@@ -108,20 +164,20 @@ Deno.serve(async (req) => {
           .eq('stripe_account_id', acct.id)
         break
       }
+      // Sessions are created for either a detailer (onboarding) or a
+      // customer (043 — repeat-dispute gate). The session id is unique
+      // either way, so trying both tables is simpler and just as safe as
+      // reading metadata.profile_table back out — at most one row matches.
       case 'identity.verification_session.verified': {
         const vs = event.data.object as Stripe.Identity.VerificationSession
-        await admin
-          .from('detailer_profiles')
-          .update({ identity_status: 'verified' })
-          .eq('stripe_identity_session_id', vs.id)
+        await admin.from('detailer_profiles').update({ identity_status: 'verified' }).eq('stripe_identity_session_id', vs.id)
+        await admin.from('customer_profiles').update({ identity_status: 'verified' }).eq('stripe_identity_session_id', vs.id)
         break
       }
       case 'identity.verification_session.requires_input': {
         const vs = event.data.object as Stripe.Identity.VerificationSession
-        await admin
-          .from('detailer_profiles')
-          .update({ identity_status: 'failed' })
-          .eq('stripe_identity_session_id', vs.id)
+        await admin.from('detailer_profiles').update({ identity_status: 'failed' }).eq('stripe_identity_session_id', vs.id)
+        await admin.from('customer_profiles').update({ identity_status: 'failed' }).eq('stripe_identity_session_id', vs.id)
         break
       }
       default:

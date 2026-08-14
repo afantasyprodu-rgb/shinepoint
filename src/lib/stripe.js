@@ -44,3 +44,14 @@ export const getDetailerBalance = () => invokeFn('get-balance')
 // balance to their bank. The server re-validates the amount against a fresh
 // balance read — this is just the request, not the source of truth.
 export const requestPayout = (amount) => invokeFn('request-payout', { amount })
+
+// Charge a post-job tip against the card saved from the booking payment.
+// Tips are 100% the detailer's; release-payouts adds this on top of their
+// cut once the charge succeeds.
+export const chargeTip = (bookingId, amount) => invokeFn('charge-tip', { bookingId, amount })
+
+// Admin: resolve a dispute, issuing a real Stripe refund when an amount is
+// given. Replaces calling the admin_resolve_dispute RPC directly, which
+// recorded a refund without ever moving money.
+export const resolveDisputeWithRefund = (disputeId, resolution, refundAmount = 0, resolutionNotes = '') =>
+  invokeFn('resolve-dispute', { disputeId, resolution, refundAmount, resolutionNotes })

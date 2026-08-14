@@ -213,6 +213,11 @@ export default function InvoiceBuilder({ booking, detailer }) {
   const [templates, setTemplates] = useState(() => listTemplates(detailer?.id))
   const [templateName, setTemplateName] = useState('')
   const [attached, setAttached] = useState(Boolean(booking.invoice))
+  // Whether the customer's completion receipt email shows this itemized
+  // breakdown or just the flat total. Defaults on — most detailers who
+  // bother itemizing want the customer to see why. Doesn't affect the
+  // in-app view, which always shows the full breakdown either way.
+  const [emailItemized, setEmailItemized] = useState(booking.invoice?.emailItemized ?? true)
 
   const total = useMemo(
     () => items.reduce((s, it) => s + (Number(it.amount) || 0), 0),
@@ -237,7 +242,7 @@ export default function InvoiceBuilder({ booking, detailer }) {
 
   function attachToJob() {
     patchBooking(booking.id, {
-      invoice: { items: cleanItems(), total, issuedAt: new Date().toISOString() },
+      invoice: { items: cleanItems(), total, issuedAt: new Date().toISOString(), emailItemized },
     })
     setAttached(true)
   }
@@ -353,6 +358,25 @@ export default function InvoiceBuilder({ booking, detailer }) {
             {money(total)}
           </motion.span>
         </div>
+      </section>
+
+      {/* Email behavior */}
+      <section>
+        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-brand-100 px-3.5 py-3">
+          <input
+            type="checkbox"
+            checked={emailItemized}
+            onChange={(e) => {
+              setEmailItemized(e.target.checked)
+              setAttached(false)
+            }}
+            className="mt-0.5 h-4 w-4 shrink-0 accent-brand-600"
+          />
+          <span>
+            <span className="block text-sm font-medium text-slate-900">{t('emailItemizedLabel')}</span>
+            <span className="block text-xs text-slate-400">{t('emailItemizedHint')}</span>
+          </span>
+        </label>
       </section>
 
       {/* Save as reusable template */}

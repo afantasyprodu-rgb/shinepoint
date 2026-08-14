@@ -7,7 +7,6 @@ import { CountUp } from '../components/ui/bits'
 import {
   SparklesIcon,
   CheckIcon,
-  StarIcon,
   GiftIcon,
   UsersIcon,
   CalendarIcon,
@@ -90,7 +89,7 @@ function PunchCard({ points, target, t }) {
 }
 
 export default function Rewards() {
-  const { customer } = useStore()
+  const { customer, claimReferral } = useStore()
   const [copied, setCopied] = useState(false)
   const t = useT('rewards')
 
@@ -101,6 +100,25 @@ export default function Rewards() {
   const punchProgress = nextMilestone
     ? customer.points - (MILESTONES[MILESTONES.indexOf(nextMilestone) - 1]?.at ?? 0)
     : customer.points
+
+  const [claimCode, setClaimCode] = useState('')
+  const [claimMsg, setClaimMsg] = useState(null)   // i18n key
+  const [claiming, setClaiming] = useState(false)
+
+  // The advocate is not credited now — only once this customer's first
+  // booking actually completes (the 036 trigger). That delay is the single
+  // most effective referral-fraud control, so the copy says so.
+  async function submitClaim(e) {
+    e.preventDefault()
+    const code = claimCode.trim()
+    if (!code || claiming) return
+    setClaiming(true)
+    setClaimMsg(null)
+    const result = await claimReferral(code)
+    setClaiming(false)
+    setClaimMsg(`claim_${result}`)
+    if (result === 'ok') setClaimCode('')
+  }
 
   function copyCode() {
     navigator.clipboard?.writeText(customer.referralCode)
@@ -188,7 +206,7 @@ export default function Rewards() {
                         </div>
                       </div>
                       <Link
-                        to="/map"
+                        to="/home"
                         className={`press-spring shrink-0 rounded-xl px-3 py-1.5 text-xs font-bold hover:opacity-80 ${ms.badge}`}
                       >
                         {t('use')}
@@ -263,7 +281,6 @@ export default function Rewards() {
           <ul className="mt-3 space-y-2.5">
             {[
               { icon: CalendarIcon, labelKey: 'earnBooking', ptsKey: 'earnBookingPts' },
-              { icon: StarIcon,    labelKey: 'earnReview', ptsKey: 'earnReviewPts' },
               { icon: UsersIcon,   labelKey: 'earnReferral', ptsKey: 'earnReferralPts' },
             ].map(({ icon: Icon, labelKey, ptsKey }) => (
               <li key={labelKey} className="flex items-center justify-between gap-3">
@@ -324,6 +341,38 @@ export default function Rewards() {
             </motion.button>
           </div>
         </motion.div>
+
+        {/* Enter someone else's code. Server-side rules reject self-referral,
+            a second claim, and anyone who already has a completed booking. */}
+        <div className="clay-card mt-4 px-5 py-4">
+          <p className="font-display text-sm font-bold text-slate-900 dark:text-slate-100">
+            {t('haveACode')}
+          </p>
+          <form onSubmit={submitClaim} className="mt-2 flex gap-2">
+            <input
+              value={claimCode}
+              onChange={(e) => setClaimCode(e.target.value.toUpperCase())}
+              placeholder={t('codePlaceholder')}
+              aria-label={t('haveACode')}
+              className="input flex-1 font-mono tracking-widest"
+            />
+            <button
+              type="submit"
+              disabled={!claimCode.trim() || claiming}
+              className="btn btn-brand h-11 shrink-0 px-4 text-sm disabled:opacity-40"
+            >
+              {t('applyCode')}
+            </button>
+          </form>
+          {claimMsg && (
+            <p
+              role="status"
+              className={`mt-2 text-xs ${claimMsg === 'claim_ok' ? 'text-cta-700 dark:text-cta-500' : 'text-red-600 dark:text-red-400'}`}
+            >
+              {t(claimMsg)}
+            </p>
+          )}
+        </div>
 
         <p className="mt-4 text-center text-xs text-slate-400">
           {t('footerNote')}

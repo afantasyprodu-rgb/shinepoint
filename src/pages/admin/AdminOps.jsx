@@ -5,7 +5,7 @@ import Modal from '../../components/ui/Modal'
 import { AnimatedPage } from '../../components/ui/Motion'
 import { StatusPill } from '../../components/ui/bits'
 import EvidencePhotos from '../../components/EvidencePhotos'
-import { AlertTriangleIcon, CheckIcon, XIcon, CameraIcon, ClockIcon } from '../../components/icons'
+import { AlertTriangleIcon, CheckIcon, XIcon, CameraIcon, ClockIcon, ShieldCheckIcon } from '../../components/icons'
 import { useStore } from '../../context/StoreContext'
 import { useT } from '../../i18n/useT'
 
@@ -13,17 +13,22 @@ const TAB_KEYS = [
   { key: 'Bookings', labelKey: 'tabBookings' },
   { key: 'Disputes', labelKey: 'tabDisputes' },
   { key: 'Overrides', labelKey: 'tabOverrides' },
+  { key: 'Payouts', labelKey: 'tabPayouts' },
   { key: 'Flagged', labelKey: 'tabFlagged' },
 ]
 
 // Each resolution spells out exactly what happens to the money.
+// The refund each outcome implies. These used to be display-only strings —
+// the chosen option was passed on with no amount at all, so an admin who
+// clicked "refund $100" issued nothing. `amount` is what is still refundable
+// on the booking (charged minus anything already refunded).
 function resolutionOptions(amount, t) {
-  const half = Math.round(amount / 2)
+  const half = Math.round((amount / 2) * 100) / 100
   return [
-    { key: 'customer_wins', label: t('resolveRefund'), consequence: t('resolveRefundConsequence', { amount }), tone: 'cta' },
-    { key: 'detailer_wins', label: t('resolveDetailer'), consequence: t('resolveDetailerConsequence', { amount }), tone: 'brand' },
-    { key: 'split',         label: t('resolveSplit'),        consequence: t('resolveSplitConsequence', { half }), tone: 'brand' },
-    { key: 'dismissed',     label: t('resolveDismiss'),    consequence: t('resolveDismissConsequence'), tone: 'slate' },
+    { key: 'customer_wins', refund: amount, label: t('resolveRefund'), consequence: t('resolveRefundConsequence', { amount }), tone: 'cta' },
+    { key: 'detailer_wins', refund: 0,      label: t('resolveDetailer'), consequence: t('resolveDetailerConsequence', { amount }), tone: 'brand' },
+    { key: 'split',         refund: half,   label: t('resolveSplit'),    consequence: t('resolveSplitConsequence', { half }), tone: 'brand' },
+    { key: 'dismissed',     refund: 0,      label: t('resolveDismiss'),  consequence: t('resolveDismissConsequence'), tone: 'slate' },
   ]
 }
 
@@ -37,9 +42,29 @@ function hoursAgo(ts, t) {
 function DisputeCard({ dispute, onResolve }) {
   const [open, setOpen] = useState(dispute.status === 'open')
   const [confirming, setConfirming] = useState(null) // resolution option
+  const [customAmount, setCustomAmount] = useState('')
+  const [notes, setNotes] = useState('')
   const isResolved = dispute.status === 'resolved'
   const t = useT('adminOps')
-  const options = resolutionOptions(dispute.amount ?? 0, t)
+  const [resolving, setResolving] = useState(false)
+  const [resolveError, setResolveError] = useState(null)
+  // refundable = charged minus already refunded. dispute.amount is only set
+  // AFTER resolution, so using it here showed "$0" on every open dispute.
+  const refundable = dispute.refundable ?? dispute.amount ?? 0
+  const options = resolutionOptions(refundable, t)
+
+  // Any amount not exactly $0 or the full refundable total is a genuine
+  // partial credit — 'split' is the closest existing bucket (not a full win
+  // for either side) rather than forcing every custom amount through 50/50.
+  function customOption(amount) {
+    const key = amount <= 0 ? 'detailer_wins' : amount >= refundable ? 'customer_wins' : 'split'
+    return {
+      key,
+      refund: amount,
+      label: t('customRefundLabel'),
+      consequence: t('resolveRefundConsequence', { amount }),
+    }
+  }
 
   return (
     <motion.div layout className={`card overflow-hidden !p-0 ${dispute.status === 'open' ? 'border-red-200 dark:border-red-500/30' : ''}`}>
@@ -100,11 +125,36 @@ function DisputeCard({ dispute, onResolve }) {
                 </div>
               </div>
 
+              {/* The disputed-against party's chance to respond before a ruling —
+                  not enforced, just surfaced so the admin knows if they've been
+                  heard yet. */}
+              {!isResolved && dispute.responseDeadline && (
+                <div className="rounded-xl bg-slate-50 p-3 text-sm dark:bg-white/5">
+                  {dispute.respondedAt ? (
+                    <>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">{t('theirResponse', { name: dispute.against })}</p>
+                      <p className="mt-1 text-slate-700 dark:text-slate-300">{dispute.responseText}</p>
+                    </>
+                  ) : (
+                    <p className="text-slate-500 dark:text-slate-400">
+                      {new Date(dispute.responseDeadline) > new Date()
+                        ? t('awaitingResponse', { name: dispute.against, when: new Date(dispute.responseDeadline).toLocaleString() })
+                        : t('responseWindowExpired', { name: dispute.against })}
+                    </p>
+                  )}
+                </div>
+              )}
+
               {isResolved ? (
-                <p className="flex items-center gap-1.5 text-sm font-medium text-cta-700 dark:text-cta-500">
-                  <CheckIcon className="h-4 w-4" />
-                  {t('resolved', { resolution: options.find((o) => o.key === dispute.resolution)?.label ?? dispute.resolution?.replace('_', ' ') })}
-                </p>
+                <>
+                  <p className="flex items-center gap-1.5 text-sm font-medium text-cta-700 dark:text-cta-500">
+                    <CheckIcon className="h-4 w-4" />
+                    {t('resolved', { resolution: options.find((o) => o.key === dispute.resolution)?.label ?? dispute.resolution?.replace('_', ' ') })}
+                  </p>
+                  {dispute.resolutionNotes && (
+                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{dispute.resolutionNotes}</p>
+                  )}
+                </>
               ) : (
                 <div>
                   <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">{t('resolveLabel')}</p>
@@ -119,6 +169,26 @@ function DisputeCard({ dispute, onResolve }) {
                         <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{opt.consequence}</p>
                       </button>
                     ))}
+                  </div>
+                  <p className="mb-1.5 mt-3 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">{t('customRefundLabel')}</p>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      min="0"
+                      max={refundable}
+                      step="0.01"
+                      value={customAmount}
+                      onChange={(e) => setCustomAmount(e.target.value)}
+                      placeholder={t('customRefundPlaceholder', { max: refundable })}
+                      className="input h-10 flex-1 text-sm"
+                    />
+                    <button
+                      disabled={customAmount === '' || Number(customAmount) < 0 || Number(customAmount) > refundable}
+                      onClick={() => setConfirming(customOption(Math.round(Number(customAmount) * 100) / 100))}
+                      className="btn btn-outline h-10 shrink-0 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {t('reviewAmount')}
+                    </button>
                   </div>
                 </div>
               )}
@@ -138,12 +208,44 @@ function DisputeCard({ dispute, onResolve }) {
         <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
           {t('bothPartiesNotified')}
         </p>
+        <label htmlFor="resolution-notes" className="mt-3 block text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+          {t('resolutionNotesLabel')}
+        </label>
+        <textarea
+          id="resolution-notes"
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          placeholder={t('resolutionNotesPlaceholder')}
+          rows={2}
+          className="input mt-1 h-auto w-full resize-none py-2 text-sm"
+        />
+        {resolveError && (
+          <p role="alert" className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-400">
+            {resolveError}
+          </p>
+        )}
         <div className="mt-5 flex gap-2">
           <button
-            onClick={() => { onResolve(dispute.id, confirming.key); setConfirming(null) }}
-            className="btn btn-brand h-11 flex-1 text-sm"
+            disabled={resolving}
+            onClick={async () => {
+              setResolving(true)
+              setResolveError(null)
+              try {
+                await onResolve(dispute.id, confirming.key, confirming.refund ?? 0, notes.trim())
+                setConfirming(null)
+                setCustomAmount('')
+                setNotes('')
+              } catch (e) {
+                // A refund is a real Stripe call — never close the modal as
+                // if it had worked when it didn't.
+                setResolveError(e.message)
+              } finally {
+                setResolving(false)
+              }
+            }}
+            className="btn btn-brand h-11 flex-1 text-sm disabled:opacity-50"
           >
-            {t('confirmResolution')}
+            {resolving ? t('resolving') : t('confirmResolution')}
           </button>
           <button onClick={() => setConfirming(null)} className="btn btn-outline h-11 flex-1 text-sm">
             {t('cancel')}
@@ -212,14 +314,59 @@ function OverrideCard({ override, booking, onApprove, onCancel }) {
   )
 }
 
+// A payout held because the detailer is still on probation (fewer than 5
+// completed jobs — 041). The 48h hold applies underneath this regardless;
+// this only clears the extra approval gate, it doesn't force a transfer.
+function PayoutCard({ payout, onApprove }) {
+  const t = useT('adminOps')
+  const holdPassed = payout.holdUntil && new Date(payout.holdUntil) <= new Date()
+
+  return (
+    <motion.div
+      layout
+      exit={{ opacity: 0, x: 100, transition: { duration: 0.25 } }}
+      className="card border-amber-200 dark:border-amber-500/30 !p-5"
+    >
+      <div className="flex items-start gap-3">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400">
+          <ShieldCheckIcon className="h-5 w-5" />
+        </span>
+        <div className="flex-1">
+          <p className="font-semibold text-slate-900 dark:text-slate-100">{payout.detailer}</p>
+          <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
+            {t('probationPayoutHeld', { remaining: payout.probationRemaining })}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <span className="chip bg-brand-100 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">
+              ${payout.amount.toFixed(2)}
+            </span>
+            <span className={`chip ${holdPassed ? 'bg-cta-700/10 text-cta-700 dark:text-cta-500' : 'bg-amber-500/15 text-amber-700 dark:text-amber-300'}`}>
+              <ClockIcon className="mr-1 h-3 w-3" />
+              {holdPassed ? t('holdCleared') : t('holdPending')}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4">
+        <button onClick={onApprove} className="btn btn-cta h-10 w-full text-sm">
+          <CheckIcon className="h-4 w-4" /> {t('approvePayout')}
+        </button>
+      </div>
+    </motion.div>
+  )
+}
+
 export default function AdminOps() {
   const [tab, setTab] = useState('Disputes')
-  const { bookings, getBooking, getDetailer, admin, resolveDispute, approveOverride, clearFlag, warnFlaggedSender, suspendFlaggedSender } = useStore()
+  const { bookings, getBooking, getDetailer, admin, resolveDispute, approveOverride, approvePayout, clearFlag, warnFlaggedSender, suspendFlaggedSender } = useStore()
   const t = useT('adminOps')
+  const pendingPayouts = admin.pendingPayouts ?? []
 
   const badges = {
     Disputes: admin.disputes.filter((d) => d.status !== 'resolved').length,
     Overrides: admin.overrides.length,
+    Payouts: pendingPayouts.length,
     Flagged: admin.flagged.length,
   }
 
@@ -296,6 +443,25 @@ export default function AdminOps() {
                       onApprove={() => approveOverride(o.id, 'approve')}
                       onCancel={() => approveOverride(o.id, 'cancel')}
                     />
+                  ))}
+                </AnimatePresence>
+              </>
+            )}
+
+            {tab === 'Payouts' && (
+              <>
+                {pendingPayouts.length === 0 && (
+                  <div className="card flex flex-col items-center py-10 text-center">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cta-700/10 text-cta-700 dark:text-cta-500">
+                      <CheckIcon className="h-6 w-6" />
+                    </span>
+                    <p className="mt-3 font-semibold text-slate-900 dark:text-slate-100">{t('allClear')}</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">{t('noPayoutsWaiting')}</p>
+                  </div>
+                )}
+                <AnimatePresence>
+                  {pendingPayouts.map((p) => (
+                    <PayoutCard key={p.id} payout={p} onApprove={() => approvePayout(p.id)} />
                   ))}
                 </AnimatePresence>
               </>

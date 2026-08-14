@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
     const { data: booking, error } = await admin
       .from('bookings')
       .select(
-        `id, status, total_price, tip_amount, completed_at,
+        `id, status, total_price, tip_amount, completed_at, invoice,
          customer_profiles!inner(user_id, users!inner(email, full_name)),
          detailer_profiles!inner(user_id, users!inner(full_name)),
          services(service_name)`
@@ -66,14 +66,26 @@ Deno.serve(async (req) => {
     const price = Number(booking.total_price ?? 0)
     const tip = Number(booking.tip_amount ?? 0)
 
+    // Use the detailer's itemized invoice when one exists and they've opted
+    // to email it (InvoiceBuilder's "email itemized" toggle, on by default).
+    // Falls back to a single "service — total_price" line otherwise, same as
+    // before the invoice builder existed. The invoice's own total is what's
+    // shown; it can legitimately differ from total_price (extra line items,
+    // discounts applied after the fact) and the email should match what the
+    // detailer actually itemized, not the original booked price.
+    const invoice = (booking as any).invoice as { items?: { label: string; amount: number }[]; total?: number; emailItemized?: boolean } | null
+    const useInvoice = invoice?.items?.length && invoice.emailItemized !== false
+    const items = useInvoice ? invoice!.items! : [{ label: service, amount: price }]
+    const total = useInvoice ? Number(invoice!.total ?? price) : price
+
     const { subject, html } = receiptEmail({
       customerName: customer.full_name ?? 'there',
       detailerName: detailer?.full_name ?? 'Your detailer',
       bookingId: booking.id,
       service,
-      items: [{ label: service, amount: price }],
+      items,
       tip: tip > 0 ? tip : undefined,
-      total: price,
+      total,
       paidAt: booking.completed_at ?? new Date().toISOString(),
       receiptUrl: `${Deno.env.get('APP_ORIGIN') ?? 'https://shinepoint.app'}/bookings/${booking.id}`,
     })

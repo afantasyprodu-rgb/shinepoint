@@ -42,6 +42,27 @@ function normalizeDetailer(row) {
   }
 }
 
+// Most-recent dispute row for this booking, shaped for either party — the
+// filed-against side uses filedAgainst===currentUserId to show a respond
+// form, the filer sees a read-only "waiting on response" state.
+function normalizeDispute(row) {
+  const latest = [...(row.disputes ?? [])].sort(
+    (a, b) => new Date(b.opened_at).getTime() - new Date(a.opened_at).getTime()
+  )[0]
+  if (!latest) return undefined
+  return {
+    id: latest.id,
+    filedBy: latest.filed_by,
+    filedAgainst: latest.filed_against,
+    status: latest.status,
+    reason: latest.reason,
+    resolution: latest.resolution ?? undefined,
+    responseText: latest.response_text ?? undefined,
+    respondedAt: latest.responded_at ?? undefined,
+    responseDeadline: latest.response_deadline,
+  }
+}
+
 function normalizeCustomerBooking(row) {
   return {
     id: row.id,
@@ -52,6 +73,13 @@ function normalizeCustomerBooking(row) {
     price: Number(row.total_price ?? 0),
     tip: Number(row.tip_amount ?? 0),
     status: row.status,
+    // Set only once the customer's PaymentIntent actually succeeds
+    // (create-payment-intent / stripe-webhook) — a booking can sit at
+    // status:'pending' with this still null if checkout was abandoned or
+    // failed after the row was created. See DetailerDashboard's `incoming`
+    // filter, which uses this to keep unpaid requests from ever reaching a
+    // detailer's Accept button.
+    paidAt: row.paid_at ?? null,
     scheduledTime: row.scheduled_time,
     address: row.booking_address ?? '',
     zip: row.booking_zip ?? '',
@@ -64,8 +92,18 @@ function normalizeCustomerBooking(row) {
     vehicleModel: row.vehicle_model ?? row.customer_profiles?.vehicle_model ?? '',
     // A review row for this booking means the customer already rated it.
     reviewed: (row.reviews_of_detailers?.length ?? 0) > 0,
+    cancelledBy: row.cancelled_by ?? undefined,
+    // Detailer-issued invoice snapshot (034); customer views it read-only.
+    invoice: row.invoice ?? undefined,
+    // A tip only counts as money once its charge succeeded (040).
+    tipPaidAt: row.tip_paid_at ?? null,
+    refundedAmount: Number(row.refunded_amount ?? 0),
+    dispute: normalizeDispute(row),
     ...mapBookingPhotos(row),
-    weather: { ok: true, summary: 'Clear' },
+    // Forecast snapshot taken at booking time (see buildDraft in
+    // BookingWizard.jsx) — bookings made before this was wired up have no
+    // weather_data, so there's nothing to show, not a fake "Clear".
+    weather: row.weather_data ?? null,
     _real: true,
   }
 }
@@ -86,6 +124,9 @@ function normalizeDetailerBooking(row) {
     payoutHoldUntil: row.payout_hold_until,
     transferredAt: row.transferred_at,
     status: row.status,
+    // See normalizeCustomerBooking's paidAt comment — same field, same
+    // "can be pending-but-unpaid" caveat. Gates the Accept action below.
+    paidAt: row.paid_at ?? null,
     scheduledTime: row.scheduled_time,
     startedAt: row.started_at,
     completedAt: row.completed_at,
@@ -102,8 +143,19 @@ function normalizeDetailerBooking(row) {
     customerRated: custReview
       ? { rating: custReview.rating, hardToHandle: custReview.is_hard_to_handle }
       : undefined,
+    // Drives the acceptance-rate stat (only detailer-initiated declines count)
+    // and gives support an audit trail of who cancelled.
+    cancelledBy: row.cancelled_by ?? undefined,
+    invoice: row.invoice ?? undefined,
+    // A tip only counts as money once its charge succeeded (040).
+    tipPaidAt: row.tip_paid_at ?? null,
+    refundedAmount: Number(row.refunded_amount ?? 0),
+    dispute: normalizeDispute(row),
     ...mapBookingPhotos(row),
-    weather: { ok: true, summary: 'Clear' },
+    // Forecast snapshot taken at booking time (see buildDraft in
+    // BookingWizard.jsx) — bookings made before this was wired up have no
+    // weather_data, so there's nothing to show, not a fake "Clear".
+    weather: row.weather_data ?? null,
     _real: true,
   }
 }
@@ -167,27 +219,45 @@ export async function fetchAdminFinance() {
   return { today, week, month, pendingPayouts, refundsIssued, refundsCount, monthly, monthLabels, tracker1099Count }
 }
 
+// Display names for detailers, keyed by their user id. Read from the
+// detailer_directory view (044), NOT from public.users directly: RLS on
+// users only ever allows "your own row" or "you are an admin", so a
+// customer joining users gets nothing back. See 044 for the full story.
+async function fetchDetailerNames() {
+  const { data, error } = await supabase.from('detailer_directory').select('id, full_name')
+  if (error) { console.error('fetchDetailerNames:', error.message); return new Map() }
+  return new Map((data ?? []).map((u) => [u.id, u.full_name]))
+}
+
 export async function fetchDetailers() {
-  const { data, error } = await supabase
-    .from('detailer_profiles')
-    .select(`
-      id, zip_code, pin_lat, pin_lng, status,
-      accepts_bookings_when_busy, accepts_reward_bookings,
-      insurance_status, total_completed_jobs, average_rating, total_reviews, bio,
-      profile_photo_url, gallery_urls,
-      probation_jobs_remaining, service_days, free_travel_miles,
-      users!inner(full_name),
-      services(id, service_name, description, price, vehicle_types, is_active)
-    `)
-    // A deactivated (self soft-deleted) detailer shouldn't keep showing up
-    // for customers to book.
-    .is('users.deactivated_at', null)
+  // No users join here — see fetchDetailerNames above. Joining users with
+  // !inner silently returned ZERO detailers to every real customer (RLS
+  // dropped the users row, the inner join dropped the detailer with it),
+  // which is what made the map permanently empty.
+  const [{ data, error }, names] = await Promise.all([
+    supabase
+      .from('detailer_profiles')
+      .select(`
+        id, user_id, zip_code, pin_lat, pin_lng, status,
+        accepts_bookings_when_busy, accepts_reward_bookings,
+        insurance_status, total_completed_jobs, average_rating, total_reviews, bio,
+        profile_photo_url, gallery_urls,
+        probation_jobs_remaining, service_days, free_travel_miles,
+        services(id, service_name, description, price, vehicle_types, is_active)
+      `),
+    fetchDetailerNames(),
+  ])
 
   if (error) {
     console.error('fetchDetailers:', error.message)
     return []
   }
-  return (data ?? []).map(normalizeDetailer)
+  // The directory view already excludes deactivated accounts, so a detailer
+  // missing from it is one who soft-deleted themselves — drop them, which
+  // is what the old .is('users.deactivated_at', null) filter did.
+  return (data ?? [])
+    .filter((row) => names.has(row.user_id))
+    .map((row) => normalizeDetailer({ ...row, users: { full_name: names.get(row.user_id) } }))
 }
 
 // Public reviews for one detailer's profile page. Admin-removed rows are
@@ -215,10 +285,135 @@ export async function fetchDetailerReviews(detailerId) {
   }))
 }
 
+// Real loyalty balance + active rewards for a customer. Earning is granted
+// server-side by the 035 trigger on booking completion; redemption is burned
+// by the create-payment-intent edge function. This is read-only.
+//
+// Shape matches what Rewards.jsx renders for the demo customer:
+//   { points, rewards: [{ id, type, tier, expiresDays }] }
+
+export async function fetchLoyalty(customerProfileId) {
+  const empty = { points: 0, rewards: [] }
+  if (!customerProfileId) return empty
+
+  const [pointsRes, rewardsRes] = await Promise.all([
+    supabase.from('loyalty_points').select('total_points, available_points')
+      .eq('customer_id', customerProfileId).maybeSingle(),
+    supabase.from('loyalty_rewards')
+      .select('id, reward_type, tier, credit_amount, expires_at')
+      .eq('customer_id', customerProfileId)
+      .is('redeemed_at', null)
+      .eq('is_expired', false)
+      .gt('expires_at', new Date().toISOString())
+      .order('earned_at', { ascending: true }),
+  ])
+  if (pointsRes.error) console.error('fetchLoyalty points:', pointsRes.error.message)
+  if (rewardsRes.error) console.error('fetchLoyalty rewards:', rewardsRes.error.message)
+
+  return {
+    points: pointsRes.data?.total_points ?? 0,
+    rewards: (rewardsRes.data ?? []).map((r) => ({
+      id: r.id,
+      credit: Number(r.credit_amount ?? 0),
+      // Rewards are fixed-dollar credits (036), not "a free <service>" — the
+      // label is derived from the amount so it can never drift from it.
+      type: `$${Number(r.credit_amount ?? 0)} service credit`,
+      // Pre-035 rows have no tier; fall back so the UI never crashes on
+      // r.tier.charAt().
+      tier: r.tier ?? 'bronze',
+      expiresDays: Math.max(
+        0,
+        Math.ceil((new Date(r.expires_at).getTime() - Date.now()) / 86400000)
+      ),
+    })),
+  }
+}
+
+// Claim a friend's referral code. All the fraud rules (self-referral, one
+// claim per customer, new-customers-only) are enforced inside the
+// security-definer function — this just relays its verdict.
+export async function claimReferralCode(code) {
+  const { data, error } = await supabase.rpc('claim_referral_code', { p_code: code })
+  if (error) {
+    console.error('claimReferralCode:', error.message)
+    return 'error'
+  }
+  return data
+}
+
+// Validate a detailer's promo code and get its dollar value. Runs through a
+// security-definer function so a customer can check a code they were given
+// without being able to enumerate a detailer's other codes (including ones
+// targeted at someone else).
+export async function checkPromoCode(detailerId, code, servicePrice) {
+  const { data, error } = await supabase.rpc('check_promo_code', {
+    p_detailer_id: detailerId,
+    p_code: code,
+    p_service_price: servicePrice,
+  })
+  if (error) {
+    console.error('checkPromoCode:', error.message)
+    return { valid: false, discount: 0, reason: 'error' }
+  }
+  const row = Array.isArray(data) ? data[0] : data
+  return {
+    valid: Boolean(row?.valid),
+    discount: Number(row?.discount ?? 0),
+    reason: row?.reason ?? null,
+  }
+}
+
+// Detailer's own codes, for the management screen.
+export async function fetchMyPromoCodes(detailerProfileId) {
+  if (!detailerProfileId) return []
+  const { data, error } = await supabase
+    .from('detailer_promo_codes')
+    .select('id, code, kind, value, customer_id, max_uses, used_count, expires_at, is_active, created_at, customer_profiles(users(full_name))')
+    .eq('detailer_id', detailerProfileId)
+    .order('created_at', { ascending: false })
+  if (error) { console.error('fetchMyPromoCodes:', error.message); return [] }
+  return (data ?? []).map((r) => ({
+    id: r.id,
+    code: r.code,
+    kind: r.kind,
+    value: Number(r.value),
+    customerId: r.customer_id,
+    customerName: r.customer_profiles?.users?.full_name ?? null,
+    maxUses: r.max_uses,
+    usedCount: r.used_count,
+    expiresAt: r.expires_at,
+    isActive: r.is_active,
+  }))
+}
+
+export async function createPromoCode(detailerProfileId, { code, kind, value, customerId, maxUses, expiresAt }) {
+  const { error } = await supabase.from('detailer_promo_codes').insert({
+    detailer_id: detailerProfileId,
+    code: code.trim().toUpperCase(),
+    kind,
+    value,
+    customer_id: customerId || null,
+    max_uses: maxUses ?? 1,
+    expires_at: expiresAt || null,
+  })
+  if (error) { console.error('createPromoCode:', error.message); throw new Error(error.message) }
+}
+
+export async function setPromoCodeActive(id, isActive) {
+  const { error } = await supabase
+    .from('detailer_promo_codes').update({ is_active: isActive }).eq('id', id)
+  if (error) console.error('setPromoCodeActive:', error.message)
+}
+
+export async function deletePromoCode(id) {
+  const { error } = await supabase.from('detailer_promo_codes').delete().eq('id', id)
+  if (error) console.error('deletePromoCode:', error.message)
+}
+
 export async function fetchCustomerProfile(userId) {
   const { data, error } = await supabase
     .from('customer_profiles')
-    .select('id, referral_code, default_address, default_zip, profile_photo_url, bio, vehicle_make, vehicle_model, vehicle_type, vehicles')
+    .select('id, referral_code, referral_credit, identity_status, default_address, default_zip, profile_photo_url, bio, vehicle_make, vehicle_model, vehicle_type, vehicles')
     .eq('user_id', userId)
     .single()
   if (error) {
@@ -387,17 +582,19 @@ export async function fetchBookingsForCustomer(customerProfileId) {
     .from('bookings')
     .select(`
       id, status, scheduled_time, total_price, tip_amount,
-      booking_address, booking_zip, created_at,
+      booking_address, booking_zip, created_at, weather_data,
       service_id, detailer_id,
       vehicle_type, vehicle_make, vehicle_model,
       damage_report_submitted, damage_report_acknowledged,
+      cancelled_by, invoice, tip_paid_at, refunded_amount, paid_at,
       services(service_name),
       detailer_profiles!bookings_detailer_id_fkey(
         id,
         users!inner(full_name)
       ),
       reviews_of_detailers(id),
-      photos(id, photo_type, url, area_label)
+      photos(id, photo_type, url, area_label),
+      disputes(id, filed_by, filed_against, status, reason, response_text, responded_at, response_deadline, resolution, opened_at)
     `)
     .eq('customer_id', customerProfileId)
     .order('created_at', { ascending: false })
@@ -414,10 +611,11 @@ export async function fetchBookingsForDetailer(detailerProfileId) {
     .from('bookings')
     .select(`
       id, status, scheduled_time, started_at, completed_at, total_price, tip_amount,
-      booking_address, booking_zip, created_at,
+      booking_address, booking_zip, created_at, weather_data,
       service_id, customer_id,
       vehicle_type, vehicle_make, vehicle_model,
       damage_report_submitted, damage_report_acknowledged,
+      cancelled_by, invoice, tip_paid_at, refunded_amount, paid_at,
       platform_cut, detailer_payout, payout_hold_until, transferred_at,
       services(service_name),
       customer_profiles!bookings_customer_id_fkey(
@@ -429,7 +627,8 @@ export async function fetchBookingsForDetailer(detailerProfileId) {
         vehicle_photo
       ),
       reviews_of_customers(rating, is_hard_to_handle),
-      photos(id, photo_type, url, area_label)
+      photos(id, photo_type, url, area_label),
+      disputes(id, filed_by, filed_against, status, reason, response_text, responded_at, response_deadline, resolution, opened_at)
     `)
     .eq('detailer_id', detailerProfileId)
     .not('status', 'in', '("cancelled")')
@@ -454,6 +653,8 @@ export async function createBookingInDB({
   vehicleType,
   vehicleMake,
   vehicleModel,
+  promoCode,
+  weather,
 }) {
   const { data, error } = await supabase
     .from('bookings')
@@ -470,6 +671,10 @@ export async function createBookingInDB({
       vehicle_make: vehicleMake || null,
       vehicle_model: vehicleModel || null,
       status: 'pending',
+      // Forecast snapshot at booking time, as shown on the day the customer
+      // picked (BookingWizard's day strip/calendar) — null when the picked
+      // date was outside Open-Meteo's forecast window.
+      weather_data: weather ?? null,
     })
     .select('id')
     .single()
@@ -481,14 +686,33 @@ export async function createBookingInDB({
   return data.id
 }
 
+// Persist a booking patch. This is a WHITELIST: any app-shaped key not
+// mapped here is silently discarded, while patchBooking's optimistic React
+// update still succeeds — so a dropped field looks like it saved until the
+// next reload. Anything patchBooking is called with must be handled here (or
+// deliberately handled by a dedicated helper, e.g. damage-report photos go
+// through setDamageReportFlags/uploadBookingPhoto instead).
 export async function updateBookingStatusInDB(bookingId, patch) {
   const dbPatch = {}
   if (patch.status) dbPatch.status = patch.status
   if (patch.tip !== undefined) dbPatch.tip_amount = patch.tip
+  // Who cancelled matters: the detailer's acceptance rate counts only
+  // detailer-initiated declines, and support needs the audit trail.
+  if (patch.cancelledBy !== undefined) dbPatch.cancelled_by = patch.cancelledBy
+  // Detailer's itemised invoice snapshot (034_booking_invoice).
+  if (patch.invoice !== undefined) dbPatch.invoice = patch.invoice
+  // The customer approving the damage report is what unblocks the job.
+  if (patch.damageReport?.acknowledged !== undefined) {
+    dbPatch.damage_report_acknowledged = patch.damageReport.acknowledged
+  }
+  if (patch.damageReport?.submitted !== undefined) {
+    dbPatch.damage_report_submitted = patch.damageReport.submitted
+  }
   // Stamp the job-duration timestamps at the moment they actually happen —
   // analytics (average time per job/vehicle) reads these back later.
   if (patch.status === 'in_progress') dbPatch.started_at = new Date().toISOString()
   if (patch.status === 'complete') dbPatch.completed_at = new Date().toISOString()
+  if (!Object.keys(dbPatch).length) return
   const { error } = await supabase.from('bookings').update(dbPatch).eq('id', bookingId)
   if (error) console.error('updateBookingStatus:', error.message)
 }
@@ -712,12 +936,22 @@ export async function insertDispute(bookingId, filedByUserId, reason) {
   if (error) { console.error('insertDispute:', error.message); throw error }
 }
 
+// The disputed-against party's response, within the 48h window shown on
+// the dispute. RLS has no update path for filed_against at all — this RPC
+// (042) is the only way in, and only once, only while unresolved.
+export async function respondToDispute(disputeId, responseText) {
+  const { error } = await supabase.rpc('respond_to_dispute', {
+    p_dispute_id: disputeId, p_response_text: responseText,
+  })
+  if (error) { console.error('respondToDispute:', error.message); throw error }
+}
+
 // Admin: all disputes with party names, shaped for the ops console. Fields the
 // schema doesn't store (statements, evidence, service, amount) are left blank.
 export async function fetchDisputes() {
   const { data, error } = await supabase
     .from('disputes')
-    .select('id, booking_id, reason, status, resolution, refund_amount, opened_at, filer:filed_by(full_name), against:filed_against(full_name)')
+    .select('id, booking_id, reason, status, resolution, resolution_notes, refund_amount, opened_at, response_text, responded_at, response_deadline, filer:filed_by(full_name), against:filed_against(full_name), bookings!inner(total_price, refunded_amount, paid_at)')
     .order('opened_at', { ascending: false })
   if (error) { console.error('fetchDisputes:', error.message); return [] }
   return (data ?? []).map((d) => ({
@@ -726,9 +960,27 @@ export async function fetchDisputes() {
     reason: d.reason,
     status: d.status,
     resolution: d.resolution ?? undefined,
+    resolutionNotes: d.resolution_notes ?? undefined,
     openedAt: d.opened_at,
     filedBy: d.filer?.full_name ?? 'User',
     against: d.against?.full_name ?? 'User',
+    // The other party's chance to give their side before an admin rules —
+    // not enforced (an admin can still resolve early), just surfaced.
+    responseText: d.response_text ?? undefined,
+    respondedAt: d.responded_at ?? undefined,
+    responseDeadline: d.response_deadline,
+    // What was actually charged for the job, and therefore the ceiling on any
+    // refund. This used to be the only amount available, but refund_amount is
+    // NULL until the dispute is resolved — so every OPEN dispute (the only
+    // kind an admin acts on) rendered "refund $0" beside the buttons.
+    bookingTotal: Number(d.bookings?.total_price ?? 0),
+    alreadyRefunded: Number(d.bookings?.refunded_amount ?? 0),
+    refundable: Math.max(
+      0,
+      Number(d.bookings?.total_price ?? 0) - Number(d.bookings?.refunded_amount ?? 0)
+    ),
+    paid: Boolean(d.bookings?.paid_at),
+    // Set only once resolved — what was actually refunded.
     amount: d.refund_amount ?? undefined,
   }))
 }
@@ -809,6 +1061,36 @@ export async function fetchOverrides() {
     .sort((a, b) => b.waitingMins - a.waitingMins)
 }
 
+// Admin: jobs whose payout is held for approval because the detailer is
+// still on probation (fewer than 5 completed jobs) — see 041. The 48h
+// hold still applies underneath this; a job can be both "not yet 48h old"
+// and "needs approval", and it stays out of release-payouts until BOTH
+// clear.
+export async function fetchPendingPayouts() {
+  const { data, error } = await supabase
+    .from('bookings')
+    .select(`
+      id, total_price, detailer_payout, payout_hold_until,
+      detailer_profiles(probation_jobs_remaining, users(full_name))
+    `)
+    .eq('status', 'complete')
+    .eq('payout_requires_approval', true)
+    .is('payout_approved_at', null)
+    .is('transferred_at', null)
+    .order('payout_hold_until', { ascending: true })
+
+  if (error) { console.error('fetchPendingPayouts:', error.message); return [] }
+  return (data ?? []).map((b) => ({
+    id: b.id,
+    bookingId: b.id,
+    detailer: b.detailer_profiles?.users?.full_name ?? 'Detailer',
+    probationRemaining: b.detailer_profiles?.probation_jobs_remaining ?? 0,
+    amount: Number(b.detailer_payout ?? 0),
+    total: Number(b.total_price ?? 0),
+    holdUntil: b.payout_hold_until,
+  }))
+}
+
 // Admin: detailers awaiting verification, shaped for the People console.
 export async function fetchPendingApplications() {
   const { data, error } = await supabase
@@ -854,6 +1136,11 @@ export async function fetchFlaggedMessages() {
 export async function adminVerifyDetailer(detailerId, approve) {
   const { error } = await supabase.rpc('admin_verify_detailer', { p_detailer_id: detailerId, p_approve: approve })
   if (error) console.error('adminVerifyDetailer:', error.message)
+}
+
+export async function adminApprovePayout(bookingId) {
+  const { error } = await supabase.rpc('admin_approve_payout', { p_booking_id: bookingId })
+  if (error) console.error('adminApprovePayout:', error.message)
 }
 
 export async function adminResolveDispute(disputeId, resolution, refundAmount = null) {
@@ -932,3 +1219,10 @@ export async function fetchAccountDeletionFeedback() {
   if (error) { console.error('fetchAccountDeletionFeedback:', error.message); return [] }
   return data
 }
+
+// One GPS ping for an en-route booking, posted by the detailer's native app
+// (src/lib/tracking.js) roughly every ~30s. The edge function re-validates
+// the caller is the assigned detailer and the booking is actually en_route
+// server-side — this call can't be trusted to enforce that on its own.
+export const postLocation = (bookingId, lat, lng, accuracy) =>
+  invokeFn('post-location', { bookingId, lat, lng, accuracy })

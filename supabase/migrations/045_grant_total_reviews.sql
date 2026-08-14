@@ -1,0 +1,23 @@
+-- ============================================================
+-- Grant SELECT on detailer_profiles.total_reviews.
+--
+-- 019 replaced the blanket table grant on detailer_profiles with an
+-- explicit column list (so a client can't read pin coordinates, stripe ids,
+-- platform_cut_override, etc). 032 then added total_reviews and never added
+-- it to that list — and a column-level grant is exact: selecting ANY
+-- ungranted column fails the whole query with
+--   42501: permission denied for table detailer_profiles
+-- not a silently-dropped column.
+--
+-- So every customer's map died on the fetchDetailers query as soon as the
+-- client started reading total_reviews (for the "New" vs star-rating chip).
+-- The 403 was invisible server-side and only showed up in the browser
+-- console, which is why this survived the RLS fix in 044 and the effect-
+-- timing fix that followed: three independent causes, same empty map.
+--
+-- total_reviews is a public aggregate — it's shown on every detailer card
+-- next to the star rating (which is already granted) — so it belongs in the
+-- readable set.
+-- ============================================================
+
+grant select (total_reviews) on public.detailer_profiles to anon, authenticated;

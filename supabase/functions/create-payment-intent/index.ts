@@ -68,22 +68,112 @@ Deno.serve(async (req) => {
       return json({ error: 'Invalid service for this booking' }, 409)
     }
 
-    let expected = Number(service.price)
+    const listPrice = Number(service.price)
+
+    // ── Detailer-funded promo code ────────────────────────────────────────
+    // Unlike loyalty credits, this is the DETAILER's own promotion, so it
+    // lowers the price the commission is calculated on: both sides give up
+    // their normal share of the discount. Validated and capped server-side
+    // (30% ceiling) — the client only ever proposes a code string.
+    let promoCodeId: string | null = null
+    let promoDiscount = 0
+    if (booking.promo_code) {
+      const { data: promo } = await admin.rpc('check_promo_code', {
+        p_detailer_id: booking.detailer_id,
+        p_code: booking.promo_code,
+        p_service_price: listPrice,
+      })
+      const row = Array.isArray(promo) ? promo[0] : promo
+      if (!row?.valid) {
+        return json({ error: `Promo code not valid (${row?.reason ?? 'invalid'})` }, 409)
+      }
+      promoDiscount = Number(row.discount ?? 0)
+      const { data: codeRow } = await admin
+        .from('detailer_promo_codes')
+        .select('id')
+        .eq('detailer_id', booking.detailer_id)
+        .ilike('code', booking.promo_code.trim())
+        .maybeSingle()
+      promoCodeId = codeRow?.id ?? null
+    }
+
+    // The commission base: what the detailer is effectively charging.
+    const servicePrice = Number((listPrice - promoDiscount).toFixed(2))
+
+    // ── Discounts ─────────────────────────────────────────────────────────
+    // Both are PLATFORM-FUNDED: the detailer is paid on the full service
+    // price regardless of what the customer actually pays, and the platform
+    // absorbs the difference (see the payout block below). A detailer must
+    // never silently work for free because a customer redeemed something.
     let rewardId: string | null = null
+    let rewardCredit = 0
     if (booking.is_loyalty_redemption) {
-      // Free only against a real, unredeemed, unexpired reward.
+      // A detailer can opt out of reward bookings entirely. This is shown in
+      // the UI and on their public profile, but was never enforced here — a
+      // client could redeem against a detailer who had opted out.
+      const { data: acceptsCheck } = await admin
+        .from('detailer_profiles')
+        .select('accepts_reward_bookings')
+        .eq('id', booking.detailer_id)
+        .single()
+      if (!acceptsCheck?.accepts_reward_bookings) {
+        return json({ error: 'This detailer does not accept reward bookings.' }, 409)
+      }
+
       const { data: reward } = await admin
         .from('loyalty_rewards')
-        .select('id')
+        .select('id, credit_amount')
         .eq('customer_id', booking.customer_id)
         .is('redeemed_at', null)
         .eq('is_expired', false)
         .gt('expires_at', new Date().toISOString())
+        .order('expires_at', { ascending: true })
         .limit(1)
         .maybeSingle()
       if (!reward) return json({ error: 'No valid loyalty reward to redeem' }, 409)
-      expected = 0
       rewardId = reward.id
+      rewardCredit = Math.min(Number(reward.credit_amount ?? 0), servicePrice)
+    }
+
+    // Referral credit is a stored balance, so the amount is taken from the
+    // server's own row — never from whatever the client claimed.
+    const { data: custProfile } = await admin
+      .from('customer_profiles')
+      .select('referral_credit')
+      .eq('id', booking.customer_id)
+      .single()
+    const referralCredit = Math.min(
+      Number(custProfile?.referral_credit ?? 0),
+      Math.max(0, servicePrice - rewardCredit),
+    )
+
+    const expected = Math.max(0, servicePrice - rewardCredit - referralCredit)
+    // The detailer's cut is computed off the FULL price, not the discounted
+    // one. release-payouts transfers this from the platform balance, so a
+    // fully-discounted booking still pays the detailer properly.
+    const detailerPayout = Number((servicePrice * (1 - FEE_PERCENT / 100)).toFixed(2))
+
+    // Consume whatever was actually applied, once the booking is committed
+    // to being paid. Idempotent: the reward update is keyed on redeemed_at
+    // still being null, and the balance decrement uses the exact amount we
+    // read above, so a retried request can't double-spend.
+    const burnCredits = async () => {
+      if (rewardId) {
+        await admin
+          .from('loyalty_rewards')
+          .update({ redeemed_at: new Date().toISOString(), redeemed_on_booking: booking.id })
+          .eq('id', rewardId)
+          .is('redeemed_at', null)
+      }
+      if (promoCodeId) {
+        await admin.rpc('consume_promo_code', { p_code_id: promoCodeId })
+      }
+      if (referralCredit > 0) {
+        await admin
+          .from('customer_profiles')
+          .update({ referral_credit: Number((Number(custProfile?.referral_credit ?? 0) - referralCredit).toFixed(2)) })
+          .eq('id', booking.customer_id)
+      }
     }
 
     const amount = Math.round(expected * 100)
@@ -94,15 +184,21 @@ Deno.serve(async (req) => {
     }
 
     if (amount <= 0) {
-      // Server-validated loyalty redemption — nothing to charge. Burn the
-      // reward now so it can't be replayed on another booking.
-      await admin.from('bookings').update({ paid_at: new Date().toISOString() }).eq('id', booking.id)
-      if (rewardId) {
-        await admin
-          .from('loyalty_rewards')
-          .update({ redeemed_at: new Date().toISOString(), redeemed_on_booking: booking.id })
-          .eq('id', rewardId)
-      }
+      // Fully covered by credits — nothing to charge the customer, but the
+      // detailer must still be paid. platform_cut goes NEGATIVE here: that
+      // is the platform funding the reward, and it keeps the finance
+      // reporting honest instead of hiding the cost as a zero.
+      await admin
+        .from('bookings')
+        .update({
+          paid_at: new Date().toISOString(),
+          platform_cut: Number((0 - detailerPayout).toFixed(2)),
+          detailer_payout: detailerPayout,
+          promo_code_id: promoCodeId,
+          promo_discount: promoDiscount,
+        })
+        .eq('id', booking.id)
+      await burnCredits()
       return json({ free: true })
     }
 
@@ -116,7 +212,6 @@ Deno.serve(async (req) => {
       return json({ error: 'Detailer has not set up payouts yet.' }, 409)
     }
 
-    const fee = Math.round(amount * (FEE_PERCENT / 100))
 
     // Reuse the intent if one already exists for this booking (idempotent retry).
     let intent: Stripe.PaymentIntent
@@ -132,6 +227,10 @@ Deno.serve(async (req) => {
       intent = await stripe.paymentIntents.create({
         amount,
         currency: 'usd',
+        // Save the card so the post-job tip can be charged without asking
+        // for it again. The tip is a separate PaymentIntent (charge-tip),
+        // confirmed while the customer is present so 3DS can be handled.
+        setup_future_usage: 'off_session',
         // Deliberately no application_fee_amount/transfer_data — this
         // charges the platform's own balance. The detailer's cut moves via
         // a separate Transfer later (release-payouts), not at capture time.
@@ -145,10 +244,16 @@ Deno.serve(async (req) => {
         .from('bookings')
         .update({
           stripe_payment_intent: intent.id,
-          platform_cut: fee / 100,
-          detailer_payout: (amount - fee) / 100,
+          // What the platform actually keeps: the customer's payment minus
+          // the detailer's full-price cut. Negative when credits covered
+          // more than the platform's normal margin.
+          platform_cut: Number((expected - detailerPayout).toFixed(2)),
+          detailer_payout: detailerPayout,
+          promo_code_id: promoCodeId,
+          promo_discount: promoDiscount,
         })
         .eq('id', booking.id)
+      await burnCredits()
     }
 
     return json({ clientSecret: intent.client_secret })

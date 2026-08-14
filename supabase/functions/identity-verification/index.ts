@@ -1,9 +1,14 @@
 // Creates (or reuses) a Stripe Identity VerificationSession for the logged-in
-// detailer and returns its client secret, for use with Stripe.js's hosted
+// user and returns its client secret, for use with Stripe.js's hosted
 // modal flow (`stripe.verifyIdentity(clientSecret)`) — no redirect needed.
-// The session's actual pass/fail arrives async via the `identity-webhook`
-// events below (identity.verification_session.verified / .requires_input),
-// handled in stripe-webhook, which writes detailer_profiles.identity_status.
+// The session's actual pass/fail arrives async via the identity.verification_
+// session.verified / .requires_input events, handled in stripe-webhook,
+// which writes {detailer,customer}_profiles.identity_status.
+//
+// Serves both roles: a detailer verifying during onboarding, or a customer
+// verifying to file a second (or later) dispute (043_repeat_dispute_
+// identity_gate.sql) — branches on the caller's own role, not a client-sent
+// param, so a customer can't request a detailer-shaped session or vice versa.
 //
 // Deploy: supabase functions deploy identity-verification
 // Secrets needed: STRIPE_SECRET_KEY (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY
@@ -42,15 +47,18 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
+    const { data: me } = await admin.from('users').select('role').eq('id', user.id).single()
+    const table = me?.role === 'customer' ? 'customer_profiles' : 'detailer_profiles'
+
     const { data: profile, error: profErr } = await admin
-      .from('detailer_profiles')
+      .from(table)
       .select('id, stripe_identity_session_id, identity_status')
       .eq('user_id', user.id)
       .single()
-    if (profErr || !profile) return json({ error: 'Detailer profile not found' }, 404)
+    if (profErr || !profile) return json({ error: 'Profile not found' }, 404)
 
-    // Reuse an in-flight session (e.g. the detailer closed the modal and
-    // reopened it) rather than creating a new one every click.
+    // Reuse an in-flight session (e.g. they closed the modal and reopened
+    // it) rather than creating a new one every click.
     if (profile.stripe_identity_session_id && profile.identity_status !== 'verified') {
       const existing = await stripe.identity.verificationSessions.retrieve(
         profile.stripe_identity_session_id
@@ -61,21 +69,20 @@ Deno.serve(async (req) => {
     }
 
     // Only a genuinely NEW session costs money (~$1.50), so the limit is
-    // checked here rather than at the top — a detailer who closes and
-    // reopens the modal reuses the in-flight session above and is never
-    // charged against their quota for it.
+    // checked here rather than at the top — closing and reopening the modal
+    // reuses the in-flight session above and isn't charged against quota.
     if (!(await withinRateLimit(admin, `identity:${user.id}`, 3, '1 day'))) {
       return tooManyRequests(3600)
     }
 
     const session = await stripe.identity.verificationSessions.create({
       type: 'document',
-      metadata: { detailer_profile_id: profile.id },
+      metadata: { profile_table: table, profile_id: profile.id },
       options: { document: { require_matching_selfie: true } },
     })
 
     await admin
-      .from('detailer_profiles')
+      .from(table)
       .update({ stripe_identity_session_id: session.id, identity_status: 'pending' })
       .eq('id', profile.id)
 

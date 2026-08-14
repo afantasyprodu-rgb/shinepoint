@@ -77,5 +77,19 @@
 	     tracking during a booking. -->
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Used to center the map on your location and show live tracking during a booking.</string>
+
+	<!-- Detailer-side en-route GPS tracking (src/lib/tracking.js): the
+	     "Always" string + UIBackgroundModes below let location updates keep
+	     posting while the phone is locked during a drive. Required by
+	     @capacitor-community/background-geolocation — see
+	     docs/ios-capacitor.md for the matching "Location updates" background
+	     mode capability that also needs enabling in Xcode's Signing &
+	     Capabilities tab. -->
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Used to share your live location with the customer while a job is en route, including while your phone is locked.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+	</array>
 </dict>
 </plist>

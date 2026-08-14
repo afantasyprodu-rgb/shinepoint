@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { chargeTip, resolveDisputeWithRefund } from '../lib/stripe'
 import { useAuth } from './AuthContext'
 import {
   DEMO_DETAILERS,
@@ -11,6 +12,8 @@ import {
 import {
   fetchDetailers,
   fetchCustomerProfile,
+  fetchLoyalty,
+  claimReferralCode,
   fetchDetailerProfileRow,
   fetchBookingsForCustomer,
   fetchBookingsForDetailer,
@@ -29,10 +32,13 @@ import {
   fetchNotifications,
   markNotificationsReadDB,
   insertDispute,
+  respondToDispute,
   fetchDisputes,
   fetchPendingApplications,
   fetchAdminCounts,
   fetchOverrides,
+  fetchPendingPayouts,
+  adminApprovePayout,
   fetchFlaggedMessages,
   fetchAdminFinance,
   adminVerifyDetailer,
@@ -84,6 +90,7 @@ export function StoreProvider({ children }) {
   // ── Real state from Supabase ──────────────────────────────────────────────
   const [realDetailers, setRealDetailers] = useState([])
   const [realBookings, setRealBookings] = useState([])
+  const [loyalty, setLoyalty] = useState({ points: 0, rewards: [] })
   const [customerProfile, setCustomerProfile] = useState(null)  // { id, referral_code, ... }
   const [detailerProfile, setDetailerProfile] = useState(null)  // { id, status, ... }
   const [realNotifications, setRealNotifications] = useState([])
@@ -101,10 +108,17 @@ export function StoreProvider({ children }) {
     },
   ])
 
-  // Load real detailers once on mount (works even in demo — real pins appear on map).
+  // Load real detailers for the map. Keyed on user?.id, NOT [] — supabase-js
+  // restores the session from storage asynchronously, so a mount-only fetch
+  // can fire before the JWT is attached and go out as `anon`. Anon reads
+  // nothing here (detailer_profiles RLS returns [], and the detailer_directory
+  // view revokes anon outright), and with an empty dependency array it never
+  // retried — leaving a permanently empty map on any load that lost that
+  // race. Re-running when the user id resolves fixes it, and the extra call
+  // is one cheap query on sign-in.
   useEffect(() => {
     fetchDetailers().then(setRealDetailers)
-  }, [])
+  }, [user?.id])
 
   // Load user-specific data when a real user signs in.
   useEffect(() => {
@@ -118,6 +132,11 @@ export function StoreProvider({ children }) {
         if (cp) {
           fetchBookingsForCustomer(cp.id).then((bs) => {
             if (!cancelled) setRealBookings(bs)
+          })
+          // Points/rewards are granted server-side (035 trigger), so this is
+          // a plain read — refreshed whenever bookings reload.
+          fetchLoyalty(cp.id).then((l) => {
+            if (!cancelled) setLoyalty(l)
           })
         }
       })
@@ -247,11 +266,12 @@ export function StoreProvider({ children }) {
     if (isDemo || profile?.role !== 'admin') return
     let cancelled = false
     const load = async () => {
-      const [applications, disputes, flagged, overrides, finance, counts] = await Promise.all([
+      const [applications, disputes, flagged, overrides, pendingPayouts, finance, counts] = await Promise.all([
         fetchPendingApplications(),
         fetchDisputes(),
         fetchFlaggedMessages(),
         fetchOverrides(),
+        fetchPendingPayouts(),
         fetchAdminFinance(),
         fetchAdminCounts(),
       ])
@@ -261,6 +281,7 @@ export function StoreProvider({ children }) {
         disputes,
         flagged,
         overrides,
+        pendingPayouts,
         decided: [],
         finance,
         milestones: {
@@ -327,10 +348,12 @@ export function StoreProvider({ children }) {
           // Additional cars beyond the primary one (013_customer_vehicles.sql).
           vehicles: customerProfile?.vehicles ?? [],
           referralCode: customerProfile?.referral_code ?? '',
-          referralCredits: 0,
-          points: 0,
-          pointsToNextReward: 5,
-          rewards: [],
+          referralCredits: Number(customerProfile?.referral_credit ?? 0),
+          // Gates filing a 2nd+ dispute (043) — 'unverified'|'pending'|'verified'|'failed'.
+          identityStatus: customerProfile?.identity_status ?? 'unverified',
+          points: loyalty.points,
+          pointsToNextReward: [5, 15, 25].find((n) => loyalty.points < n) ?? 25,
+          rewards: loyalty.rewards,
         }
 
     // Declared as a function (not the object-literal method further down)
@@ -618,6 +641,19 @@ export function StoreProvider({ children }) {
         notify('customer', 'Dispute filed', 'An admin will review your case within 24 hours.', bookingId)
       },
 
+      // The disputed-against party's chance to give their side (042) — not
+      // enforced against the admin resolving early, just surfaced to them.
+      // Not simulated in demo (no response-window concept there).
+      async respondToDispute(disputeId, text) {
+        if (isDemo) return
+        await respondToDispute(disputeId, text)
+        if (customerProfile) {
+          setRealBookings(await fetchBookingsForCustomer(customerProfile.id))
+        } else if (detailerProfile) {
+          setRealBookings(await fetchBookingsForDetailer(detailerProfile.id))
+        }
+      },
+
       rateCustomer(bookingId, rating, hardToHandle) {
         const booking = bookings.find((b) => b.id === bookingId)
         if (!isDemo && booking?._real) {
@@ -630,6 +666,19 @@ export function StoreProvider({ children }) {
           return
         }
         patchBooking(bookingId, { customerRated: { rating, hardToHandle } })
+      },
+
+      // Enter a friend's referral code. Returns the server's verdict string
+      // ('ok' | 'self_referral' | 'already_claimed' | 'not_a_new_customer' |
+      // 'invalid_code'); the advocate is not credited until this customer's
+      // first booking actually completes.
+      async claimReferral(code) {
+        if (isDemo) return 'ok'
+        const result = await claimReferralCode(code)
+        if (result === 'ok' && profile?.id) {
+          fetchCustomerProfile(profile.id).then(setCustomerProfile)
+        }
+        return result
       },
 
       getDetailer: (id) => allDetailers.find((d) => d.id === id),
@@ -664,6 +713,8 @@ export function StoreProvider({ children }) {
             vehicleType: draft.vehicle,
             vehicleMake: draft.vehicleMake,
             vehicleModel: draft.vehicleModel,
+            promoCode: draft.promoCode,
+            weather: draft.weather,
           })
           const refreshed = await fetchBookingsForCustomer(customerProfile.id)
           setRealBookings(refreshed)
@@ -709,15 +760,32 @@ export function StoreProvider({ children }) {
         return flagged
       },
 
-      submitReview(bookingId, rating, tip) {
+      // Returns a promise so the caller can surface a failed tip charge.
+      async submitReview(bookingId, rating, tip) {
         const booking = bookings.find((b) => b.id === bookingId)
         if (!isDemo && booking?._real) {
           setRealBookings((bs) =>
             bs.map((b) => (b.id === bookingId ? { ...b, reviewed: true, tip } : b))
           )
-          updateBookingStatusInDB(bookingId, { tip })
           if (customerProfile) {
             insertDetailerReview(bookingId, customerProfile.id, booking.detailerId, rating)
+          }
+          // A tip is a real second charge against the card saved at booking
+          // time — writing tip_amount alone (what this used to do) meant the
+          // customer was never charged and the detailer never paid, while
+          // both sides saw the tip as real.
+          const newTip = Number(tip ?? 0) - Number(booking.tip ?? 0)
+          if (newTip > 0 && !booking.tipPaidAt) {
+            try {
+              await chargeTip(bookingId, newTip)
+            } catch (e) {
+              // Roll the optimistic tip back so nobody is shown money that
+              // was never collected.
+              setRealBookings((bs) =>
+                bs.map((b) => (b.id === bookingId ? { ...b, tip: booking.tip ?? 0 } : b))
+              )
+              throw e
+            }
           }
           return
         }
@@ -727,9 +795,9 @@ export function StoreProvider({ children }) {
           setDemoCustomer((c) => {
             const newPoints = c.points + 1
             const MILESTONES = [
-              { at: 5,  reward: 'Free exterior wash',              tier: 'bronze' },
-              { at: 15, reward: 'Free exterior + interior detail', tier: 'silver' },
-              { at: 25, reward: 'Free full detail + priority booking', tier: 'gold' },
+              { at: 5,  credit: 15, tier: 'bronze' },
+              { at: 15, credit: 30, tier: 'silver' },
+              { at: 25, credit: 40, tier: 'gold' },
             ]
             const unlocked = c.unlockedMilestones ?? []
             const newlyUnlocked = MILESTONES.filter(
@@ -737,12 +805,13 @@ export function StoreProvider({ children }) {
             )
             const newRewards = newlyUnlocked.map((m) => ({
               id: `rw-${idCounter++}`,
-              type: m.reward,
+              credit: m.credit,
+              type: `$${m.credit} service credit`,
               tier: m.tier,
               expiresDays: 90,
             }))
             if (newlyUnlocked.length) {
-              notify('customer', '🎉 Reward unlocked!', newlyUnlocked[0].reward)
+              notify('customer', '🎉 Reward unlocked!', `$${newlyUnlocked[0].credit} service credit`)
             }
             return {
               ...c,
@@ -755,16 +824,19 @@ export function StoreProvider({ children }) {
         }
       },
 
-      resolveDispute(id, resolution) {
+      // refundAmount > 0 issues a real Stripe refund before the outcome is
+      // recorded; the RPC alone only ever wrote a number.
+      async resolveDispute(id, resolution, refundAmount = 0, resolutionNotes = '') {
         if (!isDemo) {
-          adminResolveDispute(id, resolution).then(() => loadRealAdmin.current())
+          await resolveDisputeWithRefund(id, resolution, refundAmount, resolutionNotes)
+          loadRealAdmin.current()
           return
         }
         const dispute = demoAdmin.disputes.find((d) => d.id === id)
         setDemoAdmin((a) => ({
           ...a,
           disputes: a.disputes.map((d) =>
-            d.id === id ? { ...d, status: 'resolved', resolution } : d
+            d.id === id ? { ...d, status: 'resolved', resolution, resolutionNotes } : d
           ),
         }))
         // Settle the linked booking (if it's a live one) so it leaves the
@@ -842,11 +914,20 @@ export function StoreProvider({ children }) {
         }
         setDemoAdmin((a) => ({ ...a, overrides: a.overrides.filter((o) => o.id !== id) }))
       },
+
+      // Clears the probation approval gate (041) on a held payout so
+      // release-payouts can transfer it once the 48h hold also clears.
+      // Not simulated in demo — no Stripe balance exists there.
+      approvePayout(id) {
+        if (!isDemo) {
+          adminApprovePayout(id).then(() => loadRealAdmin.current())
+        }
+      },
     }
   }, [
     isDemo,
     demoDetailers, demoBookings, demoMessages, demoCustomer, demoAdmin,
-    realDetailers, realBookings,
+    realDetailers, realBookings, loyalty,
     customerProfile, detailerProfile,
     profile,
     notifications, realNotifications, realAdmin,

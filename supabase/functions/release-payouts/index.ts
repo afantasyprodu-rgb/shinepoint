@@ -33,14 +33,19 @@ Deno.serve(async (req) => {
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
   )
 
+  // payout_requires_approval is stamped by set_payout_hold (041) when the
+  // detailer is still on probation (fewer than 5 completed jobs). Those
+  // bookings sit out here — however long the 48h clock has run — until an
+  // admin calls admin_approve_payout and payout_approved_at is set.
   const { data: due, error } = await admin
     .from('bookings')
-    .select('id, detailer_payout, detailer_id, detailer_profiles!bookings_detailer_id_fkey(stripe_account_id)')
+    .select('id, detailer_payout, tip_amount, tip_paid_at, detailer_id, payout_requires_approval, payout_approved_at, detailer_profiles!bookings_detailer_id_fkey(stripe_account_id)')
     .eq('status', 'complete')
     .is('transferred_at', null)
     .not('paid_at', 'is', null)
     .lte('payout_hold_until', new Date().toISOString())
     .gt('detailer_payout', 0)
+    .or('payout_requires_approval.eq.false,payout_approved_at.not.is.null')
   if (error) {
     console.error('release-payouts query:', error.message)
     return json({ error: error.message }, 500)
@@ -56,9 +61,14 @@ Deno.serve(async (req) => {
       skipped++
       continue
     }
+    // Tips are 100% the detailer's — no platform fee — but only once the
+    // tip charge actually succeeded. tip_amount alone is what the customer
+    // chose; tip_paid_at is what was actually collected.
+    const tip = b.tip_paid_at ? Number(b.tip_amount ?? 0) : 0
+    const payoutTotal = Number(b.detailer_payout) + tip
     try {
       const transfer = await stripe.transfers.create({
-        amount: Math.round(Number(b.detailer_payout) * 100),
+        amount: Math.round(payoutTotal * 100),
         currency: 'usd',
         destination: acctId,
         transfer_group: b.id,

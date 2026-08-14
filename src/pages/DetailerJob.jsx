@@ -23,20 +23,23 @@ import {
 import { useStore } from '../context/StoreContext'
 import { MAP_APPS, openInMaps } from '../lib/navigation'
 import { useT } from '../i18n/useT'
-import { sendReceiptEmail } from '../lib/email'
+import { sendReceiptEmail, sendEnRouteEmail } from '../lib/email'
+import { startTracking, stopTracking } from '../lib/tracking'
 
 // Blueprint 5.3–5.5 — the detailer's gated job flow:
 // en route → arrived → damage report → before photos → start →
 // in progress → after photos → complete. Photos are mandatory gates.
 export default function DetailerJob() {
   const { id } = useParams()
-  const { getBooking, getDetailer, patchBooking, rateCustomer, addBookingPhotos, submitDamageReport, markNoDamage, isDemo } = useStore()
+  const { getBooking, getDetailer, patchBooking, rateCustomer, addBookingPhotos, submitDamageReport, markNoDamage, respondToDispute, isDemo } = useStore()
   const [custRating, setCustRating] = useState(0)
   const [hardToHandle, setHardToHandle] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [showInvoice, setShowInvoice] = useState(false)
   const [showPayout, setShowPayout] = useState(false)
   const [stepsExpanded, setStepsExpanded] = useState(false)
+  const [disputeResponse, setDisputeResponse] = useState('')
+  const [respondingToDispute, setRespondingToDispute] = useState(false)
   const b = getBooking(id)
   const t = useT('detailerJob')
 
@@ -108,18 +111,31 @@ export default function DetailerJob() {
       key: 'en_route',
       title: t('gateEnRouteTitle'),
       desc: t('gateEnRouteDesc'),
-      done: !['accepted'].includes(b.status),
+      // Was `!['accepted'].includes(b.status)` — true for 'pending' too,
+      // since 'pending' isn't 'accepted' either. That showed en_route (and
+      // arrived, same bug below) as already complete on a booking that
+      // hadn't even been accepted yet. Must exclude every earlier status.
+      done: !['pending', 'accepted'].includes(b.status),
       ready: b.status === 'accepted',
-      action: () => patchBooking(b.id, { status: 'en_route' }),
+      action: async () => {
+        await patchBooking(b.id, { status: 'en_route' })
+        if (!isDemo) {
+          startTracking(b.id).catch((e) => console.error('startTracking:', e.message))
+          sendEnRouteEmail(b.id).catch((e) => console.error('sendEnRouteEmail:', e.message))
+        }
+      },
       cta: t('gateEnRouteCta'),
     },
     {
       key: 'arrived',
       title: t('gateArrivedTitle'),
       desc: t('gateArrivedDesc'),
-      done: !['accepted', 'en_route'].includes(b.status),
+      done: !['pending', 'accepted', 'en_route'].includes(b.status),
       ready: b.status === 'en_route',
-      action: () => patchBooking(b.id, { status: 'arrived' }),
+      action: async () => {
+        await patchBooking(b.id, { status: 'arrived' })
+        if (!isDemo) stopTracking().catch((e) => console.error('stopTracking:', e.message))
+      },
       cta: t('gateArrivedCta'),
     },
     {
@@ -351,6 +367,56 @@ export default function DetailerJob() {
           </div>
         </div>
 
+        {b.status === 'disputed' && b.dispute && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="card mt-3 border-amber-200 !p-5 dark:border-amber-500/30"
+          >
+            <h2 className="font-display text-base font-bold text-slate-900 dark:text-slate-100">{t('disputeFiledTitle')}</h2>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{b.dispute.reason}</p>
+
+            {b.dispute.respondedAt ? (
+              <div className="mt-3 rounded-xl bg-brand-50 px-4 py-3 text-sm text-brand-800 dark:bg-white/5 dark:text-brand-200">
+                <p className="font-semibold">{t('yourResponse')}</p>
+                <p className="mt-1">{b.dispute.responseText}</p>
+                <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">{t('waitingAdminDecision')}</p>
+              </div>
+            ) : (
+              <div className="mt-3">
+                <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">
+                  {new Date(b.dispute.responseDeadline) > new Date()
+                    ? t('respondByDeadline', { when: new Date(b.dispute.responseDeadline).toLocaleString() })
+                    : t('responseWindowClosed')}
+                </p>
+                <textarea
+                  value={disputeResponse}
+                  onChange={(e) => setDisputeResponse(e.target.value)}
+                  placeholder={t('disputeResponsePlaceholder')}
+                  rows={3}
+                  className="input mt-2 h-auto w-full resize-none py-2"
+                />
+                <button
+                  type="button"
+                  disabled={disputeResponse.trim().length < 10 || respondingToDispute}
+                  onClick={async () => {
+                    setRespondingToDispute(true)
+                    try {
+                      await respondToDispute(b.dispute.id, disputeResponse.trim())
+                      setDisputeResponse('')
+                    } finally {
+                      setRespondingToDispute(false)
+                    }
+                  }}
+                  className="btn btn-brand mt-2 h-10 w-full text-sm disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {respondingToDispute ? t('submitting') : t('submitResponse')}
+                </button>
+              </div>
+            )}
+          </motion.div>
+        )}
+
         {damageDone && !damageAcked && (
           <motion.p
             initial={{ opacity: 0 }}
@@ -364,18 +430,18 @@ export default function DetailerJob() {
 
         {stepsExpanded ? (
           <div className="mt-6">
+            <button
+              type="button"
+              onClick={() => setStepsExpanded(false)}
+              className="mb-3 w-full cursor-pointer rounded-xl py-2 text-center text-xs font-semibold text-slate-400 transition-colors duration-200 hover:text-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-slate-500 dark:hover:text-brand-300"
+            >
+              {t('collapseSteps')}
+            </button>
             <div className="space-y-3" role="list">
               <AnimatePresence initial={false}>
                 {gates.map((g, i) => renderGate(g, i))}
               </AnimatePresence>
             </div>
-            <button
-              type="button"
-              onClick={() => setStepsExpanded(false)}
-              className="mt-3 w-full cursor-pointer rounded-xl py-2 text-center text-xs font-semibold text-slate-400 transition-colors duration-200 hover:text-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-slate-500 dark:hover:text-brand-300"
-            >
-              {t('collapseSteps')}
-            </button>
           </div>
         ) : (
           <div className="mt-6">

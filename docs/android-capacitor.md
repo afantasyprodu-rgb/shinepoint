@@ -69,6 +69,22 @@ Add to `AndroidManifest.xml` (camera + location are used by the job flow + map):
 The camera/geolocation Capacitor plugins prompt the user at runtime; the `<input capture>`
 fields keep working in the webview as a fallback.
 
+## 4b. Background location for en-route tracking
+
+`@capacitor-community/background-geolocation` posts real GPS pings while a
+detailer's job is `en_route` (`src/lib/tracking.js`), even with the phone
+locked. `AndroidManifest.xml` already declares
+`ACCESS_BACKGROUND_LOCATION`; the plugin's own manifest (merged
+automatically by `cap sync`) brings the foreground-service permissions and
+service declaration. Nothing further needed on Android beyond a real device
+test — the emulator's simulated location doesn't exercise the "locked
+screen" case that matters here.
+
+See `docs/ios-capacitor.md`'s equivalent section for the Capacitor-8
+compatibility caveat on this plugin (same plugin, same caveat, both
+platforms) — it hasn't been build-tested in the environment this was
+written in.
+
 ## 5. Push notifications (optional, do later)
 
 1. Create a Firebase project, add an Android app with id `app.shinepoint`.

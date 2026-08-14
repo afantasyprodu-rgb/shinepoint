@@ -40,12 +40,21 @@ const hueKey = (mode) => `shinepoint-hue-${mode}`
 const hueIndexKey = (mode) => `shinepoint-hue-index-${mode}`
 
 // Preset hue cycles: each toggle cycles to next hue in this array.
-// All hues stay in the purple->pink->blue arc (208-322°) so brand always
+// All hues stay in the purple->pink->blue arc (208-356°) so brand always
 // reads as "the brand"; triadic CTA relationship is maintained via ctaHueFor().
-const HUE_CYCLE = [262, 200, 320]
+// Pink (356 — "a little lighter than watermelon" per the user) leads the
+// cycle as the primary brand color; the other two stay as toggle variety,
+// matching index.css's --brand-h default.
+const HUE_CYCLE = [356, 262, 200]
 const DEFAULT_HUE = HUE_CYCLE[0]
 
 function ctaHueFor(brandHue) {
+  // Warm/pink hues' plain triadic offset lands in blue/cyan (356-120=236),
+  // which breaks the "CTA is always green" rule (see the 60-30-10 comment
+  // block in index.css) — pin the brand hue to true green explicitly. The
+  // other cycle hues already land in a green-ish range via the plain
+  // offset, so leave those alone.
+  if (brandHue === 356) return 142
   return (brandHue - 120 + 360) % 360
 }
 

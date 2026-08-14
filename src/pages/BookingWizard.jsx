@@ -6,10 +6,11 @@ import AppShell from '../components/AppShell'
 import TimePicker from '../components/TimePicker'
 import PaymentForm from '../components/PaymentForm'
 import Modal from '../components/ui/Modal'
-import { CheckIcon, AlertTriangleIcon, ChevronLeftIcon, SparklesIcon, CarIcon } from '../components/icons'
+import { CheckIcon, AlertTriangleIcon, ChevronLeftIcon, SparklesIcon, CarIcon, CalendarIcon } from '../components/icons'
 import { useStore } from '../context/StoreContext'
 import { useTheme } from '../context/ThemeContext'
 import { stripePromise, isStripeConfigured, createPaymentIntent } from '../lib/stripe'
+import { checkPromoCode } from '../lib/db'
 import { useT } from '../i18n/useT'
 
 const VEHICLES = ['Sedan', 'SUV', 'Truck', 'Coupe', 'Van']
@@ -27,32 +28,147 @@ function formatTime(t) {
   return `${h12}:${String(m).padStart(2, '0')} ${ampm}`
 }
 
-function nextDays(n, isDemo, rainDays) {
+function nextDays(n, isDemo, weatherDays) {
   return Array.from({ length: n }, (_, i) => {
     const d = new Date(Date.now() + (i + 1) * 86400_000)
     const key = d.toISOString().slice(0, 10)
+    const w = weatherDays?.get(key)
     return {
       key,
       label: d.toLocaleDateString('en-US', { weekday: 'short' }),
       day: d.getDate(),
       // Demo weather: rain forecast every 4th day to exercise the warning flow.
       // Real accounts: actual rain days from Open-Meteo (see weather fetch below).
-      rainy: isDemo ? d.getDate() % 4 === 0 : rainDays?.has(key) ?? false,
+      rainy: isDemo ? d.getDate() % 4 === 0 : w?.rainy ?? false,
+      tempF: isDemo ? 74 + (d.getDate() % 9) : w?.tempF,
     }
   })
 }
 
-// Open-Meteo daily forecast, no API key required.
-async function fetchRainDays(lat, lng) {
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=precipitation_probability_max&forecast_days=10&timezone=auto`
+// Open-Meteo daily forecast, no API key required. 16 days is the widest
+// window the free endpoint serves — the month-grid picker (CalendarModal)
+// simply shows no temp/rain badge for dates past that, same as any real
+// forecast running out of confidence.
+async function fetchWeatherDays(lat, lng) {
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=precipitation_probability_max,temperature_2m_max&forecast_days=16&timezone=auto&temperature_unit=fahrenheit`
   const res = await fetch(url)
   if (!res.ok) throw new Error('weather fetch failed')
   const data = await res.json()
-  const rainDays = new Set()
+  const weatherDays = new Map()
   data.daily?.time?.forEach((date, i) => {
-    if ((data.daily.precipitation_probability_max?.[i] ?? 0) >= 50) rainDays.add(date)
+    weatherDays.set(date, {
+      rainy: (data.daily.precipitation_probability_max?.[i] ?? 0) >= 50,
+      tempF: Math.round(data.daily.temperature_2m_max?.[i]),
+    })
   })
-  return rainDays
+  return weatherDays
+}
+
+// Month-grid date picker, opened from the calendar icon next to the day
+// strip. Unlike the strip (fixed to the next 10 days), this lets the
+// customer jump to any future month — Open-Meteo only covers 16 days out,
+// so temp/rain badges simply stop appearing past that, same as any real
+// forecast running out of confidence.
+function CalendarModal({ open, onClose, weatherDays, isDemo, selected, onSelect }) {
+  const minDate = useMemo(() => {
+    const d = new Date()
+    d.setDate(d.getDate() + 1)
+    d.setHours(0, 0, 0, 0)
+    return d
+  }, [])
+  const [viewMonth, setViewMonth] = useState(() => {
+    const d = selected ? new Date(`${selected}T00:00:00`) : new Date()
+    return new Date(d.getFullYear(), d.getMonth(), 1)
+  })
+
+  const weeks = useMemo(() => {
+    const year = viewMonth.getFullYear()
+    const month = viewMonth.getMonth()
+    const firstDow = new Date(year, month, 1).getDay()
+    const daysInMonth = new Date(year, month + 1, 0).getDate()
+    const cells = Array(firstDow).fill(null)
+    for (let day = 1; day <= daysInMonth; day++) cells.push(new Date(year, month, day))
+    while (cells.length % 7 !== 0) cells.push(null)
+    const rows = []
+    for (let i = 0; i < cells.length; i += 7) rows.push(cells.slice(i, i + 7))
+    return rows
+  }, [viewMonth])
+
+  return (
+    <Modal open={open} onClose={onClose} labelledBy="calendar-title">
+      <div className="flex items-center justify-between">
+        <button
+          type="button"
+          onClick={() => setViewMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1))}
+          className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-white/10"
+          aria-label="Previous month"
+        >
+          <ChevronLeftIcon className="h-4 w-4" />
+        </button>
+        <h2 id="calendar-title" className="font-display text-lg font-bold text-slate-900 dark:text-slate-100">
+          {viewMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+        </h2>
+        <button
+          type="button"
+          onClick={() => setViewMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1))}
+          className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-white/10"
+          aria-label="Next month"
+        >
+          <ChevronLeftIcon className="h-4 w-4 rotate-180" />
+        </button>
+      </div>
+
+      <div className="mt-4 grid grid-cols-7 gap-1 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
+          <span key={i}>{d}</span>
+        ))}
+      </div>
+
+      <div className="mt-1 grid grid-cols-7 gap-1">
+        {weeks.flat().map((cellDate, i) => {
+          if (!cellDate) return <div key={`empty-${i}`} />
+          const key = cellDate.toISOString().slice(0, 10)
+          const disabled = cellDate < minDate
+          const w = weatherDays?.get(key)
+          const rainy = isDemo ? cellDate.getDate() % 4 === 0 : w?.rainy ?? false
+          const tempF = isDemo ? 74 + (cellDate.getDate() % 9) : w?.tempF
+          const isSelected = selected === key
+          return (
+            <button
+              key={key}
+              type="button"
+              disabled={disabled}
+              onClick={() => {
+                onSelect({
+                  key,
+                  label: cellDate.toLocaleDateString('en-US', { weekday: 'short' }),
+                  day: cellDate.getDate(),
+                  rainy,
+                  tempF,
+                })
+                onClose()
+              }}
+              className={`flex aspect-square flex-col items-center justify-center gap-0.5 rounded-xl text-sm transition-colors ${
+                disabled
+                  ? 'cursor-not-allowed text-slate-300 dark:text-slate-700'
+                  : isSelected
+                    ? 'cursor-pointer bg-brand-700 text-white shadow-[0_6px_14px_-8px_rgba(76,29,149,0.8)]'
+                    : 'cursor-pointer text-slate-700 hover:bg-brand-50 dark:text-slate-300 dark:hover:bg-white/10'
+              }`}
+            >
+              <span className="font-semibold tabular-nums">{cellDate.getDate()}</span>
+              {!disabled && tempF != null && (
+                <span className={`text-[9px] tabular-nums ${isSelected ? 'text-white/80' : 'text-slate-400 dark:text-slate-500'}`}>
+                  {tempF}°
+                </span>
+              )}
+              {!disabled && rainy && <span className={`h-1 w-1 rounded-full ${isSelected ? 'bg-amber-200' : 'bg-amber-500'}`} />}
+            </button>
+          )
+        })}
+      </div>
+    </Modal>
+  )
 }
 
 const stepVariants = {
@@ -119,27 +235,57 @@ export default function BookingWizard() {
   const [showUninsured, setShowUninsured] = useState(false)
   const [bookingId, setBookingId] = useState(null)
   const [useReward, setUseReward] = useState(false)
+  const [promoInput, setPromoInput] = useState('')
+  const [promoApplied, setPromoApplied] = useState(null)  // { code, discount }
+  const [promoError, setPromoError] = useState(null)      // i18n key suffix
+  const [promoChecking, setPromoChecking] = useState(false)
+  const promoDiscount = promoApplied?.discount ?? 0
+
+  // Demo has no server to ask, so it accepts any code at a flat 10% — enough
+  // to exercise the UI without pretending a real code exists.
+  async function applyPromo() {
+    const code = promoInput.trim()
+    if (!code || promoChecking) return
+    setPromoChecking(true)
+    setPromoError(null)
+    const price = service?.price ?? 0
+    const result = isDemo
+      ? { valid: true, discount: Math.round(price * 0.1 * 100) / 100 }
+      : await checkPromoCode(d.id, code, price)
+    setPromoChecking(false)
+    if (result.valid) setPromoApplied({ code, discount: result.discount })
+    else setPromoError(result.reason ?? 'invalid')
+  }
   const [clientSecret, setClientSecret] = useState(null)
   const [payError, setPayError] = useState('')
 
-  const [rainDays, setRainDays] = useState(null)
+  const [weatherDays, setWeatherDays] = useState(null)
+  const [showCalendar, setShowCalendar] = useState(false)
   useEffect(() => {
     if (isDemo || !d?.pin) return
     let cancelled = false
-    fetchRainDays(d.pin.lat, d.pin.lng)
-      .then((days) => !cancelled && setRainDays(days))
+    fetchWeatherDays(d.pin.lat, d.pin.lng)
+      .then((days) => !cancelled && setWeatherDays(days))
       .catch(() => {})
     return () => {
       cancelled = true
     }
   }, [isDemo, d?.pin?.lat, d?.pin?.lng])
 
-  const days = useMemo(() => nextDays(10, isDemo, rainDays), [isDemo, rainDays])
+  const days = useMemo(() => nextDays(10, isDemo, weatherDays), [isDemo, weatherDays])
   if (!d) return null
   const uninsured = d.insurance === 'none'
   // Loyalty rewards only redeemable with insured detailers (blueprint rule).
   const reward = !uninsured ? customer.rewards[0] : null
-  const baseAfterReward = useReward && reward ? 0 : (service?.price ?? 0)
+  // Order matters and mirrors create-payment-intent: the detailer's promo
+  // sets the price the platform's commission is based on, THEN the
+  // platform-funded credits come off what remains.
+  const listPrice = service?.price ?? 0
+  const discountedPrice = Math.max(0, listPrice - promoDiscount)
+  // Rewards are fixed-dollar credits (036), not "this service is free" —
+  // so a $45 credit against a $450 ceramic coating saves $45, not $450.
+  const rewardCredit = useReward && reward ? Math.min(reward.credit ?? 0, discountedPrice) : 0
+  const baseAfterReward = Math.max(0, discountedPrice - rewardCredit)
   const creditUsed = Math.min(customer.referralCredits, baseAfterReward)
   const total = baseAfterReward - creditUsed
 
@@ -170,12 +316,13 @@ export default function BookingWizard() {
       rewardId: useReward && reward ? reward.id : undefined,
       creditUsed: creditUsed || undefined,
       is_loyalty_redemption: Boolean(useReward && reward),
+      promoCode: promoApplied?.code,
       address: customer.address,
       zip: customer.zip,
       scheduledTime: `${date.key}T${parseTime(time)}`,
       weather: date.rainy
-        ? { ok: false, summary: 'Rain forecast', acknowledged: true }
-        : { ok: true, summary: 'Clear skies' },
+        ? { ok: false, summary: 'Rain forecast', acknowledged: true, rainy: true, tempF: date.tempF ?? null }
+        : { ok: true, summary: 'Clear skies', rainy: false, tempF: date.tempF ?? null },
     }
   }
 
@@ -352,7 +499,20 @@ export default function BookingWizard() {
                 {service.name} · ${service.price} · at {customer.address}
               </p>
 
-              <div className="mt-5 flex gap-2 overflow-x-auto pb-2" role="radiogroup" aria-label="Date">
+              <div className="mt-5 flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{t('date')}</span>
+                <button
+                  type="button"
+                  onClick={() => setShowCalendar(true)}
+                  className="flex cursor-pointer items-center gap-1.5 rounded-full border border-brand-100 bg-white px-3 py-1.5 text-xs font-semibold text-brand-700 shadow-sm hover:border-brand-300 dark:border-white/10 dark:bg-white/5 dark:text-brand-300"
+                  aria-label={t('openCalendar')}
+                >
+                  <CalendarIcon className="h-3.5 w-3.5" />
+                  {t('openCalendar')}
+                </button>
+              </div>
+
+              <div className="mt-2 flex gap-2 overflow-x-auto pb-2" role="radiogroup" aria-label="Date">
                 {days.map((day) => (
                   <button
                     key={day.key}
@@ -371,6 +531,11 @@ export default function BookingWizard() {
                   >
                     <span className="text-xs font-medium opacity-80">{day.label}</span>
                     <span className="font-display text-xl font-bold">{day.day}</span>
+                    {day.tempF != null && (
+                      <span className={`text-[10px] font-medium tabular-nums ${date?.key === day.key ? 'text-white/80' : 'text-slate-400 dark:text-slate-500'}`}>
+                        {day.tempF}°
+                      </span>
+                    )}
                     {day.rainy && <span className={`text-[10px] ${date?.key === day.key ? 'text-amber-200' : 'text-amber-600 dark:text-amber-400'}`}>{t('rain')}</span>}
                   </button>
                 ))}
@@ -428,15 +593,65 @@ export default function BookingWizard() {
                 </button>
               )}
 
+              {/* Detailer-run discount code. Validated server-side so the
+                  discount shown here is the one that will actually be
+                  charged, and so a targeted code can't be probed by others. */}
+              <div className="card mt-4 !p-4">
+                <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{t('promoTitle')}</p>
+                {promoApplied ? (
+                  <div className="mt-2 flex items-center justify-between gap-3">
+                    <span className="chip bg-cta-700/10 font-mono font-bold tracking-widest text-cta-700 dark:text-cta-500">
+                      {promoApplied.code}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => { setPromoApplied(null); setPromoInput(''); setPromoError(null) }}
+                      className="cursor-pointer text-xs font-semibold text-slate-500 underline hover:text-slate-700 dark:text-slate-400"
+                    >
+                      {t('promoRemove')}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mt-2 flex gap-2">
+                    <input
+                      value={promoInput}
+                      onChange={(e) => { setPromoInput(e.target.value.toUpperCase()); setPromoError(null) }}
+                      placeholder={t('promoPlaceholder')}
+                      aria-label={t('promoTitle')}
+                      className="input flex-1 font-mono tracking-widest"
+                    />
+                    <button
+                      type="button"
+                      disabled={!promoInput.trim() || promoChecking}
+                      onClick={applyPromo}
+                      className="btn btn-brand h-11 shrink-0 px-4 text-sm disabled:opacity-40"
+                    >
+                      {t('promoApply')}
+                    </button>
+                  </div>
+                )}
+                {promoError && (
+                  <p role="status" className="mt-2 text-xs text-red-600 dark:text-red-400">
+                    {t(`promo_${promoError}`)}
+                  </p>
+                )}
+              </div>
+
               <div className="card mt-6 !p-5">
                 <div className="flex justify-between text-sm text-slate-600 dark:text-slate-400">
                   <span>{service.name}</span>
                   <span>${service.price}</span>
                 </div>
-                {useReward && reward && (
+                {promoDiscount > 0 && (
+                  <div className="flex justify-between text-sm font-medium text-cta-700 dark:text-cta-400">
+                    <span>{t('promoApplied', { code: promoApplied.code })}</span>
+                    <span>−${promoDiscount}</span>
+                  </div>
+                )}
+                {useReward && reward && rewardCredit > 0 && (
                   <div className="flex justify-between text-sm font-medium text-cta-700 dark:text-cta-400">
                     <span>{t('loyaltyApplied')}</span>
-                    <span>−${service.price}</span>
+                    <span>−${rewardCredit}</span>
                   </div>
                 )}
                 {creditUsed > 0 && (
@@ -521,10 +736,15 @@ export default function BookingWizard() {
               <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
                 {t('serviceWithDetailer', { service: service.name, name: d.name, total })}
               </p>
+              {/* Stripe Elements renders in its own iframe and can't read our
+                  CSS custom properties, so colorPrimary below can't just
+                  reference --color-brand-600 — it's a static snapshot of
+                  that color (hue 356°, chroma x1.5). Re-derive by hand if
+                  the brand hue/chroma changes again. */}
               <div className="card mt-5">
                 <Elements
                   stripe={stripePromise}
-                  options={{ clientSecret, appearance: { theme: 'stripe', variables: { colorPrimary: '#7c3aed' } } }}
+                  options={{ clientSecret, appearance: { theme: 'stripe', variables: { colorPrimary: '#f40076' } } }}
                 >
                   <PaymentForm amount={total} onSuccess={() => setStep(4)} />
                 </Elements>
@@ -532,6 +752,19 @@ export default function BookingWizard() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Full month calendar, opened from the icon next to the day strip */}
+        <CalendarModal
+          open={showCalendar}
+          onClose={() => setShowCalendar(false)}
+          weatherDays={weatherDays}
+          isDemo={isDemo}
+          selected={date?.key}
+          onSelect={(d) => {
+            setDate(d)
+            setWeatherAck(false)
+          }}
+        />
 
         {/* Weather warning (2.4b) */}
         <Modal open={showWeather} onClose={() => setShowWeather(false)} labelledBy="weather-title">
