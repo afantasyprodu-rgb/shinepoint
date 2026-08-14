@@ -555,7 +555,10 @@
     border: none;
     background: var(--auth-bg, #1a2029);
     color: var(--auth-text, #fff);
-    @apply h-11 w-full rounded-xl px-3.5 text-sm transition-all duration-150 focus:outline-none;
+    /* text-base, not text-sm: iOS Safari auto-zooms the page on focus of
+       any input under 16px, and doesn't reset it back — every login was
+       triggering an unwanted pinch-zoom that stuck around. */
+    @apply h-11 w-full rounded-xl px-3.5 text-base transition-all duration-150 focus:outline-none;
     box-shadow: inset 3px 3px 7px var(--auth-sd, #0e1218), inset -3px -3px 7px var(--auth-sl, #262e3a);
   }
   .auth-input::placeholder {
