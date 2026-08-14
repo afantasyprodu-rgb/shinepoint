@@ -17,6 +17,7 @@ import {
   ClockIcon,
   LightbulbIcon,
   StarIcon,
+  SunIcon,
 } from '../components/icons'
 import { useStore } from '../context/StoreContext'
 import { useLanguage } from '../context/LanguageContext'
@@ -159,6 +160,21 @@ const shownStage = openStage ?? stageIdx
             </div>
             <StatusPill status={b.status} />
           </div>
+
+          {/* Forecast as it stood the moment this was booked (BookingWizard's
+              day strip/calendar) — absent on bookings made before this was
+              wired up, so there's simply nothing to show for those. */}
+          {b.weather && (
+            <p
+              className={`mt-2 flex items-center gap-1.5 text-xs font-medium ${
+                b.weather.rainy ? 'text-amber-600 dark:text-amber-400' : 'text-slate-500 dark:text-slate-400'
+              }`}
+            >
+              {b.weather.rainy ? <AlertTriangleIcon className="h-3.5 w-3.5" /> : <SunIcon className="h-3.5 w-3.5" />}
+              {b.weather.rainy ? t('weatherBadgeRain') : t('weatherBadgeClear')}
+              {b.weather.tempF != null && <span className="tabular-nums">· {b.weather.tempF}°</span>}
+            </p>
+          )}
 
           {/* Timeline — every dot is tappable to preview that stage's process */}
           {b.status !== 'cancelled' && b.status !== 'disputed' && (

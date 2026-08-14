@@ -100,7 +100,10 @@ function normalizeCustomerBooking(row) {
     refundedAmount: Number(row.refunded_amount ?? 0),
     dispute: normalizeDispute(row),
     ...mapBookingPhotos(row),
-    weather: { ok: true, summary: 'Clear' },
+    // Forecast snapshot taken at booking time (see buildDraft in
+    // BookingWizard.jsx) — bookings made before this was wired up have no
+    // weather_data, so there's nothing to show, not a fake "Clear".
+    weather: row.weather_data ?? null,
     _real: true,
   }
 }
@@ -149,7 +152,10 @@ function normalizeDetailerBooking(row) {
     refundedAmount: Number(row.refunded_amount ?? 0),
     dispute: normalizeDispute(row),
     ...mapBookingPhotos(row),
-    weather: { ok: true, summary: 'Clear' },
+    // Forecast snapshot taken at booking time (see buildDraft in
+    // BookingWizard.jsx) — bookings made before this was wired up have no
+    // weather_data, so there's nothing to show, not a fake "Clear".
+    weather: row.weather_data ?? null,
     _real: true,
   }
 }
@@ -576,7 +582,7 @@ export async function fetchBookingsForCustomer(customerProfileId) {
     .from('bookings')
     .select(`
       id, status, scheduled_time, total_price, tip_amount,
-      booking_address, booking_zip, created_at,
+      booking_address, booking_zip, created_at, weather_data,
       service_id, detailer_id,
       vehicle_type, vehicle_make, vehicle_model,
       damage_report_submitted, damage_report_acknowledged,
@@ -605,7 +611,7 @@ export async function fetchBookingsForDetailer(detailerProfileId) {
     .from('bookings')
     .select(`
       id, status, scheduled_time, started_at, completed_at, total_price, tip_amount,
-      booking_address, booking_zip, created_at,
+      booking_address, booking_zip, created_at, weather_data,
       service_id, customer_id,
       vehicle_type, vehicle_make, vehicle_model,
       damage_report_submitted, damage_report_acknowledged,
@@ -648,6 +654,7 @@ export async function createBookingInDB({
   vehicleMake,
   vehicleModel,
   promoCode,
+  weather,
 }) {
   const { data, error } = await supabase
     .from('bookings')
@@ -664,6 +671,10 @@ export async function createBookingInDB({
       vehicle_make: vehicleMake || null,
       vehicle_model: vehicleModel || null,
       status: 'pending',
+      // Forecast snapshot at booking time, as shown on the day the customer
+      // picked (BookingWizard's day strip/calendar) — null when the picked
+      // date was outside Open-Meteo's forecast window.
+      weather_data: weather ?? null,
     })
     .select('id')
     .single()

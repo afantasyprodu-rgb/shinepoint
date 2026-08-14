@@ -714,6 +714,7 @@ export function StoreProvider({ children }) {
             vehicleMake: draft.vehicleMake,
             vehicleModel: draft.vehicleModel,
             promoCode: draft.promoCode,
+            weather: draft.weather,
           })
           const refreshed = await fetchBookingsForCustomer(customerProfile.id)
           setRealBookings(refreshed)

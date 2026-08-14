@@ -321,8 +321,8 @@ export default function BookingWizard() {
       zip: customer.zip,
       scheduledTime: `${date.key}T${parseTime(time)}`,
       weather: date.rainy
-        ? { ok: false, summary: 'Rain forecast', acknowledged: true }
-        : { ok: true, summary: 'Clear skies' },
+        ? { ok: false, summary: 'Rain forecast', acknowledged: true, rainy: true, tempF: date.tempF ?? null }
+        : { ok: true, summary: 'Clear skies', rainy: false, tempF: date.tempF ?? null },
     }
   }
 
