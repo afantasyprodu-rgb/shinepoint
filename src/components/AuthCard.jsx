@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react'
 import { supabase } from '../lib/supabase'
@@ -49,6 +49,20 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
 
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+
+  // handleGoogle sets busy=true then redirects to Google — there's no
+  // in-app moment to clear it on success since the page navigates away.
+  // Hitting the browser's back button after that restores this page from
+  // bfcache with busy still frozen true, disabling every method button
+  // (not just Google's) until reload. `pageshow`'s `persisted` flag is the
+  // standard signal a page came from that cache, not a fresh load.
+  useEffect(() => {
+    function onPageShow(e) {
+      if (e.persisted) setBusy(false)
+    }
+    window.addEventListener('pageshow', onPageShow)
+    return () => window.removeEventListener('pageshow', onPageShow)
+  }, [])
 
   function switchMode(m) { setModeDir(m === 'signup' ? 1 : -1); setMode(m); setError('') }
   function goBack() { setView('methods'); setError('') }
