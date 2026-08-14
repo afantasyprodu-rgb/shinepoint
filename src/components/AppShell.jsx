@@ -29,6 +29,22 @@ function notificationHref(role, n) {
   return null
 }
 
+// "2m ago" / "5h ago" / falls back to a short date once it's not "recent"
+// enough for a relative label to be useful.
+function formatNotifTime(iso, t) {
+  if (!iso) return ''
+  const then = new Date(iso)
+  const diffMs = Date.now() - then.getTime()
+  const mins = Math.floor(diffMs / 60_000)
+  if (mins < 1) return t('notifJustNow')
+  if (mins < 60) return t('notifMinsAgo', { mins })
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return t('notifHoursAgo', { hours })
+  const days = Math.floor(hours / 24)
+  if (days < 7) return t('notifDaysAgo', { days })
+  return then.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+}
+
 function NotificationBell({ role }) {
   const { notifications, markNotificationsRead } = useStore()
   const [open, setOpen] = useState(false)
@@ -126,7 +142,10 @@ function NotificationBell({ role }) {
                         : 'cursor-default'
                     }`}
                   >
-                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{n.title}</p>
+                    <div className="flex items-baseline justify-between gap-2">
+                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{n.title}</p>
+                      <span className="shrink-0 text-[11px] text-slate-400 dark:text-slate-500">{formatNotifTime(n.at, t)}</span>
+                    </div>
                     <p className="text-xs text-slate-500 dark:text-slate-400">{n.body}</p>
                   </button>
                 )
