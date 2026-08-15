@@ -51,7 +51,16 @@ export default function HeroBubbles({
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
     resize();
-    window.addEventListener('resize', resize);
+    // window's resize event alone misses a common case: web fonts
+    // (Playfair Display/Inter) finishing load AFTER this first measurement
+    // reflows the surrounding layout without the window itself changing
+    // size, so the canvas's pixel buffer locks to the wrong box and CSS
+    // stretches it to fit — bubbles render as ovals until something else
+    // (e.g. mobile Safari's resize on address-bar collapse) forces a
+    // re-measure. ResizeObserver watches the canvas's own box directly, so
+    // it catches that reflow (and anything else) regardless of cause.
+    const ro = new ResizeObserver(resize);
+    ro.observe(canvas);
 
     function spawn(fromBottom) {
       return {
@@ -119,7 +128,7 @@ export default function HeroBubbles({
 
     return () => {
       cancelAnimationFrame(raf);
-      window.removeEventListener('resize', resize);
+      ro.disconnect();
     };
   }, [seed, bubbleCount, speed]);
 
