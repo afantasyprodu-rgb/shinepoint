@@ -45,7 +45,13 @@ export default function CustomerHome() {
 
   return (
     <AppShell role="customer">
-      <main className="relative h-[calc(100vh-61px)]">
+      {/* 100dvh, not 100vh — mobile Safari sizes 100vh against the LARGEST
+          possible viewport (address bar collapsed), so on first paint (bar
+          still showing) this container rendered taller than the visible
+          screen, pushing the fixed bottom-0 tab bar off-screen until the
+          user scrolled and the browser chrome auto-collapsed. dvh tracks
+          the actual current viewport instead. */}
+      <main className="relative h-[calc(100dvh-61px)]">
         <h1 className="sr-only">{t('srHeading')}</h1>
         <DetailerMap detailers={filtered} />
 
