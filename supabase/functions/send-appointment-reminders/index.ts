@@ -1,11 +1,11 @@
 // Scheduled job (not user-invoked): finds paid, upcoming bookings whose
-// scheduled_time is within the next 24 hours and sends a reminder — email
-// unconditionally (no opt-in required, matching every other booking email),
-// SMS only if the customer has opted in and has a phone on file.
-// reminder_sent_at is stamped immediately after processing a booking
-// (success or failure) so a flaky send can't cause a retry storm on the
-// next cron tick — same idempotency role transferred_at plays in
-// release-payouts.
+// scheduled_time is within the next few hours (REMINDER_WINDOW_HOURS) and
+// sends a same-day reminder — email unconditionally (no opt-in required,
+// matching every other booking email), SMS only if the customer has opted
+// in and has a phone on file. reminder_sent_at is stamped immediately after
+// processing a booking (success or failure) so a flaky send can't cause a
+// retry storm on the next cron tick — same idempotency role transferred_at
+// plays in release-payouts.
 //
 // Not a normal browser-invoked function — deploy public and protect with a
 // shared secret instead of a Supabase user JWT, since nobody is logged in
@@ -17,7 +17,7 @@
 // `x-cron-secret: <the same value>`. Hourly + the reminder_sent_at guard
 // means the exact cron cadence doesn't matter for correctness — a booking
 // just gets its reminder the first time the job runs after it enters the
-// 24-hour window.
+// window.
 import { createClient } from 'npm:@supabase/supabase-js@^2'
 import { json } from '../_shared/cors.ts'
 import { captureException } from '../_shared/sentry.ts'
@@ -37,7 +37,11 @@ Deno.serve(async (req) => {
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
   )
 
-  const windowEnd = new Date(Date.now() + 24 * 3600_000).toISOString()
+  // Same-day, a few hours out — not the day before. Hourly cron + this
+  // window means a booking gets its reminder on the first run that lands
+  // 1-4 hours before scheduled_time.
+  const REMINDER_WINDOW_HOURS = 4
+  const windowEnd = new Date(Date.now() + REMINDER_WINDOW_HOURS * 3600_000).toISOString()
   const { data: due, error } = await admin
     .from('bookings')
     .select(

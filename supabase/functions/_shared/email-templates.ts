@@ -288,9 +288,10 @@ export interface ReminderData {
   bookingUrl?: string
 }
 
-// Sent by send-appointment-reminders (cron, 24h before scheduled_time) — the
-// only email in this file that isn't triggered by a status change. Same
-// shell/button pattern as the rest, just a different trigger.
+// Sent by send-appointment-reminders (cron, a few hours before
+// scheduled_time — same day, not the day before) — the only email in this
+// file that isn't triggered by a status change. Same shell/button pattern
+// as the rest, just a different trigger.
 export function reminderEmail(data: ReminderData): { subject: string; html: string } {
   const {
     customerName, detailerName, service, scheduledTime, bookingId,
@@ -298,10 +299,10 @@ export function reminderEmail(data: ReminderData): { subject: string; html: stri
   } = data
 
   const body = `
-    <p style="margin:0 0 4px; font-size:13px; font-weight:600; color:${BRAND_700}; text-transform:uppercase; letter-spacing:0.05em;">Upcoming appointment</p>
-    <h1 style="margin:0 0 8px; font-size:24px; font-weight:700; color:${SLATE_900};">See you tomorrow, ${esc(customerName.split(' ')[0])}!</h1>
+    <p style="margin:0 0 4px; font-size:13px; font-weight:600; color:${BRAND_700}; text-transform:uppercase; letter-spacing:0.05em;">Today's appointment</p>
+    <h1 style="margin:0 0 8px; font-size:24px; font-weight:700; color:${SLATE_900};">See you soon, ${esc(customerName.split(' ')[0])}!</h1>
     <p style="margin:0 0 20px; font-size:15px; line-height:1.5; color:${SLATE_600};">
-      Just a reminder — ${esc(detailerName)} has your ${esc(service)} scheduled for <strong>${esc(formatDateTime(scheduledTime))}</strong>.
+      Just a reminder — ${esc(detailerName)} has your ${esc(service)} scheduled for <strong>${esc(formatDateTime(scheduledTime))}</strong> today.
     </p>
     ${button('View booking', bookingUrl)}
     <p style="margin:20px 0 0; font-size:12px; line-height:1.5; color:${SLATE_400};">
@@ -309,7 +310,7 @@ export function reminderEmail(data: ReminderData): { subject: string; html: stri
     </p>`
 
   return {
-    subject: `Reminder: ${detailerName} is coming tomorrow`,
+    subject: `Reminder: ${detailerName} is coming today`,
     html: emailShell(`Reminder: your ${service} is scheduled for ${formatDateTime(scheduledTime)}`, body),
   }
 }

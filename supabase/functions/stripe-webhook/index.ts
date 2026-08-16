@@ -13,10 +13,8 @@
 import Stripe from 'npm:stripe@^18'
 import { createClient } from 'npm:@supabase/supabase-js@^2'
 import { sendEmail } from '../_shared/resend.ts'
-import { sendSms } from '../_shared/twilio.ts'
 import { captureException } from '../_shared/sentry.ts'
 import { bookingConfirmationEmail } from '../_shared/email-templates.ts'
-import { bookingConfirmedSms } from '../_shared/sms-templates.ts'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
   apiVersion: '2026-05-27.dahlia',
@@ -51,7 +49,7 @@ async function sendBookingConfirmation(bookingId: string) {
       .from('bookings')
       .select(
         `id, scheduled_time, booking_address, total_price,
-         customer_profiles!inner(users!inner(email, phone, sms_opt_in, full_name)),
+         customer_profiles!inner(users!inner(email, full_name)),
          detailer_profiles!inner(users!inner(full_name)),
          services(service_name)`
       )
@@ -70,6 +68,12 @@ async function sendBookingConfirmation(bookingId: string) {
       return
     }
 
+    // Email only — no SMS here. The post-payment popup (BookingWizard) is
+    // where a customer opts into texts, and that happens client-side after
+    // this webhook already ran, so an instant confirmation SMS from THIS
+    // function would only ever fire for a repeat booker already opted in
+    // from a previous booking, which isn't worth the special case. SMS
+    // starts with the day-of reminder (send-appointment-reminders) instead.
     const { subject, html } = bookingConfirmationEmail({
       customerName: customer.full_name ?? 'there',
       detailerName: detailer?.full_name ?? 'Your detailer',
@@ -81,18 +85,6 @@ async function sendBookingConfirmation(bookingId: string) {
       bookingUrl: `${Deno.env.get('APP_ORIGIN') ?? 'https://shinepoint.app'}/bookings/${booking.id}`,
     })
     await sendEmail({ to: customer.email, subject, html })
-
-    if (customer.sms_opt_in && customer.phone) {
-      await sendSms({
-        to: customer.phone,
-        body: bookingConfirmedSms({
-          customerName: customer.full_name ?? 'there',
-          detailerName: detailer?.full_name ?? 'Your detailer',
-          service,
-          scheduledTime: booking.scheduled_time,
-        }),
-      })
-    }
   } catch (e) {
     console.error('sendBookingConfirmation failed:', (e as Error).message)
   }

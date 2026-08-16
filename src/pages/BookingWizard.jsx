@@ -234,6 +234,7 @@ export default function BookingWizard() {
   const [showWeather, setShowWeather] = useState(false)
   const [showUninsured, setShowUninsured] = useState(false)
   const [showSmsPrompt, setShowSmsPrompt] = useState(false)
+  const [showSmsConfirmed, setShowSmsConfirmed] = useState(false)
   const [smsPhone, setSmsPhone] = useState('')
   const [smsBusy, setSmsBusy] = useState(false)
   const [bookingId, setBookingId] = useState(null)
@@ -829,6 +830,9 @@ export default function BookingWizard() {
             this specific moment. Same E.164 normalization as CustomerSettings. */}
         <Modal open={showSmsPrompt} onClose={() => setShowSmsPrompt(false)} labelledBy="sms-prompt-title">
           <PhoneIcon className="mx-auto h-10 w-10 text-brand-600" />
+          <p className="mt-3 text-center text-sm font-semibold text-slate-700 dark:text-slate-300">
+            {t('smsPromptEmailNotice')}
+          </p>
           <h2 id="sms-prompt-title" className="mt-3 text-center font-display text-xl font-bold text-slate-900 dark:text-slate-100">
             {t('smsPromptTitle')}
           </h2>
@@ -860,6 +864,7 @@ export default function BookingWizard() {
                 const normalized = smsPhone.trim().startsWith('+') ? `+${digits}` : `+1${digits}`
                 try {
                   await updateCustomer({ phone: normalized, smsOptIn: true })
+                  setShowSmsConfirmed(true)
                 } finally {
                   setSmsBusy(false)
                   setShowSmsPrompt(false)
@@ -875,6 +880,24 @@ export default function BookingWizard() {
               className="cursor-pointer text-sm text-slate-500 underline-offset-2 hover:underline dark:text-slate-400"
             >
               {t('smsPromptSkip')}
+            </button>
+          </div>
+        </Modal>
+
+        {/* One-line acknowledgment right after opt-in, confirming what they'll
+            actually receive (reminder + tracking link) — closes on its own
+            OK button or by clicking outside/Escape, same as every other Modal. */}
+        <Modal open={showSmsConfirmed} onClose={() => setShowSmsConfirmed(false)} labelledBy="sms-confirmed-title">
+          <PhoneIcon className="mx-auto h-10 w-10 text-cta-600" />
+          <h2 id="sms-confirmed-title" className="mt-3 text-center font-display text-xl font-bold text-slate-900 dark:text-slate-100">
+            {t('smsConfirmedTitle')}
+          </h2>
+          <p className="mt-2 text-center text-sm text-slate-600 dark:text-slate-400">
+            {t('smsConfirmedBody')}
+          </p>
+          <div className="mt-5">
+            <button type="button" onClick={() => setShowSmsConfirmed(false)} className="btn btn-brand w-full">
+              {t('smsConfirmedOk')}
             </button>
           </div>
         </Modal>

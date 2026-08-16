@@ -60,12 +60,14 @@ Deno.serve(async (req) => {
     const detailer = (booking as any).detailer_profiles?.users
     if (!customer?.email) return json({ error: 'No customer email on file' }, 422)
 
+    const bookingUrl = `${Deno.env.get('APP_ORIGIN') ?? 'https://shinepoint.app'}/bookings/${booking.id}`
+
     const { subject, html } = enRouteEmail({
       customerName: customer.full_name ?? 'there',
       detailerName: detailer?.full_name ?? 'Your detailer',
       bookingId: booking.id,
       etaMinutes: typeof etaMinutes === 'number' ? etaMinutes : undefined,
-      bookingUrl: `${Deno.env.get('APP_ORIGIN') ?? 'https://shinepoint.app'}/bookings/${booking.id}`,
+      bookingUrl,
     })
 
     // One send per trip in practice — capped so a stuck retry loop can't
@@ -87,6 +89,7 @@ Deno.serve(async (req) => {
             customerName: customer.full_name ?? 'there',
             detailerName: detailer?.full_name ?? 'Your detailer',
             etaMinutes: typeof etaMinutes === 'number' ? etaMinutes : undefined,
+            trackingUrl: bookingUrl,
           }),
         })
       } catch (e) {
