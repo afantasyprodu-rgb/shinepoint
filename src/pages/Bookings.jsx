@@ -3,9 +3,47 @@ import { Link } from 'react-router-dom'
 import AppShell from '../components/AppShell'
 import { AnimatedPage, Stagger, StaggerItem } from '../components/ui/Motion'
 import { StatusPill, EmptyState, Avatar, Skeleton, CarWashIllustration } from '../components/ui/bits'
+import { PhoneIcon, XIcon } from '../components/icons'
 import { useStore } from '../context/StoreContext'
 import { useT } from '../i18n/useT'
 import { useLanguage } from '../context/LanguageContext'
+
+// One-time nudge toward the SMS opt-in in Account settings — many customers
+// only ever use email/Google to sign in and would never otherwise discover
+// the "Text me booking updates" checkbox. Dismiss state is per-browser, not
+// per-account (no server round trip needed for something this low-stakes),
+// so it can resurface on a new device — acceptable since it's not intrusive.
+const SMS_NUDGE_DISMISSED_KEY = 'shinepoint:sms-nudge-dismissed'
+
+function SmsOptInNudge({ t }) {
+  const [dismissed, setDismissed] = useState(
+    () => localStorage.getItem(SMS_NUDGE_DISMISSED_KEY) === '1'
+  )
+  if (dismissed) return null
+  return (
+    <div className="mb-4 flex items-start gap-3 rounded-2xl border border-brand-100 bg-brand-50/60 p-4 dark:border-white/10 dark:bg-white/5">
+      <PhoneIcon className="mt-0.5 h-5 w-5 shrink-0 text-brand-600" />
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{t('smsNudgeTitle')}</p>
+        <p className="mt-0.5 text-sm text-slate-600 dark:text-slate-400">{t('smsNudgeBody')}</p>
+        <Link to="/settings" className="mt-2 inline-block text-sm font-semibold text-brand-700 hover:underline dark:text-brand-300">
+          {t('smsNudgeCta')}
+        </Link>
+      </div>
+      <button
+        type="button"
+        aria-label={t('dismiss')}
+        onClick={() => {
+          localStorage.setItem(SMS_NUDGE_DISMISSED_KEY, '1')
+          setDismissed(true)
+        }}
+        className="shrink-0 cursor-pointer rounded-full p-1 text-slate-400 hover:bg-black/5 hover:text-slate-600 dark:hover:bg-white/10 dark:hover:text-slate-300"
+      >
+        <XIcon className="h-4 w-4" />
+      </button>
+    </div>
+  )
+}
 
 // Skeleton row — dimensions match the real booking card 1:1 so the swap to
 // loaded content never shifts the layout.
@@ -41,6 +79,12 @@ export default function Bookings() {
     <AppShell role="customer">
       <AnimatedPage className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
         <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">{t('title')}</h1>
+
+        {!isDemo && !customer.smsOptIn && !loading && (
+          <div className="mt-6">
+            <SmsOptInNudge t={t} />
+          </div>
+        )}
 
         {loading ? (
           <div className="mt-6 space-y-3" aria-busy="true" aria-label={t('loadingAria')}>

@@ -6,7 +6,7 @@ import AppShell from '../components/AppShell'
 import TimePicker from '../components/TimePicker'
 import PaymentForm from '../components/PaymentForm'
 import Modal from '../components/ui/Modal'
-import { CheckIcon, AlertTriangleIcon, ChevronLeftIcon, SparklesIcon, CarIcon, CalendarIcon } from '../components/icons'
+import { CheckIcon, AlertTriangleIcon, ChevronLeftIcon, SparklesIcon, CarIcon, CalendarIcon, PhoneIcon } from '../components/icons'
 import { useStore } from '../context/StoreContext'
 import { useTheme } from '../context/ThemeContext'
 import { stripePromise, isStripeConfigured, createPaymentIntent } from '../lib/stripe'
@@ -181,7 +181,7 @@ const stepVariants = {
 export default function BookingWizard() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { getDetailer, customer, createBooking, isDemo, customerProfile } = useStore()
+  const { getDetailer, customer, createBooking, isDemo, customerProfile, updateCustomer } = useStore()
   const { theme } = useTheme()
   const t = useT('bookingWizard')
   const pipOff = theme === 'dark' ? '#3f2d6e' : '#e9d5ff'
@@ -233,6 +233,9 @@ export default function BookingWizard() {
   const [weatherAck, setWeatherAck] = useState(false)
   const [showWeather, setShowWeather] = useState(false)
   const [showUninsured, setShowUninsured] = useState(false)
+  const [showSmsPrompt, setShowSmsPrompt] = useState(false)
+  const [smsPhone, setSmsPhone] = useState('')
+  const [smsBusy, setSmsBusy] = useState(false)
   const [bookingId, setBookingId] = useState(null)
   const [useReward, setUseReward] = useState(false)
   const [promoInput, setPromoInput] = useState('')
@@ -273,6 +276,14 @@ export default function BookingWizard() {
   }, [isDemo, d?.pin?.lat, d?.pin?.lng])
 
   const days = useMemo(() => nextDays(10, isDemo, weatherDays), [isDemo, weatherDays])
+
+  // Ask once, right after a real payment lands — the customer's already
+  // engaged and just committed money, the best moment to ask for one more
+  // thing. Skipped entirely if they're already opted in (repeat bookers).
+  useEffect(() => {
+    if (step === 4 && !isDemo && !customer.smsOptIn) setShowSmsPrompt(true)
+  }, [step, isDemo, customer.smsOptIn])
+
   if (!d) return null
   const uninsured = d.insurance === 'none'
   // Loyalty rewards only redeemable with insured detailers (blueprint rule).
@@ -810,6 +821,52 @@ export default function BookingWizard() {
               className="cursor-pointer text-sm text-slate-500 underline-offset-2 hover:underline dark:text-slate-400"
             >
               {t('goBack')}
+            </button>
+          </div>
+        </Modal>
+
+        {/* Post-payment SMS opt-in nudge — see the useEffect above for why
+            this specific moment. Same E.164 normalization as CustomerSettings. */}
+        <Modal open={showSmsPrompt} onClose={() => setShowSmsPrompt(false)} labelledBy="sms-prompt-title">
+          <PhoneIcon className="mx-auto h-10 w-10 text-brand-600" />
+          <h2 id="sms-prompt-title" className="mt-3 text-center font-display text-xl font-bold text-slate-900 dark:text-slate-100">
+            {t('smsPromptTitle')}
+          </h2>
+          <p className="mt-2 text-center text-sm text-slate-600 dark:text-slate-400">
+            {t('smsPromptBody')}
+          </p>
+          <div className="mt-5">
+            <input
+              type="tel" inputMode="tel" autoComplete="tel" value={smsPhone}
+              onChange={(e) => setSmsPhone(e.target.value)}
+              className="input" placeholder="(555) 555-5555" autoFocus
+            />
+          </div>
+          <div className="mt-5 flex flex-col gap-2">
+            <button
+              type="button"
+              disabled={smsBusy || smsPhone.replace(/\D/g, '').length < 10}
+              onClick={async () => {
+                setSmsBusy(true)
+                const digits = smsPhone.replace(/\D/g, '')
+                const normalized = smsPhone.trim().startsWith('+') ? `+${digits}` : `+1${digits}`
+                try {
+                  await updateCustomer({ phone: normalized, smsOptIn: true })
+                } finally {
+                  setSmsBusy(false)
+                  setShowSmsPrompt(false)
+                }
+              }}
+              className="btn btn-brand"
+            >
+              {smsBusy ? t('smsPromptSaving') : t('smsPromptEnable')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowSmsPrompt(false)}
+              className="cursor-pointer text-sm text-slate-500 underline-offset-2 hover:underline dark:text-slate-400"
+            >
+              {t('smsPromptSkip')}
             </button>
           </div>
         </Modal>
