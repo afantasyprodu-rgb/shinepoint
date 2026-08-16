@@ -20,6 +20,7 @@
 // 24-hour window.
 import { createClient } from 'npm:@supabase/supabase-js@^2'
 import { json } from '../_shared/cors.ts'
+import { captureException } from '../_shared/sentry.ts'
 import { sendEmail } from '../_shared/resend.ts'
 import { sendSms } from '../_shared/twilio.ts'
 import { reminderEmail } from '../_shared/email-templates.ts'
@@ -93,6 +94,7 @@ Deno.serve(async (req) => {
       sent++
     } catch (e) {
       console.error('send-appointment-reminders failed for', b.id, (e as Error).message)
+      await captureException(e, 'send-appointment-reminders')
       errors.push(`${b.id}: ${(e as Error).message}`)
     } finally {
       // Stamped regardless of outcome — see file header on why.

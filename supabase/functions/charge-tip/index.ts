@@ -16,6 +16,7 @@
 import Stripe from 'npm:stripe@^18'
 import { createClient } from 'npm:@supabase/supabase-js@^2'
 import { corsHeaders, json } from '../_shared/cors.ts'
+import { captureException } from '../_shared/sentry.ts'
 import { withinRateLimit, tooManyRequests } from '../_shared/rateLimit.ts'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
@@ -109,6 +110,7 @@ Deno.serve(async (req) => {
     })
   } catch (e) {
     console.error('charge-tip:', e)
+    await captureException(e, 'charge-tip')
     return json({ error: (e as Error).message }, 500)
   }
 })

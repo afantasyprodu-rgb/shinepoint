@@ -1,4 +1,5 @@
 import { Component } from 'react'
+import { captureException } from '../lib/sentry.js'
 
 // Catches render/lifecycle throws so a bug shows a recoverable fallback
 // instead of a blank white screen in production. This boundary sits above
@@ -18,6 +19,7 @@ export default class ErrorBoundary extends Component {
 
   componentDidCatch(error, info) {
     console.error('Uncaught render error:', error, info?.componentStack)
+    captureException(error, { componentStack: info?.componentStack })
   }
 
   startFresh = () => {

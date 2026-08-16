@@ -9,7 +9,10 @@ import { StoreProvider } from './context/StoreContext.jsx'
 import { ThemeProvider } from './context/ThemeContext.jsx'
 import { PaintProvider } from './context/PaintContext.jsx'
 import { LanguageProvider } from './context/LanguageContext.jsx'
+import { initSentry } from './lib/sentry.js'
 import './index.css'
+
+initSentry()
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

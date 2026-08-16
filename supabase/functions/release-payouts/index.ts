@@ -17,6 +17,7 @@
 import Stripe from 'npm:stripe@^18'
 import { createClient } from 'npm:@supabase/supabase-js@^2'
 import { json } from '../_shared/cors.ts'
+import { captureException } from '../_shared/sentry.ts'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
   apiVersion: '2026-05-27.dahlia',
@@ -81,6 +82,7 @@ Deno.serve(async (req) => {
       released++
     } catch (e) {
       console.error('release-payouts transfer failed for', b.id, (e as Error).message)
+      await captureException(e, 'release-payouts')
       errors.push(`${b.id}: ${(e as Error).message}`)
     }
   }

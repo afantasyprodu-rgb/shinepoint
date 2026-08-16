@@ -6,6 +6,7 @@
 // Deploy: supabase functions deploy admin-delete-user
 import { createClient } from 'npm:@supabase/supabase-js@^2'
 import { corsHeaders, json } from '../_shared/cors.ts'
+import { captureException } from '../_shared/sentry.ts'
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
@@ -42,6 +43,7 @@ Deno.serve(async (req) => {
     return json({ ok: true })
   } catch (e) {
     console.error('admin-delete-user:', e)
+    await captureException(e, 'admin-delete-user')
     return json({ error: (e as Error).message }, 500)
   }
 })

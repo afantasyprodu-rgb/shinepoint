@@ -6,6 +6,7 @@
 // Deploy: supabase functions deploy post-location
 import { createClient } from 'npm:@supabase/supabase-js@^2'
 import { corsHeaders, json } from '../_shared/cors.ts'
+import { captureException } from '../_shared/sentry.ts'
 import { withinRateLimit, tooManyRequests } from '../_shared/rateLimit.ts'
 
 Deno.serve(async (req) => {
@@ -66,6 +67,7 @@ Deno.serve(async (req) => {
     return json({ ok: true })
   } catch (e) {
     console.error('post-location:', e)
+    await captureException(e, 'post-location')
     return json({ error: (e as Error).message }, 500)
   }
 })

@@ -9,6 +9,7 @@
 // Deploy: supabase functions deploy delete-own-account
 import { createClient } from 'npm:@supabase/supabase-js@^2'
 import { corsHeaders, json } from '../_shared/cors.ts'
+import { captureException } from '../_shared/sentry.ts'
 
 // Anything short of complete/cancelled still has money or a dispute in
 // flight — deleting the account out from under that would strand the
@@ -93,6 +94,7 @@ Deno.serve(async (req) => {
     return json({ ok: true })
   } catch (e) {
     console.error('delete-own-account:', e)
+    await captureException(e, 'delete-own-account')
     return json({ error: (e as Error).message }, 500)
   }
 })

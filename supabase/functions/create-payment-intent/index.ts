@@ -11,6 +11,7 @@
 import Stripe from 'npm:stripe@^18'
 import { createClient } from 'npm:@supabase/supabase-js@^2'
 import { corsHeaders, json } from '../_shared/cors.ts'
+import { captureException } from '../_shared/sentry.ts'
 import { withinRateLimit, tooManyRequests } from '../_shared/rateLimit.ts'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
@@ -259,6 +260,7 @@ Deno.serve(async (req) => {
     return json({ clientSecret: intent.client_secret })
   } catch (e) {
     console.error('create-payment-intent:', e)
+    await captureException(e, 'create-payment-intent')
     return json({ error: (e as Error).message }, 500)
   }
 })

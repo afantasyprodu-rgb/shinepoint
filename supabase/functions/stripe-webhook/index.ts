@@ -14,6 +14,7 @@ import Stripe from 'npm:stripe@^18'
 import { createClient } from 'npm:@supabase/supabase-js@^2'
 import { sendEmail } from '../_shared/resend.ts'
 import { sendSms } from '../_shared/twilio.ts'
+import { captureException } from '../_shared/sentry.ts'
 import { bookingConfirmationEmail } from '../_shared/email-templates.ts'
 import { bookingConfirmedSms } from '../_shared/sms-templates.ts'
 
@@ -114,6 +115,7 @@ Deno.serve(async (req) => {
   if (!event) {
     const e = lastErr ?? new Error('No webhook secret configured')
     console.error('webhook signature verify failed:', (e as Error).message)
+    await captureException(e, 'stripe-webhook:signature')
     return new Response('Bad signature', { status: 400 })
   }
 
@@ -199,6 +201,7 @@ Deno.serve(async (req) => {
     }
   } catch (e) {
     console.error('webhook handler error:', e)
+    await captureException(e, 'stripe-webhook:handler')
     return new Response('Handler error', { status: 500 })
   }
 

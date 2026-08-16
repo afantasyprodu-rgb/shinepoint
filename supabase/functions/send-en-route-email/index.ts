@@ -9,6 +9,7 @@
 // Secrets: RESEND_API_KEY (optional — send is skipped, not fatal, if unset).
 import { createClient } from 'npm:@supabase/supabase-js@^2'
 import { corsHeaders, json } from '../_shared/cors.ts'
+import { captureException } from '../_shared/sentry.ts'
 import { withinRateLimit, tooManyRequests } from '../_shared/rateLimit.ts'
 import { sendEmail } from '../_shared/resend.ts'
 import { sendSms } from '../_shared/twilio.ts'
@@ -96,6 +97,7 @@ Deno.serve(async (req) => {
     return json({ ok: true, ...result, sms: smsResult })
   } catch (e) {
     console.error('send-en-route-email:', e)
+    await captureException(e, 'send-en-route-email')
     return json({ error: (e as Error).message }, 500)
   }
 })

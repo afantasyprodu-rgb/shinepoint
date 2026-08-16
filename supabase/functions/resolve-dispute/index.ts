@@ -18,6 +18,7 @@
 import Stripe from 'npm:stripe@^18'
 import { createClient } from 'npm:@supabase/supabase-js@^2'
 import { corsHeaders, json } from '../_shared/cors.ts'
+import { captureException } from '../_shared/sentry.ts'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
   apiVersion: '2026-05-27.dahlia',
@@ -137,6 +138,7 @@ Deno.serve(async (req) => {
     return json({ ok: true, refundId, refunded: amount, feeCharged })
   } catch (e) {
     console.error('resolve-dispute:', e)
+    await captureException(e, 'resolve-dispute')
     return json({ error: (e as Error).message }, 500)
   }
 })
