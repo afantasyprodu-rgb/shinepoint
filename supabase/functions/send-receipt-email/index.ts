@@ -9,7 +9,9 @@ import { createClient } from 'npm:@supabase/supabase-js@^2'
 import { corsHeaders, json } from '../_shared/cors.ts'
 import { withinRateLimit, tooManyRequests } from '../_shared/rateLimit.ts'
 import { sendEmail } from '../_shared/resend.ts'
+import { sendSms } from '../_shared/twilio.ts'
 import { receiptEmail } from '../_shared/email-templates.ts'
+import { jobCompleteSms } from '../_shared/sms-templates.ts'
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
@@ -39,7 +41,7 @@ Deno.serve(async (req) => {
       .from('bookings')
       .select(
         `id, status, total_price, tip_amount, completed_at, invoice,
-         customer_profiles!inner(user_id, users!inner(email, full_name)),
+         customer_profiles!inner(user_id, users!inner(email, phone, sms_opt_in, full_name)),
          detailer_profiles!inner(user_id, users!inner(full_name)),
          services(service_name)`
       )
@@ -97,7 +99,23 @@ Deno.serve(async (req) => {
 
     const result = await sendEmail({ to: customer.email, subject, html })
 
-    return json({ ok: true, ...result })
+    let smsResult: unknown
+    if (customer.sms_opt_in && customer.phone) {
+      try {
+        smsResult = await sendSms({
+          to: customer.phone,
+          body: jobCompleteSms({
+            customerName: customer.full_name ?? 'there',
+            detailerName: detailer?.full_name ?? 'Your detailer',
+            total: total + (tip > 0 ? tip : 0),
+          }),
+        })
+      } catch (e) {
+        console.error('send-receipt-email: sms failed:', (e as Error).message)
+      }
+    }
+
+    return json({ ok: true, ...result, sms: smsResult })
   } catch (e) {
     console.error('send-receipt-email:', e)
     return json({ error: (e as Error).message }, 500)

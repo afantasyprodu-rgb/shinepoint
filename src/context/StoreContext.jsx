@@ -24,6 +24,7 @@ import {
   insertCustomerReview,
   uploadProfileImage,
   updateUserName,
+  updateUserContactInfo,
   updateCustomerProfile,
   updateDetailerProfile,
   saveServices,
@@ -335,6 +336,8 @@ export function StoreProvider({ children }) {
       ? demoCustomer
       : {
           name: profile?.full_name ?? '',
+          phone: profile?.phone ?? '',
+          smsOptIn: profile?.sms_opt_in ?? false,
           address: customerProfile?.default_address ?? '',
           zip: customerProfile?.default_zip ?? '',
           photo: customerProfile?.profile_photo_url ?? null,
@@ -481,6 +484,9 @@ export function StoreProvider({ children }) {
         if (isDemo) { setDemoCustomer((c) => ({ ...c, ...patch })); return }
         if (!profile?.id) return
         if (patch.name != null) await updateUserName(profile.id, patch.name)
+        if (patch.phone !== undefined || patch.smsOptIn !== undefined) {
+          await updateUserContactInfo(profile.id, { phone: patch.phone, smsOptIn: patch.smsOptIn })
+        }
         const cols = {}
         if (patch.address != null) cols.default_address = patch.address
         if (patch.zip != null) cols.default_zip = patch.zip

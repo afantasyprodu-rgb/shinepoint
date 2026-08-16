@@ -119,3 +119,6 @@ verify_jwt = true
 
 [functions.send-en-route-email]
 verify_jwt = true
+
+[functions.send-appointment-reminders]
+verify_jwt = false

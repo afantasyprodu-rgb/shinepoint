@@ -11,7 +11,9 @@ import { createClient } from 'npm:@supabase/supabase-js@^2'
 import { corsHeaders, json } from '../_shared/cors.ts'
 import { withinRateLimit, tooManyRequests } from '../_shared/rateLimit.ts'
 import { sendEmail } from '../_shared/resend.ts'
+import { sendSms } from '../_shared/twilio.ts'
 import { enRouteEmail } from '../_shared/email-templates.ts'
+import { enRouteSms } from '../_shared/sms-templates.ts'
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
@@ -41,7 +43,7 @@ Deno.serve(async (req) => {
       .from('bookings')
       .select(
         `id, status,
-         customer_profiles!inner(user_id, users!inner(email, full_name)),
+         customer_profiles!inner(user_id, users!inner(email, phone, sms_opt_in, full_name)),
          detailer_profiles!bookings_detailer_id_fkey!inner(user_id, users!inner(full_name))`
       )
       .eq('id', bookingId)
@@ -73,7 +75,25 @@ Deno.serve(async (req) => {
 
     const result = await sendEmail({ to: customer.email, subject, html })
 
-    return json({ ok: true, ...result })
+    // Non-fatal by the same contract as the email above — a Twilio hiccup
+    // must never surface as a failure of the underlying status change.
+    let smsResult: unknown
+    if (customer.sms_opt_in && customer.phone) {
+      try {
+        smsResult = await sendSms({
+          to: customer.phone,
+          body: enRouteSms({
+            customerName: customer.full_name ?? 'there',
+            detailerName: detailer?.full_name ?? 'Your detailer',
+            etaMinutes: typeof etaMinutes === 'number' ? etaMinutes : undefined,
+          }),
+        })
+      } catch (e) {
+        console.error('send-en-route-email: sms failed:', (e as Error).message)
+      }
+    }
+
+    return json({ ok: true, ...result, sms: smsResult })
   } catch (e) {
     console.error('send-en-route-email:', e)
     return json({ error: (e as Error).message }, 500)

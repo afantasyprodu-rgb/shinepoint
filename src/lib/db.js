@@ -518,6 +518,17 @@ export async function updateUserName(userId, fullName) {
   if (error) console.error('updateUserName:', error.message)
 }
 
+// phone/sms_opt_in live on users (same table full_name does), not
+// customer_profiles — see 047_sms_notifications.sql.
+export async function updateUserContactInfo(userId, { phone, smsOptIn }) {
+  const cols = {}
+  if (phone !== undefined) cols.phone = phone
+  if (smsOptIn !== undefined) cols.sms_opt_in = smsOptIn
+  if (!Object.keys(cols).length) return
+  const { error } = await supabase.from('users').update(cols).eq('id', userId)
+  if (error) console.error('updateUserContactInfo:', error.message)
+}
+
 // Patch the caller's customer_profiles row. `patch` keys map directly to
 // columns (profile_photo_url, bio, vehicle_make/model/type, default_address,
 // default_zip). RLS keys the write to auth.uid() = user_id.

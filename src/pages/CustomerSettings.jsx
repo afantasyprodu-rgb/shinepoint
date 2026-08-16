@@ -80,6 +80,8 @@ export default function CustomerSettings() {
   const [photo, setPhoto] = useState(customer.photo ?? null)
   const [name, setName] = useState(customer.name)
   const [bio, setBio] = useState(customer.bio ?? '')
+  const [phone, setPhone] = useState(customer.phone ?? '')
+  const [smsOptIn, setSmsOptIn] = useState(customer.smsOptIn ?? false)
   const [vehMake, setVehMake] = useState(customer.vehicle?.make ?? '')
   const [vehModel, setVehModel] = useState(customer.vehicle?.model ?? '')
   const [vehType, setVehType] = useState(customer.vehicle?.type ?? '')
@@ -109,6 +111,16 @@ export default function CustomerSettings() {
     setVehicles((vs) => vs.filter((v) => v.id !== id))
   }
 
+  // Stored/sent in E.164 (+1XXXXXXXXXX) — what Twilio requires. A bare
+  // 10-digit US number typed in is normalized; anything already starting
+  // with + is trusted as-is.
+  function normalizePhone(raw) {
+    const digits = raw.replace(/\D/g, '')
+    if (raw.trim().startsWith('+')) return `+${digits}`
+    if (digits.length === 10) return `+1${digits}`
+    return digits ? `+${digits}` : ''
+  }
+
   async function save(e) {
     e.preventDefault()
     setBusy(true)
@@ -116,6 +128,8 @@ export default function CustomerSettings() {
       await updateCustomer({
         name,
         bio,
+        phone: normalizePhone(phone),
+        smsOptIn,
         vehicle: { make: vehMake, model: vehModel, type: vehType, photo: vehPhoto },
         vehicles,
         address,
@@ -185,6 +199,21 @@ export default function CustomerSettings() {
                 placeholder={t('aboutYouPlaceholder')}
               />
             </div>
+            <div>
+              <label htmlFor="phone" className="label">{t('phoneLabel')}</label>
+              <input
+                id="phone" type="tel" inputMode="tel" autoComplete="tel" value={phone}
+                onChange={(e) => setPhone(e.target.value)} className="input" placeholder="(555) 555-5555"
+              />
+            </div>
+            <label className="flex cursor-pointer items-start gap-2.5 text-sm text-slate-600 dark:text-slate-400">
+              <input
+                type="checkbox" checked={smsOptIn}
+                onChange={(e) => setSmsOptIn(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-brand-600"
+              />
+              {t('smsOptInLabel')}
+            </label>
           </div>
 
           {/* Primary vehicle */}
