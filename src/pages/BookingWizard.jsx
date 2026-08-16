@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { Elements } from '@stripe/react-stripe-js'
 import AppShell from '../components/AppShell'
@@ -841,6 +841,14 @@ export default function BookingWizard() {
               onChange={(e) => setSmsPhone(e.target.value)}
               className="input" placeholder="(555) 555-5555" autoFocus
             />
+            {/* Same carrier-required disclaimer as CustomerSettings — frequency,
+                rates, HELP/STOP, Terms/Privacy, right next to the opt-in. */}
+            <p className="mt-2 text-center text-xs text-slate-400 dark:text-slate-500">
+              {t('smsDisclaimer')}{' '}
+              <Link to="/terms" className="underline hover:text-slate-600 dark:hover:text-slate-300">{t('smsDisclaimerTerms')}</Link>
+              {' · '}
+              <Link to="/privacy" className="underline hover:text-slate-600 dark:hover:text-slate-300">{t('smsDisclaimerPrivacy')}</Link>
+            </p>
           </div>
           <div className="mt-5 flex flex-col gap-2">
             <button

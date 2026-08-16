@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import AppShell from '../components/AppShell'
 import AccountDangerZone from '../components/AccountDangerZone'
@@ -214,6 +215,15 @@ export default function CustomerSettings() {
               />
               {t('smsOptInLabel')}
             </label>
+            {/* Carrier-required disclaimers (frequency, rates, HELP/STOP,
+                Terms/Privacy) — must sit right next to the checkbox, not
+                buried elsewhere, for toll-free/A2P consent review. */}
+            <p className="pl-[1.625rem] text-xs text-slate-400 dark:text-slate-500">
+              {t('smsDisclaimer')}{' '}
+              <Link to="/terms" className="underline hover:text-slate-600 dark:hover:text-slate-300">{t('smsDisclaimerTerms')}</Link>
+              {' · '}
+              <Link to="/privacy" className="underline hover:text-slate-600 dark:hover:text-slate-300">{t('smsDisclaimerPrivacy')}</Link>
+            </p>
           </div>
 
           {/* Primary vehicle */}
