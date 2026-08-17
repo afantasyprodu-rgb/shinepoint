@@ -6,6 +6,7 @@ import AccountDangerZone from '../components/AccountDangerZone'
 import AvatarUpload from '../components/AvatarUpload'
 import CarPhotoUpload from '../components/CarPhotoUpload'
 import Combobox from '../components/ui/Combobox'
+import AddressAutocomplete from '../components/ui/AddressAutocomplete'
 import { AnimatedPage } from '../components/ui/Motion'
 import { CheckIcon, MapPinIcon, PlusIcon, TrashIcon } from '../components/icons'
 import { useStore } from '../context/StoreContext'
@@ -350,9 +351,13 @@ export default function CustomerSettings() {
             <p className="-mt-2 text-sm text-slate-500 dark:text-slate-400">{t('homeAddressBlurb')}</p>
             <div>
               <label htmlFor="addr" className="label">{t('streetAddressLabel')}</label>
-              <input
-                id="addr" type="text" autoComplete="street-address" value={address}
-                onChange={(e) => setAddress(e.target.value)} className="input" placeholder="2200 Sunset Blvd"
+              <AddressAutocomplete
+                inputId="addr"
+                value={address}
+                onChange={setAddress}
+                onSelect={(details) => {
+                  if (details.zip) setZip(details.zip)
+                }}
               />
             </div>
             <div>

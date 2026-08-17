@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import Logo from '../components/Logo'
 import { AnimatedPage } from '../components/ui/Motion'
 import Combobox from '../components/ui/Combobox'
+import AddressAutocomplete from '../components/ui/AddressAutocomplete'
 import CarPhotoUpload from '../components/CarPhotoUpload'
 import { CarIcon, MapPinIcon } from '../components/icons'
 import { useStore } from '../context/StoreContext'
@@ -204,10 +205,12 @@ export default function CustomerOnboarding() {
 
                 <div>
                   <label className="label">{t('streetAddressLabel')}</label>
-                  <input
-                    type="text" autoComplete="street-address" value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    placeholder="2200 Sunset Blvd" className="input"
+                  <AddressAutocomplete
+                    value={address}
+                    onChange={setAddress}
+                    onSelect={(details) => {
+                      if (details.zip) setZip(details.zip)
+                    }}
                   />
                 </div>
 
