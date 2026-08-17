@@ -73,6 +73,9 @@ export function Terms() {
       <H>{t('termsH7')}</H>
       <p>{t('termsP7')}</p>
 
+      <H>{t('termsHSms')}</H>
+      <p>{t('termsPSms')}</p>
+
       <H>{t('termsH8')}</H>
       <p>{t('termsP8')}</p>
     </LegalShell>
@@ -99,6 +102,9 @@ export function Privacy() {
 
       <H>{t('privacyH5')}</H>
       <p>{t('privacyP5')}</p>
+
+      <H>{t('privacyHSms')}</H>
+      <p>{t('privacyPSms')}</p>
 
       <H>{t('privacyH6')}</H>
       <p>{t('privacyP6')}</p>
