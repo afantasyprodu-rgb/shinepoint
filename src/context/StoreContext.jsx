@@ -117,7 +117,16 @@ export function StoreProvider({ children }) {
   // retried — leaving a permanently empty map on any load that lost that
   // race. Re-running when the user id resolves fixes it, and the extra call
   // is one cheap query on sign-in.
+  //
+  // Skipped entirely while signed out (StoreProvider wraps the whole app,
+  // including the public landing/login pages) — every anonymous visitor
+  // was firing this and eating a 401 "permission denied for view
+  // detailer_directory" in the console. fetchDetailers() already catches
+  // that and returns [], so nothing was actually broken, but there's no
+  // reason to make the request at all when we already know it can't
+  // succeed without a session.
   useEffect(() => {
+    if (!user?.id) { setRealDetailers([]); return }
     fetchDetailers().then(setRealDetailers)
   }, [user?.id])
 
