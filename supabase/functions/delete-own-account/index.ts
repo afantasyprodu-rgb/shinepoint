@@ -17,6 +17,16 @@ import { captureException } from '../_shared/sentry.ts'
 // damage evidence).
 const ACTIVE_STATUSES = ['pending', 'accepted', 'en_route', 'arrived', 'in_progress', 'disputed']
 
+// bookings.customer_id / bookings.detailer_id have no ON DELETE action, so
+// ANY booking row — even a long-finished completed or cancelled one — blocks
+// the users -> customer_profiles/detailer_profiles cascade at the Postgres
+// level. Without this check that surfaces as the raw "Database error
+// deleting user" from admin.auth.admin.deleteUser below, with no indication
+// why. Checked separately from ACTIVE_STATUSES above so the two cases get
+// distinct, actionable messages instead of one generic booking message.
+const HISTORY_MESSAGE =
+  'You have booking history on this account. We keep completed and cancelled bookings for records, so this account can\'t be self-deleted — contact support and we\'ll take care of it.'
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
@@ -52,6 +62,11 @@ Deno.serve(async (req) => {
         if (active?.length) {
           return json({ error: 'You have an active or disputed booking. Resolve it before deleting your account.' }, 409)
         }
+        const { data: anyBooking } = await admin
+          .from('bookings').select('id').eq('customer_id', cp.id).limit(1)
+        if (anyBooking?.length) {
+          return json({ error: HISTORY_MESSAGE }, 409)
+        }
       }
     } else if (profile?.role === 'detailer') {
       const { data: dp } = await admin
@@ -73,6 +88,11 @@ Deno.serve(async (req) => {
           .limit(1)
         if (pending?.length) {
           return json({ error: 'You have a payout still pending release. Wait for it to complete before deleting your account.' }, 409)
+        }
+        const { data: anyBooking } = await admin
+          .from('bookings').select('id').eq('detailer_id', dp.id).limit(1)
+        if (anyBooking?.length) {
+          return json({ error: HISTORY_MESSAGE }, 409)
         }
       }
     }
