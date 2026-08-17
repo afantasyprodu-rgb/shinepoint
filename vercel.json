@@ -8,7 +8,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'sha256-gyVXKi6nbuj9JYCEID7fUsiP80XcFP82FP8Oagz8IOk=' https://js.stripe.com https://va.vercel-scripts.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://vitals.vercel-insights.com https://api.open-meteo.com; img-src 'self' data: https://*.basemaps.cartocdn.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; frame-src https://js.stripe.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+          "value": "default-src 'self'; script-src 'self' 'sha256-gyVXKi6nbuj9JYCEID7fUsiP80XcFP82FP8Oagz8IOk=' https://js.stripe.com https://va.vercel-scripts.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://vitals.vercel-insights.com https://api.open-meteo.com https://*.ingest.us.sentry.io; img-src 'self' data: https://*.basemaps.cartocdn.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; frame-src https://js.stripe.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
         },
         { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "X-Frame-Options", "value": "DENY" },
