@@ -99,7 +99,7 @@ function emailShell(previewText: string, bodyHtml: string): string {
           <tr>
             <td style="padding:24px 8px; text-align:center; font-size:12px; color:${SLATE_400};">
               ShinePoint · Los Angeles, CA<br />
-              Questions? Reply to this email or reach us at support@shinepoint.app
+              Questions? Reply to this email or reach us at shinepoint.support@gmail.com
             </td>
           </tr>
         </table>
