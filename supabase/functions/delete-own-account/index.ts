@@ -14,18 +14,24 @@ import { captureException } from '../_shared/sentry.ts'
 // Anything short of complete/cancelled still has money or a dispute in
 // flight — deleting the account out from under that would strand the
 // other party (detailer mid-job, or a customer who still owes a review of
-// damage evidence).
+// damage evidence). This is the ONLY thing that should block self-delete —
+// a completed or cancelled booking is fine, it just needs to not be
+// silently dropped (see admin_purge_booking_history below).
 const ACTIVE_STATUSES = ['pending', 'accepted', 'en_route', 'arrived', 'in_progress', 'disputed']
+const ACTIVE_BOOKING_MESSAGE =
+  'You have an active booking. Open it from My Bookings and cancel it, then you can delete your account.'
 
-// bookings.customer_id / bookings.detailer_id have no ON DELETE action, so
-// ANY booking row — even a long-finished completed or cancelled one — blocks
-// the users -> customer_profiles/detailer_profiles cascade at the Postgres
-// level. Without this check that surfaces as the raw "Database error
-// deleting user" from admin.auth.admin.deleteUser below, with no indication
-// why. Checked separately from ACTIVE_STATUSES above so the two cases get
-// distinct, actionable messages instead of one generic booking message.
-const HISTORY_MESSAGE =
-  'You have booking history on this account. We keep completed and cancelled bookings for records, so this account can\'t be self-deleted — contact support and we\'ll take care of it.'
+// Only for genuine failures below (purge/delete erroring out) — never for
+// the routine ACTIVE_BOOKING_MESSAGE block above, which is expected UX,
+// not something every admin needs paged about. Sentry already logs these;
+// this puts the same signal in the admin-facing notifications feed too.
+async function notifyAdmins(admin: ReturnType<typeof createClient>, who: string, detail: string) {
+  const { error } = await admin.rpc('notify_admins', {
+    p_title: 'Account deletion failed',
+    p_body: `${who} tried to delete their account and it failed: ${detail}`,
+  })
+  if (error) console.error('notify_admins failed:', error.message)
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
@@ -60,12 +66,7 @@ Deno.serve(async (req) => {
         const { data: active } = await admin
           .from('bookings').select('id').eq('customer_id', cp.id).in('status', ACTIVE_STATUSES).limit(1)
         if (active?.length) {
-          return json({ error: 'You have an active or disputed booking. Resolve it before deleting your account.' }, 409)
-        }
-        const { data: anyBooking } = await admin
-          .from('bookings').select('id').eq('customer_id', cp.id).limit(1)
-        if (anyBooking?.length) {
-          return json({ error: HISTORY_MESSAGE }, 409)
+          return json({ error: ACTIVE_BOOKING_MESSAGE }, 409)
         }
       }
     } else if (profile?.role === 'detailer') {
@@ -75,7 +76,7 @@ Deno.serve(async (req) => {
         const { data: active } = await admin
           .from('bookings').select('id').eq('detailer_id', dp.id).in('status', ACTIVE_STATUSES).limit(1)
         if (active?.length) {
-          return json({ error: 'You have an active or disputed booking. Resolve it before deleting your account.' }, 409)
+          return json({ error: ACTIVE_BOOKING_MESSAGE }, 409)
         }
         // Paid but not yet transferred to the detailer's Stripe balance —
         // deleting now would orphan that payout (see release-payouts).
@@ -89,12 +90,25 @@ Deno.serve(async (req) => {
         if (pending?.length) {
           return json({ error: 'You have a payout still pending release. Wait for it to complete before deleting your account.' }, 409)
         }
-        const { data: anyBooking } = await admin
-          .from('bookings').select('id').eq('detailer_id', dp.id).limit(1)
-        if (anyBooking?.length) {
-          return json({ error: HISTORY_MESSAGE }, 409)
-        }
       }
+    }
+
+    // Only completed/cancelled bookings can be left at this point (active
+    // ones already returned above) — but those still block the delete at
+    // the Postgres level (bookings.customer_id/detailer_id and several
+    // tables past it are ON DELETE NO ACTION, not cascade). Same purge the
+    // admin path uses: archives everything about to be touched into
+    // admin_purge_archive first, then clears it. purged_by is null here to
+    // distinguish a self-service purge from an admin-initiated one.
+    const { error: purgeErr } = await admin.rpc('admin_purge_booking_history', {
+      p_user_id: user.id,
+      p_admin_id: null,
+    })
+    if (purgeErr) {
+      console.error('delete-own-account: purge failed:', purgeErr.message)
+      await captureException(purgeErr, 'delete-own-account:purge')
+      await notifyAdmins(admin, profile?.email ?? user.id, purgeErr.message)
+      return json({ error: purgeErr.message }, 500)
     }
 
     // Snapshot who/when/why BEFORE the delete — the row this reads from is
@@ -109,7 +123,10 @@ Deno.serve(async (req) => {
     })
 
     const { error: delErr } = await admin.auth.admin.deleteUser(user.id)
-    if (delErr) return json({ error: delErr.message }, 409)
+    if (delErr) {
+      await notifyAdmins(admin, profile?.email ?? user.id, delErr.message)
+      return json({ error: delErr.message }, 409)
+    }
 
     return json({ ok: true })
   } catch (e) {
