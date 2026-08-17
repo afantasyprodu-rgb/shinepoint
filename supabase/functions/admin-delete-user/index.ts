@@ -3,8 +3,10 @@
 // several tables one level further out — disputes, payouts, reviews,
 // strikes...) are ON DELETE NO ACTION, so any account with booking
 // history — even long-finished, cancelled bookings — blocks the cascade
-// outright. admin_purge_booking_history (migration 048) clears exactly
-// those blockers first: deletes the records that only make sense in the
+// outright. admin_purge_booking_history (migrations 048/049) clears
+// exactly those blockers first: archives everything it's about to
+// destroy into admin_purge_archive (JSON snapshot, tagged with which
+// admin and when), deletes the records that only make sense in the
 // context of this user's own bookings, and nulls out (never deletes)
 // references that belong to someone else. Self-service deletion
 // (delete-own-account) detects the same situation but stops there with a
@@ -45,8 +47,12 @@ Deno.serve(async (req) => {
     if (userId === user.id) return json({ error: "Can't delete your own account" }, 400)
 
     // Clears the booking-history blockers before the real delete — see
-    // migration 048 for exactly what this does and doesn't touch.
-    const { error: purgeErr } = await admin.rpc('admin_purge_booking_history', { p_user_id: userId })
+    // migrations 048/049 for exactly what this does and doesn't touch.
+    // p_admin_id tags the archive rows with who authorized the purge.
+    const { error: purgeErr } = await admin.rpc('admin_purge_booking_history', {
+      p_user_id: userId,
+      p_admin_id: user.id,
+    })
     if (purgeErr) {
       console.error('admin-delete-user: purge failed:', purgeErr.message)
       await captureException(purgeErr, 'admin-delete-user:purge')
