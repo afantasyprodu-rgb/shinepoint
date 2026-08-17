@@ -50,7 +50,9 @@ export async function autocomplete(input, sessionToken, signal) {
       locationBias: {
         circle: {
           center: { latitude: 34.05, longitude: -118.25 }, // downtown LA
-          radius: 160000, // ~100mi, covers Santa Barbara -> San Diego
+          radius: 50000, // Google's hard cap (max 50,000m). A bias, not a
+          // restriction, so Santa Barbara/San Diego addresses still match
+          // fine — this just weights results toward LA when there's a tie.
         },
       },
     }),
