@@ -23,7 +23,22 @@ export const supabase = createClient(
 // to do that instead of the same four lines in each wrapper.
 export async function invokeFn(name, body = {}) {
   const { data, error } = await supabase.functions.invoke(name, { body })
-  if (error) throw new Error(error.message)
+  if (error) {
+    // supabase-js's error.message is a generic "Edge Function returned a
+    // non-2xx status code" for ANY non-2xx response — the actual message
+    // our functions return (e.g. "You have an active or disputed booking...")
+    // lives in the raw response body instead, reachable via error.context.
+    let message = error.message
+    if (error.context?.json) {
+      try {
+        const body = await error.context.json()
+        if (body?.error) message = body.error
+      } catch {
+        // Not JSON (or already consumed) — fall back to the generic message.
+      }
+    }
+    throw new Error(message)
+  }
   if (data?.error) throw new Error(data.error)
   return data
 }
