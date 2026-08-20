@@ -9,6 +9,7 @@ import CustomerSignup from './pages/CustomerSignup'
 import DetailerSignup from './pages/DetailerSignup'
 import CheckEmail from './pages/CheckEmail'
 import AuthCallback from './pages/AuthCallback'
+import ResetPassword from './pages/ResetPassword'
 import DetailerProfile from './pages/DetailerProfile'
 import BookingWizard from './pages/BookingWizard'
 import Bookings from './pages/Bookings'
@@ -51,6 +52,7 @@ export default function App() {
         <Route path="/signup/detailer" element={<DetailerSignup />} />
         <Route path="/check-email" element={<CheckEmail />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/privacy" element={<Privacy />} />
         {/* Post-signup profile setup — any signed-in role, no role gate. */}

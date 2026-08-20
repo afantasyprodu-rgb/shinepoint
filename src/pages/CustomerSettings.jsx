@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import AppShell from '../components/AppShell'
 import AccountDangerZone from '../components/AccountDangerZone'
+import ChangePassword from '../components/ChangePassword'
 import AvatarUpload from '../components/AvatarUpload'
 import CarPhotoUpload from '../components/CarPhotoUpload'
 import Combobox from '../components/ui/Combobox'
@@ -396,6 +397,8 @@ export default function CustomerSettings() {
             </AnimatePresence>
           </div>
         </form>
+
+        <ChangePassword />
 
         <div className="mt-6">
           <AccountDangerZone />

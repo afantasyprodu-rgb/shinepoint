@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import AppShell from '../components/AppShell'
 import AccountDangerZone from '../components/AccountDangerZone'
+import ChangePassword from '../components/ChangePassword'
 import AvatarUpload from '../components/AvatarUpload'
 import { GalleryGrid } from './ProfileSetup'
 import { AnimatedPage } from '../components/ui/Motion'
@@ -222,6 +223,8 @@ export default function DetailerProfileEditor() {
             </AnimatePresence>
           </div>
         </form>
+
+        <ChangePassword />
 
         <div className="mt-6">
           <AccountDangerZone />

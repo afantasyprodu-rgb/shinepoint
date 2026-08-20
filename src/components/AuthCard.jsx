@@ -40,7 +40,8 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
 
   const [mode, setMode] = useState(defaultMode)  // 'signup' | 'login'
   const [modeDir, setModeDir] = useState(1)       // 1 = forward (signup), -1 = back (login)
-  const [view, setView] = useState('methods')     // 'methods' | 'email' | 'emailOtp'
+  const [view, setView] = useState('methods')     // 'methods' | 'email' | 'emailOtp' | 'forgotPassword'
+  const [resetSent, setResetSent] = useState(false)
 
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
@@ -159,6 +160,25 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
       return
     }
     await finishLogin(data.user.id)
+  }
+
+  async function handleForgotPassword(e) {
+    e.preventDefault()
+    setError('')
+    setBusy(true)
+    const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+      captchaToken,
+    })
+    setBusy(false)
+    resetCaptcha()
+    // Same message on success or failure — otherwise this becomes an email
+    // enumeration oracle ("no account with that email" reveals who's signed
+    // up). Supabase itself no-ops silently for unknown emails; a real
+    // delivery failure (bad SMTP config, rate limit) is rare enough that
+    // showing the generic "check your email" instead of the real error is
+    // an acceptable tradeoff for not leaking account existence.
+    setResetSent(true)
   }
 
   async function handleGoogle() {
@@ -297,6 +317,13 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
                     placeholder="••••••••"
                     className="auth-input" />
                 </div>
+                <button
+                  type="button"
+                  onClick={() => { setView('forgotPassword'); setError(''); setResetSent(false) }}
+                  className="mt-1.5 block w-full text-right text-xs font-medium text-[var(--auth-text-soft)] hover:text-[var(--auth-text)] transition-colors"
+                >
+                  {t('forgotPassword')}
+                </button>
               </Field>
             )}
 
@@ -373,6 +400,61 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
           </Field>
 
           {error && <p role="alert" className="auth-error mt-3 text-center">{error}</p>}
+        </motion.div>
+      )}
+
+      {/* ── Forgot password ──────────────────────────────── */}
+      {view === 'forgotPassword' && (
+        <motion.div
+          key="forgotPassword"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0, y: 8 }}
+          transition={{ duration: 0.16, ease: EASE }}
+        >
+          <BackButton onClick={() => { setView('email'); setError(''); setResetSent(false) }} />
+
+          {resetSent ? (
+            <Field index={0}>
+              <div className="mb-5 flex justify-center">
+                <div className="otp-lock-badge flex h-14 w-14 items-center justify-center rounded-full">
+                  <LockIcon className="h-6 w-6" />
+                </div>
+              </div>
+              <p className="text-center text-sm text-[var(--auth-text-soft)]">
+                {t('resetSent')} <span className="font-semibold text-[var(--auth-text)]">{email}</span>
+              </p>
+            </Field>
+          ) : (
+            <form onSubmit={handleForgotPassword} className="flex flex-col gap-3">
+              <Field index={0}>
+                <h2 className="font-display text-lg font-bold text-[var(--auth-text)] mb-1">{t('forgotPasswordTitle')}</h2>
+                <p className="text-sm text-[var(--auth-text-soft)] mb-3">{t('forgotPasswordBody')}</p>
+                <div className="auth-field">
+                  <label className="auth-label">{t('emailLabel')}</label>
+                  <input type="email" autoComplete="email" required value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder={t('emailPlaceholder')} className="auth-input" autoFocus />
+                </div>
+              </Field>
+
+              {error && <p role="alert" className="auth-error">{error}</p>}
+
+              {isTurnstileConfigured && (
+                <Field index={1}>
+                  <Turnstile ref={captchaRef} onToken={setCaptchaToken} />
+                </Field>
+              )}
+
+              <Field index={2}>
+                <button type="submit" disabled={busy || captchaPending} className="auth-btn-primary w-full">
+                  {busy
+                    ? <span className="inline-flex items-center gap-2"><BtnSpinner />{t('sending')}</span>
+                    : t('sendResetLink')}
+                </button>
+              </Field>
+            </form>
+          )}
         </motion.div>
       )}
 
