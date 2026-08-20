@@ -8,6 +8,7 @@ import { createClient } from 'npm:@supabase/supabase-js@^2'
 import { corsHeaders, json } from '../_shared/cors.ts'
 import { captureException } from '../_shared/sentry.ts'
 import { withinRateLimit, tooManyRequests } from '../_shared/rateLimit.ts'
+import { isUuid, isInRange, isFiniteNumber } from '../_shared/validate.ts'
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
@@ -25,9 +26,12 @@ Deno.serve(async (req) => {
     } = await userClient.auth.getUser()
     if (userErr || !user) return json({ error: 'Not authenticated' }, 401)
 
-    const { bookingId, lat, lng, accuracy } = await req.json()
-    if (!bookingId || typeof lat !== 'number' || typeof lng !== 'number') {
-      return json({ error: 'bookingId, lat, lng required' }, 400)
+    const { bookingId, lat, lng, accuracy } = await req.json().catch(() => ({}))
+    // `typeof lat === 'number'` alone lets NaN and ±Infinity through to a
+    // numeric column, and nothing downstream range-checks a coordinate.
+    if (!isUuid(bookingId)) return json({ error: 'bookingId required' }, 400)
+    if (!isInRange(lat, -90, 90) || !isInRange(lng, -180, 180)) {
+      return json({ error: 'lat/lng out of range' }, 400)
     }
 
     const admin = createClient(
@@ -60,7 +64,7 @@ Deno.serve(async (req) => {
       detailer_id: booking.detailer_id,
       lat,
       lng,
-      accuracy_m: typeof accuracy === 'number' ? accuracy : null,
+      accuracy_m: isFiniteNumber(accuracy) ? accuracy : null,
     })
     if (insErr) return json({ error: insErr.message }, 500)
 

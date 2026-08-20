@@ -10,6 +10,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@^2'
 import { corsHeaders, json } from '../_shared/cors.ts'
 import { captureException } from '../_shared/sentry.ts'
+import { isUuid, isFiniteNumber } from '../_shared/validate.ts'
 import { withinRateLimit, tooManyRequests } from '../_shared/rateLimit.ts'
 import { sendEmail } from '../_shared/resend.ts'
 import { sendSms } from '../_shared/twilio.ts'
@@ -32,8 +33,8 @@ Deno.serve(async (req) => {
     } = await userClient.auth.getUser()
     if (userErr || !user) return json({ error: 'Not authenticated' }, 401)
 
-    const { bookingId, etaMinutes } = await req.json()
-    if (!bookingId) return json({ error: 'bookingId required' }, 400)
+    const { bookingId, etaMinutes } = await req.json().catch(() => ({}))
+    if (!isUuid(bookingId)) return json({ error: 'bookingId required' }, 400)
 
     const admin = createClient(
       Deno.env.get('SUPABASE_URL')!,
@@ -66,7 +67,7 @@ Deno.serve(async (req) => {
       customerName: customer.full_name ?? 'there',
       detailerName: detailer?.full_name ?? 'Your detailer',
       bookingId: booking.id,
-      etaMinutes: typeof etaMinutes === 'number' ? etaMinutes : undefined,
+      etaMinutes: isFiniteNumber(etaMinutes) ? etaMinutes : undefined,
       bookingUrl,
     })
 
@@ -88,7 +89,7 @@ Deno.serve(async (req) => {
           body: enRouteSms({
             customerName: customer.full_name ?? 'there',
             detailerName: detailer?.full_name ?? 'Your detailer',
-            etaMinutes: typeof etaMinutes === 'number' ? etaMinutes : undefined,
+            etaMinutes: isFiniteNumber(etaMinutes) ? etaMinutes : undefined,
             trackingUrl: bookingUrl,
           }),
         })

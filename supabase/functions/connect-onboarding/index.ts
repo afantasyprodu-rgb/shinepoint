@@ -11,6 +11,7 @@ import Stripe from 'npm:stripe@^18'
 import { createClient } from 'npm:@supabase/supabase-js@^2'
 import { corsHeaders, json } from '../_shared/cors.ts'
 import { captureException } from '../_shared/sentry.ts'
+import { safeOrigin } from '../_shared/validate.ts'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
   apiVersion: '2026-05-27.dahlia',
@@ -79,7 +80,9 @@ Deno.serve(async (req) => {
     }
 
     const { origin } = await req.json().catch(() => ({ origin: '' }))
-    const base = origin || req.headers.get('origin') || ''
+    // Never interpolate a caller-supplied origin straight into Stripe's
+    // return_url — see safeOrigin() for the open-redirect this closes.
+    const base = safeOrigin(origin || req.headers.get('origin'))
 
     const link = await stripe.accountLinks.create({
       account: accountId,

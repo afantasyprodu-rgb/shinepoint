@@ -12,6 +12,7 @@ import Stripe from 'npm:stripe@^18'
 import { createClient } from 'npm:@supabase/supabase-js@^2'
 import { corsHeaders, json } from '../_shared/cors.ts'
 import { captureException } from '../_shared/sentry.ts'
+import { isUuid } from '../_shared/validate.ts'
 import { withinRateLimit, tooManyRequests } from '../_shared/rateLimit.ts'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
@@ -35,8 +36,8 @@ Deno.serve(async (req) => {
     } = await userClient.auth.getUser()
     if (userErr || !user) return json({ error: 'Not authenticated' }, 401)
 
-    const { bookingId } = await req.json()
-    if (!bookingId) return json({ error: 'bookingId required' }, 400)
+    const { bookingId } = await req.json().catch(() => ({}))
+    if (!isUuid(bookingId)) return json({ error: 'bookingId required' }, 400)
 
     const admin = createClient(
       Deno.env.get('SUPABASE_URL')!,

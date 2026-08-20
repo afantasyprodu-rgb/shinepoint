@@ -16,6 +16,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@^2'
 import { corsHeaders, json } from '../_shared/cors.ts'
 import { captureException } from '../_shared/sentry.ts'
+import { isUuid } from '../_shared/validate.ts'
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
@@ -42,8 +43,8 @@ Deno.serve(async (req) => {
       .from('users').select('role').eq('id', user.id).single()
     if (callerRow?.role !== 'admin') return json({ error: 'admin only' }, 403)
 
-    const { userId } = await req.json()
-    if (!userId) return json({ error: 'userId required' }, 400)
+    const { userId } = await req.json().catch(() => ({}))
+    if (!isUuid(userId)) return json({ error: 'userId required' }, 400)
     if (userId === user.id) return json({ error: "Can't delete your own account" }, 400)
 
     // Clears the booking-history blockers before the real delete — see

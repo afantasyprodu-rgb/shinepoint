@@ -17,6 +17,7 @@ import Stripe from 'npm:stripe@^18'
 import { createClient } from 'npm:@supabase/supabase-js@^2'
 import { corsHeaders, json } from '../_shared/cors.ts'
 import { captureException } from '../_shared/sentry.ts'
+import { isUuid, isFiniteNumber } from '../_shared/validate.ts'
 import { withinRateLimit, tooManyRequests } from '../_shared/rateLimit.ts'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
@@ -39,7 +40,10 @@ Deno.serve(async (req) => {
     if (userErr || !user) return json({ error: 'Not authenticated' }, 401)
 
     const { bookingId, amount } = await req.json().catch(() => ({}))
-    if (typeof amount !== 'number' || !(amount > 0)) {
+    if (!isUuid(bookingId)) return json({ error: 'bookingId required' }, 400)
+    // isFiniteNumber, not typeof — Infinity passes `> 0` and would reach
+    // Stripe as an amount.
+    if (!isFiniteNumber(amount) || !(amount > 0)) {
       return json({ error: 'Enter a tip greater than $0.' }, 400)
     }
     if (amount > MAX_TIP) {

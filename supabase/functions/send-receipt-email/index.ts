@@ -8,6 +8,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@^2'
 import { corsHeaders, json } from '../_shared/cors.ts'
 import { captureException } from '../_shared/sentry.ts'
+import { isUuid } from '../_shared/validate.ts'
 import { withinRateLimit, tooManyRequests } from '../_shared/rateLimit.ts'
 import { sendEmail } from '../_shared/resend.ts'
 import { receiptEmail } from '../_shared/email-templates.ts'
@@ -28,8 +29,8 @@ Deno.serve(async (req) => {
     } = await userClient.auth.getUser()
     if (userErr || !user) return json({ error: 'Not authenticated' }, 401)
 
-    const { bookingId } = await req.json()
-    if (!bookingId) return json({ error: 'bookingId required' }, 400)
+    const { bookingId } = await req.json().catch(() => ({}))
+    if (!isUuid(bookingId)) return json({ error: 'bookingId required' }, 400)
 
     const admin = createClient(
       Deno.env.get('SUPABASE_URL')!,

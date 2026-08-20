@@ -10,6 +10,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@^2'
 import { corsHeaders, json } from '../_shared/cors.ts'
 import { captureException } from '../_shared/sentry.ts'
+import { cleanText } from '../_shared/validate.ts'
 
 // Anything short of complete/cancelled still has money or a dispute in
 // flight — deleting the account out from under that would strand the
@@ -49,7 +50,10 @@ Deno.serve(async (req) => {
     } = await userClient.auth.getUser()
     if (userErr || !user) return json({ error: 'Not authenticated' }, 401)
 
-    const { reason } = await req.json().catch(() => ({ reason: null }))
+    // Free text straight into account_deletion_feedback — capped so a
+    // scripted caller can't push a multi-megabyte row.
+    const { reason: rawReason } = await req.json().catch(() => ({ reason: null }))
+    const reason = cleanText(rawReason, 1000)
 
     const admin = createClient(
       Deno.env.get('SUPABASE_URL')!,

@@ -19,6 +19,10 @@ import Stripe from 'npm:stripe@^18'
 import { createClient } from 'npm:@supabase/supabase-js@^2'
 import { corsHeaders, json } from '../_shared/cors.ts'
 import { captureException } from '../_shared/sentry.ts'
+import { isUuid, isOneOf, isFiniteNumber, cleanText } from '../_shared/validate.ts'
+
+// Mirrors the resolution CHECK constraint on public.disputes (migration 002).
+const RESOLUTIONS = ['customer_wins', 'detailer_wins', 'split', 'dismissed'] as const
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
   apiVersion: '2026-05-27.dahlia',
@@ -44,7 +48,19 @@ Deno.serve(async (req) => {
     if (userErr || !user) return json({ error: 'Not authenticated' }, 401)
 
     const { disputeId, resolution, refundAmount, resolutionNotes } = await req.json().catch(() => ({}))
-    if (!disputeId || !resolution) return json({ error: 'Missing disputeId or resolution' }, 400)
+    // The DB has a CHECK constraint on resolution, but reaching it means a
+    // 500 from the RPC rather than something the admin UI can show. Same
+    // list as migration 002's constraint.
+    if (!isUuid(disputeId)) return json({ error: 'Missing or malformed disputeId' }, 400)
+    if (!isOneOf(resolution, RESOLUTIONS)) {
+      return json({ error: `resolution must be one of: ${RESOLUTIONS.join(', ')}` }, 400)
+    }
+    // Number(undefined) is NaN and Number('') is 0 — neither is a refund,
+    // but only one of them is obviously not one. Reject anything that isn't
+    // a real, non-negative number outright.
+    if (refundAmount != null && !(isFiniteNumber(refundAmount) && refundAmount >= 0)) {
+      return json({ error: 'refundAmount must be a non-negative number' }, 400)
+    }
 
     const admin = createClient(
       Deno.env.get('SUPABASE_URL')!,
@@ -96,7 +112,7 @@ Deno.serve(async (req) => {
       p_resolution: resolution,
       p_refund_amount: amount > 0 ? amount : null,
       p_stripe_refund_id: refundId,
-      p_resolution_notes: resolutionNotes || null,
+      p_resolution_notes: cleanText(resolutionNotes, 2000),
     })
     if (rpcErr) {
       // The refund already went out; surface loudly rather than silently
