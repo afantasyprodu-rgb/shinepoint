@@ -1237,3 +1237,65 @@ export async function fetchAccountDeletionFeedback() {
 // server-side — this call can't be trusted to enforce that on its own.
 export const postLocation = (bookingId, lat, lng, accuracy) =>
   invokeFn('post-location', { bookingId, lat, lng, accuracy })
+
+// ── Feedback board (052) ─────────────────────────────────────────────────
+// Public within the app: every signed-in customer/detailer reads the same
+// board and can vote on any item, not just their own role's.
+
+function normalizeFeedback(row, currentUserId) {
+  const votes = row.feedback_votes ?? []
+  return {
+    id: row.id,
+    userId: row.user_id,
+    authorName: row.users?.full_name ?? 'Someone',
+    authorRole: row.author_role,
+    title: row.title,
+    body: row.body,
+    status: row.status,
+    createdAt: row.created_at,
+    voteCount: votes.length,
+    hasVoted: votes.some((v) => v.user_id === currentUserId),
+  }
+}
+
+export async function fetchFeedback(currentUserId) {
+  const { data, error } = await supabase
+    .from('feedback')
+    .select('id, user_id, author_role, title, body, status, created_at, users(full_name), feedback_votes(user_id)')
+    .order('created_at', { ascending: false })
+  if (error) { console.error('fetchFeedback:', error.message); return [] }
+  return data.map((row) => normalizeFeedback(row, currentUserId))
+}
+
+export async function createFeedback(userId, authorRole, title, body) {
+  const { error } = await supabase
+    .from('feedback')
+    .insert({ user_id: userId, author_role: authorRole, title: title.trim(), body: body.trim() })
+  if (error) throw new Error(error.message)
+}
+
+// Toggling is two round trips (check, then insert/delete) rather than a
+// single upsert — the primary key is (feedback_id, user_id) with no natural
+// "flip" operation in Postgres without a stored proc, and this table is far
+// too low-traffic to justify one.
+export async function toggleFeedbackVote(feedbackId, userId, currentlyVoted) {
+  if (currentlyVoted) {
+    const { error } = await supabase
+      .from('feedback_votes')
+      .delete()
+      .eq('feedback_id', feedbackId)
+      .eq('user_id', userId)
+    if (error) throw new Error(error.message)
+  } else {
+    const { error } = await supabase
+      .from('feedback_votes')
+      .insert({ feedback_id: feedbackId, user_id: userId })
+    if (error) throw new Error(error.message)
+  }
+}
+
+// Admin-only status change (RLS enforces it server-side regardless).
+export async function adminSetFeedbackStatus(feedbackId, status) {
+  const { error } = await supabase.from('feedback').update({ status }).eq('id', feedbackId)
+  if (error) throw new Error(error.message)
+}

@@ -1,12 +1,14 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import AdminShell from '../../components/AdminShell'
 import Modal from '../../components/ui/Modal'
 import { AnimatedPage } from '../../components/ui/Motion'
 import { StatusPill } from '../../components/ui/bits'
 import EvidencePhotos from '../../components/EvidencePhotos'
-import { AlertTriangleIcon, CheckIcon, XIcon, CameraIcon, ClockIcon, ShieldCheckIcon } from '../../components/icons'
+import { AlertTriangleIcon, CheckIcon, XIcon, CameraIcon, ClockIcon, ShieldCheckIcon, LightbulbIcon } from '../../components/icons'
+import { useAuth } from '../../context/AuthContext'
 import { useStore } from '../../context/StoreContext'
+import { fetchFeedback, adminSetFeedbackStatus } from '../../lib/db'
 import { useT } from '../../i18n/useT'
 
 const TAB_KEYS = [
@@ -15,7 +17,102 @@ const TAB_KEYS = [
   { key: 'Overrides', labelKey: 'tabOverrides' },
   { key: 'Payouts', labelKey: 'tabPayouts' },
   { key: 'Flagged', labelKey: 'tabFlagged' },
+  { key: 'Feedback', labelKey: 'tabFeedback' },
 ]
+
+const FEEDBACK_STATUSES = ['open', 'planned', 'in_progress', 'done', 'declined']
+const FEEDBACK_STATUS_STYLES = {
+  open: 'bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-300',
+  planned: 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300',
+  in_progress: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',
+  done: 'bg-cta-700/10 text-cta-700 dark:text-cta-400',
+  declined: 'bg-red-100 text-red-600 dark:bg-red-500/10 dark:text-red-400',
+}
+
+function FeedbackTab() {
+  const { profile, isDemo } = useAuth()
+  const t = useT('adminOps')
+  const [items, setItems] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (isDemo) { setLoading(false); return }
+    let cancelled = false
+    fetchFeedback(profile?.id).then((rows) => {
+      if (!cancelled) { setItems(rows); setLoading(false) }
+    })
+    return () => { cancelled = true }
+  }, [isDemo, profile?.id])
+
+  async function setStatus(id, status) {
+    setItems((its) => its.map((it) => (it.id === id ? { ...it, status } : it)))
+    try {
+      await adminSetFeedbackStatus(id, status)
+    } catch (e) {
+      console.error('adminSetFeedbackStatus:', e.message)
+    }
+  }
+
+  if (isDemo) {
+    return (
+      <div className="card flex flex-col items-center py-10 text-center">
+        <p className="text-sm text-slate-500 dark:text-slate-400">{t('feedbackDemoUnavailable')}</p>
+      </div>
+    )
+  }
+  if (loading) {
+    return (
+      <div className="card flex items-center justify-center py-10">
+        <div className="h-6 w-6 animate-spin rounded-full border-4 border-brand-600 border-t-transparent" />
+      </div>
+    )
+  }
+  if (items.length === 0) {
+    return (
+      <div className="card flex flex-col items-center py-10 text-center">
+        <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-500/10 text-brand-600 dark:text-brand-300">
+          <LightbulbIcon className="h-6 w-6" />
+        </span>
+        <p className="mt-3 font-semibold text-slate-900 dark:text-slate-100">{t('feedbackEmpty')}</p>
+      </div>
+    )
+  }
+
+  return (
+    <>
+      {items.map((item) => (
+        <div key={item.id} className="card !p-5">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="font-semibold text-slate-900 dark:text-slate-100">{item.title}</p>
+              <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
+                {item.authorName} · {item.authorRole} · {t('feedbackVotes', { count: item.voteCount })}
+              </p>
+            </div>
+            <span className={`chip ${FEEDBACK_STATUS_STYLES[item.status]}`}>{item.status.replace('_', ' ')}</span>
+          </div>
+          {item.body && <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">{item.body}</p>}
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {FEEDBACK_STATUSES.map((s) => (
+              <button
+                key={s}
+                onClick={() => setStatus(item.id, s)}
+                disabled={item.status === s}
+                className={`rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
+                  item.status === s
+                    ? 'cursor-default bg-brand-600 text-white'
+                    : 'cursor-pointer bg-brand-50 text-slate-600 hover:bg-brand-100 dark:bg-white/5 dark:text-slate-400 dark:hover:bg-white/10'
+                }`}
+              >
+                {s.replace('_', ' ')}
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+    </>
+  )
+}
 
 // Each resolution spells out exactly what happens to the money.
 // The refund each outcome implies. These used to be display-only strings —
@@ -466,6 +563,8 @@ export default function AdminOps() {
                 </AnimatePresence>
               </>
             )}
+
+            {tab === 'Feedback' && <FeedbackTab />}
 
             {tab === 'Flagged' && (
               <>

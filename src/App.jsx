@@ -34,6 +34,7 @@ import ProfileSetup from './pages/ProfileSetup'
 import MfaSetup from './pages/MfaSetup'
 import MfaChallenge from './pages/MfaChallenge'
 import CustomerOnboarding from './pages/CustomerOnboarding'
+import Feedback from './pages/Feedback'
 import { Terms, Privacy } from './pages/Legal'
 
 const guard = (role, el) => <ProtectedRoute role={role}>{el}</ProtectedRoute>
@@ -83,6 +84,8 @@ export default function App() {
         <Route path="/mfa-challenge" element={<ProtectedRoute><MfaChallenge /></ProtectedRoute>} />
         {/* Customer post-signup onboarding (vehicle + address). */}
         <Route path="/onboarding" element={<ProtectedRoute role="customer"><CustomerOnboarding /></ProtectedRoute>} />
+        {/* Feedback board — shared by both roles, not admin. */}
+        <Route path="/feedback" element={<ProtectedRoute role={['customer', 'detailer']}><Feedback /></ProtectedRoute>} />
 
         {/* Customer */}
         <Route path="/home" element={guard('customer', <CustomerHome />)} />

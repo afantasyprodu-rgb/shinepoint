@@ -40,8 +40,10 @@ export default function ProtectedRoute({ role, children }) {
     )
   }
 
-  // Logged in but wrong area — send them to their own home.
-  if (role && profile.role !== role) {
+  // Logged in but wrong area — send them to their own home. `role` may be a
+  // single role or an array (e.g. a page shared by customers and detailers).
+  const allowed = Array.isArray(role) ? role.includes(profile.role) : profile.role === role
+  if (role && !allowed) {
     return <Navigate to={homePathForRole(profile.role)} replace />
   }
 
