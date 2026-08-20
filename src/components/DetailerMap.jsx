@@ -93,15 +93,14 @@ const userIcon = L.divIcon({
   iconAnchor: [11, 11],
 })
 
-// Fuller info once the pin is centered and tapped — insurance/rewards
-// badges, travel radius, jobs done, and every service with its price
-// (not just "from $X") since there's now room for it.
+// Fuller info once the pin is centered and tapped — travel radius, jobs
+// done, and every service with its price (not just "from $X") since
+// there's now room for it. Deliberately NOT insurance/rewards status — that
+// would let someone scanning the public map single out detailers who
+// appear uninsured or reward-less as easier targets. That's still shown
+// on the full profile (DetailerProfile.jsx), reached only by tapping in.
 function popupHtml(d) {
   const color = PIN_COLORS[d.status] ?? PIN_COLORS.offline
-  const badges = [
-    d.insurance !== 'none' ? '<span class="nx-pop-chip">🛡️ Insured</span>' : '',
-    d.acceptsRewards ? '<span class="nx-pop-chip">🎁 Rewards</span>' : '',
-  ].join('')
   const services = d.services
     .map((s) => `<li><span>${s.name}</span><span>$${s.price}</span></li>`)
     .join('')
@@ -110,7 +109,6 @@ function popupHtml(d) {
       <p class="nx-pop-name">${d.name}</p>
       <p class="nx-pop-meta">${d.isRated === false ? 'New' : `★ ${d.rating.toFixed(1)} (${d.reviews})`} · ${d.area} · ${d.travelMiles} mi radius</p>
       <p class="nx-pop-status" style="color:${color}">${statusLine(d)} · ${d.completedJobs} jobs done</p>
-      ${badges ? `<div class="nx-pop-badges">${badges}</div>` : ''}
       <ul class="nx-pop-services">${services}</ul>
       <button type="button" data-view class="nx-pop-btn">View profile</button>
     </div>`

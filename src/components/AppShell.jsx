@@ -5,7 +5,7 @@ import Logo from './Logo'
 import ThemeToggle from './ThemeToggle'
 import LanguageToggle from './LanguageToggle'
 import ToolsSidebar from './ToolsSidebar'
-import { BellIcon, ClipboardCheckIcon, TrendingUpIcon, UsersIcon, PieChartIcon, MapPinIcon, MoreIcon } from './icons'
+import { BellIcon, ClipboardCheckIcon, TrendingUpIcon, UsersIcon, PieChartIcon, MapPinIcon, MoreIcon, ChevronDownIcon } from './icons'
 import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
 import BottomTabBar from './ui/BottomTabBar'
@@ -172,12 +172,18 @@ const NAVS = {
   ],
 }
 
-export default function AppShell({ role, children }) {
+// collapsibleBottomNav: opt-in per screen (currently just the customer map,
+// CustomerHome.jsx) — the map wants the full screen on open rather than
+// permanently losing its bottom strip to the tab bar, so the bar starts
+// tucked away and a small handle button on the map brings it back on tap.
+// Every other screen keeps the bar always-visible, unchanged.
+export default function AppShell({ role, children, collapsibleBottomNav = false }) {
   const { signOut, isDemo, profile } = useAuth()
   const navigate = useNavigate()
   const t = useT('nav')
   const nav = (NAVS[role] ?? []).map((item) => ({ ...item, label: t(item.labelKey) }))
   const [toolsOpen, setToolsOpen] = useState(false)
+  const [navHidden, setNavHidden] = useState(collapsibleBottomNav)
 
   // Land on the public welcome page, not the /login redirect ProtectedRoute fires.
   async function handleSignOut() {
@@ -248,7 +254,26 @@ export default function AppShell({ role, children }) {
       {/* pb-16 plus the same safe-area inset the bar itself now reserves,
           so content never sits underneath the taller notch-device bar. */}
       <div className="flex-1 pb-[calc(4rem+env(safe-area-inset-bottom))] sm:pb-0">{children}</div>
-      <BottomTabBar items={nav} layoutId={`${role}-tab-bubble`} />
+      <BottomTabBar items={nav} layoutId={`${role}-tab-bubble`} hidden={collapsibleBottomNav && navHidden} />
+      {collapsibleBottomNav && (
+        <button
+          type="button"
+          onClick={() => setNavHidden((h) => !h)}
+          aria-label={navHidden ? t('showNavBar') : t('hideNavBar')}
+          aria-expanded={!navHidden}
+          // Slides with the bar it controls: sits just above the bar when
+          // it's out, and drops down to hover just above the safe-area edge
+          // once the bar's tucked away — always reachable, in the same spot
+          // the bar's top edge just vacated.
+          className={`nx-neu press-spring fixed left-1/2 z-30 flex h-7 w-14 -translate-x-1/2 items-center justify-center rounded-full text-slate-500 transition-[bottom] duration-300 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-slate-300 sm:hidden ${
+            navHidden
+              ? 'bottom-[max(0.5rem,env(safe-area-inset-bottom))]'
+              : 'bottom-[calc(4.5rem+env(safe-area-inset-bottom))]'
+          }`}
+        >
+          <ChevronDownIcon className={`h-4 w-4 transition-transform duration-300 ${navHidden ? '' : 'rotate-180'}`} />
+        </button>
+      )}
       {role === 'detailer' && (
         <>
           {/* Fixed (not inside <header>, which scrolls away with the page)

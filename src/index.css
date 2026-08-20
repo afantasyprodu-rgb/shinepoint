@@ -1350,21 +1350,6 @@
   font-size: 0.8rem;
   color: #64748b;
 }
-.nx-pop-badges {
-  margin-top: 0.4rem;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
-}
-.nx-pop-chip {
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--color-brand-600) 12%, transparent);
-  padding: 0.15rem 0.5rem;
-  font-size: 0.68rem;
-  font-weight: 600;
-  color: var(--color-brand-700);
-  white-space: nowrap;
-}
 .nx-pop-services {
   margin-top: 0.55rem;
   border-top: 1px solid rgba(15, 23, 42, 0.08);
@@ -1408,7 +1393,6 @@
 .dark .nx-pop-name { color: #f1f5f9; }
 .dark .nx-pop-meta { color: #cbd5e1; }
 .dark .nx-pop-price { color: #94a3b8; }
-.dark .nx-pop-chip { background: color-mix(in srgb, var(--color-brand-400) 20%, transparent); color: var(--color-brand-200); }
 .dark .nx-pop-services { border-top-color: rgba(255, 255, 255, 0.1); }
 .dark .nx-pop-services li { color: #cbd5e1; }
 .dark .nx-pop-services li span:last-child { color: #f1f5f9; }

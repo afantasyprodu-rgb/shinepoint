@@ -210,6 +210,8 @@ export const STRINGS = {
       exitDemo: 'Exit demo',
       signOut: 'Sign out',
       demoAs: 'Demo · {name}',
+      showNavBar: 'Show navigation bar',
+      hideNavBar: 'Hide navigation bar',
     },
     bookingDetail: {
       notFound: 'Booking not found.',
@@ -1517,6 +1519,8 @@ export const STRINGS = {
       exitDemo: 'Salir de la demo',
       signOut: 'Cerrar sesión',
       demoAs: 'Demo · {name}',
+      showNavBar: 'Mostrar barra de navegación',
+      hideNavBar: 'Ocultar barra de navegación',
     },
     bookingDetail: {
       notFound: 'Reserva no encontrada.',

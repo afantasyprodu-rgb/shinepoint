@@ -44,7 +44,7 @@ export default function CustomerHome() {
   }
 
   return (
-    <AppShell role="customer">
+    <AppShell role="customer" collapsibleBottomNav>
       {/* 100dvh, not 100vh — mobile Safari sizes 100vh against the LARGEST
           possible viewport (address bar collapsed), so on first paint (bar
           still showing) this container rendered taller than the visible

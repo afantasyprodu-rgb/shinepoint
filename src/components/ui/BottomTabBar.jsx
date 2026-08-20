@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'motion/react'
 // that pops up through the notch (layoutId makes it slide instead of
 // popping in fresh). Active state is derived from the router's location, not
 // a click listener, so back/forward and deep links stay correct.
-export default function BottomTabBar({ items, layoutId }) {
+export default function BottomTabBar({ items, layoutId, hidden = false }) {
   const location = useLocation()
   const activeIndex = Math.max(
     0,
@@ -21,8 +21,14 @@ export default function BottomTabBar({ items, layoutId }) {
     // CLAUDE.md's Capacitor + PWA target) renders this bar flush against the
     // iOS home-indicator gesture strip with no clearance otherwise. Adds
     // nothing on devices without a safe-area inset (env() falls back to 0).
+    // translate-y-full + transition: lets a screen (the map) collapse this
+    // bar out of the way via `hidden`, without unmounting it — same active-
+    // tab state and notch position are just waiting off-screen underneath.
     <div
-      className="fixed inset-x-0 bottom-0 z-20 pb-[env(safe-area-inset-bottom)] sm:hidden"
+      aria-hidden={hidden}
+      className={`fixed inset-x-0 bottom-0 z-20 pb-[env(safe-area-inset-bottom)] transition-transform duration-300 ease-out sm:hidden ${
+        hidden ? 'translate-y-full' : 'translate-y-0'
+      }`}
       style={{ '--tab-notch-x': notchX }}
     >
       {/* Visual layer only — the notch cutout lives here so it never masks
