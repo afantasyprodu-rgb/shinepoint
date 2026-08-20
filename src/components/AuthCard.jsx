@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react'
 import { supabase } from '../lib/supabase'
@@ -9,6 +9,7 @@ import Logo from './Logo'
 import LanguageToggle from './LanguageToggle'
 import OtpBoxInput from './OtpBoxInput'
 import HeroBubbles from './ui/HeroBubbles'
+import Turnstile, { isTurnstileConfigured } from './ui/Turnstile'
 import { GoogleIcon, MailIcon, ChevronLeftIcon, LockIcon } from './icons'
 import { useT } from '../i18n/useT'
 
@@ -49,6 +50,21 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
 
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+
+  // Turnstile token + a handle to reset the widget. The token is spent by
+  // any auth attempt, so every failure path below resets it — otherwise a
+  // user who mistypes their password gets a misleading captcha error on
+  // the retry instead of "invalid credentials".
+  const [captchaToken, setCaptchaToken] = useState(null)
+  const captchaRef = useRef(null)
+  function resetCaptcha() {
+    captchaRef.current?.reset()
+    setCaptchaToken(null)
+  }
+  // Only gate on the token when a site key is actually configured, so the
+  // form stays usable in dev / before the keys are set (same soft-skip
+  // contract as the widget itself).
+  const captchaPending = isTurnstileConfigured && !captchaToken
 
   // handleGoogle sets busy=true then redirects to Google — there's no
   // in-app moment to clear it on success since the page navigates away.
@@ -104,8 +120,12 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
       return
     }
     setBusy(true)
-    const { data, error: err } = await supabase.auth.signInWithPassword({ email, password })
-    if (err) { setBusy(false); setError(err.message); return }
+    const { data, error: err } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+      options: { captchaToken },
+    })
+    if (err) { setBusy(false); setError(err.message); resetCaptcha(); return }
     await finishLogin(data.user.id)
   }
 
@@ -116,10 +136,13 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
     const { error: err } = await supabase.auth.signInWithOtp({
       email,
       options: isSignup
-        ? { shouldCreateUser: true, data: { full_name: fullName, role } }
-        : { shouldCreateUser: false },
+        ? { shouldCreateUser: true, data: { full_name: fullName, role }, captchaToken }
+        : { shouldCreateUser: false, captchaToken },
     })
     setBusy(false)
+    // Spent either way — the code was sent, or it failed and the retry
+    // needs a fresh token.
+    resetCaptcha()
     if (err) { setError(err.message); return }
     setView('emailOtp')
   }
@@ -279,8 +302,14 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
 
             {error && <p role="alert" className="auth-error">{error}</p>}
 
+            {isTurnstileConfigured && (
+              <Field index={2}>
+                <Turnstile ref={captchaRef} onToken={setCaptchaToken} />
+              </Field>
+            )}
+
             <Field index={isSignup ? 2 : 2}>
-              <button type="submit" disabled={busy} className="auth-btn-primary w-full">
+              <button type="submit" disabled={busy || captchaPending} className="auth-btn-primary w-full">
                 {busy
                   ? <span className="inline-flex items-center gap-2"><BtnSpinner />{isSignup ? t('sending') : t('loggingIn')}</span>
                   : isSignup ? t('sendCode') : t('logInBtn')}
@@ -291,7 +320,7 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
               <Field index={3}>
                 <button
                   type="button"
-                  disabled={busy}
+                  disabled={busy || captchaPending}
                   onClick={() => handleSendEmailCode()}
                   className="w-full text-center text-sm font-medium text-[var(--auth-text-soft)] hover:text-[var(--auth-text)] transition-colors"
                 >
