@@ -557,7 +557,14 @@ export async function saveServices(userId, services) {
   if (profErr) { console.error('saveServices lookup:', profErr.message); throw profErr }
   const detailerId = prof.id
 
-  const { error: delErr } = await supabase.from('services').delete().eq('detailer_id', detailerId)
+  // Deactivate rather than delete — a service already referenced by a past
+  // booking (bookings.service_id) can't be hard-deleted (FK violation), and
+  // hard-deleting the rest for no reason would just be inconsistent. is_active
+  // is already what normalizeDetailer filters the live services list on.
+  const { error: delErr } = await supabase
+    .from('services')
+    .update({ is_active: false })
+    .eq('detailer_id', detailerId)
   if (delErr) { console.error('saveServices clear:', delErr.message); throw delErr }
 
   const rows = services
@@ -779,9 +786,13 @@ export async function saveDetailerOnboarding(userId, {
     throw profErr
   }
 
+  // Deactivate rather than delete — same reasoning as saveServices above.
+  // Onboarding can be resubmitted (e.g. edited after already going live and
+  // taking bookings), and a hard delete on a service a booking references
+  // fails with a foreign-key violation.
   const { error: delErr } = await supabase
     .from('services')
-    .delete()
+    .update({ is_active: false })
     .eq('detailer_id', detailerId)
   if (delErr) {
     console.error('saveDetailerOnboarding clear services:', delErr.message)
