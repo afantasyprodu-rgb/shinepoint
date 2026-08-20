@@ -193,18 +193,25 @@ export default function DetailerDashboard() {
 
         {!isDemo && isStripeConfigured && <PayoutSetup />}
 
-        <Link
-          to="/detailer/onboarding"
-          className="card card-hover mt-4 flex items-center justify-between !p-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
-        >
-          <div>
-            <p className="font-semibold text-slate-900 dark:text-slate-100">{t('newDetailerOnboarding')}</p>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              {isDemo ? t('onboardingPreview') : t('onboardingPreviewReal')}
-            </p>
-          </div>
-          <span className="text-sm font-semibold text-brand-600 dark:text-brand-300">{t('openArrow')}</span>
-        </Link>
+        {/* Nothing left to open once a real detailer is actually verified —
+            same reasoning as PayoutSetup above: a "finish onboarding" prompt
+            that never goes away after onboarding is finished is just
+            clutter. Demo always shows it since there's no real approval
+            state to reach. */}
+        {(isDemo || !verified) && (
+          <Link
+            to="/detailer/onboarding"
+            className="card card-hover mt-4 flex items-center justify-between !p-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+          >
+            <div>
+              <p className="font-semibold text-slate-900 dark:text-slate-100">{t('newDetailerOnboarding')}</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                {isDemo ? t('onboardingPreview') : t('onboardingPreviewReal')}
+              </p>
+            </div>
+            <span className="text-sm font-semibold text-brand-600 dark:text-brand-300">{t('openArrow')}</span>
+          </Link>
+        )}
 
         {verified ? (
           <>
