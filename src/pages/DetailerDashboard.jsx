@@ -9,7 +9,7 @@ import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
 import { startConnectOnboarding, isStripeConfigured } from '../lib/stripe'
 import { fetchMyPayoutStatus } from '../lib/db'
-import { LockIcon, AlertTriangleIcon, CheckIcon, ClockIcon } from '../components/icons'
+import { LockIcon, AlertTriangleIcon, ClockIcon } from '../components/icons'
 import { useT } from '../i18n/useT'
 import { useLanguage } from '../context/LanguageContext'
 
@@ -20,6 +20,12 @@ import { useLanguage } from '../context/LanguageContext'
 // fully-completed flow and still see this as pending for a few seconds while
 // the account.updated webhook catches up; treat that as the honest state
 // rather than papering over it with a premature "done".
+//
+// Once genuinely active, this card disappears from the dashboard — there's
+// nothing left to nag about — and "Manage payouts" moves to the Account tab
+// (DetailerProfileEditor) instead, for the rare later trip to update bank
+// details. Renders nothing while the initial status fetch is in flight
+// rather than flashing the "set up" state first.
 function PayoutSetup() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -46,17 +52,17 @@ function PayoutSetup() {
   const chargesEnabled = payoutStatus?.stripe_charges_enabled === true
   const pendingVerification = returnedFromStripe && !chargesEnabled
 
+  // Nothing left to prompt once payouts are active, and nothing to show
+  // before the first status fetch resolves (avoids a flash of the "set up"
+  // state for a detailer who's actually already done).
+  if (payoutStatus === null || chargesEnabled) return null
+
   return (
     <div className="card mt-4 !p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="flex items-center gap-1.5 font-semibold text-slate-900 dark:text-slate-100">
             {t('payouts')}
-            {chargesEnabled && (
-              <span className="inline-flex items-center gap-1 text-cta-700 dark:text-cta-500">
-                <CheckIcon className="h-4 w-4" /> {t('payoutsActive')}
-              </span>
-            )}
             {pendingVerification && (
               <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400">
                 <ClockIcon className="h-4 w-4" /> {t('payoutsPendingVerification')}
@@ -68,7 +74,7 @@ function PayoutSetup() {
           </p>
         </div>
         <button onClick={connect} disabled={busy} className="btn btn-brand h-10 px-4 text-sm">
-          {busy ? t('opening') : chargesEnabled ? t('managePayouts') : t('setUpPayouts')}
+          {busy ? t('opening') : t('setUpPayouts')}
         </button>
       </div>
       {error && (

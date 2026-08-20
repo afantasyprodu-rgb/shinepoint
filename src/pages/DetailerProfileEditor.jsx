@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import AppShell from '../components/AppShell'
@@ -7,12 +7,65 @@ import ChangePassword from '../components/ChangePassword'
 import AvatarUpload from '../components/AvatarUpload'
 import { GalleryGrid } from './ProfileSetup'
 import { AnimatedPage } from '../components/ui/Motion'
-import { CheckIcon, TrashIcon, PlusIcon, LightbulbIcon, ArrowRightIcon } from '../components/icons'
+import { CheckIcon, TrashIcon, PlusIcon, LightbulbIcon, ArrowRightIcon, CreditCardIcon } from '../components/icons'
+import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
+import { fetchMyPayoutStatus } from '../lib/db'
+import { openDetailerDashboard, isStripeConfigured } from '../lib/stripe'
 import { useTiltShadow } from '../hooks/useTiltShadow'
 import { useT } from '../i18n/useT'
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+
+// Only shown once payouts are actually active — DetailerDashboard is where
+// setup happens and nags until it's done; this is just the durable "manage
+// it later" home once there's nothing left to complete (update bank info,
+// etc.), same as ChangePassword/Feedback below.
+function PayoutManagement() {
+  const { isDemo } = useAuth()
+  const t = useT('detailerProfileEditor')
+  const [payoutStatus, setPayoutStatus] = useState(null)
+  const [opening, setOpening] = useState(false)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (isDemo || !isStripeConfigured) return
+    fetchMyPayoutStatus().then(setPayoutStatus)
+  }, [isDemo])
+
+  if (isDemo || !isStripeConfigured || payoutStatus?.stripe_charges_enabled !== true) return null
+
+  async function manage() {
+    setOpening(true)
+    setError('')
+    try {
+      await openDetailerDashboard()
+    } catch (e) {
+      setError(e.message || t('payoutManageError'))
+    } finally {
+      setOpening(false)
+    }
+  }
+
+  return (
+    <div className="card mt-4 flex items-center gap-4 !p-4">
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-cta-700/10 text-cta-700 dark:text-cta-400">
+        <CreditCardIcon className="h-5 w-5" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="flex items-center gap-1.5 font-semibold text-slate-900 dark:text-slate-100">
+          {t('payoutManageTitle')}
+          <CheckIcon className="h-4 w-4 text-cta-700 dark:text-cta-400" />
+        </span>
+        <span className="block text-sm text-slate-500 dark:text-slate-400">{t('payoutManageBody')}</span>
+        {error && <span role="alert" className="mt-1 block text-sm text-red-600 dark:text-red-400">{error}</span>}
+      </span>
+      <button type="button" onClick={manage} disabled={opening} className="btn btn-outline h-10 shrink-0 px-4 text-sm">
+        {opening ? t('opening') : t('managePayouts')}
+      </button>
+    </div>
+  )
+}
 
 export default function DetailerProfileEditor() {
   const { myDetailer, setAvailability, uploadImage, updateDetailerMe, updateMyServices } = useStore()
@@ -224,6 +277,8 @@ export default function DetailerProfileEditor() {
             </AnimatePresence>
           </div>
         </form>
+
+        <PayoutManagement />
 
         <Link
           to="/feedback"

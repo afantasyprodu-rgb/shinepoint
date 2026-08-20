@@ -696,6 +696,11 @@ export const STRINGS = {
       adminNavAria: 'Admin',
     },
     detailerProfileEditor: {
+      payoutManageTitle: 'Payouts',
+      payoutManageBody: 'Update your bank details or view your balance in Stripe anytime.',
+      payoutManageError: 'Could not open Stripe dashboard.',
+      managePayouts: 'Manage payouts',
+      opening: 'Opening…',
       yourProfile: 'Your profile',
       businessName: 'Business / display name',
       businessNamePlaceholder: "Marco's Mobile Shine",
@@ -2008,6 +2013,11 @@ export const STRINGS = {
       adminNavAria: 'Administración',
     },
     detailerProfileEditor: {
+      payoutManageTitle: 'Pagos',
+      payoutManageBody: 'Actualiza tus datos bancarios o consulta tu saldo en Stripe cuando quieras.',
+      payoutManageError: 'No se pudo abrir el panel de Stripe.',
+      managePayouts: 'Gestionar pagos',
+      opening: 'Abriendo…',
       yourProfile: 'Tu perfil',
       businessName: 'Nombre comercial / visible',
       businessNamePlaceholder: "Marco's Mobile Shine",
