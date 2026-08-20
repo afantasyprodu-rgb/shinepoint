@@ -1,4 +1,6 @@
-import { Routes, Route, useLocation } from 'react-router-dom'
+import { useEffect } from 'react'
+import { Routes, Route, useLocation, useNavigate } from 'react-router-dom'
+import { supabase } from './lib/supabase'
 import ProtectedRoute from './components/ProtectedRoute'
 import TransitionOverlay from './components/TransitionOverlay'
 import NativeBridge from './components/NativeBridge'
@@ -38,6 +40,24 @@ const guard = (role, el) => <ProtectedRoute role={role}>{el}</ProtectedRoute>
 
 export default function App() {
   const location = useLocation()
+  const navigate = useNavigate()
+
+  // Safety net for the password-reset link: it's supposed to land on
+  // /reset-password (see AuthCard's resetPasswordForEmail redirectTo), but
+  // Supabase only honors that when the exact URL is in Authentication ->
+  // URL Configuration -> Redirect URLs; otherwise it silently falls back to
+  // the project's Site URL (the root). supabase-js still fires
+  // PASSWORD_RECOVERY wherever the recovery tokens land (detectSessionInUrl
+  // reads them off any page load), so catch it globally and route to the
+  // real page instead of depending on that dashboard setting being correct.
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY' && location.pathname !== '/reset-password') {
+        navigate('/reset-password', { replace: true })
+      }
+    })
+    return () => subscription.unsubscribe()
+  }, [location.pathname, navigate])
 
   // Keying Routes by pathname remounts pages on navigation so each page's
   // AnimatedPage entrance plays. (Route-level exit animations via
