@@ -166,10 +166,32 @@ Deno.serve(async (req) => {
       }
       case 'account.updated': {
         const acct = event.data.object as Stripe.Account
+        const chargesEnabled = acct.charges_enabled === true
+
+        // Read the prior value first — only the false→true transition is
+        // newsworthy. account.updated fires on every field change (profile
+        // edits, capability re-checks, etc.), so without this an admin would
+        // get paged on noise for the entire lifetime of every connected
+        // account instead of once, the moment a detailer actually becomes
+        // payout-ready.
+        const { data: before } = await admin
+          .from('detailer_profiles')
+          .select('id, stripe_charges_enabled, users(full_name)')
+          .eq('stripe_account_id', acct.id)
+          .maybeSingle()
+
         await admin
           .from('detailer_profiles')
-          .update({ stripe_charges_enabled: acct.charges_enabled === true })
+          .update({ stripe_charges_enabled: chargesEnabled })
           .eq('stripe_account_id', acct.id)
+
+        if (before && !before.stripe_charges_enabled && chargesEnabled) {
+          const name = (before as any).users?.full_name ?? 'A detailer'
+          await admin.rpc('notify_admins', {
+            p_title: 'Detailer payouts activated',
+            p_body: `${name} finished Stripe Connect onboarding and can now receive payouts.`,
+          })
+        }
         break
       }
       // Sessions are created for either a detailer (onboarding) or a

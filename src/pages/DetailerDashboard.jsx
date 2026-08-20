@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import AppShell from '../components/AppShell'
@@ -8,16 +8,28 @@ import { Avatar, CountUp, ProgressBar, StatusPill } from '../components/ui/bits'
 import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
 import { startConnectOnboarding, isStripeConfigured } from '../lib/stripe'
-import { LockIcon, AlertTriangleIcon } from '../components/icons'
+import { fetchMyPayoutStatus } from '../lib/db'
+import { LockIcon, AlertTriangleIcon, CheckIcon, ClockIcon } from '../components/icons'
 import { useT } from '../i18n/useT'
 import { useLanguage } from '../context/LanguageContext'
 
-// Stripe Connect payout setup (real detailers only).
+// Stripe Connect payout setup (real detailers only). Shows the actual
+// stripe_charges_enabled flag rather than trusting the ?payouts=done redirect
+// param alone — that param only means "Stripe sent you back here," not that
+// Stripe actually finished enabling charges. A detailer could return from a
+// fully-completed flow and still see this as pending for a few seconds while
+// the account.updated webhook catches up; treat that as the honest state
+// rather than papering over it with a premature "done".
 function PayoutSetup() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const done = new URLSearchParams(window.location.search).get('payouts') === 'done'
+  const [payoutStatus, setPayoutStatus] = useState(null)
+  const returnedFromStripe = new URLSearchParams(window.location.search).get('payouts') === 'done'
   const t = useT('detailerDashboard')
+
+  useEffect(() => {
+    fetchMyPayoutStatus().then(setPayoutStatus)
+  }, [])
 
   async function connect() {
     setBusy(true)
@@ -31,19 +43,32 @@ function PayoutSetup() {
     }
   }
 
+  const chargesEnabled = payoutStatus?.stripe_charges_enabled === true
+  const pendingVerification = returnedFromStripe && !chargesEnabled
+
   return (
     <div className="card mt-4 !p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="font-semibold text-slate-900 dark:text-slate-100">
-            {t('payouts')} {done && <span className="text-cta-700 dark:text-cta-500">{t('payoutsSetupReturned')}</span>}
+          <p className="flex items-center gap-1.5 font-semibold text-slate-900 dark:text-slate-100">
+            {t('payouts')}
+            {chargesEnabled && (
+              <span className="inline-flex items-center gap-1 text-cta-700 dark:text-cta-500">
+                <CheckIcon className="h-4 w-4" /> {t('payoutsActive')}
+              </span>
+            )}
+            {pendingVerification && (
+              <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                <ClockIcon className="h-4 w-4" /> {t('payoutsPendingVerification')}
+              </span>
+            )}
           </p>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            {t('payoutsBlurb')}
+            {pendingVerification ? t('payoutsPendingBlurb') : t('payoutsBlurb')}
           </p>
         </div>
         <button onClick={connect} disabled={busy} className="btn btn-brand h-10 px-4 text-sm">
-          {busy ? t('opening') : done ? t('managePayouts') : t('setUpPayouts')}
+          {busy ? t('opening') : chargesEnabled ? t('managePayouts') : t('setUpPayouts')}
         </button>
       </div>
       {error && (
