@@ -32,7 +32,7 @@ const destIcon = L.divIcon({
 // per mount — `destination` doesn't change during a session, so the effect
 // deliberately only depends on the container ref, not on props that would
 // otherwise tear the map down and rebuild it on every position update.
-function EnRouteMiniMap({ position, destination, emoji }) {
+export function EnRouteMiniMap({ position, destination, emoji }) {
   const { theme } = useTheme()
   const containerRef = useRef(null)
   const mapRef = useRef(null)

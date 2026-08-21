@@ -615,6 +615,30 @@ export async function saveServices(userId, services) {
   }
 }
 
+// Public, no-login tracking page (058) — the booking id itself is the
+// capability token (a random UUID), same trust model as a Stripe checkout
+// URL. Both RPCs are security-definer and granted to anon, so this works
+// for a signed-out visitor who just tapped the link from a text.
+export async function fetchPublicTracking(bookingId) {
+  const [{ data: info, error: infoErr }, { data: pings, error: pingsErr }] = await Promise.all([
+    supabase.rpc('get_public_tracking_info', { p_booking_id: bookingId }),
+    supabase.rpc('get_public_tracking_pings', { p_booking_id: bookingId }),
+  ])
+  if (infoErr) console.error('fetchPublicTracking info:', infoErr.message)
+  if (pingsErr) console.error('fetchPublicTracking pings:', pingsErr.message)
+  const row = info?.[0]
+  if (!row) return null
+  return {
+    status: row.status,
+    scheduledTime: row.scheduled_time,
+    zip: row.booking_zip,
+    detailerName: row.detailer_name ?? 'Your detailer',
+    detailerPhoto: row.detailer_photo ?? null,
+    vehicleEmoji: row.vehicle_emoji || '🚗',
+    pings: (pings ?? []).map((p) => ({ lat: p.lat, lng: p.lng, recorded_at: p.recorded_at })),
+  }
+}
+
 export async function fetchDetailerProfileRow(userId) {
   const { data, error } = await supabase
     .from('detailer_profiles')

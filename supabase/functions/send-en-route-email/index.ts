@@ -61,7 +61,15 @@ Deno.serve(async (req) => {
     const detailer = (booking as any).detailer_profiles?.users
     if (!customer?.email) return json({ error: 'No customer email on file' }, 422)
 
-    const bookingUrl = `${Deno.env.get('APP_ORIGIN') ?? 'https://shinepoint.app'}/bookings/${booking.id}`
+    const origin = Deno.env.get('APP_ORIGIN') ?? 'https://shinepoint.app'
+    const bookingUrl = `${origin}/bookings/${booking.id}`
+    // The SMS link is public/no-login (058) — a text recipient taps it from
+    // their lock screen with no guarantee they're signed in, and Twilio's
+    // toll-free review flagged the old /bookings/:id link for exactly that
+    // (ProtectedRoute-gated, so a reviewer without a session hit a login
+    // wall). The email link above stays as-is: it's already read from an
+    // authenticated inbox context and links to the fuller in-app view.
+    const trackingUrl = `${origin}/track/${booking.id}`
 
     const { subject, html } = enRouteEmail({
       customerName: customer.full_name ?? 'there',
@@ -90,7 +98,7 @@ Deno.serve(async (req) => {
             customerName: customer.full_name ?? 'there',
             detailerName: detailer?.full_name ?? 'Your detailer',
             etaMinutes: isFiniteNumber(etaMinutes) ? etaMinutes : undefined,
-            trackingUrl: bookingUrl,
+            trackingUrl,
           }),
         })
       } catch (e) {

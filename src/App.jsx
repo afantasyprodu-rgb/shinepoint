@@ -36,6 +36,7 @@ import MfaChallenge from './pages/MfaChallenge'
 import CustomerOnboarding from './pages/CustomerOnboarding'
 import Feedback from './pages/Feedback'
 import { Terms, Privacy } from './pages/Legal'
+import PublicTracking from './pages/PublicTracking'
 
 const guard = (role, el) => <ProtectedRoute role={role}>{el}</ProtectedRoute>
 
@@ -76,6 +77,10 @@ export default function App() {
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/privacy" element={<Privacy />} />
+        {/* Public, no-login tracking link the en-route SMS points to (058) —
+            deliberately outside ProtectedRoute; the booking id in the URL
+            is the capability. */}
+        <Route path="/track/:id" element={<PublicTracking />} />
         {/* Post-signup profile setup — any signed-in role, no role gate. */}
         <Route path="/welcome" element={<ProtectedRoute><ProfileSetup /></ProtectedRoute>} />
         {/* Optional 2FA enrollment prompt right after signup. */}
