@@ -19,6 +19,15 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
+      // /terms and /privacy get their own HTML entry points purely so each
+      // ships its own static fallback copy for non-JS crawlers (see the
+      // comment in those files). All three boot the same SPA bundle, so a
+      // real browser gets the identical React app whichever one it lands on.
+      input: {
+        main: `${projectRoot}/index.html`,
+        terms: `${projectRoot}/terms.html`,
+        privacy: `${projectRoot}/privacy.html`,
+      },
       output: {
         // Split the animation lib off the main chunk so first paint isn't
         // blocked on it.
