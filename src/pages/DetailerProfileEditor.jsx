@@ -81,6 +81,7 @@ export default function DetailerProfileEditor() {
     (me.services ?? []).map((s) => ({
       id: s.id, name: s.name, price: String(s.price), desc: s.desc ?? '',
       isAddon: Boolean(s.isAddon), isBestValue: Boolean(s.isBestValue),
+      isPackage: Boolean(s.isPackage), packageIncludes: s.packageIncludes ?? [],
     }))
   )
   const [travel, setTravel] = useState(me.travelMiles ?? 10)
@@ -96,11 +97,48 @@ export default function DetailerProfileEditor() {
   function setService(i, key, val) {
     setServices((ss) => ss.map((s, idx) => (idx === i ? { ...s, [key]: val } : s)))
   }
+  // The three service types (individual / main / package) are two booleans
+  // under the hood but mutually exclusive in the UI, so switch both at once
+  // rather than two separate setService calls racing against React's batching.
+  function setServiceType(i, type) {
+    setServices((ss) =>
+      ss.map((s, idx) =>
+        idx === i ? { ...s, isAddon: type === 'individual', isPackage: type === 'package' } : s
+      )
+    )
+  }
   function addService() {
-    setServices((ss) => [...ss, { id: `new-${Date.now()}`, name: '', price: '', desc: '', isAddon: false, isBestValue: false }])
+    setServices((ss) => [
+      ...ss,
+      { id: `new-${Date.now()}`, name: '', price: '', desc: '', isAddon: false, isBestValue: false, isPackage: false, packageIncludes: [] },
+    ])
   }
   function removeService(i) {
-    setServices((ss) => ss.filter((_, idx) => idx !== i))
+    const removedName = services[i]?.name
+    setServices((ss) =>
+      ss
+        .filter((_, idx) => idx !== i)
+        // Drop the removed service from any package's included list too,
+        // so a package never references a service that no longer exists.
+        .map((s) => (s.isPackage ? { ...s, packageIncludes: s.packageIncludes.filter((n) => n !== removedName) } : s))
+    )
+  }
+  // A package can only include ordinary (non-package) services, and never
+  // itself — packages nesting other packages would make the "included in"
+  // hint on individual services ambiguous to compute.
+  function togglePackageInclude(i, serviceName) {
+    setServices((ss) =>
+      ss.map((s, idx) =>
+        idx === i
+          ? {
+              ...s,
+              packageIncludes: s.packageIncludes.includes(serviceName)
+                ? s.packageIncludes.filter((n) => n !== serviceName)
+                : [...s.packageIncludes, serviceName],
+            }
+          : s
+      )
+    )
   }
 
   async function changePhoto(url) {
@@ -127,6 +165,7 @@ export default function DetailerProfileEditor() {
           .map((s) => ({
             id: s.id, name: s.name.trim(), price: Number(s.price) || 0, desc: s.desc,
             isAddon: s.isAddon, isBestValue: s.isBestValue,
+            isPackage: s.isPackage, packageIncludes: s.isPackage ? s.packageIncludes : [],
           }))
       )
       if (me.id) setAvailability(me.id, { travelMiles: Number(travel), acceptsRewards: rewardsOptIn, serviceDays: days })
@@ -224,23 +263,33 @@ export default function DetailerProfileEditor() {
                       className="input mt-2 h-9 text-sm" placeholder={t('whatsIncludedPlaceholder')}
                     />
                     <div className="mt-2 flex flex-wrap items-center gap-4">
-                      {/* Main vs. add-on: a customer can select any combination at
-                          booking time, but this decides which list a service shows
-                          up in (see BookingWizard). */}
+                      {/* Individual / Main / Package: a customer can select any
+                          combination at booking time, but this decides which
+                          section a service shows up in (see BookingWizard).
+                          Packages are their own bundled line item, priced and
+                          booked as a whole — the checklist below is what shows
+                          in its "what's included" expand. */}
                       <div className="flex items-center gap-1 rounded-full bg-brand-50 p-0.5 text-xs font-medium dark:bg-white/5">
                         <button
                           type="button"
-                          onClick={() => setService(i, 'isAddon', false)}
-                          className={`cursor-pointer rounded-full px-2.5 py-1 transition-colors ${!s.isAddon ? 'bg-white text-brand-800 shadow-sm dark:bg-white/10 dark:text-brand-300' : 'text-slate-500 dark:text-slate-400'}`}
+                          onClick={() => setServiceType(i, 'individual')}
+                          className={`cursor-pointer rounded-full px-2.5 py-1 transition-colors ${s.isAddon && !s.isPackage ? 'bg-white text-brand-800 shadow-sm dark:bg-white/10 dark:text-brand-300' : 'text-slate-500 dark:text-slate-400'}`}
+                        >
+                          {t('individualService')}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setServiceType(i, 'main')}
+                          className={`cursor-pointer rounded-full px-2.5 py-1 transition-colors ${!s.isAddon && !s.isPackage ? 'bg-white text-brand-800 shadow-sm dark:bg-white/10 dark:text-brand-300' : 'text-slate-500 dark:text-slate-400'}`}
                         >
                           {t('mainService')}
                         </button>
                         <button
                           type="button"
-                          onClick={() => setService(i, 'isAddon', true)}
-                          className={`cursor-pointer rounded-full px-2.5 py-1 transition-colors ${s.isAddon ? 'bg-white text-brand-800 shadow-sm dark:bg-white/10 dark:text-brand-300' : 'text-slate-500 dark:text-slate-400'}`}
+                          onClick={() => setServiceType(i, 'package')}
+                          className={`cursor-pointer rounded-full px-2.5 py-1 transition-colors ${s.isPackage ? 'bg-white text-brand-800 shadow-sm dark:bg-white/10 dark:text-brand-300' : 'text-slate-500 dark:text-slate-400'}`}
                         >
-                          {t('addOn')}
+                          {t('packageTemplate')}
                         </button>
                       </div>
                       <label className="flex cursor-pointer items-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-400">
@@ -252,6 +301,40 @@ export default function DetailerProfileEditor() {
                         {t('markBestValue')}
                       </label>
                     </div>
+
+                    {s.isPackage && (
+                      <div className="mt-3 rounded-lg bg-brand-50/60 p-3 dark:bg-white/5">
+                        <p className="text-xs font-semibold text-slate-600 dark:text-slate-400">
+                          {t('packageIncludesLabel')}
+                        </p>
+                        <p className="mt-0.5 text-xs text-slate-400 dark:text-slate-500">{t('packageIncludesHint')}</p>
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {services
+                            .filter((other) => other.id !== s.id && !other.isPackage && other.name.trim())
+                            .map((other) => {
+                              const checked = s.packageIncludes.includes(other.name.trim())
+                              return (
+                                <button
+                                  key={other.id}
+                                  type="button"
+                                  aria-pressed={checked}
+                                  onClick={() => togglePackageInclude(i, other.name.trim())}
+                                  className={`cursor-pointer rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${
+                                    checked
+                                      ? 'border-brand-600 bg-brand-600 text-white'
+                                      : 'border-brand-200 bg-white text-slate-600 hover:border-brand-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-300'
+                                  }`}
+                                >
+                                  {other.name.trim()}
+                                </button>
+                              )
+                            })}
+                          {services.filter((other) => other.id !== s.id && !other.isPackage && other.name.trim()).length === 0 && (
+                            <p className="text-xs text-slate-400 dark:text-slate-500">{t('packageIncludesEmpty')}</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </motion.div>
                 ))}
               </AnimatePresence>

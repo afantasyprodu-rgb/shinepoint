@@ -41,6 +41,15 @@ function normalizeDetailer(row) {
         // column as the badge a detailer puts on their recommended service.
         isAddon: Boolean(s.is_addon),
         isBestValue: Boolean(s.is_featured),
+        // Package/template (e.g. "Full Detail"): a bundle the customer books
+        // as one line item at its own price. is_package/package_includes were
+        // unused columns from 002 — reused here rather than a new migration.
+        // package_includes holds the *names* of the detailer's own services
+        // that are bundled in, chosen from their existing list (not free
+        // text) so the "included in" hint on individual services can match
+        // against it exactly.
+        isPackage: Boolean(s.is_package),
+        packageIncludes: s.package_includes ?? [],
       })),
     pin,
     _real: true,
@@ -253,7 +262,7 @@ export async function fetchDetailers() {
         insurance_status, total_completed_jobs, average_rating, total_reviews, bio,
         profile_photo_url, gallery_urls,
         probation_jobs_remaining, service_days, free_travel_miles,
-        services(id, service_name, description, price, vehicle_types, is_active, is_addon, is_featured)
+        services(id, service_name, description, price, vehicle_types, is_active, is_addon, is_featured, is_package, package_includes)
       `),
     fetchDetailerNames(),
   ])
@@ -560,7 +569,8 @@ export async function updateDetailerProfile(userId, patch) {
 }
 
 // Replace the caller's service list wholesale (delete + insert), so the editor
-// is idempotent. `services` is [{ name, price, desc, isAddon, isBestValue }].
+// is idempotent. `services` is
+// [{ name, price, desc, isAddon, isBestValue, isPackage, packageIncludes }].
 export async function saveServices(userId, services) {
   const { data: prof, error: profErr } = await supabase
     .from('detailer_profiles').select('id').eq('user_id', userId).single()
@@ -587,6 +597,8 @@ export async function saveServices(userId, services) {
       is_active: true,
       is_addon: Boolean(s.isAddon),
       is_featured: Boolean(s.isBestValue),
+      is_package: Boolean(s.isPackage),
+      package_includes: Array.isArray(s.packageIncludes) ? s.packageIncludes : [],
     }))
   if (rows.length) {
     const { error: insErr } = await supabase.from('services').insert(rows)

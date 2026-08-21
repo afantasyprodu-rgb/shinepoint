@@ -177,6 +177,89 @@ const stepVariants = {
   exit: { opacity: 0, x: -24 },
 }
 
+// A package (e.g. "Full Detail") is a bundle a customer books as one line
+// item at its own price — tapping it both selects/deselects it AND expands
+// to show what's included, so "expanded" is just derived from "selected"
+// rather than tracked separately. `tapNonce` remounts the ripple span on
+// every tap (even re-taps that don't change `checked`) so the bubble-pop
+// always replays.
+function PackageCard({ service, checked, tapNonce, onToggle, t }) {
+  return (
+    <motion.button
+      type="button"
+      role="checkbox"
+      aria-checked={checked}
+      aria-expanded={checked}
+      whileTap={{ scale: 0.98 }}
+      onClick={onToggle}
+      className={`card relative w-full cursor-pointer overflow-hidden !p-5 text-left transition-all duration-200 ${
+        checked ? 'border-brand-600 ring-2 ring-brand-200 dark:ring-brand-500/20' : 'hover:border-brand-300'
+      } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600`}
+    >
+      <AnimatePresence>
+        {tapNonce > 0 && (
+          <motion.span
+            key={tapNonce}
+            initial={{ scale: 0, opacity: 0.45 }}
+            animate={{ scale: 2.4, opacity: 0 }}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
+            className="pointer-events-none absolute inset-0 rounded-2xl bg-brand-400"
+          />
+        )}
+      </AnimatePresence>
+
+      <div className="relative flex items-center justify-between gap-4">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="font-semibold text-slate-900 dark:text-slate-100">{service.name}</p>
+            <span className="chip bg-brand-100 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">
+              {t('packageBadge')}
+            </span>
+            {service.isBestValue && <span className="chip bg-cta-700 text-white">{t('bestValue')}</span>}
+          </div>
+          {service.desc && <p className="mt-0.5 text-sm text-slate-600 dark:text-slate-400">{service.desc}</p>}
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <span className="font-display text-lg font-bold text-brand-700 dark:text-brand-300">${service.price}</span>
+          <ChevronLeftIcon
+            className={`h-4 w-4 text-slate-400 transition-transform duration-200 dark:text-slate-500 ${checked ? '-rotate-90' : 'rotate-180'}`}
+          />
+        </div>
+      </div>
+
+      <AnimatePresence initial={false}>
+        {checked && (
+          <motion.div
+            key="includes"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: 'easeOut' }}
+            className="relative overflow-hidden"
+          >
+            <div className="mt-3 flex flex-wrap gap-2 border-t border-brand-100 pt-3 dark:border-white/10">
+              {service.packageIncludes.length === 0 && (
+                <p className="text-xs text-slate-400 dark:text-slate-500">{t('packageIncludesNone')}</p>
+              )}
+              {service.packageIncludes.map((name, idx) => (
+                <motion.span
+                  key={name}
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: 'spring', stiffness: 420, damping: 16, delay: idx * 0.05 }}
+                  className="chip bg-brand-50 text-brand-700 dark:bg-white/10 dark:text-brand-300"
+                >
+                  {name}
+                </motion.span>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.button>
+  )
+}
+
 // Blueprint screens 2.3 → 2.7 — booking flow.
 export default function BookingWizard() {
   const { id } = useParams()
@@ -190,9 +273,14 @@ export default function BookingWizard() {
 
   const [step, setStep] = useState(0) // 0 service, 1 schedule, 2 review, 3 processing, 4 confirmed, 5 card
   const [selectedServiceIds, setSelectedServiceIds] = useState([])
+  const [packageTapNonce, setPackageTapNonce] = useState({})
 
   function toggleService(id) {
     setSelectedServiceIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  }
+  function togglePackage(id) {
+    toggleService(id)
+    setPackageTapNonce((prev) => ({ ...prev, [id]: (prev[id] ?? 0) + 1 }))
   }
   const [vehicle, setVehicle] = useState('Sedan')
   const [vehicleMake, setVehicleMake] = useState('')
@@ -435,8 +523,23 @@ export default function BookingWizard() {
               </h1>
               <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{t('bookingWith', { name: d.name })}</p>
 
+              {d.services.some((s) => s.isPackage) && (
+                <div className="mt-5 space-y-3" role="group" aria-label={t('packagesHeading')}>
+                  {d.services.filter((s) => s.isPackage).map((s) => (
+                    <PackageCard
+                      key={s.id}
+                      service={s}
+                      checked={selectedServiceIds.includes(s.id)}
+                      tapNonce={packageTapNonce[s.id] ?? 0}
+                      onToggle={() => togglePackage(s.id)}
+                      t={t}
+                    />
+                  ))}
+                </div>
+              )}
+
               <div className="mt-5 space-y-3" role="group" aria-label="Services">
-                {d.services.filter((s) => !s.isAddon).map((s) => {
+                {d.services.filter((s) => !s.isAddon && !s.isPackage).map((s) => {
                   const checked = selectedServiceIds.includes(s.id)
                   return (
                     <motion.button
@@ -473,6 +576,13 @@ export default function BookingWizard() {
                   <div className="mt-2 space-y-3" role="group" aria-label={t('addOnsHeading')}>
                     {d.services.filter((s) => s.isAddon).map((s) => {
                       const checked = selectedServiceIds.includes(s.id)
+                      // Nudge against double-paying: if this service is already
+                      // bundled into a package, say so — informational only,
+                      // still selectable on its own (a customer may genuinely
+                      // just want the one thing).
+                      const includedInPackages = d.services.filter(
+                        (p) => p.isPackage && p.packageIncludes.includes(s.name)
+                      )
                       return (
                         <motion.button
                           key={s.id}
@@ -495,6 +605,11 @@ export default function BookingWizard() {
                               )}
                             </div>
                             {s.desc && <p className="text-sm text-slate-600 dark:text-slate-400">{t('includes')}: {s.desc}</p>}
+                            {includedInPackages.length > 0 && (
+                              <p className="mt-1 text-xs text-brand-600 dark:text-brand-400">
+                                {t('alreadyIncludedIn', { names: includedInPackages.map((p) => p.name).join(', ') })}
+                              </p>
+                            )}
                           </div>
                           <span className="font-display text-lg font-bold text-brand-700 dark:text-brand-300">+${s.price}</span>
                         </motion.button>
