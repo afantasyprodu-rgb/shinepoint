@@ -11,6 +11,13 @@ const OPTIONS = [
   { value: 'offline', active: 'bg-slate-600 text-white shadow-md' },
 ]
 
+// Minimum gap this detailer wants between jobs — enforced server-side by
+// migration 053's insert guard, and pre-checked client-side in
+// BookingWizard so a conflicting time is caught before checkout instead of
+// failing payment. Real accounts only (see the isDemo gate below) — demo
+// has no real bookings table for this to actually enforce anything against.
+const BUFFER_OPTIONS = [0, 15, 30, 45, 60, 90, 120]
+
 // Demo detailer account maps to this seeded detailer.
 const DEMO_DETAILER_ID = 'det-1'
 
@@ -32,7 +39,7 @@ export default function AvailabilityToggle() {
     let cancelled = false
     supabase
       .from('detailer_profiles')
-      .select('status, accepts_bookings_when_busy, zip_code, pin_lat, pin_lng')
+      .select('status, accepts_bookings_when_busy, zip_code, pin_lat, pin_lng, booking_buffer_min')
       .eq('user_id', user.id)
       .single()
       .then(({ data, error: fetchError }) => {
@@ -130,6 +137,25 @@ export default function AvailabilityToggle() {
           />
           {t('acceptWhileBusy')}
         </label>
+      )}
+
+      {!isDemo && (
+        <div className="mt-4">
+          <label htmlFor="bookingBuffer" className="label">{t('bufferLabel')}</label>
+          <select
+            id="bookingBuffer"
+            value={current.booking_buffer_min ?? 60}
+            onChange={(e) => save({ booking_buffer_min: Number(e.target.value) })}
+            className="input"
+          >
+            {BUFFER_OPTIONS.map((mins) => (
+              <option key={mins} value={mins}>
+                {mins === 0 ? t('bufferNone') : t('bufferMinutes', { mins })}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1.5 text-xs text-slate-400 dark:text-slate-500">{t('bufferHint')}</p>
+        </div>
       )}
 
       {error && (

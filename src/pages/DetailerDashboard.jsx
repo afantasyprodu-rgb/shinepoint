@@ -9,7 +9,7 @@ import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
 import { startConnectOnboarding, isStripeConfigured } from '../lib/stripe'
 import { fetchMyPayoutStatus } from '../lib/db'
-import { LockIcon, AlertTriangleIcon, ClockIcon } from '../components/icons'
+import { LockIcon, AlertTriangleIcon, ClockIcon, ChevronDownIcon } from '../components/icons'
 import { useT } from '../i18n/useT'
 import { useLanguage } from '../context/LanguageContext'
 
@@ -86,6 +86,53 @@ function PayoutSetup() {
   )
 }
 
+function localDateKey(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+// Groups jobs by local calendar date, each date's jobs sorted earliest-
+// first, and the dates themselves sorted chronologically — so a detailer
+// scanning their list always reads top-to-bottom in the order they'll
+// actually happen, not creation order.
+function groupJobsByDate(jobs) {
+  const map = new Map()
+  for (const b of jobs) {
+    const key = localDateKey(new Date(b.scheduledTime))
+    if (!map.has(key)) map.set(key, [])
+    map.get(key).push(b)
+  }
+  for (const list of map.values()) {
+    list.sort((a, b) => new Date(a.scheduledTime) - new Date(b.scheduledTime))
+  }
+  return [...map.entries()].sort(([a], [b]) => a.localeCompare(b))
+}
+
+function JobRow({ b, t, lang }) {
+  return (
+    <Link
+      to={`/detailer/jobs/${b.id}`}
+      className="card card-hover flex items-center justify-between gap-3 !p-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+    >
+      <div className="flex items-center gap-3">
+        <Avatar name={b.customerName} />
+        <div>
+          <p className="font-semibold text-slate-900 dark:text-slate-100">
+            {b.service} · {b.customerName}
+          </p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            {new Date(b.scheduledTime).toLocaleTimeString(lang === 'es' ? 'es-US' : 'en-US', {
+              hour: 'numeric',
+              minute: '2-digit',
+            })}{' '}
+            · ${b.price} {t('plusTips')}
+          </p>
+        </div>
+      </div>
+      <StatusPill status={b.status} />
+    </Link>
+  )
+}
+
 // Blueprint screen 5.1 — Detailer Dashboard.
 export default function DetailerDashboard() {
   const { profile } = useAuth()
@@ -115,6 +162,17 @@ export default function DetailerDashboard() {
   // all). Demo bookings have no paidAt to check, so they pass through as-is.
   const incoming = mine.filter((b) => b.status === 'pending' && (isDemo || b.paidAt))
   const active = mine.filter((b) => !['pending', 'complete', 'cancelled'].includes(b.status))
+  const todayKey = localDateKey(new Date())
+  const groupedActive = groupJobsByDate(active)
+  const [expandedDates, setExpandedDates] = useState(() => new Set())
+  function toggleDate(key) {
+    setExpandedDates((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
   const earningsToday = mine
     .filter((b) => b.status === 'complete')
     .reduce((sum, b) => sum + b.price * 0.85 + (b.tip ?? 0), 0)
@@ -275,30 +333,57 @@ export default function DetailerDashboard() {
               ))}
             </AnimatePresence>
 
-            {/* Today's jobs */}
+            {/* Jobs, grouped by date — today always expanded and sorted by
+                time so "what's next" never needs a click; every later date
+                collapses to a count until tapped, in chronological order,
+                same time-sort inside once opened. */}
             <h2 className="mt-8 font-display text-lg font-semibold text-slate-900 dark:text-slate-100">{t('activeJobs')}</h2>
             {active.length === 0 ? (
               <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">{t('noActiveJobs')}</p>
             ) : (
               <div className="mt-3 space-y-3">
-                {active.map((b) => (
-                  <Link
-                    key={b.id}
-                    to={`/detailer/jobs/${b.id}`}
-                    className="card card-hover flex items-center justify-between gap-3 !p-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Avatar name={b.customerName} />
-                      <div>
-                        <p className="font-semibold text-slate-900 dark:text-slate-100">
-                          {b.service} · {b.customerName}
+                {groupedActive.map(([dateKey, jobs]) => {
+                  if (dateKey === todayKey) {
+                    return (
+                      <div key={dateKey} className="space-y-3">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                          {t('todayLabel')}
                         </p>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">${b.price} {t('plusTips')}</p>
+                        {jobs.map((b) => (
+                          <JobRow key={b.id} b={b} t={t} lang={lang} />
+                        ))}
                       </div>
+                    )
+                  }
+                  const expanded = expandedDates.has(dateKey)
+                  const dateLabel = new Date(`${dateKey}T00:00:00`).toLocaleDateString(
+                    lang === 'es' ? 'es-US' : 'en-US',
+                    { weekday: 'long', month: 'short', day: 'numeric' }
+                  )
+                  return (
+                    <div key={dateKey}>
+                      <button
+                        type="button"
+                        onClick={() => toggleDate(dateKey)}
+                        aria-expanded={expanded}
+                        className="card card-hover flex w-full cursor-pointer items-center justify-between !p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+                      >
+                        <span className="font-semibold text-slate-900 dark:text-slate-100">{dateLabel}</span>
+                        <span className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+                          {t('jobsCount', { count: jobs.length })}
+                          <ChevronDownIcon className={`h-4 w-4 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
+                        </span>
+                      </button>
+                      {expanded && (
+                        <div className="mt-3 space-y-3">
+                          {jobs.map((b) => (
+                            <JobRow key={b.id} b={b} t={t} lang={lang} />
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    <StatusPill status={b.status} />
-                  </Link>
-                ))}
+                  )
+                })}
               </div>
             )}
           </>

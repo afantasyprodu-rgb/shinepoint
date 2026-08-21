@@ -29,6 +29,9 @@ function normalizeDetailer(row) {
     probationRemaining: row.probation_jobs_remaining ?? 0,
     serviceDays: row.service_days ?? [],
     travelMiles: row.free_travel_miles ?? 10,
+    // Minimum gap the detailer wants between bookings — see BookingWizard's
+    // conflict pre-check and migration 053's server-side guard.
+    bufferMinutes: row.booking_buffer_min ?? 60,
     services: (row.services ?? [])
       .filter((s) => s.is_active)
       .map((s) => ({
@@ -261,7 +264,7 @@ export async function fetchDetailers() {
         accepts_bookings_when_busy, accepts_reward_bookings,
         insurance_status, total_completed_jobs, average_rating, total_reviews, bio,
         profile_photo_url, gallery_urls,
-        probation_jobs_remaining, service_days, free_travel_miles,
+        probation_jobs_remaining, service_days, free_travel_miles, booking_buffer_min,
         services(id, service_name, description, price, vehicle_types, is_active, is_addon, is_featured, is_package, package_includes)
       `),
     fetchDetailerNames(),
@@ -731,6 +734,27 @@ export async function createBookingInDB({
     throw error
   }
   return data.id
+}
+
+// Which times a detailer already has booked on a given date — used by
+// BookingWizard to pre-check a conflict client-side before the customer
+// pays (the real enforcement is migration 053's insert guard; this is just
+// a friendlier "pick another time" instead of a failed payment). Returns
+// "HH:MM" strings in the customer's local time, since that's what TimePicker
+// and the day strip work in.
+export async function fetchDetailerBusyTimes(detailerId, dateKey) {
+  const { data, error } = await supabase.rpc('get_detailer_busy_times', {
+    p_detailer_id: detailerId,
+    p_date: dateKey,
+  })
+  if (error) {
+    console.error('fetchDetailerBusyTimes:', error.message)
+    return []
+  }
+  return (data ?? []).map(({ scheduled_time }) => {
+    const d = new Date(scheduled_time)
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+  })
 }
 
 // Persist a booking patch. This is a WHITELIST: any app-shaped key not

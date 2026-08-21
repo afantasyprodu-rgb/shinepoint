@@ -10,7 +10,7 @@ import { CheckIcon, AlertTriangleIcon, ChevronLeftIcon, SparklesIcon, CarIcon, C
 import { useStore } from '../context/StoreContext'
 import { useTheme } from '../context/ThemeContext'
 import { stripePromise, isStripeConfigured, createPaymentIntent } from '../lib/stripe'
-import { checkPromoCode } from '../lib/db'
+import { checkPromoCode, fetchDetailerBusyTimes } from '../lib/db'
 import { useT } from '../i18n/useT'
 
 const VEHICLES = ['Sedan', 'SUV', 'Truck', 'Coupe', 'Van']
@@ -28,10 +28,32 @@ function formatTime(t) {
   return `${h12}:${String(m).padStart(2, '0')} ${ampm}`
 }
 
-function nextDays(n, isDemo, weatherDays) {
+// Same-day booking is allowed up until this local hour — after it, today
+// drops off the strip/calendar entirely and the earliest bookable day
+// becomes tomorrow. Gives a detailer a predictable cutoff instead of a
+// same-day request landing with no time left to prep.
+const SAME_DAY_CUTOFF_HOUR = 18
+
+function pastSameDayCutoff(now = new Date()) {
+  return now.getHours() >= SAME_DAY_CUTOFF_HOUR
+}
+
+function localDateKey(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+// startOffset: 0 includes today (before the cutoff), 1 starts tomorrow
+// (past it). Built from local Y/M/D throughout — d.toISOString() would
+// silently roll to the next UTC calendar day for anyone west of UTC once
+// it's evening locally, which used to only ever bite the label-vs-key
+// consistency of far-future days; now that "today" is a real option it'd
+// misdate the very day this cutoff exists to protect.
+function nextDays(n, isDemo, weatherDays, startOffset = 1) {
+  const base = new Date()
+  base.setHours(0, 0, 0, 0)
   return Array.from({ length: n }, (_, i) => {
-    const d = new Date(Date.now() + (i + 1) * 86400_000)
-    const key = d.toISOString().slice(0, 10)
+    const d = new Date(base.getFullYear(), base.getMonth(), base.getDate() + i + startOffset)
+    const key = localDateKey(d)
     const w = weatherDays?.get(key)
     return {
       key,
@@ -72,7 +94,7 @@ async function fetchWeatherDays(lat, lng) {
 function CalendarModal({ open, onClose, weatherDays, isDemo, selected, onSelect }) {
   const minDate = useMemo(() => {
     const d = new Date()
-    d.setDate(d.getDate() + 1)
+    if (pastSameDayCutoff(d)) d.setDate(d.getDate() + 1)
     d.setHours(0, 0, 0, 0)
     return d
   }, [])
@@ -127,7 +149,7 @@ function CalendarModal({ open, onClose, weatherDays, isDemo, selected, onSelect 
       <div className="mt-1 grid grid-cols-7 gap-1">
         {weeks.flat().map((cellDate, i) => {
           if (!cellDate) return <div key={`empty-${i}`} />
-          const key = cellDate.toISOString().slice(0, 10)
+          const key = localDateKey(cellDate)
           const disabled = cellDate < minDate
           const w = weatherDays?.get(key)
           const rainy = isDemo ? cellDate.getDate() % 4 === 0 : w?.rainy ?? false
@@ -380,7 +402,45 @@ export default function BookingWizard() {
     }
   }, [isDemo, d?.pin?.lat, d?.pin?.lng])
 
-  const days = useMemo(() => nextDays(10, isDemo, weatherDays), [isDemo, weatherDays])
+  const days = useMemo(
+    () => nextDays(10, isDemo, weatherDays, pastSameDayCutoff() ? 1 : 0),
+    [isDemo, weatherDays]
+  )
+
+  // Which times the detailer already has booked on the selected date, so a
+  // conflicting pick can be caught before the customer pays instead of
+  // failing at the very last step. The real block is migration 053's DB
+  // guard (this fetch can't stop two customers racing the same slot); this
+  // is just a friendlier "try another time" for the common case.
+  const [busyTimes, setBusyTimes] = useState([])
+  const [scheduleError, setScheduleError] = useState('')
+  useEffect(() => {
+    setScheduleError('')
+    if (isDemo || !d?.id || !date?.key) {
+      setBusyTimes([])
+      return
+    }
+    let cancelled = false
+    fetchDetailerBusyTimes(d.id, date.key).then((times) => {
+      if (!cancelled) setBusyTimes(times)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [isDemo, d?.id, date?.key])
+
+  // Buffer is in minutes either side of an existing booking; "conflict"
+  // means the picked time falls inside that window of any busy time.
+  function timeConflicts(pickedTime) {
+    if (!pickedTime || busyTimes.length === 0) return false
+    const bufferMin = d?.bufferMinutes ?? 60
+    const [ph, pm] = pickedTime.split(':').map(Number)
+    const pickedMin = ph * 60 + pm
+    return busyTimes.some((busy) => {
+      const [bh, bm] = busy.split(':').map(Number)
+      return Math.abs(pickedMin - (bh * 60 + bm)) <= bufferMin
+    })
+  }
 
   // Ask once, right after a real payment lands — the customer's already
   // engaged and just committed money, the best moment to ask for one more
@@ -406,6 +466,20 @@ export default function BookingWizard() {
   const total = baseAfterReward - creditUsed
 
   function continueFromSchedule() {
+    setScheduleError('')
+    if (!isDemo && date?.key === localDateKey(new Date())) {
+      const [ph, pm] = time.split(':').map(Number)
+      const picked = new Date()
+      picked.setHours(ph, pm, 0, 0)
+      if (picked <= new Date()) {
+        setScheduleError(t('scheduleErrorPast'))
+        return
+      }
+    }
+    if (!isDemo && timeConflicts(time)) {
+      setScheduleError(t('scheduleErrorConflict'))
+      return
+    }
     if (date?.rainy && !weatherAck) {
       setShowWeather(true)
       return
@@ -731,8 +805,20 @@ export default function BookingWizard() {
               </div>
 
               <div className="mt-5">
-                <TimePicker value={time} onChange={setTime} />
+                <TimePicker
+                  value={time}
+                  onChange={(v) => {
+                    setTime(v)
+                    setScheduleError('')
+                  }}
+                />
               </div>
+
+              {scheduleError && (
+                <p role="alert" className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-400">
+                  {scheduleError}
+                </p>
+              )}
 
               <button onClick={continueFromSchedule} disabled={!date || !time} className="btn btn-cta mt-8 w-full">
                 {t('continue')}
