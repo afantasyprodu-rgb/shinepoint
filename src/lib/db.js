@@ -36,6 +36,11 @@ function normalizeDetailer(row) {
         name: s.service_name,
         price: Number(s.price),
         desc: s.description ?? '',
+        // Add-on: bookable alongside anything else rather than on its own
+        // "pick one" list. isBestValue reuses the long-unused is_featured
+        // column as the badge a detailer puts on their recommended service.
+        isAddon: Boolean(s.is_addon),
+        isBestValue: Boolean(s.is_featured),
       })),
     pin,
     _real: true,
@@ -70,6 +75,10 @@ function normalizeCustomerBooking(row) {
     detailerName: row.detailer_profiles?.users?.full_name ?? 'Detailer',
     service: row.services?.service_name ?? '',
     serviceId: row.service_id,
+    // Any other services selected alongside the primary one (053) — names
+    // resolved client-side against the detailer's own service list (see
+    // getDetailer(...).services), since a uuid[] has no automatic embed.
+    addonServiceIds: row.addon_service_ids ?? [],
     price: Number(row.total_price ?? 0),
     tip: Number(row.tip_amount ?? 0),
     status: row.status,
@@ -117,6 +126,7 @@ function normalizeDetailerBooking(row) {
     customerName: row.customer_profiles?.users?.full_name ?? 'Customer',
     service: row.services?.service_name ?? '',
     serviceId: row.service_id,
+    addonServiceIds: row.addon_service_ids ?? [],
     price: Number(row.total_price ?? 0),
     tip: Number(row.tip_amount ?? 0),
     platformCut: row.platform_cut != null ? Number(row.platform_cut) : null,
@@ -243,7 +253,7 @@ export async function fetchDetailers() {
         insurance_status, total_completed_jobs, average_rating, total_reviews, bio,
         profile_photo_url, gallery_urls,
         probation_jobs_remaining, service_days, free_travel_miles,
-        services(id, service_name, description, price, vehicle_types, is_active)
+        services(id, service_name, description, price, vehicle_types, is_active, is_addon, is_featured)
       `),
     fetchDetailerNames(),
   ])
@@ -550,7 +560,7 @@ export async function updateDetailerProfile(userId, patch) {
 }
 
 // Replace the caller's service list wholesale (delete + insert), so the editor
-// is idempotent. `services` is [{ name, price, desc }].
+// is idempotent. `services` is [{ name, price, desc, isAddon, isBestValue }].
 export async function saveServices(userId, services) {
   const { data: prof, error: profErr } = await supabase
     .from('detailer_profiles').select('id').eq('user_id', userId).single()
@@ -575,6 +585,8 @@ export async function saveServices(userId, services) {
       price: Number(s.price) || 0,
       description: s.desc ?? '',
       is_active: true,
+      is_addon: Boolean(s.isAddon),
+      is_featured: Boolean(s.isBestValue),
     }))
   if (rows.length) {
     const { error: insErr } = await supabase.from('services').insert(rows)
@@ -601,7 +613,7 @@ export async function fetchBookingsForCustomer(customerProfileId) {
     .select(`
       id, status, scheduled_time, total_price, tip_amount,
       booking_address, booking_zip, created_at, weather_data,
-      service_id, detailer_id,
+      service_id, addon_service_ids, detailer_id,
       vehicle_type, vehicle_make, vehicle_model,
       damage_report_submitted, damage_report_acknowledged,
       cancelled_by, invoice, tip_paid_at, refunded_amount, paid_at,
@@ -630,7 +642,7 @@ export async function fetchBookingsForDetailer(detailerProfileId) {
     .select(`
       id, status, scheduled_time, started_at, completed_at, total_price, tip_amount,
       booking_address, booking_zip, created_at, weather_data,
-      service_id, customer_id,
+      service_id, addon_service_ids, customer_id,
       vehicle_type, vehicle_make, vehicle_model,
       damage_report_submitted, damage_report_acknowledged,
       cancelled_by, invoice, tip_paid_at, refunded_amount, paid_at,
@@ -663,6 +675,7 @@ export async function createBookingInDB({
   customerProfileId,
   detailerProfileId,
   serviceId,
+  addonServiceIds,
   scheduledTime,
   address,
   zip,
@@ -680,6 +693,10 @@ export async function createBookingInDB({
       customer_id: customerProfileId,
       detailer_id: detailerProfileId,
       service_id: serviceId,
+      // Any other services selected alongside the primary one — see 053.
+      // Priced server-side from scratch in create-payment-intent, never
+      // trusted from totalPrice here.
+      addon_service_ids: addonServiceIds ?? [],
       scheduled_time: scheduledTime,
       booking_address: address,
       booking_zip: zip,

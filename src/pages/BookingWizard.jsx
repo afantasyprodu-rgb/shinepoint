@@ -189,7 +189,11 @@ export default function BookingWizard() {
   const d = getDetailer(id)
 
   const [step, setStep] = useState(0) // 0 service, 1 schedule, 2 review, 3 processing, 4 confirmed, 5 card
-  const [service, setService] = useState(null)
+  const [selectedServiceIds, setSelectedServiceIds] = useState([])
+
+  function toggleService(id) {
+    setSelectedServiceIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  }
   const [vehicle, setVehicle] = useState('Sedan')
   const [vehicleMake, setVehicleMake] = useState('')
   const [vehicleModel, setVehicleModel] = useState('')
@@ -245,6 +249,18 @@ export default function BookingWizard() {
   const [promoChecking, setPromoChecking] = useState(false)
   const promoDiscount = promoApplied?.discount ?? 0
 
+  // A booking can carry any combination of the detailer's services — main
+  // services and add-ons alike. The primary (for serviceId/downstream
+  // display) is the first non-addon pick, falling back to whatever was
+  // picked if the customer selected add-ons only.
+  const selectedServices = useMemo(
+    () => (d?.services ?? []).filter((s) => selectedServiceIds.includes(s.id)),
+    [d?.services, selectedServiceIds]
+  )
+  const primaryService = selectedServices.find((s) => !s.isAddon) || selectedServices[0] || null
+  const addonServices = selectedServices.filter((s) => s.id !== primaryService?.id)
+  const serviceName = selectedServices.map((s) => s.name).join(' + ')
+
   // Demo has no server to ask, so it accepts any code at a flat 10% — enough
   // to exercise the UI without pretending a real code exists.
   async function applyPromo() {
@@ -252,7 +268,7 @@ export default function BookingWizard() {
     if (!code || promoChecking) return
     setPromoChecking(true)
     setPromoError(null)
-    const price = service?.price ?? 0
+    const price = selectedServices.reduce((sum, s) => sum + Number(s.price), 0)
     const result = isDemo
       ? { valid: true, discount: Math.round(price * 0.1 * 100) / 100 }
       : await checkPromoCode(d.id, code, price)
@@ -292,7 +308,7 @@ export default function BookingWizard() {
   // Order matters and mirrors create-payment-intent: the detailer's promo
   // sets the price the platform's commission is based on, THEN the
   // platform-funded credits come off what remains.
-  const listPrice = service?.price ?? 0
+  const listPrice = selectedServices.reduce((sum, s) => sum + Number(s.price), 0)
   const discountedPrice = Math.max(0, listPrice - promoDiscount)
   // Rewards are fixed-dollar credits (036), not "this service is free" —
   // so a $45 credit against a $450 ceramic coating saves $45, not $450.
@@ -312,8 +328,9 @@ export default function BookingWizard() {
   function buildDraft() {
     return {
       detailerId: d.id,
-      serviceId: service.id,
-      service: service.name,
+      serviceId: primaryService.id,
+      service: primaryService.name,
+      addonServiceIds: addonServices.map((s) => s.id),
       price: total,
       tip: 0,
       vehicle,
@@ -418,29 +435,74 @@ export default function BookingWizard() {
               </h1>
               <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{t('bookingWith', { name: d.name })}</p>
 
-              <div className="mt-5 space-y-3" role="radiogroup" aria-label="Service">
-                {d.services.map((s) => (
-                  <motion.button
-                    key={s.id}
-                    type="button"
-                    role="radio"
-                    aria-checked={service?.id === s.id}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setService(s)}
-                    className={`card flex w-full cursor-pointer items-center justify-between gap-4 !p-5 text-left transition-all duration-200 ${
-                      service?.id === s.id
-                        ? 'border-brand-600 ring-2 ring-brand-200 dark:ring-brand-500/20'
-                        : 'hover:border-brand-300'
-                    } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600`}
-                  >
-                    <div>
-                      <p className="font-semibold text-slate-900 dark:text-slate-100">{s.name}</p>
-                      <p className="text-sm text-slate-600 dark:text-slate-400">{s.desc}</p>
-                    </div>
-                    <span className="font-display text-lg font-bold text-brand-700 dark:text-brand-300">${s.price}</span>
-                  </motion.button>
-                ))}
+              <div className="mt-5 space-y-3" role="group" aria-label="Services">
+                {d.services.filter((s) => !s.isAddon).map((s) => {
+                  const checked = selectedServiceIds.includes(s.id)
+                  return (
+                    <motion.button
+                      key={s.id}
+                      type="button"
+                      role="checkbox"
+                      aria-checked={checked}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => toggleService(s.id)}
+                      className={`card flex w-full cursor-pointer items-center justify-between gap-4 !p-5 text-left transition-all duration-200 ${
+                        checked
+                          ? 'border-brand-600 ring-2 ring-brand-200 dark:ring-brand-500/20'
+                          : 'hover:border-brand-300'
+                      } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600`}
+                    >
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-semibold text-slate-900 dark:text-slate-100">{s.name}</p>
+                          {s.isBestValue && (
+                            <span className="chip bg-cta-700 text-white">{t('bestValue')}</span>
+                          )}
+                        </div>
+                        {s.desc && <p className="text-sm text-slate-600 dark:text-slate-400">{t('includes')}: {s.desc}</p>}
+                      </div>
+                      <span className="font-display text-lg font-bold text-brand-700 dark:text-brand-300">${s.price}</span>
+                    </motion.button>
+                  )
+                })}
               </div>
+
+              {d.services.some((s) => s.isAddon) && (
+                <>
+                  <h2 className="mt-6 text-sm font-semibold text-slate-700 dark:text-slate-300">{t('addOnsHeading')}</h2>
+                  <div className="mt-2 space-y-3" role="group" aria-label={t('addOnsHeading')}>
+                    {d.services.filter((s) => s.isAddon).map((s) => {
+                      const checked = selectedServiceIds.includes(s.id)
+                      return (
+                        <motion.button
+                          key={s.id}
+                          type="button"
+                          role="checkbox"
+                          aria-checked={checked}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => toggleService(s.id)}
+                          className={`card flex w-full cursor-pointer items-center justify-between gap-4 !p-4 text-left transition-all duration-200 ${
+                            checked
+                              ? 'border-brand-600 ring-2 ring-brand-200 dark:ring-brand-500/20'
+                              : 'hover:border-brand-300'
+                          } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600`}
+                        >
+                          <div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="font-semibold text-slate-900 dark:text-slate-100">{s.name}</p>
+                              {s.isBestValue && (
+                                <span className="chip bg-cta-700 text-white">{t('bestValue')}</span>
+                              )}
+                            </div>
+                            {s.desc && <p className="text-sm text-slate-600 dark:text-slate-400">{t('includes')}: {s.desc}</p>}
+                          </div>
+                          <span className="font-display text-lg font-bold text-brand-700 dark:text-brand-300">+${s.price}</span>
+                        </motion.button>
+                      )
+                    })}
+                  </div>
+                </>
+              )}
 
               {vehicleOptions.length > 1 && (
                 <>
@@ -497,7 +559,7 @@ export default function BookingWizard() {
                 ))}
               </div>
 
-              <button onClick={() => setStep(1)} disabled={!service} className="btn btn-cta mt-8 w-full">
+              <button onClick={() => setStep(1)} disabled={selectedServiceIds.length === 0} className="btn btn-cta mt-8 w-full">
                 {t('continue')}
               </button>
             </motion.div>
@@ -508,7 +570,7 @@ export default function BookingWizard() {
             <motion.div key="s1" variants={stepVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.25, ease: 'easeOut' }}>
               <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">{t('scheduleHeading')}</h1>
               <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-                {service.name} · ${service.price} · at {customer.address}
+                {serviceName} · ${listPrice} · at {customer.address}
               </p>
 
               <div className="mt-5 flex items-center justify-between">
@@ -570,7 +632,7 @@ export default function BookingWizard() {
               <div className="card mt-5 space-y-3 !p-5 text-sm">
                 {[
                   [t('rowDetailer'), d.name],
-                  [t('rowService'), `${service.name} · ${vehicle}`],
+                  [t('rowService'), `${serviceName} · ${vehicle}`],
                   [t('rowWhen'), `${date.label} ${date.day} · ${formatTime(time)}`],
                   [t('rowWhere'), customer.address],
                 ].map(([k, v]) => (
@@ -650,10 +712,12 @@ export default function BookingWizard() {
               </div>
 
               <div className="card mt-6 !p-5">
-                <div className="flex justify-between text-sm text-slate-600 dark:text-slate-400">
-                  <span>{service.name}</span>
-                  <span>${service.price}</span>
-                </div>
+                {selectedServices.map((s) => (
+                  <div key={s.id} className="flex justify-between text-sm text-slate-600 dark:text-slate-400">
+                    <span>{s.name}</span>
+                    <span>${s.price}</span>
+                  </div>
+                ))}
                 {promoDiscount > 0 && (
                   <div className="flex justify-between text-sm font-medium text-cta-700 dark:text-cta-400">
                     <span>{t('promoApplied', { code: promoApplied.code })}</span>
@@ -746,7 +810,7 @@ export default function BookingWizard() {
             <motion.div key="s5" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
               <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">{t('paymentHeading')}</h1>
               <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-                {t('serviceWithDetailer', { service: service.name, name: d.name, total })}
+                {t('serviceWithDetailer', { service: serviceName, name: d.name, total })}
               </p>
               {/* Stripe Elements renders in its own iframe and can't read our
                   CSS custom properties, so colorPrimary below can't just

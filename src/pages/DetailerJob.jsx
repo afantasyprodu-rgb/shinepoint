@@ -42,6 +42,12 @@ export default function DetailerJob() {
   const [respondingToDispute, setRespondingToDispute] = useState(false)
   const b = getBooking(id)
   const t = useT('detailerJob')
+  const addonNames = b?.detailerId
+    ? (b.addonServiceIds ?? [])
+        .map((aid) => getDetailer(b.detailerId)?.services?.find((s) => s.id === aid)?.name)
+        .filter(Boolean)
+    : []
+  const fullServiceName = b ? [b.service, ...addonNames].join(' + ') : ''
 
   // Flick in from the right screen edge to open the "more" drawer, mirroring
   // a native app's edge-swipe gesture. Only arms when a touch starts within
@@ -265,7 +271,7 @@ export default function DetailerJob() {
               <div className="mt-3 rounded-2xl border border-brand-200 bg-white p-4 dark:border-white/10 dark:bg-white/5">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-slate-500 dark:text-slate-400">{t('service')}</span>
-                  <span className="font-semibold text-slate-900 dark:text-slate-100">{b.service}</span>
+                  <span className="font-semibold text-slate-900 dark:text-slate-100">{fullServiceName}</span>
                 </div>
                 <div className="mt-3 flex flex-col gap-2.5">
                   <div className="flex items-center gap-3">
@@ -329,7 +335,7 @@ export default function DetailerJob() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h1 className="font-display text-xl font-bold text-slate-900 dark:text-slate-100">
-                {b.service} · {b.customerName}
+                {fullServiceName} · {b.customerName}
               </h1>
               <p className="mt-1 flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
                 <MapPinIcon className="h-4 w-4" /> {displayAddress}

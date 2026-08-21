@@ -720,6 +720,7 @@ export function StoreProvider({ children }) {
             customerProfileId: customerProfile.id,
             detailerProfileId: draft.detailerId,
             serviceId: draft.serviceId,
+            addonServiceIds: draft.addonServiceIds,
             scheduledTime: draft.scheduledTime,
             address: draft.address,
             zip: draft.zip,

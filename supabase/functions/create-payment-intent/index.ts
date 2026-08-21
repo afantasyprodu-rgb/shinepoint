@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
     // Load booking + verify the caller owns it (customer side).
     const { data: booking, error: bErr } = await admin
       .from('bookings')
-      .select('id, total_price, paid_at, stripe_payment_intent, customer_id, detailer_id, service_id, is_loyalty_redemption, customer_profiles!bookings_customer_id_fkey(user_id)')
+      .select('id, total_price, paid_at, stripe_payment_intent, customer_id, detailer_id, service_id, addon_service_ids, is_loyalty_redemption, customer_profiles!bookings_customer_id_fkey(user_id)')
       .eq('id', bookingId)
       .single()
     if (bErr || !booking) return json({ error: 'Booking not found' }, 404)
@@ -61,16 +61,23 @@ Deno.serve(async (req) => {
     // ownership, so total_price on the row is attacker-controlled.
     // (Referral credits are demo-only with no server-side balance, so they
     // are deliberately not honored here.)
-    const { data: service } = await admin
+    //
+    // A booking can carry any combination of the detailer's services (053) —
+    // sum every one selected, not just the primary. Every id, addons
+    // included, must belong to this exact detailer or the whole booking is
+    // rejected; a stray id from another detailer's listing is exactly the
+    // kind of thing this recompute exists to catch.
+    const allServiceIds = [booking.service_id, ...(booking.addon_service_ids ?? [])]
+    const { data: bookedServices } = await admin
       .from('services')
       .select('id, price, detailer_id')
-      .eq('id', booking.service_id)
-      .single()
-    if (!service || service.detailer_id !== booking.detailer_id) {
+      .in('id', allServiceIds)
+    if (!bookedServices || bookedServices.length !== allServiceIds.length ||
+      bookedServices.some((s) => s.detailer_id !== booking.detailer_id)) {
       return json({ error: 'Invalid service for this booking' }, 409)
     }
 
-    const listPrice = Number(service.price)
+    const listPrice = bookedServices.reduce((sum, s) => sum + Number(s.price), 0)
 
     // ── Detailer-funded promo code ────────────────────────────────────────
     // Unlike loyalty credits, this is the DETAILER's own promotion, so it

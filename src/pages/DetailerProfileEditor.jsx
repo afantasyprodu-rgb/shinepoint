@@ -78,7 +78,10 @@ export default function DetailerProfileEditor() {
   const [bio, setBio] = useState(me.bio ?? '')
   const [gallery, setGallery] = useState(me.gallery ?? [])
   const [services, setServices] = useState(
-    (me.services ?? []).map((s) => ({ id: s.id, name: s.name, price: String(s.price), desc: s.desc ?? '' }))
+    (me.services ?? []).map((s) => ({
+      id: s.id, name: s.name, price: String(s.price), desc: s.desc ?? '',
+      isAddon: Boolean(s.isAddon), isBestValue: Boolean(s.isBestValue),
+    }))
   )
   const [travel, setTravel] = useState(me.travelMiles ?? 10)
   const [days, setDays] = useState(me.serviceDays?.length ? me.serviceDays : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'])
@@ -94,7 +97,7 @@ export default function DetailerProfileEditor() {
     setServices((ss) => ss.map((s, idx) => (idx === i ? { ...s, [key]: val } : s)))
   }
   function addService() {
-    setServices((ss) => [...ss, { id: `new-${Date.now()}`, name: '', price: '', desc: '' }])
+    setServices((ss) => [...ss, { id: `new-${Date.now()}`, name: '', price: '', desc: '', isAddon: false, isBestValue: false }])
   }
   function removeService(i) {
     setServices((ss) => ss.filter((_, idx) => idx !== i))
@@ -121,7 +124,10 @@ export default function DetailerProfileEditor() {
       await updateMyServices(
         services
           .filter((s) => s.name.trim())
-          .map((s) => ({ id: s.id, name: s.name.trim(), price: Number(s.price) || 0, desc: s.desc }))
+          .map((s) => ({
+            id: s.id, name: s.name.trim(), price: Number(s.price) || 0, desc: s.desc,
+            isAddon: s.isAddon, isBestValue: s.isBestValue,
+          }))
       )
       if (me.id) setAvailability(me.id, { travelMiles: Number(travel), acceptsRewards: rewardsOptIn, serviceDays: days })
       setSaved(true)
@@ -183,7 +189,7 @@ export default function DetailerProfileEditor() {
                 <PlusIcon className="h-4 w-4" /> {t('addService')}
               </button>
             </div>
-            <div className="mt-3 space-y-2">
+            <div className="mt-3 space-y-3">
               <AnimatePresence initial={false}>
                 {services.map((s, i) => (
                   <motion.div
@@ -192,25 +198,60 @@ export default function DetailerProfileEditor() {
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
-                    className="flex items-center gap-2"
+                    className="rounded-xl border border-brand-100 p-3 dark:border-white/10"
                   >
-                    <input
-                      type="text" value={s.name} onChange={(e) => setService(i, 'name', e.target.value)}
-                      className="input flex-1" placeholder={t('serviceNamePlaceholder')}
-                    />
-                    <div className="relative w-24 shrink-0">
-                      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500">$</span>
+                    <div className="flex items-center gap-2">
                       <input
-                        type="number" min={0} value={s.price} onChange={(e) => setService(i, 'price', e.target.value)}
-                        className="input pl-6" placeholder="0"
+                        type="text" value={s.name} onChange={(e) => setService(i, 'name', e.target.value)}
+                        className="input flex-1" placeholder={t('serviceNamePlaceholder')}
                       />
+                      <div className="relative w-24 shrink-0">
+                        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500">$</span>
+                        <input
+                          type="number" min={0} value={s.price} onChange={(e) => setService(i, 'price', e.target.value)}
+                          className="input pl-6" placeholder="0"
+                        />
+                      </div>
+                      <button
+                        type="button" onClick={() => removeService(i)} aria-label={t('removeService', { name: s.name || t('service') })}
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:text-slate-500 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+                      >
+                        <TrashIcon className="h-4 w-4" />
+                      </button>
                     </div>
-                    <button
-                      type="button" onClick={() => removeService(i)} aria-label={t('removeService', { name: s.name || t('service') })}
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:text-slate-500 dark:hover:bg-red-500/10 dark:hover:text-red-400"
-                    >
-                      <TrashIcon className="h-4 w-4" />
-                    </button>
+                    <input
+                      type="text" value={s.desc} onChange={(e) => setService(i, 'desc', e.target.value)}
+                      className="input mt-2 h-9 text-sm" placeholder={t('whatsIncludedPlaceholder')}
+                    />
+                    <div className="mt-2 flex flex-wrap items-center gap-4">
+                      {/* Main vs. add-on: a customer can select any combination at
+                          booking time, but this decides which list a service shows
+                          up in (see BookingWizard). */}
+                      <div className="flex items-center gap-1 rounded-full bg-brand-50 p-0.5 text-xs font-medium dark:bg-white/5">
+                        <button
+                          type="button"
+                          onClick={() => setService(i, 'isAddon', false)}
+                          className={`cursor-pointer rounded-full px-2.5 py-1 transition-colors ${!s.isAddon ? 'bg-white text-brand-800 shadow-sm dark:bg-white/10 dark:text-brand-300' : 'text-slate-500 dark:text-slate-400'}`}
+                        >
+                          {t('mainService')}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setService(i, 'isAddon', true)}
+                          className={`cursor-pointer rounded-full px-2.5 py-1 transition-colors ${s.isAddon ? 'bg-white text-brand-800 shadow-sm dark:bg-white/10 dark:text-brand-300' : 'text-slate-500 dark:text-slate-400'}`}
+                        >
+                          {t('addOn')}
+                        </button>
+                      </div>
+                      <label className="flex cursor-pointer items-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-400">
+                        <input
+                          type="checkbox" checked={s.isBestValue}
+                          onChange={(e) => setService(i, 'isBestValue', e.target.checked)}
+                          className="h-3.5 w-3.5 cursor-pointer accent-brand-600"
+                        />
+                        {t('markBestValue')}
+                      </label>
+                    </div>
                   </motion.div>
                 ))}
               </AnimatePresence>

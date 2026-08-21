@@ -152,7 +152,14 @@ const shownStage = openStage ?? stageIdx
             <div className="flex items-center gap-3">
               <Avatar name={d?.name ?? 'Detailer'} photo={d?.photo} />
               <div>
-                <h1 className="font-display text-xl font-bold text-slate-900">{b.service}</h1>
+                <h1 className="font-display text-xl font-bold text-slate-900">
+                  {b.service}
+                  {(b.addonServiceIds ?? []).length > 0 &&
+                    ` + ${b.addonServiceIds
+                      .map((aid) => d?.services?.find((s) => s.id === aid)?.name)
+                      .filter(Boolean)
+                      .join(' + ')}`}
+                </h1>
                 <p className="text-sm text-slate-500">
                   {d?.name} · ${b.price + (b.tip ?? 0)} · {b.vehicle}
                 </p>
