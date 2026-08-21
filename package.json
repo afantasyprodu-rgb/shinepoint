@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "gen:legal": "node scripts/gen-legal-static.mjs",
+    "build": "npm run gen:legal && vite build",
     "preview": "vite preview",
     "cap:sync": "npm run build && cap sync",
     "cap:android": "cap open android",
