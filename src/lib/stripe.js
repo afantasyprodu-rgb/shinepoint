@@ -55,3 +55,9 @@ export const chargeTip = (bookingId, amount) => invokeFn('charge-tip', { booking
 // recorded a refund without ever moving money.
 export const resolveDisputeWithRefund = (disputeId, resolution, refundAmount = 0, resolutionNotes = '') =>
   invokeFn('resolve-dispute', { disputeId, resolution, refundAmount, resolutionNotes })
+
+// Detailer declining a 'pending' request goes through the edge function,
+// never a plain status patch — if the customer already paid, only the
+// edge function (service-role Stripe key) can actually refund them. See
+// decline-booking/index.ts for why the client can't do this itself.
+export const declineBookingWithRefund = (bookingId) => invokeFn('decline-booking', { bookingId })

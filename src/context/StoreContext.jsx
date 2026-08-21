@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { chargeTip, resolveDisputeWithRefund } from '../lib/stripe'
+import { chargeTip, resolveDisputeWithRefund, declineBookingWithRefund } from '../lib/stripe'
 import { useAuth } from './AuthContext'
 import {
   DEMO_DETAILERS,
@@ -763,6 +763,23 @@ export function StoreProvider({ children }) {
       },
 
       patchBooking,
+
+      // Detailer declining a still-'pending' request. Never a plain
+      // patchBooking(status:'cancelled') for a real booking — if the
+      // customer already paid, that would leave them charged with no
+      // refund. The edge function checks payment status and issues a real
+      // Stripe refund first when there is one; only then is the row
+      // updated (see decline-booking/index.ts).
+      async declineBooking(id) {
+        if (!isDemo) {
+          await declineBookingWithRefund(id)
+          setRealBookings((bs) =>
+            bs.map((b) => (b.id === id ? { ...b, status: 'cancelled', cancelledBy: 'detailer' } : b))
+          )
+          return
+        }
+        patchBooking(id, { status: 'cancelled', cancelledBy: 'detailer' })
+      },
 
       sendMessage(bookingId, from, text) {
         const flagged = /\d{3}[-.\s]?\d{3}[-.\s]?\d{4}|venmo|zelle|cash ?app/i.test(text)

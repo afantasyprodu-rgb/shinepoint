@@ -29,6 +29,9 @@ function normalizeDetailer(row) {
     probationRemaining: row.probation_jobs_remaining ?? 0,
     serviceDays: row.service_days ?? [],
     travelMiles: row.free_travel_miles ?? 10,
+    // Per-mile fee past the free radius (028) — was collected at onboarding
+    // and never charged anywhere until BookingWizard's mileage-fee check.
+    chargePerMile: Number(row.charge_per_extra_mile ?? 0),
     // Minimum gap the detailer wants between bookings — see BookingWizard's
     // conflict pre-check and migration 053's server-side guard.
     bufferMinutes: row.booking_buffer_min ?? 60,
@@ -264,7 +267,7 @@ export async function fetchDetailers() {
         accepts_bookings_when_busy, accepts_reward_bookings,
         insurance_status, total_completed_jobs, average_rating, total_reviews, bio,
         profile_photo_url, gallery_urls,
-        probation_jobs_remaining, service_days, free_travel_miles, booking_buffer_min,
+        probation_jobs_remaining, service_days, free_travel_miles, booking_buffer_min, charge_per_extra_mile,
         services(id, service_name, description, price, vehicle_types, is_active, is_addon, is_featured, is_package, package_includes)
       `),
     fetchDetailerNames(),

@@ -136,7 +136,21 @@ function JobRow({ b, t, lang }) {
 // Blueprint screen 5.1 — Detailer Dashboard.
 export default function DetailerDashboard() {
   const { profile } = useAuth()
-  const { bookings, getDetailer, patchBooking, isDemo, detailerProfile } = useStore()
+  const { bookings, getDetailer, patchBooking, declineBooking, isDemo, detailerProfile } = useStore()
+  const [decliningId, setDecliningId] = useState(null)
+  const [declineError, setDeclineError] = useState('')
+
+  async function handleDecline(id) {
+    setDeclineError('')
+    setDecliningId(id)
+    try {
+      await declineBooking(id)
+    } catch (err) {
+      setDeclineError(err.message ?? String(err))
+    } finally {
+      setDecliningId(null)
+    }
+  }
   const t = useT('detailerDashboard')
   const { lang } = useLanguage()
 
@@ -277,6 +291,11 @@ export default function DetailerDashboard() {
             <h2 className="mt-8 font-display text-lg font-semibold text-slate-900 dark:text-slate-100">
               {t('incomingRequests')}
             </h2>
+            {declineError && (
+              <p role="alert" className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-400">
+                {declineError}
+              </p>
+            )}
             <AnimatePresence>
               {incoming.length === 0 && (
                 <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-3 text-sm text-slate-500 dark:text-slate-400">
@@ -323,10 +342,11 @@ export default function DetailerDashboard() {
                       {t('accept')}
                     </button>
                     <button
-                      onClick={() => patchBooking(b.id, { status: 'cancelled', cancelledBy: 'detailer' })}
-                      className="btn btn-outline h-11 flex-1 text-sm"
+                      onClick={() => handleDecline(b.id)}
+                      disabled={decliningId === b.id}
+                      className="btn btn-outline h-11 flex-1 text-sm disabled:opacity-50"
                     >
-                      {t('decline')}
+                      {decliningId === b.id ? t('declining') : t('decline')}
                     </button>
                   </div>
                 </motion.div>

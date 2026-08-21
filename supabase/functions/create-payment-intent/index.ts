@@ -14,6 +14,7 @@ import { corsHeaders, json } from '../_shared/cors.ts'
 import { captureException } from '../_shared/sentry.ts'
 import { isUuid } from '../_shared/validate.ts'
 import { withinRateLimit, tooManyRequests } from '../_shared/rateLimit.ts'
+import { approxCentroidForZip, milesBetween } from '../_shared/geo.ts'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
   apiVersion: '2026-05-27.dahlia',
@@ -47,7 +48,7 @@ Deno.serve(async (req) => {
     // Load booking + verify the caller owns it (customer side).
     const { data: booking, error: bErr } = await admin
       .from('bookings')
-      .select('id, total_price, paid_at, stripe_payment_intent, customer_id, detailer_id, service_id, addon_service_ids, is_loyalty_redemption, customer_profiles!bookings_customer_id_fkey(user_id)')
+      .select('id, total_price, paid_at, stripe_payment_intent, customer_id, detailer_id, service_id, addon_service_ids, is_loyalty_redemption, booking_zip, customer_profiles!bookings_customer_id_fkey(user_id)')
       .eq('id', bookingId)
       .single()
     if (bErr || !booking) return json({ error: 'Booking not found' }, 404)
@@ -109,6 +110,34 @@ Deno.serve(async (req) => {
     // The commission base: what the detailer is effectively charging.
     const servicePrice = Number((listPrice - promoDiscount).toFixed(2))
 
+    // ── Mileage fee ───────────────────────────────────────────────────────
+    // Every detailer sets a free travel radius + a per-extra-mile rate at
+    // onboarding (028); nothing ever charged it. Recomputed here from the
+    // same zip-centroid table BookingWizard uses for its pre-payment
+    // estimate (_shared/geo.ts mirrors src/lib/fuzzyPin.js) — never trust
+    // whatever mileage the client thinks it saw. Passed to the detailer at
+    // 100%, same as a tip: it's their gas, not commissionable revenue.
+    const { data: detailerGeo } = await admin
+      .from('detailer_profiles')
+      .select('zip_code, pin_lat, pin_lng, free_travel_miles, charge_per_extra_mile')
+      .eq('id', booking.detailer_id)
+      .single()
+    let mileageFee = 0
+    if (detailerGeo) {
+      const origin =
+        detailerGeo.pin_lat != null && detailerGeo.pin_lng != null
+          ? { lat: Number(detailerGeo.pin_lat), lng: Number(detailerGeo.pin_lng) }
+          : approxCentroidForZip(detailerGeo.zip_code)
+      const destination = approxCentroidForZip(booking.booking_zip)
+      if (origin && destination) {
+        const distanceMiles = milesBetween(origin, destination)
+        const freeMiles = Number(detailerGeo.free_travel_miles ?? 10)
+        const perMile = Number(detailerGeo.charge_per_extra_mile ?? 0)
+        const extraMiles = Math.max(0, Math.ceil(distanceMiles - freeMiles))
+        mileageFee = Number((extraMiles * perMile).toFixed(2))
+      }
+    }
+
     // ── Discounts ─────────────────────────────────────────────────────────
     // Both are PLATFORM-FUNDED: the detailer is paid on the full service
     // price regardless of what the customer actually pays, and the platform
@@ -156,11 +185,14 @@ Deno.serve(async (req) => {
       Math.max(0, servicePrice - rewardCredit),
     )
 
-    const expected = Math.max(0, servicePrice - rewardCredit - referralCredit)
+    // Mileage isn't discountable — rewards/referral credits/promo all apply
+    // to the service price only, then the travel fee is added on top.
+    const expected = Number((Math.max(0, servicePrice - rewardCredit - referralCredit) + mileageFee).toFixed(2))
     // The detailer's cut is computed off the FULL price, not the discounted
     // one. release-payouts transfers this from the platform balance, so a
-    // fully-discounted booking still pays the detailer properly.
-    const detailerPayout = Number((servicePrice * (1 - FEE_PERCENT / 100)).toFixed(2))
+    // fully-discounted booking still pays the detailer properly. Mileage
+    // passes through in full, same as the service commission split.
+    const detailerPayout = Number((servicePrice * (1 - FEE_PERCENT / 100) + mileageFee).toFixed(2))
 
     // Consume whatever was actually applied, once the booking is committed
     // to being paid. Idempotent: the reward update is keyed on redeemed_at
@@ -188,8 +220,8 @@ Deno.serve(async (req) => {
     const amount = Math.round(expected * 100)
     // Correct the row so downstream reads (detailer payout views, receipts)
     // show the enforced price, not whatever the client inserted.
-    if (Number(booking.total_price) !== expected) {
-      await admin.from('bookings').update({ total_price: expected }).eq('id', booking.id)
+    if (Number(booking.total_price) !== expected || mileageFee > 0) {
+      await admin.from('bookings').update({ total_price: expected, mileage_fee: mileageFee }).eq('id', booking.id)
     }
 
     if (amount <= 0) {

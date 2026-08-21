@@ -11,6 +11,7 @@ import { useStore } from '../context/StoreContext'
 import { useTheme } from '../context/ThemeContext'
 import { stripePromise, isStripeConfigured, createPaymentIntent } from '../lib/stripe'
 import { checkPromoCode, fetchDetailerBusyTimes } from '../lib/db'
+import { approxCentroidForZip, milesBetween } from '../lib/fuzzyPin'
 import { useT } from '../i18n/useT'
 
 const VEHICLES = ['Sedan', 'SUV', 'Truck', 'Coupe', 'Van']
@@ -463,7 +464,19 @@ export default function BookingWizard() {
   const rewardCredit = useReward && reward ? Math.min(reward.credit ?? 0, discountedPrice) : 0
   const baseAfterReward = Math.max(0, discountedPrice - rewardCredit)
   const creditUsed = Math.min(customer.referralCredits, baseAfterReward)
-  const total = baseAfterReward - creditUsed
+  // Mileage isn't discountable — added on top of whatever credits/promo
+  // already brought the service price down, same order create-payment-intent
+  // enforces server-side (the real charge; this is the pre-payment estimate
+  // shown to the customer so they aren't surprised at checkout).
+  const distanceMiles = useMemo(() => {
+    if (!d.pin || !customer.zip) return null
+    const origin = approxCentroidForZip(customer.zip)
+    return origin ? milesBetween(origin, d.pin) : null
+  }, [d.pin, customer.zip])
+  const chargePerMile = d.chargePerMile ?? (isDemo ? 2 : 0)
+  const extraMiles = distanceMiles != null ? Math.max(0, Math.ceil(distanceMiles - d.travelMiles)) : 0
+  const mileageFee = extraMiles > 0 ? Number((extraMiles * chargePerMile).toFixed(2)) : 0
+  const total = Number((baseAfterReward - creditUsed + mileageFee).toFixed(2))
 
   function continueFromSchedule() {
     setScheduleError('')
@@ -494,6 +507,7 @@ export default function BookingWizard() {
       service: primaryService.name,
       addonServiceIds: addonServices.map((s) => s.id),
       price: total,
+      mileageFee,
       tip: 0,
       vehicle,
       // DetailerJob.jsx reads vehicleType/vehicleMake/vehicleModel (matching
@@ -596,6 +610,12 @@ export default function BookingWizard() {
                 {t('serviceHeading')}
               </h1>
               <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{t('bookingWith', { name: d.name })}</p>
+
+              {mileageFee > 0 && (
+                <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">
+                  {t('mileageWarning', { name: d.name, miles: d.travelMiles, fee: mileageFee.toFixed(2) })}
+                </p>
+              )}
 
               {d.services.some((s) => s.isPackage) && (
                 <div className="mt-5 space-y-3" role="group" aria-label={t('packagesHeading')}>
@@ -935,6 +955,12 @@ export default function BookingWizard() {
                   <div className="flex justify-between text-sm font-medium text-cta-700 dark:text-cta-400">
                     <span>{t('referralCredit')}</span>
                     <span>−${creditUsed}</span>
+                  </div>
+                )}
+                {mileageFee > 0 && (
+                  <div className="flex justify-between text-sm font-medium text-amber-700 dark:text-amber-400">
+                    <span>{t('mileageFee', { miles: extraMiles })}</span>
+                    <span>+${mileageFee.toFixed(2)}</span>
                   </div>
                 )}
                 <div className="mt-2 flex justify-between border-t border-brand-100 pt-2 font-display text-lg font-bold text-slate-900 dark:border-white/10 dark:text-slate-100">
