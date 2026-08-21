@@ -1306,6 +1306,34 @@
   50% { stroke-opacity: 0.35; fill-opacity: 0.14; }
 }
 
+/* En-route live map (EnRouteTracker.jsx) — the detailer's chosen vehicle
+   emoji as a moving marker, and a plain pin for the destination (the
+   customer's address). Both intentionally skip the abstract-poster filter
+   (.nx-map-plain, applied by EnRouteTracker) — a real street map reads
+   better than the illustration skin at this small a size. */
+.nx-vehicle-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  font-size: 20px;
+  line-height: 1;
+  border-radius: 9999px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  transition: transform 0.6s linear;
+}
+.nx-dest-pin {
+  display: block;
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  background: #16a34a;
+  border: 3px solid #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
 /* Grow-in popup bubble */
 .nx-popup .leaflet-popup-content-wrapper,
 .nx-popup .leaflet-popup-tip {

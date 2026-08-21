@@ -17,6 +17,11 @@ import { useT } from '../i18n/useT'
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
+// Shown as the moving marker on the customer's live en-route map
+// (EnRouteTracker.jsx) — kept to a short, unambiguous set that reads
+// clearly at 22px on a map tile.
+const VEHICLE_EMOJIS = ['🚗', '🚙', '🚐', '🚚', '🛻', '🏍️', '🚲', '🚕']
+
 // Only shown once payouts are actually active — DetailerDashboard is where
 // setup happens and nags until it's done; this is just the durable "manage
 // it later" home once there's nothing left to complete (update bank info,
@@ -76,6 +81,7 @@ export default function DetailerProfileEditor() {
   const [photo, setPhoto] = useState(me.photo ?? null)
   const [name, setName] = useState(me.name ?? '')
   const [bio, setBio] = useState(me.bio ?? '')
+  const [vehicleEmoji, setVehicleEmoji] = useState(me.vehicleEmoji || '🚗')
   const [gallery, setGallery] = useState(me.gallery ?? [])
   const [services, setServices] = useState(
     (me.services ?? []).map((s) => ({
@@ -158,7 +164,7 @@ export default function DetailerProfileEditor() {
     e.preventDefault()
     setBusy(true)
     try {
-      await updateDetailerMe({ name, bio, photo, gallery })
+      await updateDetailerMe({ name, bio, photo, gallery, vehicleEmoji })
       await updateMyServices(
         services
           .filter((s) => s.name.trim())
@@ -217,6 +223,31 @@ export default function DetailerProfileEditor() {
                   placeholder={t('bioPlaceholder')}
                 />
               </div>
+            </div>
+          </div>
+
+          {/* Vehicle emoji — the marker shown on the customer's live map
+              once this detailer is en route (EnRouteTracker.jsx). */}
+          <div className="card">
+            <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t('yourVehicle')}</h2>
+            <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">{t('yourVehicleHint')}</p>
+            <div className="mt-3 flex flex-wrap gap-2" role="radiogroup" aria-label={t('yourVehicle')}>
+              {VEHICLE_EMOJIS.map((emoji) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  role="radio"
+                  aria-checked={vehicleEmoji === emoji}
+                  onClick={() => setVehicleEmoji(emoji)}
+                  className={`flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl text-xl transition-all duration-200 ${
+                    vehicleEmoji === emoji
+                      ? 'bg-brand-600 shadow-md ring-2 ring-brand-200 dark:ring-brand-500/30'
+                      : 'border border-brand-100 bg-white hover:border-brand-300 dark:border-white/10 dark:bg-white/5'
+                  }`}
+                >
+                  {emoji}
+                </button>
+              ))}
             </div>
           </div>
 

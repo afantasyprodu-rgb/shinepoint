@@ -1,8 +1,93 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { useTheme } from '../context/ThemeContext'
 import { CA_ZIP_CENTROIDS, milesBetween } from '../lib/fuzzyPin'
+import { TILES } from './DetailerMap'
 import { ClockIcon, AlertTriangleIcon, MapPinIcon } from './icons'
+
+// The moving marker on the live map below — the detailer's own chosen
+// vehicle emoji (DetailerProfileEditor's "Your vehicle" picker), falling
+// back to a generic car for accounts that predate that field.
+function vehicleIcon(emoji) {
+  return L.divIcon({
+    className: '',
+    html: `<span class="nx-vehicle-marker">${emoji || '🚗'}</span>`,
+    iconSize: [30, 30],
+    iconAnchor: [15, 15],
+  })
+}
+
+const destIcon = L.divIcon({
+  className: '',
+  html: '<span class="nx-dest-pin"></span>',
+  iconSize: [14, 14],
+  iconAnchor: [7, 7],
+})
+
+// Small live map: a fixed destination pin (the customer's address) and a
+// moving emoji marker for the detailer's current position. Created once
+// per mount — `destination` doesn't change during a session, so the effect
+// deliberately only depends on the container ref, not on props that would
+// otherwise tear the map down and rebuild it on every position update.
+function EnRouteMiniMap({ position, destination, emoji }) {
+  const { theme } = useTheme()
+  const containerRef = useRef(null)
+  const mapRef = useRef(null)
+  const tileRef = useRef(null)
+  const vehicleMarkerRef = useRef(null)
+
+  useEffect(() => {
+    if (!containerRef.current || mapRef.current) return
+    const map = L.map(containerRef.current, {
+      center: [destination.lat, destination.lng],
+      zoom: 12,
+      zoomControl: false,
+      attributionControl: false,
+      scrollWheelZoom: false,
+    })
+    const t = TILES[theme] ?? TILES.light
+    tileRef.current = L.tileLayer(t.url, { attribution: t.attribution, maxZoom: 19 }).addTo(map)
+    L.marker([destination.lat, destination.lng], { icon: destIcon, interactive: false }).addTo(map)
+    mapRef.current = map
+    return () => {
+      map.remove()
+      mapRef.current = null
+      vehicleMarkerRef.current = null
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Swap tiles when the theme flips.
+  useEffect(() => {
+    if (!mapRef.current || !tileRef.current) return
+    const t = TILES[theme] ?? TILES.light
+    tileRef.current.setUrl(t.url)
+  }, [theme])
+
+  // Move (or create) the vehicle marker and keep both points in frame.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !position) return
+    if (vehicleMarkerRef.current) {
+      vehicleMarkerRef.current.setLatLng([position.lat, position.lng])
+    } else {
+      vehicleMarkerRef.current = L.marker([position.lat, position.lng], {
+        icon: vehicleIcon(emoji),
+        interactive: false,
+        zIndexOffset: 600,
+      }).addTo(map)
+    }
+    map.fitBounds(
+      L.latLngBounds([position.lat, position.lng], [destination.lat, destination.lng]),
+      { padding: [28, 28], maxZoom: 15 }
+    )
+  }, [position?.lat, position?.lng, destination.lat, destination.lng, emoji])
+
+  return <div ref={containerRef} className="nx-map-plain h-40 w-full overflow-hidden rounded-xl" />
+}
 
 // Real live tracking for the En route stage — reads GPS pings the
 // detailer's native app posts to booking_location (migration 046,
@@ -101,12 +186,12 @@ export default function EnRouteTracker({ booking, detailer, live = true }) {
 
   if (!home) return null
 
-  let etaMin, milesLeft, waiting, stale, freshness
+  let etaMin, milesLeft, waiting, stale, freshness, position
   if (isDemo) {
     const t = ease(simProgress)
-    const current = lerpPt(start, home, t)
+    position = lerpPt(start, home, t)
     etaMin = Math.max(1, Math.round((1 - simProgress) * totalMin))
-    milesLeft = milesBetween(current, home)
+    milesLeft = milesBetween(position, home)
     waiting = false
     stale = false
     freshness = 'On the way'
@@ -115,6 +200,7 @@ export default function EnRouteTracker({ booking, detailer, live = true }) {
     const prev = pings.length > 1 ? pings[0] : null
     waiting = !latest
     if (!waiting) {
+      position = latest
       milesLeft = milesBetween(latest, home)
       let mph = ASSUMED_MPH
       if (prev) {
@@ -133,8 +219,11 @@ export default function EnRouteTracker({ booking, detailer, live = true }) {
   }
 
   return (
-    <div className="mt-3 rounded-2xl border border-brand-100 bg-white px-3 py-2.5">
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+    <div className="mt-3 overflow-hidden rounded-2xl border border-brand-100 bg-white">
+      {position && (
+        <EnRouteMiniMap position={position} destination={home} emoji={detailer?.vehicleEmoji} />
+      )}
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2.5 text-xs">
         <span className="flex items-center gap-1.5 font-semibold text-slate-900">
           <span className="relative flex h-2 w-2">
             <span className={`absolute inline-flex h-full w-full rounded-full ${live ? 'animate-ping bg-cta-500' : 'bg-slate-400'} opacity-60`} />
@@ -163,7 +252,7 @@ export default function EnRouteTracker({ booking, detailer, live = true }) {
           </>
         )}
       </div>
-      <p className="mt-1.5 flex items-center gap-1 text-xs text-slate-500">
+      <p className="mb-2.5 mt-1.5 flex items-center gap-1 px-3 text-xs text-slate-500">
         <MapPinIcon className="h-3.5 w-3.5 shrink-0 text-cta-600" />
         {detailer?.name ?? 'Your detailer'} heading to {booking.address}
       </p>

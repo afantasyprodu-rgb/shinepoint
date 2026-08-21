@@ -529,9 +529,15 @@ export function StoreProvider({ children }) {
         if (patch.bio != null) cols.bio = patch.bio
         if ('photo' in patch) cols.profile_photo_url = patch.photo
         if (patch.gallery) cols.gallery_urls = patch.gallery
+        if (patch.vehicleEmoji != null) cols.vehicle_emoji = patch.vehicleEmoji
         if (Object.keys(cols).length) {
           await updateDetailerProfile(profile.id, cols)
           setDetailerProfile((dp) => ({ ...(dp ?? {}), ...cols }))
+          // myDetailer/getDetailer read from realDetailers (fetchDetailers'
+          // cache), not detailerProfile directly — refetch so a vehicle
+          // emoji change (or any of the above) shows up immediately instead
+          // of only after the next unrelated reload, same as updateMyServices.
+          fetchDetailers().then(setRealDetailers)
         }
       },
 
