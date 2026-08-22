@@ -24,9 +24,14 @@ export default function BottomTabBar({ items, layoutId, hidden = false }) {
     // translate-y-full + transition: lets a screen (the map) collapse this
     // bar out of the way via `hidden`, without unmounting it — same active-
     // tab state and notch position are just waiting off-screen underneath.
+    // z-[650]: same fix as AppShell's nav-toggle handle and Tools button — a
+    // plain z-20 lost to the map's Leaflet panes/overlay chrome (z-[500]+)
+    // in the same root stacking context, so on the collapsible-nav map
+    // screen the bar slid into view but stayed hidden behind the map tiles.
+    // Below Drawer's z-[700].
     <div
       aria-hidden={hidden}
-      className={`fixed inset-x-0 bottom-0 z-20 pb-[env(safe-area-inset-bottom)] transition-transform duration-300 ease-out sm:hidden ${
+      className={`fixed inset-x-0 bottom-0 z-[650] pb-[env(safe-area-inset-bottom)] transition-transform duration-300 ease-out sm:hidden ${
         hidden ? 'translate-y-full' : 'translate-y-0'
       }`}
       style={{ '--tab-notch-x': notchX }}
