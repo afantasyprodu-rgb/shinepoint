@@ -265,7 +265,12 @@ export default function AppShell({ role, children, collapsibleBottomNav = false 
           // it's out, and drops down to hover just above the safe-area edge
           // once the bar's tucked away — always reachable, in the same spot
           // the bar's top edge just vacated.
-          className={`nx-neu press-spring fixed left-1/2 z-30 flex h-7 w-14 -translate-x-1/2 items-center justify-center rounded-full text-slate-500 transition-[bottom] duration-300 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-slate-300 sm:hidden ${
+          // z-[650]: same fix as the Tools button below and the notification
+          // panel above — a plain z-30 loses to the map's Leaflet panes and
+          // overlay chrome (locate button, weather badge) at z-[500]+ in the
+          // same root stacking context, so the handle rendered behind the
+          // map instead of floating above it. Below Drawer's z-[700].
+          className={`nx-neu press-spring fixed left-1/2 z-[650] flex h-7 w-14 -translate-x-1/2 items-center justify-center rounded-full text-slate-500 transition-[bottom] duration-300 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-slate-300 sm:hidden ${
             navHidden
               ? 'bottom-[max(0.5rem,env(safe-area-inset-bottom))]'
               : 'bottom-[calc(4.5rem+env(safe-area-inset-bottom))]'
