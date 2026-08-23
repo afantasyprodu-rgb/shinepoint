@@ -12,6 +12,7 @@ import { useTheme } from '../context/ThemeContext'
 import { stripePromise, isStripeConfigured, createPaymentIntent } from '../lib/stripe'
 import { checkPromoCode, fetchDetailerBusyTimes } from '../lib/db'
 import { approxCentroidForZip, milesBetween } from '../lib/fuzzyPin'
+import { playSfx } from '../lib/sfx'
 import { useT } from '../i18n/useT'
 
 const VEHICLES = ['Sedan', 'SUV', 'Truck', 'Coupe', 'Van']
@@ -1049,7 +1050,7 @@ export default function BookingWizard() {
                   stripe={stripePromise}
                   options={{ clientSecret, appearance: { theme: 'stripe', variables: { colorPrimary: '#f40076' } } }}
                 >
-                  <PaymentForm amount={total} onSuccess={() => setStep(4)} />
+                  <PaymentForm amount={total} onSuccess={() => { playSfx('success'); setStep(4) }} />
                 </Elements>
               </div>
             </motion.div>

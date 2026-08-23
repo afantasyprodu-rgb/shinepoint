@@ -3,6 +3,7 @@ import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import Logo from './Logo'
 import ThemeToggle from './ThemeToggle'
+import SfxToggle from './SfxToggle'
 import LanguageToggle from './LanguageToggle'
 import ToolsSidebar from './ToolsSidebar'
 import { BellIcon, ClipboardCheckIcon, TrendingUpIcon, UsersIcon, PieChartIcon, MapPinIcon, MoreIcon, ChevronDownIcon } from './icons'
@@ -243,6 +244,7 @@ export default function AppShell({ role, children, collapsibleBottomNav = false 
               </span>
             )}
             <ThemeToggle />
+            <SfxToggle />
             <LanguageToggle />
             <NotificationBell role={role} />
             <button onClick={handleSignOut} className="btn btn-outline h-9 px-3 text-sm">

@@ -25,6 +25,7 @@ import { MAP_APPS, openInMaps } from '../lib/navigation'
 import { useT } from '../i18n/useT'
 import { sendReceiptEmail, sendEnRouteEmail } from '../lib/email'
 import { startTracking, stopTracking } from '../lib/tracking'
+import { playSfx } from '../lib/sfx'
 
 // Blueprint 5.3–5.5 — the detailer's gated job flow:
 // en route → arrived → damage report → before photos → start →
@@ -125,6 +126,7 @@ export default function DetailerJob() {
       ready: b.status === 'accepted',
       action: async () => {
         await patchBooking(b.id, { status: 'en_route' })
+        playSfx('enroute')
         if (!isDemo) {
           startTracking(b.id).catch((e) => console.error('startTracking:', e.message))
           sendEnRouteEmail(b.id).catch((e) => console.error('sendEnRouteEmail:', e.message))

@@ -5,6 +5,7 @@ import { useStore } from '../context/StoreContext'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 import { fetchMessages, sendMessageToDB } from '../lib/db'
+import { playSfx } from '../lib/sfx'
 import { useT } from '../i18n/useT'
 
 // Blueprint 3.3 — in-app chat tied to a booking. Auto-flags phone numbers
@@ -50,6 +51,7 @@ export default function ChatThread({ bookingId, me }) {
           { event: 'INSERT', schema: 'public', table: 'messages', filter: `booking_id=eq.${bookingId}` },
           (payload) => {
             const m = payload.new
+            if (m.sender_id !== user?.id) playSfx('message')
             setRealThread((prev) =>
               prev.some((x) => x.id === m.id)
                 ? prev
