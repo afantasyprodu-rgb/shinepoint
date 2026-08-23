@@ -510,8 +510,16 @@ export async function setDamageReportFlags(bookingId, { submitted, acknowledged 
   }
   if (acknowledged !== undefined) patch.damage_report_acknowledged = acknowledged
   if (!Object.keys(patch).length) return
-  const { error } = await supabase.from('bookings').update(patch).eq('id', bookingId)
-  if (error) console.error('setDamageReportFlags:', error.message)
+  // Same raw-update shape as updateBookingStatusInDB, so it reuses that
+  // queue's 'bookingStatus' handler — this is what actually unblocks the
+  // damage-inspection gate, so a signal drop here can't leave the detailer
+  // stuck any more than a status tap can.
+  try {
+    await writeBookingStatus({ bookingId, dbPatch: patch })
+  } catch (e) {
+    console.error('setDamageReportFlags failed, queued for retry:', e.message)
+    enqueue('bookingStatus', { bookingId, dbPatch: patch })
+  }
 }
 
 // Shape a booking row's nested `photos` into the app's photo fields. Damage

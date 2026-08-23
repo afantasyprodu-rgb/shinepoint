@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { chargeTip, resolveDisputeWithRefund, declineBookingWithRefund } from '../lib/stripe'
+import { enqueuePhoto } from '../lib/photoQueue'
 import { useAuth } from './AuthContext'
 import {
   DEMO_DETAILERS,
@@ -559,6 +560,13 @@ export function StoreProvider({ children }) {
       // `items` is [{ area, photo(base64), file }]. Demo keeps base64 in state;
       // real uploads each File to Storage + the photos table, then reflects the
       // public URLs locally so every role sees the same shots.
+      //
+      // `it.photo` is already a locally-read base64 preview (PhotoCapture reads
+      // it with FileReader before this ever runs) — no network needed for that
+      // part. So state updates with the base64 preview immediately, and a
+      // failed upload (no signal) queues the actual File for background retry
+      // instead of throwing and leaving the detailer stuck mid-job with nothing
+      // recorded. The real Storage URL backfills into state once it lands.
       async addBookingPhotos(bookingId, kind, items) {
         const countKey = kind === 'before' ? 'beforePhotos' : 'afterPhotos'
         const dataKey = kind === 'before' ? 'beforePhotoData' : 'afterPhotoData'
@@ -568,15 +576,26 @@ export function StoreProvider({ children }) {
           patchBooking(bookingId, { [countKey]: items.length, [dataKey]: items })
           return
         }
-        const uploaded = []
-        for (const it of items) {
-          if (!it.file) continue
-          const { url } = await uploadBookingPhoto(profile.id, bookingId, it.file, kind, it.area)
-          uploaded.push({ area: it.area, photo: url })
-        }
+        const uploaded = items.map((it) => ({ area: it.area, photo: it.photo }))
         setRealBookings((bs) =>
           bs.map((b) => (b.id === bookingId ? { ...b, [countKey]: uploaded.length, [dataKey]: uploaded } : b))
         )
+        for (const it of items) {
+          if (!it.file) continue
+          try {
+            const { url } = await uploadBookingPhoto(profile.id, bookingId, it.file, kind, it.area)
+            setRealBookings((bs) =>
+              bs.map((b) => {
+                if (b.id !== bookingId) return b
+                const data = (b[dataKey] ?? []).map((p) => (p.area === it.area ? { ...p, photo: url } : p))
+                return { ...b, [dataKey]: data }
+              })
+            )
+          } catch (e) {
+            console.error('addBookingPhotos upload failed, queued for retry:', e.message)
+            enqueuePhoto({ userId: profile.id, bookingId, blob: it.file, filename: it.file.name, photoType: kind, areaLabel: it.area })
+          }
+        }
       },
 
       // Detailer submits the damage report. `items` is [{ area, note, photo, file }].
@@ -586,14 +605,11 @@ export function StoreProvider({ children }) {
           patchBooking(bookingId, { damageReport: { submitted: true, acknowledged: false, items } })
           return
         }
-        const saved = []
-        for (const it of items) {
-          if (!it.file) { saved.push({ area: it.area, note: it.note }); continue }
-          const label = it.note ? `${it.area} — ${it.note}` : it.area
-          const { url } = await uploadBookingPhoto(profile.id, bookingId, it.file, 'damage_report', label)
-          saved.push({ area: it.area, note: it.note, photo: url })
-        }
+        // Flip the flags first (queued on failure — see setDamageReportFlags)
+        // so the job moves forward for the detailer regardless of whether any
+        // individual photo upload below succeeds right now.
         await setDamageReportFlags(bookingId, { submitted: true, acknowledged: false })
+        const saved = items.map((it) => ({ area: it.area, note: it.note, photo: it.photo }))
         setRealBookings((bs) =>
           bs.map((b) =>
             b.id === bookingId
@@ -601,6 +617,23 @@ export function StoreProvider({ children }) {
               : b
           )
         )
+        for (const it of items) {
+          if (!it.file) continue
+          const label = it.note ? `${it.area} — ${it.note}` : it.area
+          try {
+            const { url } = await uploadBookingPhoto(profile.id, bookingId, it.file, 'damage_report', label)
+            setRealBookings((bs) =>
+              bs.map((b) => {
+                if (b.id !== bookingId) return b
+                const data = (b.damageReport?.items ?? []).map((p) => (p.area === it.area ? { ...p, photo: url } : p))
+                return { ...b, damageReport: { ...b.damageReport, items: data } }
+              })
+            )
+          } catch (e) {
+            console.error('submitDamageReport upload failed, queued for retry:', e.message)
+            enqueuePhoto({ userId: profile.id, bookingId, blob: it.file, filename: it.file.name, photoType: 'damage_report', areaLabel: label })
+          }
+        }
       },
 
       // Detailer marks "no pre-existing damage" — report submitted + auto-acked.

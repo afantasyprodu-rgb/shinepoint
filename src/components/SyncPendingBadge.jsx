@@ -1,15 +1,19 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { subscribeQueueSize } from '../lib/offlineQueue'
+import { subscribePhotoQueueSize } from '../lib/photoQueue'
 
-// Surfaces the offline retry queue (status updates, location pings queued
-// while a detailer had no signal) so a tap that silently didn't reach the
-// server doesn't look like it just... didn't happen. Renders nothing once
-// the queue drains back to empty.
+// Surfaces the offline retry queues (status updates, location pings, and
+// photo/damage-report uploads queued while a detailer had no signal) so a
+// tap or a shot that silently didn't reach the server doesn't look like it
+// just... didn't happen. Renders nothing once both queues drain to empty.
 export default function SyncPendingBadge({ className = '' }) {
-  const [count, setCount] = useState(0)
+  const [dataCount, setDataCount] = useState(0)
+  const [photoCount, setPhotoCount] = useState(0)
+  const count = dataCount + photoCount
 
-  useEffect(() => subscribeQueueSize(setCount), [])
+  useEffect(() => subscribeQueueSize(setDataCount), [])
+  useEffect(() => subscribePhotoQueueSize(setPhotoCount), [])
 
   return (
     <AnimatePresence>
