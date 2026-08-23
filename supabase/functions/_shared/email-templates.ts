@@ -56,33 +56,42 @@ function emailShell(previewText: string, bodyHtml: string): string {
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="color-scheme" content="light" />
+<meta name="supported-color-schemes" content="light" />
 <title>ShinePoint</title>
+<!-- Gmail's auto-dark-mode recolors inline styles by heuristic, ignoring
+     the color-scheme meta above on some clients (notably the Gmail
+     mobile apps). [data-ogsc] is Gmail's own selector for "this element
+     is being dark-mode-recolored" — pinning colors under it is the
+     documented way to opt specific elements out and keep them exactly
+     as authored instead of guessed-inverted. -->
+<style>
+  [data-ogsc] .sp-bg-page { background-color: #f1f5f9 !important; }
+  [data-ogsc] .sp-bg-card { background-color: #ffffff !important; }
+</style>
 </head>
-<body style="margin:0; padding:0; background-color:${SLATE_100}; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+<body bgcolor="${SLATE_100}" style="margin:0; padding:0; background-color:${SLATE_100}; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
   <div style="display:none; max-height:0; overflow:hidden; opacity:0; mso-hide:all;">${esc(previewText)}</div>
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:${SLATE_100};">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${SLATE_100}" class="sp-bg-page" style="background-color:${SLATE_100};">
     <tr>
       <td align="center" style="padding:32px 16px;">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">
-          <!-- Logo — same mark as public/favicon.svg (gradient square + sparkle),
-               rebuilt with inline styles/SVG for email. background-color is the
-               fallback for clients that ignore background-image (e.g. Outlook
-               desktop); the gradient is a progressive enhancement on top of it.
-               The sparkle SVG itself may not render in that same Outlook engine —
-               it degrades to a plain solid-color square, which still reads as a
-               logo mark rather than a broken image. -->
+          <!-- Logo — same mark as public/favicon.svg, rendered to a 144x144
+               PNG data URI rather than inline <svg>: Gmail strips inline
+               SVG outright on every client (web and mobile app alike), not
+               just Outlook, which is what made the sparkle mark vanish
+               entirely rather than just degrade. A raster <img> is the one
+               thing every mail client reliably renders. Regenerate only if
+               favicon.svg's mark changes:
+                 python3 -c "import cairosvg; cairosvg.svg2png(
+                   url='public/favicon.svg', write_to='logo.png',
+                   output_width=144, output_height=144)"
+               then base64-encode logo.png and paste it into the src below. -->
           <tr>
             <td style="padding-bottom:24px;">
               <table role="presentation" cellpadding="0" cellspacing="0">
                 <tr>
-                  <td style="background-color:${BRAND_600}; background-image:linear-gradient(135deg, #a78bfa, ${BRAND_700}); width:36px; height:36px; border-radius:10px; text-align:center; vertical-align:middle;">
-                    <!--[if !mso]><!-->
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block; margin:8px;">
-                      <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
-                      <path d="M20 3v4" />
-                      <path d="M22 5h-4" />
-                    </svg>
-                    <!--<![endif]-->
+                  <td bgcolor="${BRAND_700}" style="background-color:${BRAND_700}; width:36px; height:36px; border-radius:10px; text-align:center; vertical-align:middle; line-height:0;">
+                    <img src="data:image/png;base64,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" width="36" height="36" alt="ShinePoint" style="display:block; border-radius:10px; width:36px; height:36px;" />
                   </td>
                   <td style="padding-left:10px; font-size:22px; font-weight:800; letter-spacing:-0.01em; color:#4c1d95; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">ShinePoint</td>
                 </tr>
@@ -91,7 +100,7 @@ function emailShell(previewText: string, bodyHtml: string): string {
           </tr>
           <!-- Card -->
           <tr>
-            <td style="background-color:#ffffff; border-radius:16px; padding:32px; box-shadow:0 1px 3px rgba(15,23,42,0.08);">
+            <td bgcolor="#ffffff" class="sp-bg-card" style="background-color:#ffffff; border-radius:16px; padding:32px; box-shadow:0 1px 3px rgba(15,23,42,0.08);">
               ${bodyHtml}
             </td>
           </tr>
