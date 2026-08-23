@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import Logo from './Logo'
 import ThemeToggle from './ThemeToggle'
 import SfxToggle from './SfxToggle'
+import SyncPendingBadge from './SyncPendingBadge'
 import LanguageToggle from './LanguageToggle'
 import ToolsSidebar from './ToolsSidebar'
 import { BellIcon, ClipboardCheckIcon, TrendingUpIcon, UsersIcon, PieChartIcon, MapPinIcon, MoreIcon, ChevronDownIcon } from './icons'
@@ -243,6 +244,7 @@ export default function AppShell({ role, children, collapsibleBottomNav = false 
                 {t('demoAs', { name: profile?.full_name })}
               </span>
             )}
+            {!isDemo && <SyncPendingBadge className="hidden sm:inline-flex" />}
             <ThemeToggle />
             <SfxToggle />
             <LanguageToggle />

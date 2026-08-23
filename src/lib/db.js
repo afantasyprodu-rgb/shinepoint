@@ -1,5 +1,6 @@
 import { supabase, invokeFn } from './supabase'
 import { fuzzyPinForZip } from './fuzzyPin'
+import { enqueue, registerHandler } from './offlineQueue'
 
 function normalizeDetailer(row) {
   const pin =
@@ -793,7 +794,7 @@ export async function fetchDetailerBusyTimes(detailerId, dateKey) {
 // next reload. Anything patchBooking is called with must be handled here (or
 // deliberately handled by a dedicated helper, e.g. damage-report photos go
 // through setDamageReportFlags/uploadBookingPhoto instead).
-export async function updateBookingStatusInDB(bookingId, patch) {
+function buildBookingStatusPatch(patch) {
   const dbPatch = {}
   if (patch.status) dbPatch.status = patch.status
   if (patch.tip !== undefined) dbPatch.tip_amount = patch.tip
@@ -813,9 +814,32 @@ export async function updateBookingStatusInDB(bookingId, patch) {
   // analytics (average time per job/vehicle) reads these back later.
   if (patch.status === 'in_progress') dbPatch.started_at = new Date().toISOString()
   if (patch.status === 'complete') dbPatch.completed_at = new Date().toISOString()
-  if (!Object.keys(dbPatch).length) return
+  return dbPatch
+}
+
+async function writeBookingStatus({ bookingId, dbPatch }) {
   const { error } = await supabase.from('bookings').update(dbPatch).eq('id', bookingId)
-  if (error) console.error('updateBookingStatus:', error.message)
+  if (error) throw new Error(error.message)
+}
+registerHandler('bookingStatus', writeBookingStatus)
+
+// A detailer on a job can lose signal mid-shift (parking structure, a rural
+// driveway) right as they tap a status gate. The optimistic React state
+// update already happened in StoreContext regardless of this call's outcome
+// — what's at stake here is only whether the DB (and therefore the
+// customer's view, and any email that reads booking status back out) ever
+// finds out. On failure, queue it instead of just logging: it'll replay the
+// moment the detailer's connection comes back instead of silently reverting
+// on their next reload.
+export async function updateBookingStatusInDB(bookingId, patch) {
+  const dbPatch = buildBookingStatusPatch(patch)
+  if (!Object.keys(dbPatch).length) return
+  try {
+    await writeBookingStatus({ bookingId, dbPatch })
+  } catch (e) {
+    console.error('updateBookingStatus failed, queued for retry:', e.message)
+    enqueue('bookingStatus', { bookingId, dbPatch })
+  }
 }
 
 // stripe_account_id / stripe_charges_enabled are withheld from the normal
@@ -1325,12 +1349,30 @@ export async function fetchAccountDeletionFeedback() {
   return data
 }
 
+async function writeLocationPing(payload) {
+  await invokeFn('post-location', payload)
+}
+registerHandler('location', writeLocationPing)
+
 // One GPS ping for an en-route booking, posted by the detailer's native app
 // (src/lib/tracking.js) roughly every ~30s. The edge function re-validates
 // the caller is the assigned detailer and the booking is actually en_route
 // server-side — this call can't be trusted to enforce that on its own.
-export const postLocation = (bookingId, lat, lng, accuracy) =>
-  invokeFn('post-location', { bookingId, lat, lng, accuracy })
+//
+// A detailer can drive through a dead zone for the whole en-route leg —
+// that's exactly when the customer most wants to see the last-known
+// position hold, not go stale with no explanation. Queue failed pings
+// instead of dropping them so the trail backfills once signal returns,
+// rather than leaving a multi-minute gap on the customer's map.
+export async function postLocation(bookingId, lat, lng, accuracy) {
+  const payload = { bookingId, lat, lng, accuracy }
+  try {
+    await writeLocationPing(payload)
+  } catch (e) {
+    enqueue('location', payload)
+    throw e
+  }
+}
 
 // ── Feedback board (052) ─────────────────────────────────────────────────
 // Public within the app: every signed-in customer/detailer reads the same
