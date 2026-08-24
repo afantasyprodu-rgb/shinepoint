@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react'
 import { supabase } from '../lib/supabase'
+import { isGoogleIdentityConfigured, requestGoogleIdToken } from '../lib/googleIdentity'
 import { homePathForRole, signupHomePath } from '../context/AuthContext'
 import { needsMfaChallenge } from '../lib/mfa'
 import { markArrival } from '../lib/transition'
@@ -190,9 +191,32 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
       if (role === 'detailer') localStorage.setItem('pendingRole', 'detailer')
       else localStorage.removeItem('pendingRole')
     } catch { /* private mode, ignore */ }
+    const callbackQuery = role === 'detailer' ? '?role=detailer' : ''
+
+    // Preferred path: Google Identity Services, no redirect through
+    // Supabase's own domain (see googleIdentity.js for why that matters).
+    // Falls through to the classic OAuth redirect below on ANY failure —
+    // GIS not configured, One Tap blocked/dismissed, script load failure —
+    // so the button always does something instead of silently failing.
+    if (isGoogleIdentityConfigured) {
+      try {
+        const idToken = await requestGoogleIdToken()
+        const { error: err } = await supabase.auth.signInWithIdToken({ provider: 'google', token: idToken })
+        if (err) throw err
+        // Same destination AuthCallback.jsx handles after the redirect flow
+        // (ban/suspend check, detailer role claim, MFA step-up, arrival
+        // animation) — reused as-is via a normal in-app navigation instead
+        // of duplicating that logic here.
+        navigate(`/auth/callback${callbackQuery}`)
+        return
+      } catch (e) {
+        console.warn('Google Identity Services sign-in failed, falling back to redirect flow:', e.message)
+      }
+    }
+
     // Role also rides in the redirect URL itself (not just localStorage) since
     // storage can be partitioned/cleared across the Google redirect hop.
-    const redirectTo = `${window.location.origin}/auth/callback${role === 'detailer' ? '?role=detailer' : ''}`
+    const redirectTo = `${window.location.origin}/auth/callback${callbackQuery}`
     const { error: err } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo },
