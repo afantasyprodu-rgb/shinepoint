@@ -35,7 +35,7 @@ export default function HeroBubbles({
     function colors() {
       const s = rootStyle();
       return {
-        brand: s.getPropertyValue('--color-brand-500').trim() || '#a78bfa',
+        brand: s.getPropertyValue('--color-brand-500').trim() || '#ff4aa6',
         brandLight: s.getPropertyValue('--color-brand-300').trim() || '#d8b4fe',
         cta: s.getPropertyValue('--color-cta-500').trim() || '#22c55e',
       };

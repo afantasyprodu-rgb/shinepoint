@@ -57,7 +57,7 @@ export default function HeroFlowField({
     const noise = makeNoise2D(seed);
     const rand = mulberry32(seed + 1);
 
-    const brand = getComputedStyle(document.documentElement).getPropertyValue('--color-brand-500').trim() || '#a78bfa';
+    const brand = getComputedStyle(document.documentElement).getPropertyValue('--color-brand-500').trim() || '#ff4aa6';
     const cta = getComputedStyle(document.documentElement).getPropertyValue('--color-cta-500').trim() || '#22c55e';
 
     let w = 0, h = 0;

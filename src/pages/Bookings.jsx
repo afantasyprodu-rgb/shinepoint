@@ -114,7 +114,7 @@ export default function Bookings() {
                   <Link
                     to={`/bookings/${b.id}`}
                     className="card card-hover flex items-center gap-4 border-l-4 !p-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
-                    style={{ borderLeftColor: 'var(--accent, #7c3aed)' }}
+                    style={{ borderLeftColor: 'var(--accent, #f40076)' }}
                   >
                     <Avatar name={d?.name ?? 'Detailer'} photo={d?.photo} />
                     <div className="min-w-0 flex-1">

@@ -43,7 +43,7 @@ function luminance(hex) {
 // dark paints get lifted off pure black.
 function clampAccent(hex) {
   const lum = luminance(hex)
-  if (lum > 0.6) return '#7c3aed' // white/silver -> brand purple
+  if (lum > 0.6) return '#f40076' // white/silver -> brand pink
   if (lum < 0.02) return '#2a2d34' // pure black -> lifted charcoal
   return hex
 }

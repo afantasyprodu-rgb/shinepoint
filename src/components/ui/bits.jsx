@@ -225,7 +225,7 @@ export function EmptyState({ icon: IconComp, illustration, title, body, action }
 // Tiny area+line chart for bento hero tiles. The line draws itself in on view
 // (stroke-dashoffset), the fill fades after, and the last point is emphasized.
 // Reduced-motion renders it complete instantly.
-export function Sparkline({ data, className = 'h-14 w-full', stroke = '#7c3aed', fill = true }) {
+export function Sparkline({ data, className = 'h-14 w-full', stroke = '#f40076', fill = true }) {
   const reduce = useReducedMotion()
   const ref = useRef(null)
   const [shown, setShown] = useState(false)

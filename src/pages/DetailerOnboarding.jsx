@@ -276,7 +276,7 @@ export default function DetailerOnboarding() {
           {STEPS.map((s, i) => (
             <motion.div
               key={s}
-              animate={{ backgroundColor: i <= step ? '#7c3aed' : pipOff }}
+              animate={{ backgroundColor: i <= step ? '#f40076' : pipOff }}
               className="h-1.5 flex-1 rounded-full"
             />
           ))}
@@ -457,7 +457,7 @@ export default function DetailerOnboarding() {
                       <div className="flex items-center justify-between gap-3">
                         <button type="button" aria-pressed={on} onClick={() => toggleService(name)}
                           className="flex min-w-0 cursor-pointer items-center gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600">
-                          <motion.span animate={{ backgroundColor: on ? '#7c3aed' : pipOff }} className="flex h-6 w-10 shrink-0 items-center rounded-full p-0.5">
+                          <motion.span animate={{ backgroundColor: on ? '#f40076' : pipOff }} className="flex h-6 w-10 shrink-0 items-center rounded-full p-0.5">
                             <motion.span animate={{ x: on ? 16 : 0 }} transition={{ type: 'spring', stiffness: 400, damping: 25 }} className="h-5 w-5 rounded-full bg-white shadow" />
                           </motion.span>
                           <span className={`truncate font-medium ${on ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}`}>{name}</span>

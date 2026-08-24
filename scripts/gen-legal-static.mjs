@@ -34,11 +34,11 @@ function build({ file, title, desc, heading, intro, sections }) {
       `        <p>${esc(p)}</p>`,
     ]),
     `        <p style="margin-top: 24px;">`,
-    `          <a href="/" style="color: #6d28d9;">Home</a>`,
+    `          <a href="/" style="color: #de0067;">Home</a>`,
     `          &nbsp;·&nbsp;`,
-    `          <a href="/terms" style="color: #6d28d9;">Terms of Service</a>`,
+    `          <a href="/terms" style="color: #de0067;">Terms of Service</a>`,
     `          &nbsp;·&nbsp;`,
-    `          <a href="/privacy" style="color: #6d28d9;">Privacy Policy</a>`,
+    `          <a href="/privacy" style="color: #de0067;">Privacy Policy</a>`,
     `        </p>`,
   ].join('\n')
 

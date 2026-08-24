@@ -218,7 +218,7 @@ export default function DetailerJob() {
           <motion.span
             initial={false}
             animate={{
-              backgroundColor: g.done ? '#15803d' : g.ready ? '#7c3aed' : 'var(--gate-pending-bg)',
+              backgroundColor: g.done ? '#15803d' : g.ready ? '#f40076' : 'var(--gate-pending-bg)',
               scale: g.ready ? 1.05 : 1,
             }}
             className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white"

@@ -591,7 +591,7 @@ export default function BookingWizard() {
               {stepTitles.map((title, i) => (
                 <div key={title} className="flex-1">
                   <motion.div
-                    animate={{ backgroundColor: i <= step ? '#7c3aed' : pipOff }}
+                    animate={{ backgroundColor: i <= step ? '#f40076' : pipOff }}
                     className="h-1.5 rounded-full"
                   />
                   <p className={`mt-1 text-xs ${i === step ? 'font-semibold text-brand-700 dark:text-brand-300' : 'text-slate-400 dark:text-slate-500'}`}>
