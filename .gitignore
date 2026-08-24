@@ -19,6 +19,7 @@ android/build/
 android/.gradle/
 android/app/release/
 android/local.properties
+android/keystore.properties
 *.keystore
 *.jks
 google-services.json

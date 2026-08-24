@@ -94,11 +94,13 @@ written in.
 
 ## 6. Icons + splash
 
-```bash
-npm i -D @capacitor/assets
-# put a 1024×1024 icon.png and splash.png (2732×2732) in ./resources
-npx @capacitor/assets generate --android
-```
+Done — `android/app/src/main/res/mipmap-*/ic_launcher*.png`, the adaptive
+icon background color, and `drawable*/splash.png` are all generated from
+`public/favicon.svg` and committed. Regenerate only if the mark itself
+changes (see the comment above `emailShell()` in
+`supabase/functions/_shared/email-templates.ts` for the same cairosvg-based
+approach, or use `@capacitor/assets` if you'd rather hand it a 1024×1024
+icon.png + 2732×2732 splash.png and let it derive every density).
 
 ## 7. Run it
 
@@ -112,12 +114,40 @@ change: `npm run cap:sync` again.
 
 ## 8. Release build → Play Store
 
-1. Android Studio → Build → Generate Signed Bundle/APK → **Android App Bundle (.aab)**.
-2. Create an upload keystore (keep the `.jks` safe + out of git — already gitignored).
-3. Play Console → create app → upload the `.aab`.
-4. Fill the listing: name, screenshots, description, **privacy policy URL** (point it at your
+**Signing is already wired up** — `android/app/build.gradle` has a `signingConfigs.release`
+block that reads from `android/keystore.properties` (gitignored, never commit the real one).
+Without that file present, `assembleRelease`/`bundleRelease` still runs, just unsigned — Android
+Studio's "Generate Signed Bundle" wizard doesn't need any of this and works standalone too, but
+the properties-file route is what lets a CI machine or a second contributor produce an identically
+signed build without opening Android Studio.
+
+**One-time: generate your upload keystore.** This key is permanent — Play Store binds every
+future update to whichever key signed the first upload, and there is no "reset" if it's lost. Do
+this on a machine you control and keep the `.jks` + its passwords somewhere durable (password
+manager, encrypted backup) — **never generate a Play Store signing key inside an ephemeral/cloud
+sandbox session that could be torn down.**
+
+```bash
+cd android
+keytool -genkeypair -v -keystore upload-keystore.jks -alias upload \
+  -keyalg RSA -keysize 2048 -validity 10000
+# prompts for a keystore password + a key password (can be the same value)
+cp keystore.properties.example keystore.properties
+# edit keystore.properties: storeFile=upload-keystore.jks, plus the two
+# passwords and keyAlias=upload you just set
+```
+
+**Then, either:**
+- `cd android && ./gradlew bundleRelease` → signed `.aab` at
+  `android/app/build/outputs/bundle/release/app-release.aab`, or
+- Android Studio → Build → Generate Signed Bundle/APK → **Android App Bundle (.aab)** (picks up
+  the same `keystore.properties` automatically once it exists).
+
+**Publish:**
+1. Play Console → create app → upload the `.aab`.
+2. Fill the listing: name, screenshots, description, **privacy policy URL** (point it at your
    deployed `/privacy` page), data-safety form, content rating.
-5. Submit for review.
+3. Submit for review.
 
 ---
 

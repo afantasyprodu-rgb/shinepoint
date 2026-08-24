@@ -1,5 +1,18 @@
 apply plugin: 'com.android.application'
 
+// Release signing reads from android/keystore.properties, which is
+// deliberately NOT checked in (see android/keystore.properties.example and
+// docs/android-capacitor.md) — it holds the path to your upload keystore
+// plus its passwords. Missing the file is not an error: it just means this
+// build can't produce a signed release, which is the correct behavior for
+// every machine except the one you actually publish from.
+def keystorePropsFile = rootProject.file('keystore.properties')
+def keystoreProps = new Properties()
+def hasSigningConfig = keystorePropsFile.exists()
+if (hasSigningConfig) {
+    keystoreProps.load(new FileInputStream(keystorePropsFile))
+}
+
 android {
     namespace = "app.shinepoint"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -16,10 +29,23 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        if (hasSigningConfig) {
+            release {
+                storeFile rootProject.file(keystoreProps['storeFile'])
+                storePassword keystoreProps['storePassword']
+                keyAlias keystoreProps['keyAlias']
+                keyPassword keystoreProps['keyPassword']
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (hasSigningConfig) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 }
