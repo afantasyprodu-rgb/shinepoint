@@ -28,6 +28,24 @@ const SOCAL_CENTER = [33.85, -118.1]
 // brand-new browser profile (no cache yet) asks.
 const LAST_LOCATION_KEY = 'shinepoint:last-location'
 
+// zoom: 9 was tuned by eye at mobile width (~390px) and reads as "way too
+// zoomed out" on a wide desktop viewport — Leaflet zoom is a fixed
+// pixels-per-degree scale, so a wider container at the same zoom just shows
+// more real-world area, not the same framing scaled up. Each +1 zoom level
+// halves the visible span, so scale from the mobile reference by how many
+// doublings wider this container is (log2), floored at the mobile zoom (a
+// narrower container than the reference has no reason to zoom in past it)
+// and capped so a very wide monitor doesn't zoom in far enough to feel
+// cramped either.
+const MOBILE_REFERENCE_WIDTH = 390
+const MOBILE_REFERENCE_ZOOM = 9
+
+function initialZoomForWidth(width) {
+  if (!width || width <= MOBILE_REFERENCE_WIDTH) return MOBILE_REFERENCE_ZOOM
+  const extra = Math.log2(width / MOBILE_REFERENCE_WIDTH)
+  return Math.min(12, Math.round((MOBILE_REFERENCE_ZOOM + extra) * 2) / 2)
+}
+
 function readCachedLocation() {
   try {
     const raw = localStorage.getItem(LAST_LOCATION_KEY)
@@ -132,7 +150,7 @@ export default function DetailerMap({ detailers, focus }) {
     const cached = readCachedLocation()
     const map = L.map(containerRef.current, {
       center: cached ?? SOCAL_CENTER,
-      zoom: 9,
+      zoom: initialZoomForWidth(containerRef.current.clientWidth),
       // No on-screen zoom buttons — pinch/scroll zoom still works, and one
       // less floating control keeps the map itself the focus.
       zoomControl: false,
