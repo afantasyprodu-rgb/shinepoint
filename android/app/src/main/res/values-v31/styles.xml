@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12+ (API 31) only: the platform SplashScreen API supports an
+     animated icon, which the base styles.xml can't express — it points
+     AppTheme.NoActionBarLaunch at the static @drawable/splash instead. This
+     overrides that theme just on 31+, so older devices keep the static splash
+     untouched. Background reuses colorPrimaryDark (brand-700 #DE0067), the
+     same field colour the generated splash.png is drawn on. -->
+<resources>
+    <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
+        <item name="android:windowSplashScreenBackground">@color/colorPrimaryDark</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/avd_splash</item>
+        <item name="android:windowSplashScreenAnimationDuration">500</item>
+        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
+    </style>
+</resources>

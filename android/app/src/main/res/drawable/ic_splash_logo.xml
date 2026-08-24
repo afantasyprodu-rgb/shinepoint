@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ShinePoint mark as a native vector, for the Android 12+ animated splash.
+     Deliberately redraws the same art as the static splash.png / ic_launcher
+     PNGs (filled 4-point sparkle + light-pink accent dot on a brand-gradient
+     tile) rather than the stroked SparklesIcon from src/components/icons.jsx:
+     the platform splash API needs a VectorDrawable it can animate, and a PNG
+     mipmap cannot be an AnimatedVectorDrawable target. Colours are sampled
+     from those generated PNGs so the animated and static splashes match.
+
+     `logo_group` is the entrance-animation target wired up in avd_splash.xml —
+     tile, star and dot scale and fade in together as one unit. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <group
+        android:name="logo_group"
+        android:pivotX="54"
+        android:pivotY="54"
+        android:scaleX="0.4"
+        android:scaleY="0.4"
+        android:alpha="0">
+
+        <!-- Rounded tile, brand-500 -> brand-700 diagonal gradient. -->
+        <path
+            android:pathData="M38,24 H70 A14,14 0 0 1 84,38 V70 A14,14 0 0 1 70,84 H38 A14,14 0 0 1 24,70 V38 A14,14 0 0 1 38,24 Z"
+            android:fillType="nonZero">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="linear"
+                    android:startX="24"
+                    android:startY="24"
+                    android:endX="84"
+                    android:endY="84">
+                    <item android:offset="0.0" android:color="#FC43A0" />
+                    <item android:offset="1.0" android:color="#E1076D" />
+                </gradient>
+            </aapt:attr>
+        </path>
+
+        <!-- Filled 4-point sparkle, concave waists. -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M52,36 C54,49 59,54 72,56 C59,58 54,63 52,76 C50,63 45,58 32,56 C45,54 50,49 52,36 Z" />
+
+        <!-- Accent dot, upper right. -->
+        <path
+            android:fillColor="#FDDFED"
+            android:pathData="M68,33.8 A4.2,4.2 0 1 1 67.99,33.8 Z" />
+    </group>
+</vector>
