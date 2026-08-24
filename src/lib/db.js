@@ -772,6 +772,15 @@ export async function createBookingInDB({
     console.error('createBookingInDB:', error.message)
     throw error
   }
+  // Fire-and-forget: a push miss must never fail booking creation. The
+  // in-app notification (notify_booking_change trigger, 010) already covers
+  // a detailer with the app open; this is only for one with it backgrounded.
+  invokeFn('send-push', {
+    detailerProfileId,
+    title: 'New booking request',
+    body: 'A customer requested a detail.',
+    path: `/detailer/jobs/${data.id}`,
+  }).catch(() => {})
   return data.id
 }
 
@@ -1012,6 +1021,24 @@ export async function sendMessageToDB(bookingId, senderId, content) {
     console.error('sendMessage:', error.message)
     return { id: null, flagged, error }
   }
+  // Push the detailer if THEY aren't the sender (a customer messaged them).
+  // No equivalent path the other way — customers don't register a token, so
+  // send-push would just no-op, and it's not worth the extra query to skip.
+  supabase
+    .from('bookings')
+    .select('detailer_id, detailer_profiles(user_id)')
+    .eq('id', bookingId)
+    .maybeSingle()
+    .then(({ data: b }) => {
+      if (b?.detailer_profiles?.user_id && b.detailer_profiles.user_id !== senderId) {
+        invokeFn('send-push', {
+          detailerProfileId: b.detailer_id,
+          title: 'New message',
+          body: content.slice(0, 120),
+          path: `/detailer/jobs/${bookingId}`,
+        }).catch(() => {})
+      }
+    })
   return { id: data.id, flagged }
 }
 

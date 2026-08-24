@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { registerDetailerPush } from '../lib/push'
 
 // Provides the current session plus the user's row from public.users
 // (which carries their role: 'customer' | 'detailer' | 'admin').
@@ -92,6 +93,17 @@ export function AuthProvider({ children }) {
     if (requestId !== profileRequestId.current) return
     setProfile(data)
   }
+
+  // Register for push once a detailer's profile is known — no-op on web, on
+  // other roles, or in demo mode (registerDetailerPush itself guards native +
+  // dedupes; the role check just avoids requesting the OS permission prompt
+  // for customers/admins who'd never get a token used anyway).
+  useEffect(() => {
+    if (demo) return
+    if (profile?.role === 'detailer' && session?.user?.id) {
+      registerDetailerPush(session.user.id)
+    }
+  }, [demo, profile?.role, session?.user?.id])
 
   async function signOut() {
     if (demo) {
