@@ -4,8 +4,8 @@
   "description": "SoCal's vetted mobile detailers, booked in minutes.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#faf5ff",
-  "theme_color": "#6d28d9",
+  "background_color": "#fff2f8",
+  "theme_color": "#de0067",
   "icons": [
     {
       "src": "/favicon.svg",
