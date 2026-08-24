@@ -3,10 +3,15 @@
     <!-- Referenced by styles.xml's AppTheme but never actually defined — this
          file was missing outright, which fails a real (non-IDE) Gradle build
          with "resource colorPrimary not found". Brand pink (hue 356 in
-         src/index.css's --brand-h, resolved: brand-600 #f40076 / brand-700
-         #de0067) — NOT purple, despite what the hex literals in index.css's
-         oklch(from #hex ...) calls might suggest; those are base-lightness
-         anchors only, the hue is overridden by --brand-h at compute time. -->
+         src/index.css's brand-h custom property, resolved: brand-600 #f40076
+         / brand-700 #de0067) — NOT purple, despite what the hex literals in
+         index.css's oklch(from #hex ...) calls might suggest; those are
+         base-lightness anchors only, the hue is overridden by brand-h at
+         compute time.
+
+         NB: do not write that custom property with its leading double dash
+         anywhere in this file — a double dash is illegal inside an XML
+         comment and fails mergeDebugResources with a SAXParseException. -->
     <color name="colorPrimary">#F40076</color>
     <color name="colorPrimaryDark">#DE0067</color>
     <color name="colorAccent">#F40076</color>
