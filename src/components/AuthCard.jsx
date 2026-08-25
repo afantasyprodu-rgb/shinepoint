@@ -11,7 +11,7 @@ import LanguageToggle from './LanguageToggle'
 import OtpBoxInput from './OtpBoxInput'
 import HeroBubbles from './ui/HeroBubbles'
 import Turnstile, { isTurnstileConfigured } from './ui/Turnstile'
-import { GoogleIcon, MailIcon, ChevronLeftIcon, LockIcon } from './icons'
+import { GoogleIcon, MailIcon, ChevronLeftIcon, LockIcon, EyeIcon, EyeOffIcon } from './icons'
 import { useT } from '../i18n/useT'
 
 // ease-out-expo — decisive and quick
@@ -49,6 +49,7 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
   const [password, setPassword] = useState('')
 
   const [otpCode, setOtpCode] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
 
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -334,12 +335,22 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
               <Field index={1}>
                 <div className="auth-field">
                   <label className="auth-label">{t('passwordLabel')}</label>
-                  <input type="password"
-                    autoComplete="current-password"
-                    required value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="auth-input" />
+                  <div className="relative">
+                    <input type={showPassword ? 'text' : 'password'}
+                      autoComplete="current-password"
+                      required value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="auth-input pr-11" />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((s) => !s)}
+                      aria-label={showPassword ? t('hidePassword') : t('showPassword')}
+                      className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-[var(--auth-text-soft)] transition-colors hover:text-[var(--auth-text)]"
+                    >
+                      {showPassword ? <EyeOffIcon className="h-4.5 w-4.5" /> : <EyeIcon className="h-4.5 w-4.5" />}
+                    </button>
+                  </div>
                 </div>
                 <button
                   type="button"
@@ -500,7 +511,7 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
         </div>
       )}
       <LanguageToggle className="fixed right-4 top-4 z-50 border border-brand-100 bg-white/90 text-slate-700 shadow-sm backdrop-blur hover:bg-slate-50" />
-      <div className="auth-card auth-card-surface">
+      <div className="auth-card">
         <Link
           to="/"
           className="mb-2 inline-flex items-center gap-1 text-sm text-slate-500 transition-colors hover:text-slate-700"
