@@ -61,12 +61,44 @@ export default function BottomTabBar({ items, layoutId, hidden = false }) {
                     transition={{ type: 'spring', stiffness: 420, damping: 32 }}
                     className="absolute -top-6 flex h-11 w-11 items-center justify-center"
                   >
+                    {/* key={activeIndex}: remounts on every tab switch so the
+                        squash/stretch keyframes below replay each time
+                        instead of only on the bubble's first mount — that's
+                        what sells "liquid flicked into a new spot" rather
+                        than a rigid disc that just slides. Settles into the
+                        second, always-running motion.span's idle bob/blob
+                        wobble (surface tension, not just sitting still). */}
                     <motion.span
-                      initial={{ scale: 0.5 }}
-                      animate={{ scale: 1 }}
-                      transition={{ type: 'spring', stiffness: 380, damping: 22, mass: 0.7 }}
-                      className="nx-tab-drop h-11 w-11 -rotate-45"
-                    />
+                      key={activeIndex}
+                      initial={{ scaleX: 0.55, scaleY: 1.5, rotate: -8 }}
+                      animate={{
+                        scaleX: [0.55, 1.4, 0.8, 1.1, 0.95, 1],
+                        scaleY: [1.5, 0.68, 1.22, 0.92, 1.04, 1],
+                        rotate: [-8, 6, -3, 1.5, -0.5, 0],
+                      }}
+                      transition={{ duration: 0.75, times: [0, 0.2, 0.42, 0.62, 0.82, 1], ease: 'easeOut' }}
+                      className="flex h-11 w-11 items-center justify-center"
+                    >
+                      <motion.span
+                        animate={{
+                          y: [0, -2, 0],
+                          borderRadius: [
+                            '50% 50% 50% 4px',
+                            '50% 50% 46% 9px',
+                            '46% 50% 50% 4px',
+                            '50% 50% 50% 4px',
+                          ],
+                        }}
+                        transition={{
+                          duration: 2.8,
+                          repeat: Infinity,
+                          repeatType: 'mirror',
+                          ease: 'easeInOut',
+                          delay: 0.75,
+                        }}
+                        className="nx-tab-drop block h-11 w-11 -rotate-45"
+                      />
+                    </motion.span>
                   </motion.span>
                 )}
                 {ItemIcon && (
