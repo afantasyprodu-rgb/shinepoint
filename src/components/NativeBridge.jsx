@@ -28,6 +28,14 @@ export default function NativeBridge() {
 
       const { App } = await import('@capacitor/app')
       listener = await App.addListener('appUrlOpen', async ({ url }) => {
+        // Home-screen widget tap (shinepoint://widget?path=...) — see
+        // ShinePointWidgetProvider.java / src/lib/widget.js.
+        if (url.includes('://widget')) {
+          const path = new URL(url).searchParams.get('path')
+          if (path) navigate(path, { replace: true })
+          return
+        }
+
         // Only react to the OAuth return deep link.
         if (!url.includes('auth/callback') && !url.includes('code=')) return
 

@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState } from 
 import { supabase } from '../lib/supabase'
 import { chargeTip, resolveDisputeWithRefund, declineBookingWithRefund } from '../lib/stripe'
 import { enqueuePhoto } from '../lib/photoQueue'
+import { updateWidget } from '../lib/widget'
 import { useAuth } from './AuthContext'
 import {
   DEMO_DETAILERS,
@@ -1004,6 +1005,14 @@ export function StoreProvider({ children }) {
     profile,
     notifications, realNotifications, realAdmin,
   ])
+
+  // Home-screen widget (Android). Real sessions only — demo bookings aren't
+  // the signed-in user's actual data, so pushing them to the widget would be
+  // showing a stranger's phone a fake job. See src/lib/widget.js.
+  useEffect(() => {
+    if (isDemo || !profile?.role) return
+    updateWidget(profile.role, realBookings)
+  }, [isDemo, profile?.role, realBookings])
 
   return <StoreContext.Provider value={api}>{children}</StoreContext.Provider>
 }

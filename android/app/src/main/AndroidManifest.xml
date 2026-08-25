@@ -31,7 +31,32 @@
                 <data android:scheme="shinepoint" android:host="auth" />
             </intent-filter>
 
+            <!-- Tapping the home-screen widget (ShinePointWidgetProvider) opens
+                 here — caught by the same appUrlOpen listener as the OAuth
+                 link, in NativeBridge.jsx. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="shinepoint" android:host="widget" />
+            </intent-filter>
+
         </activity>
+
+        <!-- Home-screen widget: shows the signed-in user's nearest active
+             booking, or a "Book a detail" shortcut if there isn't one. Content
+             comes from WidgetBridgePlugin (called from JS); this receiver only
+             redraws whatever was last written to SharedPreferences. -->
+        <receiver
+            android:name=".ShinePointWidgetProvider"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info" />
+        </receiver>
 
         <provider
             android:name="androidx.core.content.FileProvider"

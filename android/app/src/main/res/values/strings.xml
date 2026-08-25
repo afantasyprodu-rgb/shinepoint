@@ -4,4 +4,5 @@
     <string name="title_activity_main">ShinePoint</string>
     <string name="package_name">app.shinepoint</string>
     <string name="custom_url_scheme">app.shinepoint</string>
+    <string name="widget_description">Your next booking, at a glance</string>
 </resources>
