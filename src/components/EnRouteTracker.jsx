@@ -2,11 +2,13 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { supabase } from '../lib/supabase'
+import { useRealtimeChannel } from '../hooks/useRealtimeChannel'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
 import { CA_ZIP_CENTROIDS, milesBetween } from '../lib/fuzzyPin'
 import { TILES } from './DetailerMap'
 import { ClockIcon, AlertTriangleIcon, MapPinIcon } from './icons'
+import { useT } from '../i18n/useT'
 
 // The moving marker on the live map below — the detailer's own chosen
 // vehicle emoji (DetailerProfileEditor's "Your vehicle" picker), falling
@@ -84,7 +86,9 @@ export function EnRouteMiniMap({ position, destination, emoji }) {
       L.latLngBounds([position.lat, position.lng], [destination.lat, destination.lng]),
       { padding: [28, 28], maxZoom: 15 }
     )
-  }, [position?.lat, position?.lng, destination.lat, destination.lng, emoji])
+    // Primitive deps by design: re-run only when coordinates actually move,
+    // not on every parent re-render that recreates the position object.
+  }, [position?.lat, position?.lng, destination.lat, destination.lng, emoji]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return <div ref={containerRef} className="nx-map-plain h-40 w-full overflow-hidden rounded-xl" />
 }
@@ -107,14 +111,18 @@ const lerp = (a, b, t) => a + (b - a) * t
 const lerpPt = (a, b, t) => ({ lat: lerp(a.lat, b.lat, t), lng: lerp(a.lng, b.lng, t) })
 const ease = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2)
 
-function agoText(ms) {
+function agoText(ms, t) {
   const s = Math.max(0, Math.round(ms / 1000))
-  if (s < 60) return `Updated ${s}s ago`
-  return `Updated ${Math.round(s / 60)}m ago`
+  if (s < 60) return t('updatedSecondsAgo', { n: s })
+  return t('updatedMinutesAgo', { n: Math.round(s / 60) })
 }
 
 export default function EnRouteTracker({ booking, detailer, live = true }) {
   const { isDemo } = useAuth()
+  // This screen is customer-facing during the highest-anxiety moment of the
+  // booking ("where IS my detailer?") — every string goes through i18n now;
+  // it used to be hardcoded English end to end.
+  const t = useT('enroute')
   const home = CA_ZIP_CENTROIDS[booking.zip]
 
   // ── Demo: no real pings exist, so simulate a plausible ETA countdown ─────
@@ -149,30 +157,22 @@ export default function EnRouteTracker({ booking, detailer, live = true }) {
         setPings([...data].reverse())
       })
 
-    // .subscribe() throws synchronously on a misconfigured VITE_SUPABASE_URL
-    // — same guard as ChatThread.jsx's messages channel.
-    let channel
-    try {
-      channel = supabase
-        .channel(`location:${booking.id}`)
-        .on(
-          'postgres_changes',
-          { event: 'INSERT', schema: 'public', table: 'booking_location', filter: `booking_id=eq.${booking.id}` },
-          (payload) => {
-            const p = payload.new
-            setPings((prev) => [...prev, { lat: p.lat, lng: p.lng, recorded_at: p.recorded_at }].slice(-2))
-          }
-        )
-        .subscribe()
-    } catch (err) {
-      console.error('Realtime subscribe failed (check VITE_SUPABASE_URL uses https://):', err)
-      return () => { cancelled = true }
-    }
+    return () => { cancelled = true }
+  }, [isDemo, booking?.id])
 
-    return () => {
-      cancelled = true
-      supabase.removeChannel(channel)
-    }
+  useRealtimeChannel((supabase) => {
+    if (isDemo || !booking?.id) return null
+    return supabase
+      .channel(`location:${booking.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'booking_location', filter: `booking_id=eq.${booking.id}` },
+        (payload) => {
+          const p = payload.new
+          setPings((prev) => [...prev, { lat: p.lat, lng: p.lng, recorded_at: p.recorded_at }].slice(-2))
+        }
+      )
+      .subscribe()
   }, [isDemo, booking?.id])
 
   // Re-render periodically so "Updated Xs ago" / staleness keep advancing
@@ -188,13 +188,13 @@ export default function EnRouteTracker({ booking, detailer, live = true }) {
 
   let etaMin, milesLeft, waiting, stale, freshness, position
   if (isDemo) {
-    const t = ease(simProgress)
-    position = lerpPt(start, home, t)
+    const k = ease(simProgress)
+    position = lerpPt(start, home, k)
     etaMin = Math.max(1, Math.round((1 - simProgress) * totalMin))
     milesLeft = milesBetween(position, home)
     waiting = false
     stale = false
-    freshness = 'On the way'
+    freshness = t('onTheWay')
   } else {
     const latest = pings[pings.length - 1]
     const prev = pings.length > 1 ? pings[0] : null
@@ -214,7 +214,7 @@ export default function EnRouteTracker({ booking, detailer, live = true }) {
       etaMin = Math.max(1, Math.round((milesLeft / mph) * 60))
       const ageMs = nowTick - new Date(latest.recorded_at).getTime()
       stale = ageMs > STALE_MS
-      freshness = stale ? 'Signal lost — showing last known position' : agoText(ageMs)
+      freshness = stale ? t('signalLost') : agoText(ageMs, t)
     }
   }
 
@@ -229,18 +229,18 @@ export default function EnRouteTracker({ booking, detailer, live = true }) {
             <span className={`absolute inline-flex h-full w-full rounded-full ${live ? 'animate-ping bg-cta-500' : 'bg-slate-400'} opacity-60`} />
             <span className={`relative inline-flex h-2 w-2 rounded-full ${live ? 'bg-cta-600' : 'bg-slate-400'}`} />
           </span>
-          {live ? 'Live' : 'Preview'}
+          {live ? t('live') : t('preview')}
         </span>
         {waiting ? (
           <>
             <span className="text-slate-300">·</span>
-            <span className="text-slate-500">Waiting for your detailer's location…</span>
+            <span className="text-slate-500">{t('waitingForLocation')}</span>
           </>
         ) : (
           <>
             <span className="text-slate-300">·</span>
             <span className="flex items-center gap-1 text-slate-700">
-              <ClockIcon className="h-3.5 w-3.5" /> ~{etaMin} min away
+              <ClockIcon className="h-3.5 w-3.5" /> {t('etaMinutes', { n: etaMin })}
             </span>
             <span className="text-slate-300">·</span>
             <span className="text-slate-700">{milesLeft.toFixed(1)} mi</span>
@@ -254,7 +254,7 @@ export default function EnRouteTracker({ booking, detailer, live = true }) {
       </div>
       <p className="mb-2.5 mt-1.5 flex items-center gap-1 px-3 text-xs text-slate-500">
         <MapPinIcon className="h-3.5 w-3.5 shrink-0 text-cta-600" />
-        {detailer?.name ?? 'Your detailer'} heading to {booking.address}
+        {t('headingTo', { name: detailer?.name ?? t('fallbackDetailer'), address: booking.address })}
       </p>
     </div>
   )

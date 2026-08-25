@@ -67,7 +67,7 @@ export default function PhotoCapture({ label = 'before', onSubmit }) {
                   onClick={() => setLightbox(angle)}
                   className="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
                 >
-                  <img src={photo} alt={angle} className="h-full w-full object-cover" />
+                  <img loading="lazy" decoding="async" src={photo} alt={angle} className="h-full w-full object-cover" />
                   <div className="absolute inset-0 flex items-end justify-center bg-gradient-to-t from-black/50 pb-0.5">
                     <CheckIcon className="h-3.5 w-3.5 text-white" />
                   </div>
@@ -154,7 +154,7 @@ export default function PhotoCapture({ label = 'before', onSubmit }) {
               onClick={(e) => e.stopPropagation()}
               className="w-full max-w-sm overflow-hidden rounded-2xl shadow-2xl"
             >
-              <img src={photos[lightbox]} alt={lightbox} className="w-full object-cover" />
+              <img loading="lazy" decoding="async" src={photos[lightbox]} alt={lightbox} className="w-full object-cover" />
               <div className="flex items-center justify-between bg-black/70 px-4 py-3">
                 <span className="text-sm font-semibold text-white">{lightbox}</span>
                 <button
@@ -179,7 +179,7 @@ export default function PhotoCapture({ label = 'before', onSubmit }) {
                   } transition-all`}
                 >
                   {photos[a] ? (
-                    <img src={photos[a]} alt={a} className="h-full w-full object-cover" />
+                    <img loading="lazy" decoding="async" src={photos[a]} alt={a} className="h-full w-full object-cover" />
                   ) : (
                     <div className={`h-full w-full bg-gradient-to-br ${ANGLE_GRADIENTS[i]} flex items-center justify-center`}>
                       <CameraIcon className="h-4 w-4 text-white/50" />

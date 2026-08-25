@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 
+const FOCUSABLE = 'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
+
 export default function Modal({ open, onClose, children, labelledBy }) {
   const panelRef = useRef(null)
 
@@ -13,13 +15,34 @@ export default function Modal({ open, onClose, children, labelledBy }) {
   useEffect(() => {
     if (!open) return
     panelRef.current?.focus()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
   useEffect(() => {
     if (!open) return
     function onKey(e) {
-      if (e.key === 'Escape') onClose?.()
+      if (e.key === 'Escape') {
+        onClose?.()
+        return
+      }
+      // Focus trap: Tab / Shift+Tab must cycle INSIDE the dialog. Without
+      // this, keyboard users tab straight through the modal into the page
+      // behind it (aria-modal announces a dialog that isn't actually
+      // modal to focus). Wraps at both ends; no focusable children = no-op.
+      if (e.key === 'Tab') {
+        const nodes = panelRef.current?.querySelectorAll(FOCUSABLE)
+        if (!nodes || nodes.length === 0) return
+        const list = Array.from(nodes)
+        const first = list[0]
+        const last = list[list.length - 1]
+        const active = document.activeElement
+        if (e.shiftKey && (active === first || !panelRef.current?.contains(active))) {
+          e.preventDefault()
+          last.focus()
+        } else if (!e.shiftKey && active === last) {
+          e.preventDefault()
+          first.focus()
+        }
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)

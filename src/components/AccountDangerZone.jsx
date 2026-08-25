@@ -53,7 +53,9 @@ export default function AccountDangerZone() {
       navigate('/login', { replace: true })
     } catch (e) {
       setBusy(false)
-      setError(e.message)
+      // The server requires a fresh (≤15 min) sign-in for this irreversible
+      // action — give the recovery path, not just a raw error.
+      setError(/sign in again/i.test(e?.message ?? '') ? t('reauthRequired') : e.message)
     }
   }
 

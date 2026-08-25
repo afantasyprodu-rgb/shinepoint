@@ -68,7 +68,7 @@ export const MODEL_TO_TYPE = {
   'Versa': 'Sedan', 'Sentra': 'Sedan', 'Altima': 'Sedan', 'Maxima': 'Sedan',
   'G70': 'Sedan', 'G80': 'Sedan', 'G90': 'Sedan',
   'IS': 'Sedan', 'ES': 'Sedan',
-  'Corsair': 'Sedan', 'Nautilus': 'Sedan', 'Continental': 'Sedan',
+  'Corsair': 'Sedan', 'Continental': 'Sedan',
   'Malibu': 'Sedan', 'Impala': 'Sedan',
   '300': 'Sedan',
   'Charger': 'Sedan',
@@ -77,7 +77,8 @@ export const MODEL_TO_TYPE = {
   'Accord': 'Sedan', 'Civic': 'Sedan',
   'K5': 'Sedan', 'Rio': 'Sedan', 'Forte': 'Sedan',
   'Mazda3': 'Sedan', 'Mazda6': 'Sedan',
-  'Model 3': 'Sedan', 'Model S': 'Sedan',
+  // (Tesla models are deliberately NOT here — they're auto-detected as 'EV'
+  // from the EV section below, which overrides body style.)
   'Corolla': 'Sedan', 'Camry': 'Sedan', 'Prius': 'Sedan',
   'S60': 'Sedan', 'S90': 'Sedan',
   'Stinger': 'Sedan',
@@ -115,7 +116,6 @@ export const MODEL_TO_TYPE = {
   'Soul': 'SUV', 'Soul EV': 'SUV',
   'GLA': 'SUV', 'GLB': 'SUV', 'GLC': 'SUV', 'GLE': 'SUV', 'GLS': 'SUV',
   'Hummer EV': 'SUV', 'Jimmy': 'SUV',
-  'Model Y': 'SUV', 'Model X': 'SUV',
   'bZ4X': 'SUV',
   'Defender': 'SUV',
   'EQE': 'SUV', 'EQS': 'SUV',
@@ -181,6 +181,10 @@ export const MODEL_TO_TYPE = {
   'Lucid': 'EV',
   'Solterra': 'EV',
   'Cybertruck': 'Truck',
+  // Tesla entries below intentionally override the body-style sections above
+  // (JS object literals: last duplicate key wins) — a Tesla owner sees 'EV'
+  // as the auto-detected type. Keep it that way or move them, but never
+  // duplicate the keys again: silent shadowing hid this for months.
   'Model 3': 'EV',
   'Model Y': 'EV',
   'Model S': 'EV',

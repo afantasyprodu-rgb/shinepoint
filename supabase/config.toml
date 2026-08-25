@@ -111,6 +111,13 @@ enabled = false
 [functions.charge-tip]
 verify_jwt = true
 
+# Gateway JWT check is not enough on its own (any visitor's anon key
+# passes) — send-push also authenticates + authorizes + rate-limits inside
+# the function. This entry documents the deployment expectation and keeps
+# `config push` from resetting it.
+[functions.send-push]
+verify_jwt = true
+
 [functions.resolve-dispute]
 verify_jwt = true
 

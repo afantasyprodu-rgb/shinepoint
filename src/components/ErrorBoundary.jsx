@@ -24,7 +24,20 @@ export default class ErrorBoundary extends Component {
 
   startFresh = () => {
     try {
+      // Selective clear, NOT localStorage.clear(): the offline queue
+      // (`shinepoint:offline-queue`) holds booking-status/location writes a
+      // detailer made while out of signal — wiping them on an unrelated UI
+      // crash silently destroys real work that would otherwise sync on the
+      // next connection. Only session/auth-adjacent keys go.
+      const OFFLINE_QUEUE_KEY = 'shinepoint:offline-queue'
+      const preserve = new Set([OFFLINE_QUEUE_KEY])
+      const saved = {}
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i)
+        if (preserve.has(k)) saved[k] = localStorage.getItem(k)
+      }
       localStorage.clear()
+      for (const [k, v] of Object.entries(saved)) localStorage.setItem(k, v)
       sessionStorage.clear()
     } catch { /* private mode, ignore */ }
     window.location.assign('/')

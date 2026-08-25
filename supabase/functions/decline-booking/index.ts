@@ -13,6 +13,7 @@ import { createClient } from 'npm:@supabase/supabase-js@^2'
 import { corsHeaders, json } from '../_shared/cors.ts'
 import { captureException } from '../_shared/sentry.ts'
 import { isUuid } from '../_shared/validate.ts'
+import { withinRateLimit, tooManyRequests } from '../_shared/rateLimit.ts'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
   apiVersion: '2026-05-27.dahlia',
@@ -38,6 +39,12 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
+
+    // Refunds move platform money — cap how often any one account can fire
+    // this, same discipline as every other money endpoint.
+    if (!(await withinRateLimit(admin, `decline:${user.id}`, 20, '1 hour'))) {
+      return tooManyRequests(3600)
+    }
 
     const { data: booking, error: bErr } = await admin
       .from('bookings')

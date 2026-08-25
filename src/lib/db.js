@@ -755,6 +755,12 @@ export async function createBookingInDB({
       booking_address: address,
       booking_zip: zip,
       total_price: totalPrice,
+      // The CODE STRING only — the resolved discount/id are computed
+      // server-side by create-payment-intent (039's design). This used to be
+      // accepted as a param and silently dropped, which meant promo codes
+      // validated in the wizard never reached the DB and customers were
+      // charged full price at checkout.
+      promo_code: promoCode ?? null,
       tip_amount: tipAmount ?? 0,
       vehicle_type: vehicleType || null,
       vehicle_make: vehicleMake || null,

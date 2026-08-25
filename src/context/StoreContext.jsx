@@ -1,16 +1,10 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { supabase } from '../lib/supabase'
 import { chargeTip, resolveDisputeWithRefund, declineBookingWithRefund } from '../lib/stripe'
 import { enqueuePhoto } from '../lib/photoQueue'
 import { updateWidget } from '../lib/widget'
 import { useAuth } from './AuthContext'
-import {
-  DEMO_DETAILERS,
-  DEMO_BOOKINGS,
-  DEMO_MESSAGES,
-  DEMO_CUSTOMER,
-  DEMO_ADMIN,
-} from '../data/demoData'
+import { MILESTONES } from '../data/milestones'
+import { useRealtimeChannel } from '../hooks/useRealtimeChannel'
 import {
   fetchDetailers,
   fetchCustomerProfile,
@@ -45,7 +39,6 @@ import {
   fetchFlaggedMessages,
   fetchAdminFinance,
   adminVerifyDetailer,
-  adminResolveDispute,
   adminClearFlag,
   adminWarnUser,
   adminSetUserSuspended,
@@ -63,13 +56,32 @@ function fileToDataUrl(file) {
   })
 }
 
-// Milestone targets are a product/business-plan decision, not data — the
-// only part of DEMO_ADMIN.milestones a real admin legitimately shares.
-const M = DEMO_ADMIN.milestones
+// Milestone TARGETS are product constants (see data/milestones.js) — the
+// only piece of the old demo seed a real admin legitimately consumes. The
+// seed itself is dynamic-imported on demo entry, so real sessions never
+// download it.
 
 const StoreContext = createContext(null)
 
 let idCounter = 200
+
+// Honest empty admin shape: used for real admins before their live queries
+// resolve, and for a demo admin during the few-ms demo-seed chunk load.
+// A blank dashboard is honest; seeded revenue is not.
+const EMPTY_ADMIN = {
+  applications: [], disputes: [], flagged: [], overrides: [], decided: [],
+  finance: {
+    today: 0, week: 0, month: 0, pendingPayouts: 0,
+    refundsIssued: 0, refundsCount: 0, monthly: [0, 0, 0, 0, 0, 0],
+    monthLabels: ['', '', '', '', '', ''], tracker1099Count: 0,
+  },
+  milestones: {
+    detailers: { current: 0, target: MILESTONES.detailers.target },
+    customers: { current: 0, target: MILESTONES.customers.target },
+    jobs: { current: 0, target: MILESTONES.jobs.target },
+    revenue: { current: 0, target: MILESTONES.revenue.target },
+  },
+}
 
 const STATUS_NOTIFICATIONS = {
   accepted: ['customer', 'Booking confirmed', 'Your detailer accepted the job.'],
@@ -84,11 +96,44 @@ export function StoreProvider({ children }) {
   const { user, profile, isDemo } = useAuth()
 
   // ── Demo state ────────────────────────────────────────────────────────────
-  const [demoBookings, setDemoBookings] = useState(DEMO_BOOKINGS)
-  const [demoMessages, setDemoMessages] = useState(DEMO_MESSAGES)
-  const [demoCustomer, setDemoCustomer] = useState(DEMO_CUSTOMER)
-  const [demoAdmin, setDemoAdmin] = useState(DEMO_ADMIN)
-  const [demoDetailers, setDemoDetailers] = useState(DEMO_DETAILERS)
+  // The 75KB seed (demoData.js) is NOT statically imported — it's fetched
+  // via dynamic import the moment a demo session starts. Real sessions
+  // never download it. Slices start at their empty/neutral shape and
+  // hydrate in one effect; demo pages render their empty states for the
+  // few ms the chunk takes to arrive.
+  const [demoBookings, setDemoBookings] = useState([])
+  const [demoMessages, setDemoMessages] = useState({})
+  const [demoCustomer, setDemoCustomer] = useState(() => ({
+    name: 'Alex Rivera',
+    points: 0,
+    pointsToNextReward: 5,
+    unlockedMilestones: [],
+    rewards: [],
+    referralCredits: 0,
+    smsOptIn: false,
+    phone: '',
+  }))
+  const [demoAdmin, setDemoAdmin] = useState(null)
+  const [demoDetailers, setDemoDetailers] = useState([])
+
+  // One-shot hydration keyed on entering demo mode.
+  const demoHydratedRef = useRef(false)
+  useEffect(() => {
+    if (!isDemo || demoHydratedRef.current) return
+    demoHydratedRef.current = true
+    let cancelled = false
+    import('../data/demoData.js').then((m) => {
+      if (cancelled) return
+      setDemoDetailers(m.DEMO_DETAILERS)
+      setDemoBookings(m.DEMO_BOOKINGS)
+      setDemoMessages(m.DEMO_MESSAGES)
+      setDemoAdmin(m.DEMO_ADMIN)
+      // Full replace: hydration lands within ms of entering demo, before any
+      // meaningful mutation, so nothing needs preserving over the seed.
+      setDemoCustomer(m.DEMO_CUSTOMER)
+    }).catch((e) => console.error('demo seed load failed:', e.message))
+    return () => { cancelled = true }
+  }, [isDemo])
 
   // ── Real state from Supabase ──────────────────────────────────────────────
   const [realDetailers, setRealDetailers] = useState([])
@@ -167,102 +212,81 @@ export function StoreProvider({ children }) {
     return () => { cancelled = true }
   }, [isDemo, profile?.id, profile?.role])
 
-  // Real-time: listen for booking changes (status updates, new bookings for detailer).
+  // Real-time: listen for booking changes (status updates, new bookings for
+  // detailer). useRealtimeChannel's guard means a misconfigured
+  // VITE_SUPABASE_URL degrades to "refresh to see changes" instead of
+  // crashing every signed-in user.
   const detailerProfileRef = useRef(detailerProfile)
   useEffect(() => { detailerProfileRef.current = detailerProfile }, [detailerProfile])
 
-  useEffect(() => {
-    if (isDemo || !profile?.id) return
-
-    // Realtime opens a WebSocket derived from VITE_SUPABASE_URL — if that env
-    // var is ever misconfigured as http:// instead of https://, the browser
-    // throws synchronously ("insecure" mixed content) rather than failing
-    // gracefully, which would otherwise take down the whole app for every
-    // signed-in user. Live booking updates degrading to "refresh to see
-    // changes" is a much smaller price than a hard crash.
-    let channel
-    try {
-      channel = supabase
-        .channel(`bookings:${profile.id}`)
-        .on(
-          'postgres_changes',
-          { event: 'UPDATE', schema: 'public', table: 'bookings' },
-          (payload) => {
-            setRealBookings((bs) =>
-              bs.map((b) =>
-                b.id === payload.new.id
-                  ? { ...b, status: payload.new.status, tip: payload.new.tip_amount }
-                  : b
-              )
+  useRealtimeChannel((supabase) => {
+    if (isDemo || !profile?.id) return null
+    return supabase
+      .channel(`bookings:${profile.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'bookings' },
+        (payload) => {
+          setRealBookings((bs) =>
+            bs.map((b) =>
+              b.id === payload.new.id
+                ? { ...b, status: payload.new.status, tip: payload.new.tip_amount }
+                : b
             )
-          }
-        )
-        .on(
-          'postgres_changes',
-          { event: 'INSERT', schema: 'public', table: 'bookings' },
-          () => {
-            const dp = detailerProfileRef.current
-            if (dp) fetchBookingsForDetailer(dp.id).then(setRealBookings)
-          }
-        )
-        .subscribe()
-    } catch (err) {
-      console.error('Realtime subscribe failed (check VITE_SUPABASE_URL uses https://):', err)
-      return
-    }
-
-    return () => supabase.removeChannel(channel)
+          )
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'bookings' },
+        () => {
+          const dp = detailerProfileRef.current
+          if (dp) fetchBookingsForDetailer(dp.id).then(setRealBookings)
+        }
+      )
+      .subscribe()
   }, [isDemo, profile?.id])
 
-  // Notifications: load the user's rows and keep them live (rows are created
-  // server-side by the notify_booking_change trigger).
+  // Notifications: load the user's rows (rows are created server-side by
+  // the notify_booking_change trigger) and keep them live via the shared
+  // guarded channel hook.
   useEffect(() => {
     if (isDemo || !profile?.id) return
     let cancelled = false
     fetchNotifications(profile.id, profile.role).then((ns) => {
       if (!cancelled) setRealNotifications(ns)
     })
+    return () => { cancelled = true }
+  }, [isDemo, profile?.id, profile?.role])
 
-    // Same guard as the bookings channel above — this .subscribe() throws
-    // synchronously ("WebSocket not available: The operation is insecure.")
-    // on a misconfigured VITE_SUPABASE_URL instead of failing gracefully.
-    // Uncaught, that crash hit every real signed-in user (e.g. right after
-    // finishing Google OAuth signup) straight to the ErrorBoundary. Falling
-    // back to "load once, no live updates" is a much smaller price.
-    let channel
-    try {
-      channel = supabase
-        .channel(`notifications:${profile.id}`)
-        .on(
-          'postgres_changes',
-          { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${profile.id}` },
-          (payload) => {
-            const n = payload.new
-            setRealNotifications((prev) =>
-              prev.some((x) => x.id === n.id)
-                ? prev
-                : [
-                    {
-                      id: n.id,
-                      audience: profile.role,
-                      title: n.title,
-                      body: n.body ?? '',
-                      bookingId: n.booking_id,
-                      read: false,
-                      at: n.created_at,
-                    },
-                    ...prev,
-                  ]
-            )
-          }
-        )
-        .subscribe()
-    } catch (err) {
-      console.error('Realtime subscribe failed (check VITE_SUPABASE_URL uses https://):', err)
-      return () => { cancelled = true }
-    }
-
-    return () => { cancelled = true; supabase.removeChannel(channel) }
+  useRealtimeChannel((supabase) => {
+    if (isDemo || !profile?.id) return null
+    return supabase
+      .channel(`notifications:${profile.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${profile.id}` },
+        (payload) => {
+          const n = payload.new
+          setRealNotifications((prev) =>
+            prev.some((x) => x.id === n.id)
+              ? prev
+              : [
+                  {
+                    id: n.id,
+                    audience: profile.role,
+                    title: n.title,
+                    body: n.body ?? '',
+                    bookingId: n.booking_id,
+                    read: false,
+                    at: n.created_at,
+                  },
+                  ...prev,
+                ]
+          )
+        }
+      )
+      .subscribe()
   }, [isDemo, profile?.id, profile?.role])
 
   // Admin moderation queues + finance, loaded from live tables.
@@ -297,10 +321,10 @@ export function StoreProvider({ children }) {
         decided: [],
         finance,
         milestones: {
-          detailers: { current: counts.detailers, target: M.detailers.target },
-          customers: { current: counts.customers, target: M.customers.target },
-          jobs: { current: counts.jobsCompleted, target: M.jobs.target },
-          revenue: { current: finance.month, target: M.revenue.target },
+          detailers: { current: counts.detailers, target: MILESTONES.detailers.target },
+          customers: { current: counts.customers, target: MILESTONES.customers.target },
+          jobs: { current: counts.jobsCompleted, target: MILESTONES.jobs.target },
+          revenue: { current: finance.month, target: MILESTONES.revenue.target },
         },
       })
     }
@@ -444,6 +468,14 @@ export function StoreProvider({ children }) {
       if (!isDemo && booking?._real) {
         return realPatchBooking(id, patch)
       }
+      if (!isDemo) {
+        // Real session but the booking is missing from state (or somehow
+        // lacks _real). Falling through to demoPatchBooking used to UPDATE
+        // REACT STATE ONLY and resolve as if saved — the detailer sees the
+        // job advance, then reload finds nothing changed. Loud failure is
+        // the only honest option here.
+        throw new Error(`patchBooking: booking ${id} not found in live state`)
+      }
       demoPatchBooking(id, patch)
       return Promise.resolve()
     }
@@ -458,23 +490,8 @@ export function StoreProvider({ children }) {
       // Pre-load shape for a real admin: everything empty/zero, never the
       // demo seed — a blank dashboard is honest, seeded revenue is not.
       admin: isDemo
-        ? demoAdmin
-        : (realAdmin ?? {
-            applications: [], disputes: [], flagged: [], overrides: [], decided: [],
-            finance: {
-              today: 0, week: 0, month: 0, pendingPayouts: 0,
-              refundsIssued: 0, refundsCount: 0, monthly: [0, 0, 0, 0, 0, 0],
-              monthLabels: ['', '', '', '', '', ''], tracker1099Count: 0,
-            },
-            // Zero current values (never the demo seed) against the same
-            // product-configured targets.
-            milestones: {
-              detailers: { current: 0, target: M.detailers.target },
-              customers: { current: 0, target: M.customers.target },
-              jobs: { current: 0, target: M.jobs.target },
-              revenue: { current: 0, target: M.revenue.target },
-            },
-          }),
+        ? (demoAdmin ?? EMPTY_ADMIN)
+        : (realAdmin ?? EMPTY_ADMIN),
       notifications: isDemo ? notifications : realNotifications,
       customerProfile,
       detailerProfile,
@@ -754,6 +771,16 @@ export function StoreProvider({ children }) {
       async createBooking(draft) {
         const detailer = allDetailers.find((d) => d.id === draft.detailerId)
         const useRealPath = !isDemo && detailer?._real && customerProfile
+
+        if (!isDemo && detailer?._real && !customerProfile) {
+          // Real session booking a REAL detailer but the customer_profiles
+          // row isn't in state (profile fetch failed / still loading). This
+          // used to fall through to the demo path and create a LOCAL-ONLY
+          // booking that looked confirmed and vanished on reload. Nothing
+          // was charged (payment is gated on customerProfile downstream),
+          // which makes the fake success worse — fail loudly instead.
+          throw new Error('Your account is still loading — please try again.')
+        }
 
         if (useRealPath) {
           const bookingId = await createBookingInDB({

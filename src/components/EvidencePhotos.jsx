@@ -32,7 +32,7 @@ export default function EvidencePhotos({ items = [], columns = 3, shades = DEFAU
             className="group relative flex aspect-square items-center justify-center overflow-hidden rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
           >
             {item.photo ? (
-              <img src={item.photo} alt={item.area} className="h-full w-full object-cover" />
+              <img loading="lazy" decoding="async" src={item.photo} alt={item.area} className="h-full w-full object-cover" />
             ) : (
               <div className={`flex h-full w-full items-center justify-center bg-gradient-to-br ${shades[i % shades.length]} text-white`}>
                 <CameraIcon className="h-5 w-5 opacity-80" />
@@ -74,7 +74,7 @@ export default function EvidencePhotos({ items = [], columns = 3, shades = DEFAU
               className="w-full max-w-sm overflow-hidden rounded-2xl shadow-2xl"
             >
               {items[open].photo ? (
-                <img src={items[open].photo} alt={items[open].area} className="w-full object-cover" />
+                <img loading="lazy" decoding="async" src={items[open].photo} alt={items[open].area} className="w-full object-cover" />
               ) : (
                 <div className={`flex aspect-[4/3] flex-col items-center justify-center gap-3 bg-gradient-to-br ${shades[open % shades.length]} text-white`}>
                   <CameraIcon className="h-16 w-16 opacity-80" />
@@ -100,7 +100,7 @@ export default function EvidencePhotos({ items = [], columns = 3, shades = DEFAU
                   }`}
                 >
                   {item.photo ? (
-                    <img src={item.photo} alt={item.area} className="h-full w-full object-cover" />
+                    <img loading="lazy" decoding="async" src={item.photo} alt={item.area} className="h-full w-full object-cover" />
                   ) : (
                     <div className={`flex h-full w-full items-center justify-center bg-gradient-to-br ${shades[i % shades.length]}`}>
                       <CameraIcon className="h-4 w-4 text-white/70" />

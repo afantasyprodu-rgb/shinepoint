@@ -50,6 +50,21 @@ Deno.serve(async (req) => {
     } = await userClient.auth.getUser()
     if (userErr || !user) return json({ error: 'Not authenticated' }, 401)
 
+    // Re-auth freshness gate: this endpoint is irreversible, so a hijacked
+    // session (stolen laptop, XSS'd token) must not be able to use it. The
+    // caller must have signed in within the last 15 minutes — same window
+    // GitHub uses for sudo mode. Clients should route the user through a
+    // fresh sign-in first when they hit the 403 (ChangePassword already
+    // re-authenticates; deletion previously had no such check).
+    const FRESH_WINDOW_MS = 15 * 60 * 1000
+    const lastSignIn = user.last_sign_in_at ? Date.parse(user.last_sign_in_at) : 0
+    if (!lastSignIn || Date.now() - lastSignIn > FRESH_WINDOW_MS) {
+      return json(
+        { error: 'Please sign in again before deleting your account.', code: 'reauth_required' },
+        403
+      )
+    }
+
     // Free text straight into account_deletion_feedback — capped so a
     // scripted caller can't push a multi-megabyte row.
     const { reason: rawReason } = await req.json().catch(() => ({ reason: null }))

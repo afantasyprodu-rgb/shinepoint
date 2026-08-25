@@ -111,6 +111,26 @@ Deno.serve(async (req) => {
     return new Response('Bad signature', { status: 400 })
   }
 
+  // Processed-event ledger (060): claim the event id in one statement. A
+  // redelivery/replay finds the row already present and is acknowledged
+  // without re-running handlers — Stripe retries on any non-2xx, so without
+  // this a transient handler error + redelivery would re-send confirmation
+  // email and re-stamp timestamps.
+  const { data: claimed, error: ledgerErr } = await admin
+    .from('stripe_events')
+    .upsert({ event_id: event.id }, { onConflict: 'event_id', ignoreDuplicates: true })
+    .select('event_id')
+  if (ledgerErr) {
+    // A broken ledger must not wedge the webhook — process anyway, loudly.
+    console.error('stripe_events ledger write failed:', ledgerErr.message)
+    await captureException(ledgerErr, 'stripe-webhook:ledger')
+  } else if (!claimed || claimed.length === 0) {
+    return new Response(JSON.stringify({ received: true, duplicate: true }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
   try {
     switch (event.type) {
       case 'payment_intent.succeeded': {
@@ -119,9 +139,17 @@ Deno.serve(async (req) => {
         if (bookingId && pi.metadata?.kind === 'tip') {
           // Tip charge (charge-tip). Only now is tip_amount real money —
           // release-payouts refuses to pay a tip without tip_paid_at.
+          // The amount comes FROM the PaymentIntent, not from whatever value
+          // sits on the row: bookings.tip_amount is server-managed (060), so
+          // this is its authoritative writer, and it also overwrites any
+          // stale provisional value charge-tip stored pre-confirmation.
           await admin
             .from('bookings')
-            .update({ tip_paid_at: new Date().toISOString(), tip_payment_intent: pi.id })
+            .update({
+              tip_paid_at: new Date().toISOString(),
+              tip_payment_intent: pi.id,
+              tip_amount: Math.round(pi.amount) / 100,
+            })
             .eq('id', bookingId)
         } else if (bookingId) {
           await admin

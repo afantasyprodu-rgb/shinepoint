@@ -281,7 +281,7 @@ export function GalleryGrid({ gallery, setGallery, onAdd }) {
             exit={{ opacity: 0, scale: 0.85 }}
             className="group relative aspect-square overflow-hidden rounded-xl"
           >
-            <img src={url} alt={t('portfolioAlt', { n: i + 1 })} className="h-full w-full object-cover" />
+            <img loading="lazy" decoding="async" src={url} alt={t('portfolioAlt', { n: i + 1 })} className="h-full w-full object-cover" />
             <button
               type="button"
               onClick={() => setGallery((g) => g.filter((u) => u !== url))}

@@ -34,7 +34,12 @@ function PayoutSetup() {
   const t = useT('detailerDashboard')
 
   useEffect(() => {
-    fetchMyPayoutStatus().then(setPayoutStatus)
+    // On failure, surface the "set up payouts" card (payoutStatus stays
+    // null) instead of hiding it forever — a silently-hidden setup prompt
+    // means a detailer who never connects Stripe and never gets paid.
+    fetchMyPayoutStatus()
+      .then(setPayoutStatus)
+      .catch((e) => console.error('fetchMyPayoutStatus:', e.message))
   }, [])
 
   async function connect() {

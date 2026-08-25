@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
 
     const { data: dispute } = await admin
       .from('disputes')
-      .select('id, status, filed_by, required_identity, booking_id, stripe_refund_id, bookings!inner(total_price, stripe_payment_intent, refunded_amount, stripe_payment_method)')
+      .select('id, status, filed_by, required_identity, booking_id, stripe_refund_id, bookings!inner(customer_id, total_price, stripe_payment_intent, refunded_amount, stripe_payment_method)')
       .eq('id', disputeId)
       .single()
     if (!dispute) return json({ error: 'Dispute not found' }, 404)
@@ -128,9 +128,17 @@ Deno.serve(async (req) => {
     // rolled back over an unrelated $1.50.
     let feeCharged = false
     if (resolution === 'detailer_wins' && dispute.required_identity && booking?.stripe_payment_method) {
+      // The saved card on the booking belongs to the booking's CUSTOMER. If
+      // a detailer ever filed the dispute, charging that card under the
+      // filer's Stripe customer would bill the WRONG PERSON — so the fee
+      // only applies when the filer is provably the booking customer.
+      const filerIsCustomer = dispute.filed_by === booking.customer_id
+      if (!filerIsCustomer) {
+        console.warn('resolve-dispute: skipping false-dispute fee — filer is not the booking customer', disputeId)
+      }
       try {
         const { data: filer } = await admin.from('users').select('stripe_customer_id').eq('id', dispute.filed_by).single()
-        if (filer?.stripe_customer_id) {
+        if (filerIsCustomer && filer?.stripe_customer_id) {
           const feeIntent = await stripe.paymentIntents.create({
             amount: Math.round(FALSE_DISPUTE_FEE * 100),
             currency: 'usd',

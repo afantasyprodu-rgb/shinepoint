@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { CameraIcon, CarIcon, XIcon } from './icons'
 import { useT } from '../i18n/useT'
@@ -20,6 +20,26 @@ export default function PhotoGrid({ count, photos, label, emptyText }) {
   const [open, setOpen] = useState(null) // index of enlarged photo
   const t = useT('photoGrid')
   const empty = emptyText ?? t('noPhotosYet')
+
+  // The lightbox is a hand-rolled overlay (not ui/Modal - it needs full-bleed
+  // layout), so it carries its own keyboard contract: Escape closes, and
+  // focus returns to the thumbnail that opened it when it does.
+  const triggerRef = useRef(null)
+  const lastOpenRef = useRef(null)
+  useEffect(() => {
+    if (open === null && lastOpenRef.current !== null) {
+      triggerRef.current?.focus?.()
+    }
+    lastOpenRef.current = open
+  }, [open])
+  useEffect(() => {
+    if (open === null) return
+    function onKey(e) {
+      if (e.key === 'Escape') setOpen(null)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open])
 
   // Normalize to a single items array. Real photos take priority.
   const real = (photos ?? []).filter((p) => p && p.photo)
@@ -46,7 +66,7 @@ export default function PhotoGrid({ count, photos, label, emptyText }) {
           <motion.button
             key={i}
             type="button"
-            onClick={() => setOpen(i)}
+            onClick={(e) => { triggerRef.current = e.currentTarget; setOpen(i) }}
             aria-label={t('viewPhoto', { label, area: item.area })}
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -57,7 +77,7 @@ export default function PhotoGrid({ count, photos, label, emptyText }) {
             }`}
           >
             {item.photo ? (
-              <img src={item.photo} alt={item.area} className="h-full w-full object-cover" />
+              <img loading="lazy" decoding="async" src={item.photo} alt={item.area} className="h-full w-full object-cover" />
             ) : (
               <CarIcon className="h-6 w-6" />
             )}
@@ -96,7 +116,7 @@ export default function PhotoGrid({ count, photos, label, emptyText }) {
               className="w-full max-w-sm overflow-hidden rounded-3xl shadow-2xl"
             >
               {items[open].photo ? (
-                <img src={items[open].photo} alt={items[open].area} className="w-full object-cover" />
+                <img loading="lazy" decoding="async" src={items[open].photo} alt={items[open].area} className="w-full object-cover" />
               ) : (
                 <div className={`flex aspect-square flex-col items-center justify-center gap-3 bg-gradient-to-br ${SHADES[open % SHADES.length]} text-white`}>
                   <CarIcon className="h-20 w-20 opacity-80" />
@@ -122,7 +142,7 @@ export default function PhotoGrid({ count, photos, label, emptyText }) {
                   } ${open === i ? 'ring-2 ring-white ring-offset-2 ring-offset-black/80 scale-110' : 'opacity-60 hover:opacity-100'}`}
                 >
                   {item.photo ? (
-                    <img src={item.photo} alt={item.area} className="h-full w-full object-cover" />
+                    <img loading="lazy" decoding="async" src={item.photo} alt={item.area} className="h-full w-full object-cover" />
                   ) : (
                     <CarIcon className="h-4 w-4" />
                   )}

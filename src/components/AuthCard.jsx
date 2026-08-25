@@ -168,7 +168,7 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
     e.preventDefault()
     setError('')
     setBusy(true)
-    const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
+    const { error: _err } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password`,
       captchaToken,
     })
@@ -567,6 +567,7 @@ function MethodButton({ icon, onClick, disabled, children }) {
 }
 
 function BackButton({ onClick }) {
+  const t = useT('auth')
   return (
     <button
       type="button"
@@ -574,7 +575,7 @@ function BackButton({ onClick }) {
       className="mb-4 flex items-center gap-1 text-sm text-[var(--auth-text-soft)] hover:text-[var(--auth-text)] transition-colors"
     >
       <ChevronLeftIcon className="h-4 w-4" />
-      Back
+      {t('back')}
     </button>
   )
 }

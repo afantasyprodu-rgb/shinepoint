@@ -12,6 +12,7 @@ import { createClient } from 'npm:@supabase/supabase-js@^2'
 import { corsHeaders, json } from '../_shared/cors.ts'
 import { captureException } from '../_shared/sentry.ts'
 import { safeOrigin } from '../_shared/validate.ts'
+import { withinRateLimit, tooManyRequests } from '../_shared/rateLimit.ts'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
   apiVersion: '2026-05-27.dahlia',
@@ -39,6 +40,12 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
+
+    // Account creation + hosted links are unthrottled Stripe calls — cap
+    // them per user so a loop can't spam accounts/links into existence.
+    if (!(await withinRateLimit(admin, `onboard:${user.id}`, 10, '1 hour'))) {
+      return tooManyRequests(3600)
+    }
 
     const { data: profile, error: profErr } = await admin
       .from('detailer_profiles')

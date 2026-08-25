@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
     // Load booking + verify the caller owns it (customer side).
     const { data: booking, error: bErr } = await admin
       .from('bookings')
-      .select('id, total_price, paid_at, stripe_payment_intent, customer_id, detailer_id, service_id, addon_service_ids, is_loyalty_redemption, booking_zip, customer_profiles!bookings_customer_id_fkey(user_id)')
+      .select('id, total_price, paid_at, stripe_payment_intent, customer_id, detailer_id, service_id, addon_service_ids, is_loyalty_redemption, promo_code, booking_zip, customer_profiles!bookings_customer_id_fkey(user_id)')
       .eq('id', bookingId)
       .single()
     if (bErr || !booking) return json({ error: 'Booking not found' }, 404)
@@ -87,6 +87,9 @@ Deno.serve(async (req) => {
     // (30% ceiling) — the client only ever proposes a code string.
     let promoCodeId: string | null = null
     let promoDiscount = 0
+    // NOTE: promo_code must stay in the select list above — it went missing
+    // once and silently disabled this whole block (customers paid full price
+    // while the UI showed a discount).
     if (booking.promo_code) {
       const { data: promo } = await admin.rpc('check_promo_code', {
         p_detailer_id: booking.detailer_id,
@@ -196,8 +199,9 @@ Deno.serve(async (req) => {
 
     // Consume whatever was actually applied, once the booking is committed
     // to being paid. Idempotent: the reward update is keyed on redeemed_at
-    // still being null, and the balance decrement uses the exact amount we
-    // read above, so a retried request can't double-spend.
+    // still being null; the referral balance is spent via an atomic SQL
+    // compare-and-decrement (060) so two concurrent bookings can no longer
+    // both read the same balance and both apply it.
     const burnCredits = async () => {
       if (rewardId) {
         await admin
@@ -210,10 +214,27 @@ Deno.serve(async (req) => {
         await admin.rpc('consume_promo_code', { p_code_id: promoCodeId })
       }
       if (referralCredit > 0) {
-        await admin
-          .from('customer_profiles')
-          .update({ referral_credit: Number((Number(custProfile?.referral_credit ?? 0) - referralCredit).toFixed(2)) })
-          .eq('id', booking.customer_id)
+        const { data: consumed } = await admin.rpc('consume_referral_credit', {
+          p_customer_id: booking.customer_id,
+          p_amount: referralCredit,
+        })
+        if (!consumed) {
+          // The balance moved underneath us between the read and this call.
+          // Take whatever is actually left — never more than we intended,
+          // never resurrecting a double-spend.
+          const { data: fresh } = await admin
+            .from('customer_profiles')
+            .select('referral_credit')
+            .eq('id', booking.customer_id)
+            .single()
+          const available = Math.min(Number(fresh?.referral_credit ?? 0), referralCredit)
+          if (available > 0) {
+            await admin.rpc('consume_referral_credit', {
+              p_customer_id: booking.customer_id,
+              p_amount: available,
+            })
+          }
+        }
       }
     }
 
@@ -264,6 +285,14 @@ Deno.serve(async (req) => {
 
     if (booking.stripe_payment_intent) {
       intent = await stripe.paymentIntents.retrieve(booking.stripe_payment_intent)
+      // A reused intent can carry a STALE amount (created before a repricing
+      // rule landed, or the row's total was corrected afterwards). The freshly
+      // recomputed `amount` is authoritative — sync them while the intent is
+      // still awaiting payment. Once it's succeeded we leave it alone.
+      const mutable = ['requires_payment_method', 'requires_confirmation'].includes(intent.status)
+      if (mutable && intent.amount !== amount) {
+        intent = await stripe.paymentIntents.update(intent.id, { amount })
+      }
     } else {
       intent = await stripe.paymentIntents.create({
         amount,

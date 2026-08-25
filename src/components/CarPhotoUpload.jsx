@@ -17,7 +17,7 @@ export default function CarPhotoUpload({ photo, onFile, onChange }) {
         className="group relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-xl bg-brand-50 text-brand-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:bg-white/5 dark:text-brand-300"
       >
         {photo ? (
-          <img src={photo} alt="Vehicle" className="h-full w-full object-cover" />
+          <img loading="lazy" decoding="async" src={photo} alt="Vehicle" className="h-full w-full object-cover" />
         ) : (
           <CarIcon className="h-6 w-6" />
         )}

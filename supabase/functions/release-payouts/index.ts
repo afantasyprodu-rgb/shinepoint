@@ -74,6 +74,14 @@ Deno.serve(async (req) => {
         destination: acctId,
         transfer_group: b.id,
         metadata: { booking_id: b.id },
+      }, {
+        // Deterministic idempotency key: the DB row is only stamped AFTER the
+        // transfer returns, so a crash between those two steps would make the
+        // next cron tick pay this booking AGAIN. With a stable key, the retry
+        // gets Stripe's replay of the original transfer instead of a second
+        // one. (Stripe replays for 24h; after that transferred_at is long set
+        // and the query above no longer returns the row.)
+        idempotencyKey: `payout-${b.id}`,
       })
       await admin
         .from('bookings')

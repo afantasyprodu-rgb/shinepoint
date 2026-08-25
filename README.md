@@ -8,9 +8,12 @@ customer booking flow, detailer job flow, and the admin panel — running on an
 in-memory demo store. Open the app and hit **"explore the live demo"** on the
 landing page to tour all three roles with seeded data, no setup needed.
 
-Real backend wiring status: auth + profiles + availability hit Supabase when
-configured (migrations 001 + 002 create the complete database). Bookings, chat,
-photos, payments, and admin actions are demo-store only until Phase 2+ wiring.
+Real backend wiring status: auth + profiles + availability, the full booking
+lifecycle, realtime chat, photos, reviews, Stripe Connect payments (including
+tips, refunds, payouts, disputes), push notifications, and en-route tracking are
+live against Supabase/Stripe when configured (migrations 001–061 create the
+complete database). The demo store remains a public tour mode — real sessions
+never fall back to it silently.
 
 > The name "ShinePoint" is a placeholder — search-and-replace it when you pick a real name.
 
@@ -53,6 +56,14 @@ npm run dev
 ```
 
 Open http://localhost:5173.
+
+### Checks
+
+```
+npm run lint          # ESLint (react-hooks rules on)
+npm run typecheck     # tsc --noEmit
+npm run check:guards  # bookings column-guard regression tripwire (no DB needed)
+```
 
 ### Dev tip: email confirmation
 

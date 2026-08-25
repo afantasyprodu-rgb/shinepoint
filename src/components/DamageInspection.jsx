@@ -7,7 +7,7 @@ function newItem() {
   return { id: crypto.randomUUID(), area: '', note: '', photo: null }
 }
 
-export default function DamageInspection({ booking, onSubmit, onNoDamage }) {
+export default function DamageInspection({ booking: _booking, onSubmit, onNoDamage }) {
   const [items, setItems] = useState([newItem()])
   const fileRefs = useRef({})
   const t = useT('damageInspection')
@@ -32,7 +32,7 @@ export default function DamageInspection({ booking, onSubmit, onNoDamage }) {
   function submit() {
     const clean = items
       .filter((it) => it.area.trim() || it.note.trim() || it.photo)
-      .map(({ id, ...rest }) => rest)
+      .map(({ id: _id, ...rest }) => rest)
     onSubmit(clean)
   }
 
@@ -96,7 +96,7 @@ export default function DamageInspection({ booking, onSubmit, onNoDamage }) {
 
             {item.photo ? (
               <div className="relative mt-2">
-                <img
+                <img loading="lazy" decoding="async"
                   src={item.photo}
                   alt={`Damage at ${item.area || 'area ' + (idx + 1)}`}
                   className="h-36 w-full rounded-xl object-cover"

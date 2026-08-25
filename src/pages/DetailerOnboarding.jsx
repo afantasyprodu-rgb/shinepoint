@@ -69,7 +69,7 @@ export default function DetailerOnboarding() {
   const [noInsuranceAck, setNoInsuranceAck] = useState(false)
   const [bio, setBio] = useState('')
   const [zip, setZip] = useState('')
-  const [vehicles, setVehicles] = useState(['Sedan', 'SUV'])
+  const [vehicles] = useState(['Sedan', 'SUV'])
   const [services, setServices] = useState({ 'Exterior Wash': 45, 'Full Detail': 175 })
   // Which enabled service gets the single "Best margin" highlight (Von
   // Restorff — only one thing should visually stand out, and it should be

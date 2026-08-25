@@ -3,8 +3,8 @@ import { AnimatePresence, motion } from 'motion/react'
 import { SendIcon } from './icons'
 import { useStore } from '../context/StoreContext'
 import { useAuth } from '../context/AuthContext'
-import { supabase } from '../lib/supabase'
 import { fetchMessages, sendMessageToDB } from '../lib/db'
+import { useRealtimeChannel } from '../hooks/useRealtimeChannel'
 import { playSfx } from '../lib/sfx'
 import { useT } from '../i18n/useT'
 
@@ -15,6 +15,7 @@ export default function ChatThread({ bookingId, me }) {
   const { user, isDemo } = useAuth()
   const [text, setText] = useState('')
   const [flagNotice, setFlagNotice] = useState(false)
+  const [sendError, setSendError] = useState(null)
   const t = useT('chatThread')
 
   // Real chat is loaded per-booking and kept live with a realtime subscription.
@@ -35,40 +36,27 @@ export default function ChatThread({ bookingId, me }) {
         return [...rows, ...extra].sort((a, b) => new Date(a.at) - new Date(b.at))
       })
     })
+    return () => { cancelled = true }
+  }, [bookingId, isDemo])
 
-    // .subscribe() throws synchronously ("WebSocket not available: The
-    // operation is insecure.") on a misconfigured VITE_SUPABASE_URL instead
-    // of failing gracefully — same guard as the realtime channels in
-    // StoreContext.jsx, needed here too so opening a chat can't crash the
-    // whole app to the ErrorBoundary. Falls back to "loaded once, no live
-    // updates" instead.
-    let channel
-    try {
-      channel = supabase
-        .channel(`messages:${bookingId}`)
-        .on(
-          'postgres_changes',
-          { event: 'INSERT', schema: 'public', table: 'messages', filter: `booking_id=eq.${bookingId}` },
-          (payload) => {
-            const m = payload.new
-            if (m.sender_id !== user?.id) playSfx('message')
-            setRealThread((prev) =>
-              prev.some((x) => x.id === m.id)
-                ? prev
-                : [...prev, { id: m.id, text: m.content, at: m.sent_at, flagged: m.is_flagged, senderId: m.sender_id }]
-            )
-          }
-        )
-        .subscribe()
-    } catch (err) {
-      console.error('Realtime subscribe failed (check VITE_SUPABASE_URL uses https://):', err)
-      return () => { cancelled = true }
-    }
-
-    return () => {
-      cancelled = true
-      supabase.removeChannel(channel)
-    }
+  useRealtimeChannel((supabase) => {
+    if (isDemo || !bookingId) return null
+    return supabase
+      .channel(`messages:${bookingId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages', filter: `booking_id=eq.${bookingId}` },
+        (payload) => {
+          const m = payload.new
+          if (m.sender_id !== user?.id) playSfx('message')
+          setRealThread((prev) =>
+            prev.some((x) => x.id === m.id)
+              ? prev
+              : [...prev, { id: m.id, text: m.content, at: m.sent_at, flagged: m.is_flagged, senderId: m.sender_id }]
+          )
+        }
+      )
+      .subscribe()
   }, [bookingId, isDemo])
 
   // Demo aligns by role string; real aligns by sender id.
@@ -80,6 +68,7 @@ export default function ChatThread({ bookingId, me }) {
     e.preventDefault()
     const body = text.trim()
     if (!body) return
+    setSendError(null)
     setText('')
 
     if (isDemo) {
@@ -87,15 +76,21 @@ export default function ChatThread({ bookingId, me }) {
       return
     }
 
-    const { id, flagged } = await sendMessageToDB(bookingId, user.id, body)
-    setFlagNotice(flagged)
-    // Optimistic append; the realtime echo is deduped by id.
-    if (id) {
+    try {
+      const { id, flagged } = await sendMessageToDB(bookingId, user.id, body)
+      if (!id) throw new Error(t('sendFailed'))
+      setFlagNotice(flagged)
+      // Optimistic append; the realtime echo is deduped by id.
       setRealThread((prev) =>
         prev.some((x) => x.id === id)
           ? prev
           : [...prev, { id, text: body, at: new Date().toISOString(), flagged, senderId: user.id }]
       )
+    } catch (e2) {
+      // Restore the typed message so a failed send doesn't eat what the
+      // user wrote — it used to vanish AND throw an unhandled rejection.
+      setSendError(e2?.message || t('sendFailed'))
+      setText(body)
     }
   }
 
@@ -136,6 +131,11 @@ export default function ChatThread({ bookingId, me }) {
       {flagNotice && (
         <p role="alert" className="mx-1 mb-2 rounded-lg bg-red-50 px-3 py-1.5 text-xs text-red-700">
           {t('flagNotice')}
+        </p>
+      )}
+      {sendError && (
+        <p role="alert" className="mx-1 mb-2 rounded-lg bg-red-50 px-3 py-1.5 text-xs text-red-700 dark:bg-red-950/40 dark:text-red-300">
+          {sendError}
         </p>
       )}
       <form onSubmit={submit} className="flex gap-2">
