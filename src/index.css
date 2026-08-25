@@ -502,6 +502,28 @@
     @apply relative z-10 w-full max-w-sm px-6 pt-10 pb-8 flex flex-col;
   }
 
+  /* Glass card surface for the standalone mobile shell only (DesktopLanding's
+     embedded use never applies this class — see AuthCard.jsx). MethodButton
+     loses its own border/shadow when nested in here (.auth-card-surface
+     .auth-method-btn below) — this card is the one depth layer, not a card
+     holding cards. */
+  .auth-card-surface {
+    @apply rounded-3xl border border-white/60 bg-white/70 shadow-xl shadow-brand-900/5 backdrop-blur-md;
+  }
+  /* !important: MethodButton's own border/bg/shadow ride in via Tailwind
+     utility classes on the element, which live in Tailwind's utilities
+     layer — that layer always wins over @layer components regardless of
+     selector specificity, so a plain override here would silently no-op. */
+  .auth-card-surface .auth-method-btn {
+    border-color: transparent !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+  .auth-card-surface .auth-method-btn:hover {
+    background: color-mix(in srgb, var(--color-brand-500) 8%, white) !important;
+    box-shadow: none !important;
+  }
+
   .auth-logo-block {
     @apply flex flex-col items-center gap-1.5 mb-8;
   }

@@ -511,7 +511,7 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
         </div>
       )}
       <LanguageToggle className="fixed right-4 top-4 z-50 border border-brand-100 bg-white/90 text-slate-700 shadow-sm backdrop-blur hover:bg-slate-50" />
-      <div className="auth-card">
+      <div className="auth-card auth-card-surface">
         <Link
           to="/"
           className="mb-2 inline-flex items-center gap-1 text-sm text-slate-500 transition-colors hover:text-slate-700"
@@ -558,7 +558,7 @@ function MethodButton({ icon, onClick, disabled, children }) {
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="flex h-12 w-full cursor-pointer items-center gap-3 rounded-xl border border-[var(--auth-method-border)] bg-[var(--auth-method-bg)] px-4 text-sm font-medium text-[var(--auth-text)] shadow-sm backdrop-blur-sm transition-all duration-150 hover:border-[var(--auth-method-border-hover)] hover:bg-[var(--auth-method-bg-hover)] hover:shadow-md active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+      className="auth-method-btn flex h-12 w-full cursor-pointer items-center gap-3 rounded-xl border border-[var(--auth-method-border)] bg-[var(--auth-method-bg)] px-4 text-sm font-medium text-[var(--auth-text)] shadow-sm backdrop-blur-sm transition-all duration-150 hover:border-[var(--auth-method-border-hover)] hover:bg-[var(--auth-method-bg-hover)] hover:shadow-md active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
     >
       <span className="shrink-0">{icon}</span>
       {children}
