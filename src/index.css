@@ -1231,6 +1231,56 @@
     inset -2px -2px 4px rgba(0, 0, 0, 0.15);
 }
 
+/* Idle wobble — surface tension holding a blob together in freefall, where
+   nothing pulls it into a fixed shape so it keeps redistributing. Only the
+   three ROUND corners drift; the fourth stays a hard 4px point, because
+   that point (rotated -45deg by the element) is what makes this read as a
+   droplet rather than a circle. Border-radius doesn't trigger layout, and
+   the element's transform is left untouched so BottomTabBar's velocity
+   physics can own it without fighting this. */
+@keyframes nx-drop-idle {
+  0%,
+  100% {
+    border-radius: 50% 50% 50% 4px;
+  }
+  25% {
+    border-radius: 57% 44% 52% 4px;
+  }
+  50% {
+    border-radius: 45% 55% 47% 4px;
+  }
+  75% {
+    border-radius: 52% 48% 58% 4px;
+  }
+}
+/* The slow vertical drift is lifted from the parallel implementation this
+   replaced (b722b2e) — the shape wobble alone left it feeling pinned to the
+   bar, and a couple of pixels of float is what makes it read as suspended.
+   Deliberately a different period from the shape morph (3.7s vs 5.2s) so the
+   two never sync into an obvious loop. Runs on the wrapper, not the droplet
+   itself, so it can't collide with the -rotate-45 the shape element needs. */
+@keyframes nx-drop-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2.5px);
+  }
+}
+.nx-tab-drop-idle {
+  animation: nx-drop-idle 5.2s ease-in-out infinite;
+}
+.nx-tab-drop-float {
+  animation: nx-drop-float 3.7s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .nx-tab-drop-idle,
+  .nx-tab-drop-float {
+    animation: none;
+  }
+}
+
 /* ── Leaflet map: pins, user location, grow-in popups ─────────────────────
    The discovery map (DetailerMap) is Leaflet + OpenStreetMap. Pins and the
    user-location dot are divIcons styled here; the native popup grows in with

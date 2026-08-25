@@ -58,7 +58,6 @@ export default function AdminShell({ children }) {
     admin.disputes.filter((d) => d.status !== 'resolved').length +
     admin.overrides.length +
     admin.flagged.length
-  const totalBadge = peopleBadge + opsBadge
 
   const LINKS = [
     { to: '/admin',         label: t('dashboard'),  end: true, badge: 0,           icon: GridIcon },
@@ -129,7 +128,7 @@ export default function AdminShell({ children }) {
         {/* pb-20 plus the same safe-area inset the bar itself now reserves,
             so content never sits underneath the taller notch-device bar. */}
         <main className="flex-1 px-4 py-8 pb-[calc(5rem+env(safe-area-inset-bottom))] sm:px-8 sm:pb-8">{children}</main>
-        <BottomTabBar items={LINKS} layoutId="admin-tab-bubble" />
+        <BottomTabBar items={LINKS} />
       </div>
     </div>
   )

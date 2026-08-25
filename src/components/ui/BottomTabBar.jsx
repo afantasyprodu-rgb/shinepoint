@@ -1,14 +1,22 @@
+import { useEffect, useRef, useState } from 'react'
 import { NavLink, useLocation, matchPath } from 'react-router-dom'
-import { motion, AnimatePresence } from 'motion/react'
+import {
+  motion,
+  AnimatePresence,
+  useMotionValue,
+  useSpring,
+  useVelocity,
+  useTransform,
+  useReducedMotion,
+} from 'motion/react'
 
 // Fixed bottom tab bar, mobile only, shared by every role (customer,
 // detailer, admin). The bar's top edge has a circular cutout that slides to
 // the active tab (--tab-notch-x, animated via the CSS `@property` in
-// index.css), and the active tab's icon sits in a raised neumorphic bubble
-// that pops up through the notch (layoutId makes it slide instead of
-// popping in fresh). Active state is derived from the router's location, not
+// index.css), and the active tab's icon sits in a raised droplet that pops up
+// through the notch. Active state is derived from the router's location, not
 // a click listener, so back/forward and deep links stay correct.
-export default function BottomTabBar({ items, layoutId, hidden = false }) {
+export default function BottomTabBar({ items, hidden = false }) {
   const location = useLocation()
   const activeIndex = Math.max(
     0,
@@ -45,6 +53,7 @@ export default function BottomTabBar({ items, layoutId, hidden = false }) {
       <div aria-hidden="true" className="absolute inset-0 shadow-[0_-8px_20px_-10px_var(--neu-sd)]" />
       <div aria-hidden="true" className="bottom-tabbar-bg absolute inset-0 bg-[var(--neu-bg)]" />
       <nav aria-label="Main mobile" className="relative flex">
+        <WaterDroplet activeIndex={activeIndex} count={items.length} />
         {items.map(({ to, label, end, icon: ItemIcon, badge }) => (
         <NavLink
           key={to}
@@ -55,52 +64,6 @@ export default function BottomTabBar({ items, layoutId, hidden = false }) {
           {({ isActive }) => (
             <>
               <span className="relative flex h-9 w-9 items-center justify-center">
-                {isActive && (
-                  <motion.span
-                    layoutId={layoutId}
-                    transition={{ type: 'spring', stiffness: 420, damping: 32 }}
-                    className="absolute -top-6 flex h-11 w-11 items-center justify-center"
-                  >
-                    {/* key={activeIndex}: remounts on every tab switch so the
-                        squash/stretch keyframes below replay each time
-                        instead of only on the bubble's first mount — that's
-                        what sells "liquid flicked into a new spot" rather
-                        than a rigid disc that just slides. Settles into the
-                        second, always-running motion.span's idle bob/blob
-                        wobble (surface tension, not just sitting still). */}
-                    <motion.span
-                      key={activeIndex}
-                      initial={{ scaleX: 0.55, scaleY: 1.5, rotate: -8 }}
-                      animate={{
-                        scaleX: [0.55, 1.4, 0.8, 1.1, 0.95, 1],
-                        scaleY: [1.5, 0.68, 1.22, 0.92, 1.04, 1],
-                        rotate: [-8, 6, -3, 1.5, -0.5, 0],
-                      }}
-                      transition={{ duration: 0.75, times: [0, 0.2, 0.42, 0.62, 0.82, 1], ease: 'easeOut' }}
-                      className="flex h-11 w-11 items-center justify-center"
-                    >
-                      <motion.span
-                        animate={{
-                          y: [0, -2, 0],
-                          borderRadius: [
-                            '50% 50% 50% 4px',
-                            '50% 50% 46% 9px',
-                            '46% 50% 50% 4px',
-                            '50% 50% 50% 4px',
-                          ],
-                        }}
-                        transition={{
-                          duration: 2.8,
-                          repeat: Infinity,
-                          repeatType: 'mirror',
-                          ease: 'easeInOut',
-                          delay: 0.75,
-                        }}
-                        className="nx-tab-drop block h-11 w-11 -rotate-45"
-                      />
-                    </motion.span>
-                  </motion.span>
-                )}
                 {ItemIcon && (
                   <motion.span
                     animate={{ y: isActive ? -24 : 0 }}
@@ -137,5 +100,116 @@ export default function BottomTabBar({ items, layoutId, hidden = false }) {
         ))}
       </nav>
     </div>
+  )
+}
+
+// The droplet is ONE element travelling the bar, not one-per-tab handed off
+// via layoutId. That's the whole point: a layout animation only exposes the
+// tween, never how fast the thing is moving, and the speed is what the
+// physics below is built on. Driving x through a spring ourselves gives
+// useVelocity() a real signal to read.
+//
+// Three behaviours, all velocity-derived so they emerge from the motion
+// rather than being separately choreographed:
+//   • squash + stretch — the blob elongates along travel and thins across it,
+//     roughly conserving area the way a real droplet's surface tension would
+//   • lean — it tips away from the direction of travel, so it reads as being
+//     dragged rather than sliding
+//   • wake — two softer springs trail behind at lower stiffness, so beads of
+//     water appear to lag and get reabsorbed on arrival
+// At rest all three collapse to identity and only the idle morph (CSS, see
+// .nx-tab-drop) is left: the slow zero-gravity wobble of a blob holding
+// itself together.
+const DROP_PX = 44 // h-11/w-11 — must match the element's own size
+
+function WaterDroplet({ activeIndex, count }) {
+  const reduce = useReducedMotion()
+  const navRef = useRef(null)
+  const [slotW, setSlotW] = useState(0)
+
+  // Measured, not percentage-based: x has to be in px for the spring to
+  // produce a velocity in px/s that the ranges below can be tuned against.
+  useEffect(() => {
+    const el = navRef.current?.parentElement
+    if (!el) return
+    const measure = () => setSlotW(el.offsetWidth / count)
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [count])
+
+  const targetX = slotW * (activeIndex + 0.5)
+
+  // The springs track a MotionValue rather than a plain number: useSpring
+  // only treats a number as an INITIAL value, so feeding it targetX directly
+  // left the droplet parked at 0 (hard left) forever once the measurement
+  // landed. jump() on the first real measurement so it appears already in
+  // place instead of flying in from the corner on mount.
+  const xTarget = useMotionValue(0)
+  const placed = useRef(false)
+  useEffect(() => {
+    if (!slotW) return
+    if (!placed.current) {
+      placed.current = true
+      xTarget.jump ? xTarget.jump(targetX) : xTarget.set(targetX)
+      return
+    }
+    xTarget.set(targetX)
+  }, [targetX, slotW, xTarget])
+
+  // Underdamped on purpose — it overshoots and settles, which is the
+  // "jiggle on arrival" half of the effect.
+  const dropX = useSpring(xTarget, reduce
+    ? { stiffness: 900, damping: 60 }
+    : { stiffness: 260, damping: 19, mass: 1.15 })
+  const trailAX = useSpring(xTarget, { stiffness: 170, damping: 17, mass: 1.35 })
+  const trailBX = useSpring(xTarget, { stiffness: 118, damping: 15, mass: 1.6 })
+
+  // Raw velocity is spiky; a fast spring on top smooths it without adding
+  // enough lag to desync the squash from the travel.
+  const velocity = useVelocity(dropX)
+  const v = useSpring(velocity, { stiffness: 420, damping: 40 })
+
+  const RANGE = [-2200, 0, 2200]
+  const scaleX = useTransform(v, RANGE, [1.42, 1, 1.42])
+  const scaleY = useTransform(v, RANGE, [0.66, 1, 0.66])
+  // Signed, unlike the scales — the lean has to flip with direction.
+  const rotate = useTransform(v, RANGE, [11, 0, -11])
+
+  if (slotW === 0) return <span ref={navRef} className="absolute" aria-hidden="true" />
+
+  return (
+    <span ref={navRef} aria-hidden="true" className="pointer-events-none absolute inset-0 z-0">
+      {!reduce && (
+        <>
+          <Bead x={trailBX} scale={0.58} opacity={0.22} />
+          <Bead x={trailAX} scale={0.78} opacity={0.4} />
+        </>
+      )}
+      <motion.div className="absolute" style={{ x: dropX, top: -12, marginLeft: -DROP_PX / 2 }}>
+        <div className="nx-tab-drop-float">
+          <motion.div style={reduce ? undefined : { scaleX, scaleY, rotate }}>
+            <div className="nx-tab-drop nx-tab-drop-idle h-11 w-11 -rotate-45" />
+          </motion.div>
+        </div>
+      </motion.div>
+    </span>
+  )
+}
+
+// A lagging bead of the wake. Same gradient as the droplet so it reads as the
+// same body of water, just behind it.
+function Bead({ x, scale, opacity }) {
+  return (
+    <motion.div
+      className="absolute"
+      style={{ x, top: -12, marginLeft: -DROP_PX / 2, opacity }}
+    >
+      <div
+        className="nx-tab-drop nx-tab-drop-idle h-11 w-11 -rotate-45"
+        style={{ transform: `rotate(-45deg) scale(${scale})`, boxShadow: 'none' }}
+      />
+    </motion.div>
   )
 }

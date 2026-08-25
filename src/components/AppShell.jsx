@@ -258,7 +258,7 @@ export default function AppShell({ role, children, collapsibleBottomNav = false 
       {/* pb-16 plus the same safe-area inset the bar itself now reserves,
           so content never sits underneath the taller notch-device bar. */}
       <div className="flex-1 pb-[calc(4rem+env(safe-area-inset-bottom))] sm:pb-0">{children}</div>
-      <BottomTabBar items={nav} layoutId={`${role}-tab-bubble`} hidden={collapsibleBottomNav && navHidden} />
+      <BottomTabBar items={nav} hidden={collapsibleBottomNav && navHidden} />
       {collapsibleBottomNav && (
         <button
           type="button"
