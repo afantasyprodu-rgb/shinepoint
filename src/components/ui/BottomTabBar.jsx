@@ -3,7 +3,6 @@ import { NavLink, useLocation, matchPath } from 'react-router-dom'
 import {
   motion,
   AnimatePresence,
-  useMotionValue,
   useSpring,
   useVelocity,
   useTransform,
@@ -141,28 +140,30 @@ function WaterDroplet({ activeIndex, count }) {
 
   const targetX = slotW * (activeIndex + 0.5)
 
-  // xTarget carries the latest number in; dropX (below) is the actual spring
-  // that animates toward it on every change — including the first one,
-  // which means the droplet DOES ease in from x=0 (off-screen left) for one
-  // beat on mount rather than appearing already in place. That's a known,
-  // deliberate tradeoff, not an oversight: an earlier attempt called
-  // dropX.jump() on mount to skip that beat, and it silently detached the
-  // spring from ever tracking xTarget again — every tab switch after mount
-  // stopped moving at all. A wrong one-time cosmetic fix is a much smaller
-  // problem than the droplet going permanently inert, so this is back to
-  // .set() only, unconditionally.
-  const xTarget = useMotionValue(0)
-
-  // Underdamped on purpose — it overshoots and settles, which is the
-  // "jiggle on arrival" half of the effect.
-  const dropX = useSpring(xTarget, reduce
+  // dropX is a STANDALONE spring — created from a plain number, not from
+  // another MotionValue — which is what makes both .jump() and .set() below
+  // safe to call repeatedly. The earlier two attempts both chained it off a
+  // source value (xTarget = useMotionValue(0), dropX = useSpring(xTarget)):
+  // that shape supports ongoing tracking, but calling .jump() on the
+  // DERIVED spring silently detaches it from its source — confirmed
+  // in-browser, position froze permanently at the first tab after one jump
+  // call. A standalone spring has no source to detach from, so .jump() for
+  // the mount-only "no fly-in from off-screen" placement and .set() for
+  // every real switch coexist correctly.
+  const dropX = useSpring(0, reduce
     ? { stiffness: 900, damping: 60 }
     : { stiffness: 260, damping: 19, mass: 1.15 })
+  const placed = useRef(false)
 
   useEffect(() => {
     if (!slotW) return
-    xTarget.set(targetX)
-  }, [targetX, slotW, xTarget])
+    if (!placed.current) {
+      placed.current = true
+      dropX.jump(targetX)
+      return
+    }
+    dropX.set(targetX)
+  }, [targetX, slotW, dropX])
 
   // Raw velocity is spiky; a fast spring on top smooths it without adding
   // enough lag to desync the squash from the travel.
