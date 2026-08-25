@@ -180,7 +180,18 @@ function WaterDroplet({ activeIndex, count }) {
 
   return (
     <span ref={navRef} aria-hidden="true" className="pointer-events-none absolute inset-0 z-0">
-      <motion.div className="absolute" style={{ x: dropX, top: -12, marginLeft: -DROP_PX / 2 }}>
+      {/* left: 0 is load-bearing, not redundant with marginLeft — an
+          absolutely positioned element with no `left` falls back to its
+          "static position" (roughly: where it would sit in normal flow),
+          and that fallback is exactly the kind of thing real WebKit/iOS
+          Safari and Chrome's mobile DEVICE EMULATION (same rendering
+          engine, so it never actually exercises this) can disagree on.
+          Confirmed on-device: without it the droplet rendered off-screen
+          left in Safari while looking correct in every Chrome-based check
+          this was verified in. Pinning left:0 makes marginLeft + the
+          dropX transform the only two things moving it, with no
+          browser-dependent fallback in between. */}
+      <motion.div className="absolute" style={{ x: dropX, top: -12, left: 0, marginLeft: -DROP_PX / 2 }}>
         <div className="nx-tab-drop-float">
           <motion.div style={reduce ? undefined : { scaleX, scaleY, rotate }}>
             <div className="nx-tab-drop nx-tab-drop-idle h-11 w-11 -rotate-45" />
