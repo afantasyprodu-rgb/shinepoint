@@ -5,6 +5,7 @@ import { Elements } from '@stripe/react-stripe-js'
 import AppShell from '../components/AppShell'
 import TimePicker from '../components/TimePicker'
 import PaymentForm from '../components/PaymentForm'
+import { ReceiptPrintout } from '../components/InvoiceBuilder'
 import Modal from '../components/ui/Modal'
 import { CheckIcon, AlertTriangleIcon, ChevronLeftIcon, SparklesIcon, CarIcon, CalendarIcon, PhoneIcon } from '../components/icons'
 import { useStore } from '../context/StoreContext'
@@ -1027,6 +1028,31 @@ export default function BookingWizard() {
               <p className="mt-2 text-slate-600 dark:text-slate-400">
                 {t('bookedRefPrefix')} <span className="font-mono font-semibold">{bookingId}</span> · {t('bookedSuffix', { name: d.name })}
               </p>
+
+              <div className="mt-8">
+                <ReceiptPrintout
+                  title={serviceName}
+                  sub={`${d.name} · ${date.label} ${date.day} · ${formatTime(time)}`}
+                  totalLabel={t('total')}
+                  total={`$${total}`}
+                  lines={[
+                    ...selectedServices.map((s) => ({ label: s.name, value: `$${s.price}` })),
+                    ...(promoDiscount > 0
+                      ? [{ label: t('promoApplied', { code: promoApplied.code }), value: `−$${promoDiscount}` }]
+                      : []),
+                    ...(useReward && reward && rewardCredit > 0
+                      ? [{ label: t('loyaltyApplied'), value: `−$${rewardCredit}` }]
+                      : []),
+                    ...(creditUsed > 0
+                      ? [{ label: t('referralCredit'), value: `−$${creditUsed}` }]
+                      : []),
+                    ...(mileageFee > 0
+                      ? [{ label: t('mileageFee', { miles: extraMiles }), value: `+$${mileageFee.toFixed(2)}` }]
+                      : []),
+                  ]}
+                />
+              </div>
+
               <button onClick={() => navigate(`/bookings/${bookingId}`)} className="btn btn-brand mt-8">
                 {t('viewBooking')}
               </button>

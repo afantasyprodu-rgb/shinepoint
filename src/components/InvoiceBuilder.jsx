@@ -205,6 +205,70 @@ export function InvoiceReceipt({ invoice, booking, detailer, customerName }) {
   )
 }
 
+// A one-shot "printing out" reveal of what was just paid for — the moment
+// right after checkout, not the detailer's itemized invoice (InvoiceReceipt
+// above, which only exists once a detailer bothers to build one and is
+// buried in a modal most bookings never reach). No QR code: the same
+// breakdown already goes out in the payment confirmation email, so this is
+// purely the visual payoff, not another way to retrieve the receipt.
+// Reuses the same .receipt-slot/.receipt-ticket look for visual continuity
+// with InvoiceReceipt. clipPath wipes the ticket into view top-to-bottom —
+// reads as paper feeding out of the slot above it — then each line fades in
+// with a small stagger once the paper's fully out.
+export function ReceiptPrintout({ title, sub, lines, total, totalLabel = 'Total' }) {
+  return (
+    <div className="mx-auto w-full max-w-xs">
+      <div className="receipt-slot p-3">
+        <div className="receipt-slot-hole mx-auto h-5 w-[85%]" />
+      </div>
+      <motion.div
+        initial={{ clipPath: 'inset(0% 0% 100% 0%)' }}
+        animate={{ clipPath: 'inset(0% 0% 0% 0%)' }}
+        transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1] }}
+        className="receipt-ticket relative z-10 -mt-6 mx-auto w-[92%] rounded-2xl p-5"
+      >
+        <h2 className="receipt-title py-2.5 text-center font-display text-base font-semibold text-slate-900 dark:text-slate-100">
+          {title}
+        </h2>
+        {sub && (
+          <p className="mt-2 text-center text-xs text-slate-400 dark:text-slate-500">{sub}</p>
+        )}
+        <ul className="mt-4 space-y-1.5 text-sm">
+          {lines.map((line, i) => (
+            <motion.li
+              key={i}
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 + i * 0.12, duration: 0.25 }}
+              className={`flex items-center justify-between gap-3 ${
+                line.strong
+                  ? 'font-display text-base font-bold text-slate-900 dark:text-slate-100'
+                  : 'text-slate-600 dark:text-slate-400'
+              }`}
+            >
+              <span>{line.label}</span>
+              <span className={line.strong ? '' : 'font-medium text-slate-900 dark:text-slate-100'}>
+                {line.value}
+              </span>
+            </motion.li>
+          ))}
+        </ul>
+        {total != null && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.6 + lines.length * 0.12, duration: 0.25 }}
+            className="mt-3 flex items-center justify-between border-t border-dashed border-slate-200 pt-3 font-display text-lg font-bold text-slate-900 dark:border-slate-700 dark:text-slate-100"
+          >
+            <span>{totalLabel}</span>
+            <span>{total}</span>
+          </motion.div>
+        )}
+      </motion.div>
+    </div>
+  )
+}
+
 // Detailer-facing editor. Lives inside the Drawer on the job page.
 export default function InvoiceBuilder({ booking, detailer }) {
   const { patchBooking } = useStore()
