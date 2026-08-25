@@ -141,16 +141,17 @@ function WaterDroplet({ activeIndex, count }) {
 
   const targetX = slotW * (activeIndex + 0.5)
 
-  // xTarget just carries the latest number in — the springs below are the
-  // things that actually animate, and useSpring(motionValue) always EASES
-  // toward its source, .set() included. There's no "instant" variant of
-  // .set(). That's academic for every real tab switch (easing in is the
-  // point), but it means first placement on mount needs its own path: skip
-  // xTarget and jump the spring itself so it's already in place for the
-  // first paint instead of visibly travelling there from x=0 (off-screen,
-  // since 0 sits left of the first tab).
+  // xTarget carries the latest number in; dropX (below) is the actual spring
+  // that animates toward it on every change — including the first one,
+  // which means the droplet DOES ease in from x=0 (off-screen left) for one
+  // beat on mount rather than appearing already in place. That's a known,
+  // deliberate tradeoff, not an oversight: an earlier attempt called
+  // dropX.jump() on mount to skip that beat, and it silently detached the
+  // spring from ever tracking xTarget again — every tab switch after mount
+  // stopped moving at all. A wrong one-time cosmetic fix is a much smaller
+  // problem than the droplet going permanently inert, so this is back to
+  // .set() only, unconditionally.
   const xTarget = useMotionValue(0)
-  const placed = useRef(false)
 
   // Underdamped on purpose — it overshoots and settles, which is the
   // "jiggle on arrival" half of the effect.
@@ -160,14 +161,8 @@ function WaterDroplet({ activeIndex, count }) {
 
   useEffect(() => {
     if (!slotW) return
-    if (!placed.current) {
-      placed.current = true
-      xTarget.jump ? xTarget.jump(targetX) : xTarget.set(targetX)
-      dropX.jump(targetX)
-      return
-    }
     xTarget.set(targetX)
-  }, [targetX, slotW, xTarget, dropX])
+  }, [targetX, slotW, xTarget])
 
   // Raw velocity is spiky; a fast spring on top smooths it without adding
   // enough lag to desync the squash from the travel.
