@@ -1,14 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- ShinePoint mark as a native vector, for the Android 12+ animated splash.
-     Deliberately redraws the same art as the static splash.png / ic_launcher
-     PNGs (filled 4-point sparkle + light-pink accent dot on a brand-gradient
-     tile) rather than the stroked SparklesIcon from src/components/icons.jsx:
-     the platform splash API needs a VectorDrawable it can animate, and a PNG
-     mipmap cannot be an AnimatedVectorDrawable target. Colours are sampled
-     from those generated PNGs so the animated and static splashes match.
+<!-- ShinePoint's brand mark (rounded-square gradient tile + sparkles, see
+     src/components/Logo.jsx) as a native vector, for the Android 12+
+     animated splash screen.
 
-     `logo_group` is the entrance-animation target wired up in avd_splash.xml —
-     tile, star and dot scale and fade in together as one unit. -->
+     Must match the STROKED SparklesIcon shape used by Logo.jsx (and by
+     assets/generate.mjs's launcher/splash PNGs) — not a filled star. An
+     earlier version of this file used a filled diamond, which looked
+     visibly like a different icon for an instant at the native-splash ->
+     WebView handoff. `logo_group` is the entrance-animation target wired
+     from avd_splash.xml — everything (background tile + icon) scales and
+     fades in together as one unit. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
@@ -24,7 +25,7 @@
         android:scaleY="0.4"
         android:alpha="0">
 
-        <!-- Rounded tile, brand-500 -> brand-700 diagonal gradient. -->
+        <!-- Rounded-square tile, brand-500 -> brand-700 diagonal gradient. -->
         <path
             android:pathData="M38,24 H70 A14,14 0 0 1 84,38 V70 A14,14 0 0 1 70,84 H38 A14,14 0 0 1 24,70 V38 A14,14 0 0 1 38,24 Z"
             android:fillType="nonZero">
@@ -35,20 +36,35 @@
                     android:startY="24"
                     android:endX="84"
                     android:endY="84">
-                    <item android:offset="0.0" android:color="#FC43A0" />
-                    <item android:offset="1.0" android:color="#E1076D" />
+                    <item android:offset="0.0" android:color="#FF4AA6" />
+                    <item android:offset="1.0" android:color="#DE0067" />
                 </gradient>
             </aapt:attr>
         </path>
 
-        <!-- Filled 4-point sparkle, concave waists. -->
-        <path
-            android:fillColor="#FFFFFF"
-            android:pathData="M52,36 C54,49 59,54 72,56 C59,58 54,63 52,76 C50,63 45,58 32,56 C45,54 50,49 52,36 Z" />
-
-        <!-- Accent dot, upper right. -->
-        <path
-            android:fillColor="#FDDFED"
-            android:pathData="M68,33.8 A4.2,4.2 0 1 1 67.99,33.8 Z" />
+        <!-- Sparkles icon (Lucide "sparkles", 24x24 viewBox), scaled/centered
+             inside the tile. Matches SparklesIcon in src/components/icons.jsx
+             exactly — same paths, same stroke, same proportions. -->
+        <group android:translateX="37.1" android:translateY="37.1" android:scaleX="1.4" android:scaleY="1.4">
+            <path
+                android:pathData="M9.937,15.5A2,2 0,0 0,8.5 14.063l-6.135,-1.582a0.5,0.5 0,0 1,0 -0.962L8.5,9.936A2,2 0,0 0,9.937 8.5l1.582,-6.135a0.5,0.5 0,0 1,0.963 0L14.063,8.5A2,2 0,0 0,15.5 9.937l6.135,1.581a0.5,0.5 0,0 1,0 0.964L15.5,14.063a2,2 0,0 0,-1.437 1.437l-1.582,6.135a0.5,0.5 0,0 1,-0.963 0z"
+                android:fillColor="#00000000"
+                android:strokeColor="#FFFFFF"
+                android:strokeWidth="1.6"
+                android:strokeLineCap="round"
+                android:strokeLineJoin="round" />
+            <path
+                android:pathData="M20,3v4"
+                android:fillColor="#00000000"
+                android:strokeColor="#FFFFFF"
+                android:strokeWidth="1.6"
+                android:strokeLineCap="round" />
+            <path
+                android:pathData="M22,5h-4"
+                android:fillColor="#00000000"
+                android:strokeColor="#FFFFFF"
+                android:strokeWidth="1.6"
+                android:strokeLineCap="round" />
+        </group>
     </group>
 </vector>
