@@ -502,6 +502,13 @@
     @apply relative z-10 w-full max-w-sm px-6 pt-10 pb-8 flex flex-col;
   }
 
+  /* Glass card surface for the standalone mobile shell only (DesktopLanding's
+     embedded use never applies this class — see AuthCard.jsx) — before this,
+     content floated bare on the white shell with nothing to anchor it. */
+  .auth-card-surface {
+    @apply rounded-3xl border border-white/60 bg-white/70 shadow-xl shadow-brand-900/5 backdrop-blur-md;
+  }
+
   .auth-logo-block {
     @apply flex flex-col items-center gap-1.5 mb-8;
   }

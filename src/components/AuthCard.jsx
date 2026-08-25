@@ -489,13 +489,18 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
 
   return (
     <div className="auth-card-shell">
+      {/* Same ambient color blobs as Welcome's hero — the auth page sat on
+          flat white while every other entry point (landing, native mobile
+          shell) had this warmth behind it. */}
+      <div aria-hidden="true" className="absolute left-1/2 top-[8%] h-80 w-80 -translate-x-1/2 rounded-full bg-brand-200/40 blur-3xl dark:bg-brand-800/15" />
+      <div aria-hidden="true" className="absolute bottom-[10%] right-[-6rem] h-64 w-64 rounded-full bg-cta-500/10 blur-3xl" />
       {!reduce && (
         <div aria-hidden="true" className="pointer-events-none absolute inset-0">
           <HeroBubbles seed={11} />
         </div>
       )}
       <LanguageToggle className="fixed right-4 top-4 z-50 border border-brand-100 bg-white/90 text-slate-700 shadow-sm backdrop-blur hover:bg-slate-50" />
-      <div className="auth-card">
+      <div className="auth-card auth-card-surface">
         <Link
           to="/"
           className="mb-2 inline-flex items-center gap-1 text-sm text-slate-500 transition-colors hover:text-slate-700"
@@ -542,7 +547,7 @@ function MethodButton({ icon, onClick, disabled, children }) {
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="flex h-12 w-full cursor-pointer items-center gap-3 rounded-xl border border-[var(--auth-method-border)] bg-[var(--auth-method-bg)] px-4 text-sm font-medium text-[var(--auth-text)] backdrop-blur-sm transition-all duration-150 hover:border-[var(--auth-method-border-hover)] hover:bg-[var(--auth-method-bg-hover)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+      className="flex h-12 w-full cursor-pointer items-center gap-3 rounded-xl border border-[var(--auth-method-border)] bg-[var(--auth-method-bg)] px-4 text-sm font-medium text-[var(--auth-text)] shadow-sm backdrop-blur-sm transition-all duration-150 hover:border-[var(--auth-method-border-hover)] hover:bg-[var(--auth-method-bg-hover)] hover:shadow-md active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
     >
       <span className="shrink-0">{icon}</span>
       {children}
