@@ -1408,16 +1408,9 @@
   overflow-y: auto;
 }
 .nx-pop-services li {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.5rem;
   padding: 0.15rem 0;
   font-size: 0.78rem;
   color: #334155;
-}
-.nx-pop-services li span:last-child {
-  font-weight: 600;
-  color: #0f172a;
 }
 .nx-pop-btn {
   margin-top: 0.6rem;
@@ -1445,7 +1438,6 @@
 .dark .nx-pop-price { color: #94a3b8; }
 .dark .nx-pop-services { border-top-color: rgba(255, 255, 255, 0.1); }
 .dark .nx-pop-services li { color: #cbd5e1; }
-.dark .nx-pop-services li span:last-child { color: #f1f5f9; }
 
 /* ── Neumorphic map chrome ─────────────────────────────────────────────────
    Same raised/pressed --neu-* language as the rest of the app (buttons,

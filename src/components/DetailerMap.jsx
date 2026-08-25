@@ -119,9 +119,9 @@ const userIcon = L.divIcon({
 // on the full profile (DetailerProfile.jsx), reached only by tapping in.
 function popupHtml(d) {
   const color = PIN_COLORS[d.status] ?? PIN_COLORS.offline
-  const services = d.services
-    .map((s) => `<li><span>${s.name}</span><span>$${s.price}</span></li>`)
-    .join('')
+  // Names only, no prices — pricing is a "View profile" decision, not
+  // something to compare pin-to-pin while browsing the map.
+  const services = d.services.map((s) => `<li>${s.name}</li>`).join('')
   return `
     <div class="nx-pop">
       <p class="nx-pop-name">${d.name}</p>
