@@ -26,3 +26,7 @@ google-services.json
 
 # Supabase CLI cache — contains a live DB connection string
 supabase/.temp/
+
+# Marketing/video production artifacts — separate concern, bloat the repo
+marketing/
+my-video/

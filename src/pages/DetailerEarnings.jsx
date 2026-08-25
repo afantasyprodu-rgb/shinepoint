@@ -135,7 +135,9 @@ function PayoutStatus({ bookings }) {
 
   useEffect(() => {
     loadBalance()
-  }, [])
+    // Mount-once initial fetch; loadBalance is also exposed for the manual
+    // retry button and must not re-fire when it (or t) changes identity.
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const withPayout = bookings.filter((b) => b.status === 'complete' && b.detailerPayout != null)
   const held = withPayout.filter((b) => !b.transferredAt)

@@ -101,7 +101,7 @@ export function NxDonut({ segments, centerLabel, centerValue }) {
     <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-center sm:gap-8">
       <svg viewBox="0 0 160 160" className="h-40 w-40 shrink-0" role="img" aria-label={`Donut chart: ${segments.map((s) => `${s.label} ${Math.round((s.value / total) * 100)}%`).join(', ')}`}>
         <circle cx={cx} cy={cy} r={r} fill="none" className="stroke-slate-900/6 dark:stroke-white/6" strokeWidth="20" />
-        {segments.map((seg, i) => {
+        {segments.map((seg) => {
           const len = (seg.value / total) * circumference
           const dasharray = `${len} ${circumference - len}`
           const dashoffset = -offset

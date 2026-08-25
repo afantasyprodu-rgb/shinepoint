@@ -101,6 +101,13 @@ Deno.serve(async (req) => {
         customer_id: booking.customer_id,
         kind: 'tip',
       },
+    }, {
+      // Deterministic idempotency key: one tip charge per booking, ever.
+      // Closes the check-then-act race where two concurrent requests both
+      // saw tip_paid_at null above and both confirmed a charge — with this,
+      // Stripe replays the first request's intent for the duplicate instead
+      // of creating a second one. Also makes client retries safe.
+      idempotencyKey: `tip-${booking.id}`,
     })
 
     // The webhook stamps tip_paid_at on payment_intent.succeeded, but write

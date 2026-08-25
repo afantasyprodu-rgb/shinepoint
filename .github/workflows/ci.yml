@@ -1,0 +1,49 @@
+# CI for ShinePoint. Kept intentionally fast: lint + typecheck + the static
+# bookings-guard tripwire on every push/PR, plus a Deno typecheck of the
+# edge functions. The SQL guard regression test
+# (supabase/tests/060_guard_regression.sql) needs a live database — run it
+# against staging after any migration that touches the guards; this
+# workflow catches the same class of bug statically before deploy.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Bookings guard regression (static)
+        run: npm run check:guards
+
+  edge-functions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      # supabase/functions is Deno-style TS with npm: specifiers; `deno check`
+      # resolves those natively. No deno.json in the repo, so point it at the
+      # functions tree directly.
+      - name: Typecheck edge functions
+        run: deno check $(git ls-files 'supabase/functions/*.ts')

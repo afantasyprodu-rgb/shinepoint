@@ -22,8 +22,23 @@ The whole app reads through two providers — understand the split before touchi
 - `src/context/StoreContext.jsx` — single `useStore()` API. When `isDemo`, mutations hit
   in-memory React state (`demoBookings` etc.); when real, they hit Supabase via `src/lib/db.js`.
   `patchBooking(id, patch)` spreads ANY keys onto a demo booking — new demo fields need no schema.
-- Real-wired today: auth, profiles, availability, onboarding persist, reviews (both dirs),
-  realtime chat, Stripe Connect payments (migrations 001–006). Everything else = demo store.
+- Real-wired today: auth (+MFA, Google), profiles, availability, onboarding persist,
+  bookings lifecycle, realtime chat, photos, damage reports, reviews (both dirs),
+  Stripe Connect payments/tips/refunds/payouts/disputes, push, tracking
+  (migrations 001–061). The demo store remains available as a public tour via the
+  landing-page buttons; real sessions must never silently fall back to it.
+- Pages are route-split (`React.lazy` in App.jsx) — new pages should follow that pattern.
+
+## Tooling / CI
+- `npm run lint` (ESLint flat config; react-hooks rules on), `npm run typecheck`,
+  `npm run check:guards` — all three run in `.github/workflows/ci.yml`, plus a Deno
+  typecheck of `supabase/functions`.
+- **Bookings column guards are sacred**: `guard_bookings_update` / `guard_bookings_insert`
+  protect server-managed pricing/payment/payout columns. They were silently gutted once by
+  a later rewrite (054) and re-forged-tip attacks became possible. If you touch those
+  functions: keep EVERY existing guarded column, add yours to BOTH the guard and
+  `scripts/check-booking-guards.mjs`, and run `supabase/tests/060_guard_regression.sql`
+  against staging. Never rewrite a guard from scratch — extend it.
 
 ## Running it
 - Dev: `npm run dev`. **Gotcha:** the space in `Cloud stuff` breaks some launchers, and

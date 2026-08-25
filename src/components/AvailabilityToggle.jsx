@@ -50,7 +50,7 @@ export default function AvailabilityToggle() {
     return () => {
       cancelled = true
     }
-  }, [user, isDemo])
+  }, [user, isDemo, t])
 
   const current = isDemo
     ? { status: demoDetailer.status, accepts_bookings_when_busy: demoDetailer.acceptsWhenBusy }

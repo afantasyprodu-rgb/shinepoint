@@ -159,6 +159,10 @@ export default function DetailerMap({ detailers, focus }) {
     const t = TILES[theme] ?? TILES.light
     tileRef.current = L.tileLayer(t.url, { attribution: t.attribution, maxZoom: 19 }).addTo(map)
     mapRef.current = map
+    // Snapshot for the cleanup below: markersRef.current is reassigned
+    // elsewhere, and reading the ref at cleanup time would clear whatever
+    // Map is current THEN — not the one this effect created.
+    const markers = markersRef.current
     if (cached) {
       userRef.current = L.marker(cached, { icon: userIcon, interactive: false, zIndexOffset: 500 }).addTo(map)
     }
@@ -186,8 +190,9 @@ export default function DetailerMap({ detailers, focus }) {
     return () => {
       map.remove()
       mapRef.current = null
-      markersRef.current.clear()
+      markers.clear()
     }
+    // Mount-only by design: Leaflet owns this imperative layer's lifecycle.
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Swap tiles when the theme flips.

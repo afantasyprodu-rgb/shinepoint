@@ -8,7 +8,7 @@ import Modal from '../components/ui/Modal'
 import EnRouteTracker from '../components/EnRouteTracker'
 import { InvoicePrintable, InvoiceReceipt } from '../components/InvoiceBuilder'
 import { AnimatedPage } from '../components/ui/Motion'
-import { Avatar, StatusPill, StarInput } from '../components/ui/bits'
+import { Avatar, StatusPill } from '../components/ui/bits'
 import {
   CheckIcon,
   ChevronLeftIcon,
@@ -67,7 +67,7 @@ const STAGE_KEYS = {
 export default function BookingDetail() {
   const { id } = useParams()
   const [searchParams] = useSearchParams()
-  const { getBooking, getDetailer, patchBooking, submitReview, cancelBooking, fileDispute, customer, isDemo } = useStore()
+  const { getBooking, getDetailer, patchBooking, submitReview, cancelBooking, fileDispute, isDemo } = useStore()
   const { lang } = useLanguage()
   const t = useT('bookingDetail')
   const [rating, setRating] = useState(0)
@@ -78,6 +78,12 @@ export default function BookingDetail() {
   const [customTip, setCustomTip] = useState('')
   const [selectedTip, setSelectedTip] = useState(null)
   const [thankYouAmount, setThankYouAmount] = useState(null)
+  // Tip charge is a real Stripe call (charge-tip edge function) and can fail
+  // — card declined, no saved card, network. The UI used to fire-and-forget
+  // submitReview and show the thank-you overlay unconditionally, so a
+  // declined tip still celebrated. These track the in-flight/failed states.
+  const [tipBusy, setTipBusy] = useState(false)
+  const [tipError, setTipError] = useState(null)
   const [showCancel, setShowCancel] = useState(false)
   const [showRejectDamage, setShowRejectDamage] = useState(false)
   const [showDispute, setShowDispute] = useState(false)
@@ -122,7 +128,6 @@ const shownStage = openStage ?? stageIdx
   const shownKey = TIMELINE[shownStage]
   const stageKeys = STAGE_KEYS[shownKey]
   const detailerName = d?.name ?? 'Your detailer'
-  const isPreview = openStage != null && openStage !== stageIdx
 
   // Demo helper: advance the job to showcase the full lifecycle.
   function advance() {
@@ -284,7 +289,7 @@ const shownStage = openStage ?? stageIdx
                             {b.damageReport.items.map((item, i) => (
                               <li key={i} className="overflow-hidden rounded-xl border border-amber-200 bg-white">
                                 {item.photo && (
-                                  <img
+                                  <img loading="lazy" decoding="async"
                                     src={item.photo}
                                     alt={`Condition at ${item.area || 'area ' + (i + 1)}`}
                                     className="h-44 w-full object-cover"
@@ -735,21 +740,41 @@ const shownStage = openStage ?? stageIdx
 
           <motion.button
             whileTap={{ scale: 0.97 }}
-            disabled={!selectedTip && !customTip}
-            onClick={() => {
+            disabled={(!selectedTip && !customTip) || tipBusy}
+            onClick={async () => {
               const amount = customTip ? Math.max(1, parseInt(customTip, 10) || 0) : selectedTip
-              submitReview(b.id, rating, (b.tip ?? 0) + amount)
-              setThankYouAmount(amount)
-              setTimeout(() => setThankYouAmount(null), 2500)
-              setShowTip(false); setCustomTip(''); setSelectedTip(null)
+              setTipBusy(true)
+              setTipError(null)
+              try {
+                // Await the real charge: submitReview re-throws after rolling
+                // back a failed tip. Only celebrate once the money moved.
+                await submitReview(b.id, rating, (b.tip ?? 0) + amount)
+                setThankYouAmount(amount)
+                setTimeout(() => setThankYouAmount(null), 2500)
+                setShowTip(false); setCustomTip(''); setSelectedTip(null)
+              } catch (e) {
+                setTipError(e?.message || t('tipFailed'))
+              } finally {
+                setTipBusy(false)
+              }
             }}
             className="btn btn-cta mt-4 w-full disabled:opacity-40"
           >
             {customTip || selectedTip ? t('sendTip', { amount: customTip || selectedTip }) : t('addTip')}
           </motion.button>
+          {tipError && (
+            <p role="alert" className="mt-2 rounded-xl bg-red-50 px-4 py-2.5 text-sm font-medium text-red-600 dark:bg-red-950/40 dark:text-red-300">
+              {tipError}
+            </p>
+          )}
           <button
-            onClick={() => {
-              submitReview(b.id, rating, b.tip ?? 0)
+            onClick={async () => {
+              try {
+                await submitReview(b.id, rating, b.tip ?? 0)
+              } catch (e) {
+                setTipError(e?.message || t('tipFailed'))
+                return
+              }
               setShowTip(false); setCustomTip(''); setSelectedTip(null)
             }}
             className="mt-2 w-full cursor-pointer rounded py-2 text-sm text-slate-400 transition-colors hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"

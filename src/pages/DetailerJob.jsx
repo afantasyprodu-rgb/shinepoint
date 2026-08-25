@@ -14,7 +14,6 @@ import {
   CarIcon,
   CheckIcon,
   ChevronLeftIcon,
-  CameraIcon,
   LayersIcon,
   MapPinIcon,
   MenuIconFlat,
@@ -95,6 +94,26 @@ export default function DetailerJob() {
       window.removeEventListener('touchend', onTouchEnd)
     }
   }, [menuOpen])
+
+  // Background GPS is only legitimate while the job is actually en_route.
+  // The Arrived gate stops the watcher explicitly, but until now nothing
+  // stopped it when the detailer navigated away mid-route or the booking
+  // left en_route another way (customer cancels, dispute opens): the
+  // persistent "Tracking active" notification kept running indefinitely —
+  // battery drain plus store-policy exposure given ACCESS_BACKGROUND_LOCATION.
+  // Mounting on a booking that's ALREADY en_route keeps tracking alive
+  // (reopening the app mid-drive resumes the same watcher lifecycle).
+  useEffect(() => {
+    if (!isDemo && b && b.status !== 'en_route') {
+      stopTracking().catch((e) => console.error('stopTracking:', e.message))
+    }
+    // Unmount cleanup: leaving an en_route job's screen ends its GPS leg.
+    return () => {
+      stopTracking().catch((e) => console.error('stopTracking:', e.message))
+    }
+    // b?.status primitive by design - the store recreates  every render;
+    // only a real status transition should toggle the watcher.
+  }, [b?.status, isDemo]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!b) {
     return (
@@ -278,7 +297,7 @@ export default function DetailerJob() {
                 <div className="mt-3 flex flex-col gap-2.5">
                   <div className="flex items-center gap-3">
                     {b.vehiclePhoto ? (
-                      <img src={b.vehiclePhoto} alt="Vehicle" className="h-12 w-12 rounded-lg object-cover" />
+                      <img loading="lazy" decoding="async" src={b.vehiclePhoto} alt="Vehicle" className="h-12 w-12 rounded-lg object-cover" />
                     ) : (
                       <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-brand-50 text-brand-600 dark:bg-white/5 dark:text-brand-300">
                         <CarIcon className="h-6 w-6" />

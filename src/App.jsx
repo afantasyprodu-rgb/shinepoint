@@ -1,44 +1,75 @@
-import { useEffect } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from './lib/supabase'
 import ProtectedRoute from './components/ProtectedRoute'
 import TransitionOverlay from './components/TransitionOverlay'
 import NativeBridge from './components/NativeBridge'
-import CustomerHome from './pages/CustomerHome'
-import Landing from './pages/Landing'
-import Login from './pages/Login'
-import CustomerSignup from './pages/CustomerSignup'
-import DetailerSignup from './pages/DetailerSignup'
-import CheckEmail from './pages/CheckEmail'
-import AuthCallback from './pages/AuthCallback'
-import ResetPassword from './pages/ResetPassword'
-import DetailerProfile from './pages/DetailerProfile'
-import BookingWizard from './pages/BookingWizard'
-import Bookings from './pages/Bookings'
-import BookingDetail from './pages/BookingDetail'
-import Rewards from './pages/Rewards'
-import CustomerSettings from './pages/CustomerSettings'
-import DetailerDashboard from './pages/DetailerDashboard'
-import DetailerJob from './pages/DetailerJob'
-import DetailerOnboarding from './pages/DetailerOnboarding'
-import DetailerEarnings from './pages/DetailerEarnings'
-import DetailerAnalytics from './pages/DetailerAnalytics'
-import DetailerTools from './pages/DetailerTools'
-import DetailerProfileEditor from './pages/DetailerProfileEditor'
-import AdminDashboard from './pages/admin/AdminDashboard'
-import AdminPeople from './pages/admin/AdminPeople'
-import AdminOps from './pages/admin/AdminOps'
-import AdminFinance from './pages/admin/AdminFinance'
-import AdminAnalytics from './pages/admin/AdminAnalytics'
-import ProfileSetup from './pages/ProfileSetup'
-import MfaSetup from './pages/MfaSetup'
-import MfaChallenge from './pages/MfaChallenge'
-import CustomerOnboarding from './pages/CustomerOnboarding'
-import Feedback from './pages/Feedback'
-import { Terms, Privacy } from './pages/Legal'
-import PublicTracking from './pages/PublicTracking'
+import ErrorBoundary from './components/ErrorBoundary'
 
-const guard = (role, el) => <ProtectedRoute role={role}>{el}</ProtectedRoute>
+// Route-level code splitting: every page loads on demand. Before this, the
+// entry bundle carried all 33 pages — including the 1.2MB of wizard/admin/
+// analytics code, the full demo seed (75KB) and i18n strings (148KB) — for
+// every visitor regardless of destination. The shell (providers, route
+// guards, transition overlay) stays eager; only page bodies are split.
+const Landing = lazy(() => import('./pages/Landing'))
+const Login = lazy(() => import('./pages/Login'))
+const CustomerHome = lazy(() => import('./pages/CustomerHome'))
+const CustomerSignup = lazy(() => import('./pages/CustomerSignup'))
+const DetailerSignup = lazy(() => import('./pages/DetailerSignup'))
+const CheckEmail = lazy(() => import('./pages/CheckEmail'))
+const AuthCallback = lazy(() => import('./pages/AuthCallback'))
+const ResetPassword = lazy(() => import('./pages/ResetPassword'))
+const DetailerProfile = lazy(() => import('./pages/DetailerProfile'))
+const BookingWizard = lazy(() => import('./pages/BookingWizard'))
+const Bookings = lazy(() => import('./pages/Bookings'))
+const BookingDetail = lazy(() => import('./pages/BookingDetail'))
+const Rewards = lazy(() => import('./pages/Rewards'))
+const CustomerSettings = lazy(() => import('./pages/CustomerSettings'))
+const DetailerDashboard = lazy(() => import('./pages/DetailerDashboard'))
+const DetailerJob = lazy(() => import('./pages/DetailerJob'))
+const DetailerOnboarding = lazy(() => import('./pages/DetailerOnboarding'))
+const DetailerEarnings = lazy(() => import('./pages/DetailerEarnings'))
+const DetailerAnalytics = lazy(() => import('./pages/DetailerAnalytics'))
+const DetailerTools = lazy(() => import('./pages/DetailerTools'))
+const DetailerProfileEditor = lazy(() => import('./pages/DetailerProfileEditor'))
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'))
+const AdminPeople = lazy(() => import('./pages/admin/AdminPeople'))
+const AdminOps = lazy(() => import('./pages/admin/AdminOps'))
+const AdminFinance = lazy(() => import('./pages/admin/AdminFinance'))
+const AdminAnalytics = lazy(() => import('./pages/admin/AdminAnalytics'))
+const ProfileSetup = lazy(() => import('./pages/ProfileSetup'))
+const MfaSetup = lazy(() => import('./pages/MfaSetup'))
+const MfaChallenge = lazy(() => import('./pages/MfaChallenge'))
+const CustomerOnboarding = lazy(() => import('./pages/CustomerOnboarding'))
+const Feedback = lazy(() => import('./pages/Feedback'))
+const Legal = lazy(() => import('./pages/Legal').then((m) => ({ default: m.Terms })))
+// Terms and Privacy share one module; two named exports need distinct lazy
+// wrappers so each route gets its own chunk reference.
+const PrivacyLazy = lazy(() => import('./pages/Legal').then((m) => ({ default: m.Privacy })))
+const PublicTracking = lazy(() => import('./pages/PublicTracking'))
+
+function PageFallback() {
+  return (
+    <div className="flex min-h-[60vh] items-center justify-center">
+      <span
+        className="h-8 w-8 animate-spin rounded-full border-2 border-brand-200 border-t-brand-600 dark:border-brand-900 dark:border-t-brand-400"
+        role="status" aria-label="Loading"
+      />
+    </div>
+  )
+}
+
+// Route-level error isolation: a crash in one page shows the recoverable
+// fallback inside its own route slot instead of unmounting the entire shell
+// (before this, the ONLY boundary sat above BrowserRouter, so any page
+// throw blanked the whole app). Each guarded/public element gets its own
+// boundary; the root boundary in main.jsx remains as the last resort.
+const guard = (role, el) => (
+  <ProtectedRoute role={role}>
+    <ErrorBoundary>{el}</ErrorBoundary>
+  </ProtectedRoute>
+)
+const safe = (el) => <ErrorBoundary>{el}</ErrorBoundary>
 
 export default function App() {
   const location = useLocation()
@@ -67,30 +98,33 @@ export default function App() {
   return (
     <TransitionOverlay>
       <NativeBridge />
+      {/* Suspense wraps the whole route table: navigating to any lazy page
+          suspends until its chunk lands and shows the spinner fallback. */}
+      <Suspense fallback={<PageFallback />}>
       <Routes location={location} key={location.pathname}>
-        <Route path="/" element={<Landing />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<CustomerSignup />} />
-        <Route path="/signup/detailer" element={<DetailerSignup />} />
-        <Route path="/check-email" element={<CheckEmail />} />
-        <Route path="/auth/callback" element={<AuthCallback />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/terms" element={<Terms />} />
-        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/" element={safe(<Landing />)} />
+        <Route path="/login" element={safe(<Login />)} />
+        <Route path="/signup" element={safe(<CustomerSignup />)} />
+        <Route path="/signup/detailer" element={safe(<DetailerSignup />)} />
+        <Route path="/check-email" element={safe(<CheckEmail />)} />
+        <Route path="/auth/callback" element={safe(<AuthCallback />)} />
+        <Route path="/reset-password" element={safe(<ResetPassword />)} />
+        <Route path="/terms" element={safe(<Legal />)} />
+        <Route path="/privacy" element={safe(<PrivacyLazy />)} />
         {/* Public, no-login tracking link the en-route SMS points to (058) —
             deliberately outside ProtectedRoute; the booking id in the URL
             is the capability. */}
-        <Route path="/track/:id" element={<PublicTracking />} />
+        <Route path="/track/:id" element={safe(<PublicTracking />)} />
         {/* Post-signup profile setup — any signed-in role, no role gate. */}
-        <Route path="/welcome" element={<ProtectedRoute><ProfileSetup /></ProtectedRoute>} />
+        <Route path="/welcome" element={<ProtectedRoute><ErrorBoundary><ProfileSetup /></ErrorBoundary></ProtectedRoute>} />
         {/* Optional 2FA enrollment prompt right after signup. */}
-        <Route path="/mfa-setup" element={<ProtectedRoute><MfaSetup /></ProtectedRoute>} />
+        <Route path="/mfa-setup" element={<ProtectedRoute><ErrorBoundary><MfaSetup /></ErrorBoundary></ProtectedRoute>} />
         {/* Login-time step-up for accounts with a verified TOTP factor. */}
-        <Route path="/mfa-challenge" element={<ProtectedRoute><MfaChallenge /></ProtectedRoute>} />
+        <Route path="/mfa-challenge" element={<ProtectedRoute><ErrorBoundary><MfaChallenge /></ErrorBoundary></ProtectedRoute>} />
         {/* Customer post-signup onboarding (vehicle + address). */}
-        <Route path="/onboarding" element={<ProtectedRoute role="customer"><CustomerOnboarding /></ProtectedRoute>} />
+        <Route path="/onboarding" element={<ProtectedRoute role="customer"><ErrorBoundary><CustomerOnboarding /></ErrorBoundary></ProtectedRoute>} />
         {/* Feedback board — shared by both roles, not admin. */}
-        <Route path="/feedback" element={<ProtectedRoute role={['customer', 'detailer']}><Feedback /></ProtectedRoute>} />
+        <Route path="/feedback" element={<ProtectedRoute role={['customer', 'detailer']}><ErrorBoundary><Feedback /></ErrorBoundary></ProtectedRoute>} />
 
         {/* Customer */}
         <Route path="/home" element={guard('customer', <CustomerHome />)} />
@@ -117,6 +151,7 @@ export default function App() {
         <Route path="/admin/finance" element={guard('admin', <AdminFinance />)} />
         <Route path="/admin/analytics" element={guard('admin', <AdminAnalytics />)} />
       </Routes>
+      </Suspense>
     </TransitionOverlay>
   )
 }

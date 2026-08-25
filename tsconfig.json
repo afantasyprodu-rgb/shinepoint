@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "allowJs": true,
+    "checkJs": false,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "resolveJsonModule": true,
+    "strict": false
+  },
+  "include": ["capacitor.config.ts"],
+  // App source stays JS for now (no checkJs); this config exists so
+  // `npm run typecheck` verifies capacitor.config.ts and gives editors a
+  // project root. Edge functions under supabase/functions are Deno TS —
+  // they're type-checked in CI with `deno check`, not here.
+  "exclude": ["node_modules", "dist", "android", "ios"]
+}

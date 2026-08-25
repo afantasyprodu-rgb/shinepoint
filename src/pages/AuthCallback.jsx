@@ -107,7 +107,9 @@ export default function AuthCallback() {
 
     finish()
     return () => { cancelled = true }
-  }, [navigate])
+    // Mount-once OAuth completion: re-running on refreshProfile/t identity
+    // changes could double-navigate mid-redirect.
+  }, [navigate]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4">

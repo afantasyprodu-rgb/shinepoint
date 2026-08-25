@@ -17,7 +17,7 @@ function hexToHue(hex) {
 
   if (max !== min) {
     const d = max - min
-    const s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
+    const _s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
     switch (max) {
       case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break
       case g: h = ((b - r) / d + 2) / 6; break

@@ -352,8 +352,9 @@ export default function BookingWizard() {
   const [showUninsured, setShowUninsured] = useState(false)
   const [showSmsPrompt, setShowSmsPrompt] = useState(false)
   const [showSmsConfirmed, setShowSmsConfirmed] = useState(false)
-  const [smsPhone, setSmsPhone] = useState('')
-  const [smsBusy, setSmsBusy] = useState(false)
+const [smsPhone, setSmsPhone] = useState('')
+const [smsBusy, setSmsBusy] = useState(false)
+const [smsError, setSmsError] = useState(null)
   const [bookingId, setBookingId] = useState(null)
   const [useReward, setUseReward] = useState(false)
   const [promoInput, setPromoInput] = useState('')
@@ -403,7 +404,9 @@ export default function BookingWizard() {
     return () => {
       cancelled = true
     }
-  }, [isDemo, d?.pin?.lat, d?.pin?.lng])
+    // Primitive pin coords by design - refetch only when the detailer's
+    // location actually changes, not when parent re-renders recreate objects.
+  }, [isDemo, d?.pin?.lat, d?.pin?.lng]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const days = useMemo(
     () => nextDays(10, isDemo, weatherDays, pastSameDayCutoff() ? 1 : 0),
@@ -452,6 +455,17 @@ export default function BookingWizard() {
     if (step === 4 && !isDemo && !customer.smsOptIn) setShowSmsPrompt(true)
   }, [step, isDemo, customer.smsOptIn])
 
+  // Distance/mileage estimate. Lives ABOVE the early return: hooks must run
+  // unconditionally on every render, and `d` really is undefined while the
+  // store finishes loading — this hook used to sit past `if (!d) return null`,
+  // so its hook count changed between renders the moment the detailer data
+  // arrived (rules-of-hooks violation; latent crash).
+  const distanceMiles = useMemo(() => {
+    if (!d?.pin || !customer.zip) return null
+    const origin = approxCentroidForZip(customer.zip)
+    return origin ? milesBetween(origin, d.pin) : null
+  }, [d?.pin, customer.zip])
+
   if (!d) return null
   const uninsured = d.insurance === 'none'
   // Loyalty rewards only redeemable with insured detailers (blueprint rule).
@@ -470,11 +484,6 @@ export default function BookingWizard() {
   // already brought the service price down, same order create-payment-intent
   // enforces server-side (the real charge; this is the pre-payment estimate
   // shown to the customer so they aren't surprised at checkout).
-  const distanceMiles = useMemo(() => {
-    if (!d.pin || !customer.zip) return null
-    const origin = approxCentroidForZip(customer.zip)
-    return origin ? milesBetween(origin, d.pin) : null
-  }, [d.pin, customer.zip])
   const chargePerMile = d.chargePerMile ?? (isDemo ? 2 : 0)
   const extraMiles = distanceMiles != null ? Math.max(0, Math.ceil(distanceMiles - d.travelMiles)) : 0
   const mileageFee = extraMiles > 0 ? Number((extraMiles * chargePerMile).toFixed(2)) : 0
@@ -1178,20 +1187,30 @@ export default function BookingWizard() {
               disabled={smsBusy || smsPhone.replace(/\D/g, '').length < 10}
               onClick={async () => {
                 setSmsBusy(true)
+                setSmsError(null)
                 const digits = smsPhone.replace(/\D/g, '')
                 const normalized = smsPhone.trim().startsWith('+') ? `+${digits}` : `+1${digits}`
                 try {
                   await updateCustomer({ phone: normalized, smsOptIn: true })
                   setShowSmsConfirmed(true)
+                  setShowSmsPrompt(false)
+                } catch (e) {
+                  // Keep the modal open and show why — a silent close here
+                  // used to look like success while the opt-in never saved.
+                  setSmsError(e?.message || t('smsPromptFailed'))
                 } finally {
                   setSmsBusy(false)
-                  setShowSmsPrompt(false)
                 }
               }}
               className="btn btn-brand"
             >
               {smsBusy ? t('smsPromptSaving') : t('smsPromptEnable')}
             </button>
+            {smsError && (
+              <p role="alert" className="rounded-xl bg-red-50 px-4 py-2.5 text-sm font-medium text-red-600 dark:bg-red-950/40 dark:text-red-300">
+                {smsError}
+              </p>
+            )}
             <button
               type="button"
               onClick={() => setShowSmsPrompt(false)}

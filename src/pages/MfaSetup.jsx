@@ -81,12 +81,12 @@ export default function MfaSetup() {
           {qrSvg && (
             <div className="flex justify-center rounded-xl bg-white p-3">
               {/* Supabase returns a full data:image/svg+xml URI, not bare SVG
-                  markup — an <img src> renders that directly. The old
+                  markup — an <img loading="lazy" decoding="async" src> renders that directly. The old
                   dangerouslySetInnerHTML treated the whole string (including
                   the "data:image/svg+xml;utf-8," prefix) as HTML to parse,
                   which isn't a tag, so the browser printed it as literal
                   text before finally reaching the real <svg> inside it. */}
-              <img src={qrSvg} alt="Scan with your authenticator app" className="h-44 w-44" />
+              <img loading="lazy" decoding="async" src={qrSvg} alt="Scan with your authenticator app" className="h-44 w-44" />
             </div>
           )}
 

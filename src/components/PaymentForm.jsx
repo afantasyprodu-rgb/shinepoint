@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js'
+import { useT } from '../i18n/useT'
 
 // Embedded card form. Lives inside <Elements options={{ clientSecret }}>.
 // Confirms the PaymentIntent in place (no redirect for cards); calls
@@ -9,6 +10,10 @@ export default function PaymentForm({ amount, onSuccess }) {
   const elements = useElements()
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  // This component used to be fully hardcoded English — the single most
+  // money-critical screen a Spanish-language customer sees. All strings go
+  // through i18n now (payment namespace).
+  const t = useT('payment')
 
   async function submit(e) {
     e.preventDefault()
@@ -23,7 +28,9 @@ export default function PaymentForm({ amount, onSuccess }) {
     })
 
     if (payError) {
-      setError(payError.message || 'Payment failed. Try another card.')
+      // Stripe's own messages arrive in the session language where
+      // available; the fallback is ours and localized.
+      setError(payError.message || t('failedFallback'))
       setBusy(false)
       return
     }
@@ -32,7 +39,7 @@ export default function PaymentForm({ amount, onSuccess }) {
       return
     }
     // processing / requires_action that resolved without redirect
-    setError('Payment is still processing — check your bookings shortly.')
+    setError(t('stillProcessing'))
     setBusy(false)
   }
 
@@ -49,10 +56,10 @@ export default function PaymentForm({ amount, onSuccess }) {
         disabled={!stripe || busy}
         className="btn btn-cta-gradient glow-cta glow-pulse w-full"
       >
-        {busy ? 'Processing…' : `Pay $${amount}`}
+        {busy ? t('processing') : t('payButton', { amount })}
       </button>
       <p className="text-center text-xs text-slate-400">
-        Payments secured by Stripe. Your card details never touch our servers.
+        {t('securedByStripe')}
       </p>
     </form>
   )

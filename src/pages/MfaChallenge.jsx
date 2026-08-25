@@ -31,7 +31,9 @@ export default function MfaChallenge() {
       setFactorId(factor.id)
     })
     return () => { cancelled = true }
-  }, [])
+    // Mount-once factor check: navigate/next changing identity must not
+    // restart verification mid-flow.
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function verify(e) {
     e.preventDefault()

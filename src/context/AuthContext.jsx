@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { registerDetailerPush } from '../lib/push'
 
@@ -113,33 +113,43 @@ export function AuthProvider({ children }) {
     await supabase.auth.signOut()
   }
 
-  function enterDemo(role) {
+  const signOutStable = useCallback(signOut, [demo])
+  const enterDemoStable = useCallback((role) => {
     setDemo({
       session: { user: { id: `demo-${role}` } },
       profile: { id: `demo-${role}`, role, full_name: DEMO_NAMES[role], demo: true },
     })
-  }
+  }, [])
+  const refreshProfileStable = useCallback(refreshProfile, [session?.user?.id])
 
-  const value = demo
-    ? {
-        session: demo.session,
-        user: demo.session.user,
-        profile: demo.profile,
-        loading: false,
-        isDemo: true,
-        signOut,
-        enterDemo,
-      }
-    : {
-        session,
-        user: session?.user ?? null,
-        profile,
-        loading,
-        isDemo: false,
-        signOut,
-        enterDemo,
-        refreshProfile,
-      }
+  // Memoized: this used to be a fresh object literal every render, so every
+  // AuthProvider re-render (e.g. any session/profile state flip) re-rendered
+  // EVERY useAuth() consumer in the tree. The dep list mirrors exactly what
+  // the value reads.
+  const value = useMemo(
+    () =>
+      demo
+        ? {
+            session: demo.session,
+            user: demo.session.user,
+            profile: demo.profile,
+            loading: false,
+            isDemo: true,
+            signOut: signOutStable,
+            enterDemo: enterDemoStable,
+          }
+        : {
+            session,
+            user: session?.user ?? null,
+            profile,
+            loading,
+            isDemo: false,
+            signOut: signOutStable,
+            enterDemo: enterDemoStable,
+            refreshProfile: refreshProfileStable,
+          },
+    [demo, session, profile, loading, signOutStable, enterDemoStable, refreshProfileStable]
+  )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

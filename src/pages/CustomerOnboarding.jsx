@@ -45,18 +45,27 @@ export default function CustomerOnboarding() {
 
   const [address, setAddress] = useState('')
   const [zip, setZip] = useState('')
+  const [saveError, setSaveError] = useState(null)
 
   function done() { navigate(returnTo, { replace: true }) }
 
   async function advance() {
     setBusy(true)
+    setSaveError(null)
     try {
       if (step === 0 && (make || model || type || vehiclePhoto)) {
         await updateCustomer({ vehicle: { make, model, type, photo: vehiclePhoto } })
       } else if (step === 1 && (address || zip)) {
         await updateCustomer({ address, zip })
       }
-    } catch (_) {}
+    } catch (e) {
+      // A failed save must NOT advance the wizard as if it saved — the
+      // customer would believe their address/vehicle is stored when it
+      // isn't, and bookings would silently center on the wrong area.
+      setSaveError(e?.message || t('saveFailed'))
+      setBusy(false)
+      return
+    }
     setBusy(false)
     if (step === 0) { setDir(1); setStep(1) } else { done() }
   }
@@ -169,6 +178,11 @@ export default function CustomerOnboarding() {
                 </div>
 
                 <div className="mt-1 flex flex-col gap-2">
+                  {saveError && (
+                    <p role="alert" className="rounded-xl bg-red-50 px-4 py-2.5 text-sm font-medium text-red-600 dark:bg-red-950/40 dark:text-red-300">
+                      {saveError}
+                    </p>
+                  )}
                   <button type="button" onClick={advance} disabled={busy} className="btn btn-cta w-full">
                     {busy
                       ? <span className="inline-flex items-center gap-2"><Spinner />{t('saving')}</span>
@@ -234,6 +248,11 @@ export default function CustomerOnboarding() {
                 </div>
 
                 <div className="mt-1 flex flex-col gap-2">
+                  {saveError && (
+                    <p role="alert" className="rounded-xl bg-red-50 px-4 py-2.5 text-sm font-medium text-red-600 dark:bg-red-950/40 dark:text-red-300">
+                      {saveError}
+                    </p>
+                  )}
                   <button type="button" onClick={advance} disabled={busy} className="btn btn-cta w-full">
                     {busy
                       ? <span className="inline-flex items-center gap-2"><Spinner />{t('saving')}</span>

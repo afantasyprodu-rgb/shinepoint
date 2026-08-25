@@ -12,11 +12,11 @@ import {
   MapPinIcon,
   ClockIcon,
   CameraIcon,
-  CalendarIcon,
   TrashIcon,
 } from '../../components/icons'
 import { useStore } from '../../context/StoreContext'
 import { fetchAllUsersForAdmin, adminDeleteUser, fetchAccountDeletionFeedback } from '../../lib/db'
+import { captureException } from '../../lib/sentry'
 import { useT } from '../../i18n/useT'
 
 const TAB_KEYS = [
@@ -241,10 +241,26 @@ export default function AdminPeople() {
   // showing made-up named people to real admins with no real data behind them.
   useEffect(() => {
     if (!isDemo && ['Accounts', 'Customers', 'Team'].includes(tab) && accounts === null) {
-      fetchAllUsersForAdmin().then(setAccounts)
+      fetchAllUsersForAdmin()
+        .then(setAccounts)
+        .catch((e) => {
+          console.error('fetchAllUsersForAdmin:', e.message)
+          captureException(e, 'AdminPeople:fetchUsers')
+          // Empty array, not null: null re-triggers this effect on every tab
+          // switch (infinite failing refetch loop), and the UI renders a
+          // spinner on null forever. [] shows the honest "none registered"
+          // state; the Sentry breadcrumb records the real failure.
+          setAccounts([])
+        })
     }
     if (tab === 'Deleted' && deletions === null) {
-      fetchAccountDeletionFeedback().then(setDeletions)
+      fetchAccountDeletionFeedback()
+        .then(setDeletions)
+        .catch((e) => {
+          console.error('fetchAccountDeletionFeedback:', e.message)
+          captureException(e, 'AdminPeople:fetchDeletions')
+          setDeletions([])
+        })
     }
   }, [tab, accounts, deletions, isDemo])
 
