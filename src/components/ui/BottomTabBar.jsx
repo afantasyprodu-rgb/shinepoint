@@ -141,30 +141,33 @@ function WaterDroplet({ activeIndex, count }) {
 
   const targetX = slotW * (activeIndex + 0.5)
 
-  // The springs track a MotionValue rather than a plain number: useSpring
-  // only treats a number as an INITIAL value, so feeding it targetX directly
-  // left the droplet parked at 0 (hard left) forever once the measurement
-  // landed. jump() on the first real measurement so it appears already in
-  // place instead of flying in from the corner on mount.
+  // xTarget just carries the latest number in — the springs below are the
+  // things that actually animate, and useSpring(motionValue) always EASES
+  // toward its source, .set() included. There's no "instant" variant of
+  // .set(). That's academic for every real tab switch (easing in is the
+  // point), but it means first placement on mount needs its own path: skip
+  // xTarget and jump the spring itself so it's already in place for the
+  // first paint instead of visibly travelling there from x=0 (off-screen,
+  // since 0 sits left of the first tab).
   const xTarget = useMotionValue(0)
   const placed = useRef(false)
-  useEffect(() => {
-    if (!slotW) return
-    if (!placed.current) {
-      placed.current = true
-      xTarget.jump ? xTarget.jump(targetX) : xTarget.set(targetX)
-      return
-    }
-    xTarget.set(targetX)
-  }, [targetX, slotW, xTarget])
 
   // Underdamped on purpose — it overshoots and settles, which is the
   // "jiggle on arrival" half of the effect.
   const dropX = useSpring(xTarget, reduce
     ? { stiffness: 900, damping: 60 }
     : { stiffness: 260, damping: 19, mass: 1.15 })
-  const trailAX = useSpring(xTarget, { stiffness: 170, damping: 17, mass: 1.35 })
-  const trailBX = useSpring(xTarget, { stiffness: 118, damping: 15, mass: 1.6 })
+
+  useEffect(() => {
+    if (!slotW) return
+    if (!placed.current) {
+      placed.current = true
+      xTarget.jump ? xTarget.jump(targetX) : xTarget.set(targetX)
+      dropX.jump(targetX)
+      return
+    }
+    xTarget.set(targetX)
+  }, [targetX, slotW, xTarget, dropX])
 
   // Raw velocity is spiky; a fast spring on top smooths it without adding
   // enough lag to desync the squash from the travel.
@@ -181,12 +184,6 @@ function WaterDroplet({ activeIndex, count }) {
 
   return (
     <span ref={navRef} aria-hidden="true" className="pointer-events-none absolute inset-0 z-0">
-      {!reduce && (
-        <>
-          <Bead x={trailBX} scale={0.58} opacity={0.22} />
-          <Bead x={trailAX} scale={0.78} opacity={0.4} />
-        </>
-      )}
       <motion.div className="absolute" style={{ x: dropX, top: -12, marginLeft: -DROP_PX / 2 }}>
         <div className="nx-tab-drop-float">
           <motion.div style={reduce ? undefined : { scaleX, scaleY, rotate }}>
@@ -195,21 +192,5 @@ function WaterDroplet({ activeIndex, count }) {
         </div>
       </motion.div>
     </span>
-  )
-}
-
-// A lagging bead of the wake. Same gradient as the droplet so it reads as the
-// same body of water, just behind it.
-function Bead({ x, scale, opacity }) {
-  return (
-    <motion.div
-      className="absolute"
-      style={{ x, top: -12, marginLeft: -DROP_PX / 2, opacity }}
-    >
-      <div
-        className="nx-tab-drop nx-tab-drop-idle h-11 w-11 -rotate-45"
-        style={{ transform: `rotate(-45deg) scale(${scale})`, boxShadow: 'none' }}
-      />
-    </motion.div>
   )
 }
