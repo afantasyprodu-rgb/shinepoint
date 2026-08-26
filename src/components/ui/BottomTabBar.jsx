@@ -7,6 +7,7 @@ import {
   useVelocity,
   useTransform,
   useReducedMotion,
+  useMotionValueEvent,
 } from 'motion/react'
 
 // Fixed bottom tab bar, mobile only, shared by every role (customer,
@@ -176,28 +177,69 @@ function WaterDroplet({ activeIndex, count }) {
   // Signed, unlike the scales — the lean has to flip with direction.
   const rotate = useTransform(v, RANGE, [11, 0, -11])
 
-  if (slotW === 0) return <span ref={navRef} className="absolute" aria-hidden="true" />
+  // TEMPORARY — on-screen diagnostic readout. Three device-only fixes have
+  // each looked correct in every Chrome-based check this session and then
+  // failed on the user's actual iPhone in a way none of those checks caught
+  // (no remote-debugging access to that device from here). Rather than ship
+  // a fourth blind guess, this surfaces the real numbers directly on the
+  // live device so the next fix is based on evidence instead of theory.
+  // Remove once the on-device values are captured and the actual fix lands.
+  const [dbgX, setDbgX] = useState(0)
+  useMotionValueEvent(dropX, 'change', setDbgX)
+
+  const debugBadge = (
+    <div
+      aria-hidden="true"
+      style={{
+        position: 'fixed',
+        top: 4,
+        left: 4,
+        zIndex: 99999,
+        background: 'black',
+        color: '#0f0',
+        fontSize: 10,
+        lineHeight: 1.4,
+        padding: '3px 6px',
+        fontFamily: 'monospace',
+        whiteSpace: 'pre',
+        pointerEvents: 'none',
+        borderRadius: 4,
+      }}
+    >
+      {`idx=${activeIndex} cnt=${count}\nslotW=${slotW.toFixed(1)} tgt=${targetX.toFixed(1)}\nx=${dbgX.toFixed(1)}`}
+    </div>
+  )
+
+  if (slotW === 0) return (
+    <>
+      {debugBadge}
+      <span ref={navRef} className="absolute" aria-hidden="true" />
+    </>
+  )
 
   return (
-    <span ref={navRef} aria-hidden="true" className="pointer-events-none absolute inset-0 z-0">
-      {/* left: 0 is load-bearing, not redundant with marginLeft — an
-          absolutely positioned element with no `left` falls back to its
-          "static position" (roughly: where it would sit in normal flow),
-          and that fallback is exactly the kind of thing real WebKit/iOS
-          Safari and Chrome's mobile DEVICE EMULATION (same rendering
-          engine, so it never actually exercises this) can disagree on.
-          Confirmed on-device: without it the droplet rendered off-screen
-          left in Safari while looking correct in every Chrome-based check
-          this was verified in. Pinning left:0 makes marginLeft + the
-          dropX transform the only two things moving it, with no
-          browser-dependent fallback in between. */}
-      <motion.div className="absolute" style={{ x: dropX, top: -12, left: 0, marginLeft: -DROP_PX / 2 }}>
-        <div className="nx-tab-drop-float">
-          <motion.div style={reduce ? undefined : { scaleX, scaleY, rotate }}>
-            <div className="nx-tab-drop nx-tab-drop-idle h-11 w-11 -rotate-45" />
-          </motion.div>
-        </div>
-      </motion.div>
-    </span>
+    <>
+      {debugBadge}
+      <span ref={navRef} aria-hidden="true" className="pointer-events-none absolute inset-0 z-0">
+        {/* left: 0 is load-bearing, not redundant with marginLeft — an
+            absolutely positioned element with no `left` falls back to its
+            "static position" (roughly: where it would sit in normal flow),
+            and that fallback is exactly the kind of thing real WebKit/iOS
+            Safari and Chrome's mobile DEVICE EMULATION (same rendering
+            engine, so it never actually exercises this) can disagree on.
+            Confirmed on-device: without it the droplet rendered off-screen
+            left in Safari while looking correct in every Chrome-based check
+            this was verified in. Pinning left:0 makes marginLeft + the
+            dropX transform the only two things moving it, with no
+            browser-dependent fallback in between. */}
+        <motion.div className="absolute" style={{ x: dropX, top: -12, left: 0, marginLeft: -DROP_PX / 2 }}>
+          <div className="nx-tab-drop-float">
+            <motion.div style={reduce ? undefined : { scaleX, scaleY, rotate }}>
+              <div className="nx-tab-drop nx-tab-drop-idle h-11 w-11 -rotate-45" />
+            </motion.div>
+          </div>
+        </motion.div>
+      </span>
+    </>
   )
 }
