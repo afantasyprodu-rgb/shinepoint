@@ -3,6 +3,8 @@ import { NavLink, useLocation, matchPath } from 'react-router-dom'
 import {
   motion,
   AnimatePresence,
+  animate,
+  useMotionValue,
   useSpring,
   useVelocity,
   useTransform,
@@ -122,6 +124,22 @@ export default function BottomTabBar({ items, hidden = false }) {
 // itself together.
 const DROP_PX = 44 // h-11/w-11 — must match the element's own size
 
+// Module-level, NOT component state — this is the actual fix. Every page
+// (Bookings.jsx, CustomerSettings.jsx, ...) renders its own <AppShell>, so
+// BottomTabBar/WaterDroplet genuinely unmounts and remounts on every single
+// navigation; there is no such thing as a "tab switch" from this
+// component's own perspective, only ever a fresh mount. Confirmed via
+// on-screen instrumentation against an actual production build (`vite
+// build` + `vite preview`, not `vite dev` — three earlier fixes all looked
+// correct against dev's unminified/HMR server and then failed in a way none
+// of those checks reproduced): the "first mount vs. later switch" distinction
+// was being tracked with a `useRef`, and refs don't survive an unmount
+// either — every navigation was hitting the "instant placement" branch,
+// never the animated one. A module-level variable lives in the JS module's
+// scope, not the component instance's, so it survives exactly the kind of
+// remount that broke every ref/state-based attempt.
+let lastDropX = null
+
 function WaterDroplet({ activeIndex, count }) {
   const reduce = useReducedMotion()
   const navRef = useRef(null)
@@ -141,30 +159,32 @@ function WaterDroplet({ activeIndex, count }) {
 
   const targetX = slotW * (activeIndex + 0.5)
 
-  // dropX is a STANDALONE spring — created from a plain number, not from
-  // another MotionValue — which is what makes both .jump() and .set() below
-  // safe to call repeatedly. The earlier two attempts both chained it off a
-  // source value (xTarget = useMotionValue(0), dropX = useSpring(xTarget)):
-  // that shape supports ongoing tracking, but calling .jump() on the
-  // DERIVED spring silently detaches it from its source — confirmed
-  // in-browser, position froze permanently at the first tab after one jump
-  // call. A standalone spring has no source to detach from, so .jump() for
-  // the mount-only "no fly-in from off-screen" placement and .set() for
-  // every real switch coexist correctly.
-  const dropX = useSpring(0, reduce
-    ? { stiffness: 900, damping: 60 }
-    : { stiffness: 260, damping: 19, mass: 1.15 })
-  const placed = useRef(false)
+  // Seeded from lastDropX when a previous instance already ran this session,
+  // so the freshly-mounted droplet starts exactly where the last one left
+  // off instead of at 0 — the animate() call below then eases from THAT
+  // real starting point to the new target, which is what makes it read as
+  // one continuous journey across what's actually a sequence of separate
+  // component instances.
+  const dropX = useMotionValue(lastDropX ?? 0)
 
   useEffect(() => {
     if (!slotW) return
-    if (!placed.current) {
-      placed.current = true
-      dropX.jump(targetX)
+    if (lastDropX === null) {
+      // Genuinely the first paint this session (no prior instance to
+      // inherit a position from) — nothing to animate from, so just place it.
+      dropX.set(targetX)
+      lastDropX = targetX
       return
     }
-    dropX.set(targetX)
-  }, [targetX, slotW, dropX])
+    const controls = animate(dropX, targetX, reduce
+      ? { type: 'spring', stiffness: 900, damping: 60 }
+      : { type: 'spring', stiffness: 260, damping: 19, mass: 1.15 })
+    const unsubscribe = dropX.on('change', (v) => { lastDropX = v })
+    return () => {
+      controls.stop()
+      unsubscribe()
+    }
+  }, [targetX, slotW, dropX, reduce])
 
   // Raw velocity is spiky; a fast spring on top smooths it without adding
   // enough lag to desync the squash from the travel.
