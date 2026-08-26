@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 import AppShell from '../components/AppShell'
 import AccountDangerZone from '../components/AccountDangerZone'
 import ChangePassword from '../components/ChangePassword'
@@ -16,6 +18,33 @@ import { CA_ZIP_CENTROIDS, closestDetailer } from '../lib/fuzzyPin'
 import { CAR_MAKES, CAR_MODELS, MODEL_TO_TYPE } from '../lib/vehicleData'
 import { useTiltShadow } from '../hooks/useTiltShadow'
 import { useT } from '../i18n/useT'
+import { TILES } from '../components/DetailerMap'
+
+// Mini open-source map for the Home address card — same Leaflet + Carto tiles
+// we already use in DetailerMap (Voyager nolabels = OpenStreetMap + CARTO).
+function HomeMiniMap({ zip }) {
+  const ref = useRef(null)
+  const mapRef = useRef(null)
+  const markerRef = useRef(null)
+  const tileRef = useRef(null)
+  const centroid = zip?.length === 5 ? CA_ZIP_CENTROIDS[zip] : null
+  const center = centroid ?? [34.0522, -118.2437]
+  useEffect(() => {
+    if (!ref.current || mapRef.current) return
+    const map = L.map(ref.current, { center, zoom: 12, zoomControl: false, attributionControl: true, dragging: true, scrollWheelZoom: false })
+    tileRef.current = L.tileLayer(TILES.light.url, { attribution: TILES.light.attribution, maxZoom: 19 }).addTo(map)
+    mapRef.current = map
+    return () => { map.remove(); mapRef.current = null }
+  }, [])
+  useEffect(() => {
+    if (!mapRef.current) return
+    mapRef.current.setView(center, 12)
+    if (markerRef.current) { markerRef.current.setLatLng(center) } else {
+      markerRef.current = L.marker(center, { icon: L.divIcon({ className: '', html: '<span class="nx-map-pin" style="--pin:#0ea5e9"></span>', iconSize: [24,24], iconAnchor:[12,12] }) }).addTo(mapRef.current)
+    }
+  }, [zip])
+  return <div ref={ref} className="h-36 w-full rounded-xl overflow-hidden ring-1 ring-slate-200 dark:ring-white/10" />
+}
 
 const ALL_MODELS = Object.values(CAR_MODELS).flat()
 
@@ -346,7 +375,7 @@ export default function CustomerSettings() {
             </button>
           </div>
 
-          {/* Home address */}
+          {/* Home address — now with open-source mini map (Leaflet + Carto) */}
           <div className="card space-y-4">
             <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">{t('homeAddress')}</h2>
             <p className="-mt-2 text-sm text-slate-500 dark:text-slate-400">{t('homeAddressBlurb')}</p>
@@ -378,6 +407,8 @@ export default function CustomerSettings() {
                 </p>
               )}
             </div>
+            <HomeMiniMap zip={zip} />
+            <p className="text-[11px] text-slate-400 dark:text-slate-500">OpenStreetMap via CARTO Voyager — same open-source stack as the discovery map.</p>
           </div>
 
           <div className="relative">
