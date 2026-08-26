@@ -17,7 +17,7 @@ import { captureException } from '../_shared/sentry.ts'
 import { bookingConfirmationEmail } from '../_shared/email-templates.ts'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
-  apiVersion: '2026-05-27.dahlia',
+  apiVersion: '2026-05-27.dahlia' as Stripe.LatestApiVersion,
 })
 // Two DIFFERENT Stripe webhook endpoints point at this same URL, and Stripe
 // signs each with its own secret: a regular "Your account" endpoint (

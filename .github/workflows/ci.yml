@@ -42,8 +42,13 @@ jobs:
         with:
           deno-version: v2.x
 
-      # supabase/functions is Deno-style TS with npm: specifiers; `deno check`
-      # resolves those natively. No deno.json in the repo, so point it at the
-      # functions tree directly.
+      # supabase/functions is Deno-style TS with npm: specifiers. Deno's config
+      # search starts from CWD (repo root) and finds the root package.json
+      # first, which switches it into "bring your own node_modules" mode --
+      # wrong for this tree, and the actual cause of a hard failure ("Could
+      # not find npm:stripe in the node_modules directory") that predates
+      # this comment. supabase/functions/deno.json opts the functions tree
+      # back into Deno's own managed npm cache; --config must be passed
+      # explicitly since CWD-based discovery doesn't walk into subtrees.
       - name: Typecheck edge functions
-        run: deno check $(git ls-files 'supabase/functions/*.ts')
+        run: deno check --config supabase/functions/deno.json $(git ls-files 'supabase/functions/*.ts')

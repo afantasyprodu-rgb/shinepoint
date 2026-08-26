@@ -26,7 +26,7 @@ const ACTIVE_BOOKING_MESSAGE =
 // the routine ACTIVE_BOOKING_MESSAGE block above, which is expected UX,
 // not something every admin needs paged about. Sentry already logs these;
 // this puts the same signal in the admin-facing notifications feed too.
-async function notifyAdmins(admin: ReturnType<typeof createClient>, who: string, detail: string) {
+async function notifyAdmins(admin: any, who: string, detail: string) {
   const { error } = await admin.rpc('notify_admins', {
     p_title: 'Account deletion failed',
     p_body: `${who} tried to delete their account and it failed: ${detail}`,
