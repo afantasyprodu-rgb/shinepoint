@@ -1232,47 +1232,64 @@
 }
 
 /* Idle wobble — surface tension holding a blob together in freefall, where
-   nothing pulls it into a fixed shape so it keeps redistributing. Only the
-   three ROUND corners drift; the fourth stays a hard 4px point, because
-   that point (rotated -45deg by the element) is what makes this read as a
-   droplet rather than a circle. Border-radius doesn't trigger layout, and
-   the element's transform is left untouched so BottomTabBar's velocity
-   physics can own it without fighting this. */
+    nothing pulls it into a fixed shape so it keeps redistributing. Only the
+    three ROUND corners drift; the fourth stays a hard 4px point, because
+    that point (rotated -45deg by the element) is what makes this read as a
+    droplet rather than a circle. Border-radius doesn't trigger layout, and
+    the element's transform is left untouched so BottomTabBar's velocity
+    physics can own it without fighting this.
+    HEAVY preset: much larger radius swings + shorter periods so the blob
+    never looks settled — reads as viscous mercury / slime. */
 @keyframes nx-drop-idle {
   0%,
   100% {
     border-radius: 50% 50% 50% 4px;
+    transform: scale(1, 1);
   }
-  25% {
-    border-radius: 57% 44% 52% 4px;
+  15% {
+    border-radius: 62% 38% 54% 4px;
+    transform: scale(1.04, 0.96);
   }
-  50% {
-    border-radius: 45% 55% 47% 4px;
+  35% {
+    border-radius: 40% 60% 42% 4px;
+    transform: scale(0.96, 1.06);
+  }
+  55% {
+    border-radius: 58% 42% 62% 4px;
+    transform: scale(1.03, 0.97);
   }
   75% {
-    border-radius: 52% 48% 58% 4px;
+    border-radius: 44% 56% 48% 4px;
+    transform: scale(0.98, 1.03);
   }
 }
 /* The slow vertical drift is lifted from the parallel implementation this
-   replaced (b722b2e) — the shape wobble alone left it feeling pinned to the
-   bar, and a couple of pixels of float is what makes it read as suspended.
-   Deliberately a different period from the shape morph (3.7s vs 5.2s) so the
-   two never sync into an obvious loop. Runs on the wrapper, not the droplet
-   itself, so it can't collide with the -rotate-45 the shape element needs. */
+    replaced (b722b2e) — the shape wobble alone left it feeling pinned to the
+    bar, and a couple of pixels of float is what makes it read as suspended.
+    Deliberately a different period from the shape morph (2.1s vs 3.4s) so the
+    two never sync into an obvious loop. Runs on the wrapper, not the droplet
+    itself, so it can't collide with the -rotate-45 the shape element needs.
+    HEAVY: doubled float amplitude + added micro-scale pulse. */
 @keyframes nx-drop-float {
   0%,
   100% {
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
+  }
+  25% {
+    transform: translateY(-1px) scale(1.01);
   }
   50% {
-    transform: translateY(-2.5px);
+    transform: translateY(-5.5px) scale(0.99);
+  }
+  75% {
+    transform: translateY(-1.5px) scale(1.005);
   }
 }
 .nx-tab-drop-idle {
-  animation: nx-drop-idle 5.2s ease-in-out infinite;
+  animation: nx-drop-idle 7.5s ease-in-out infinite;
 }
 .nx-tab-drop-float {
-  animation: nx-drop-float 3.7s ease-in-out infinite;
+  animation: nx-drop-float 5.8s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) {
   .nx-tab-drop-idle,

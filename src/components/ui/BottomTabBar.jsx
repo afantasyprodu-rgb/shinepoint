@@ -177,7 +177,7 @@ function WaterDroplet({ activeIndex, count }) {
     }
     const controls = animate(dropX, targetX, reduce
       ? { type: 'spring', stiffness: 900, damping: 60 }
-      : { type: 'spring', stiffness: 260, damping: 19, mass: 1.15 })
+      : { type: 'spring', stiffness: 365, damping: 18, mass: 1.42 })
     const unsubscribe = dropX.on('change', (v) => { lastDropX = v })
     return () => {
       controls.stop()
@@ -185,26 +185,26 @@ function WaterDroplet({ activeIndex, count }) {
     }
   }, [targetX, slotW, dropX, reduce])
 
-  // Raw velocity is spiky; a fast spring on top smooths it without adding
-  // enough lag to desync the squash from the travel.
+  // Slower stretch: low stiffness + higher damping so the squash lags
+  // behind the travel instead of snapping with it — like thick goo.
   const velocity = useVelocity(dropX)
-  const v = useSpring(velocity, { stiffness: 420, damping: 40 })
+  const v = useSpring(velocity, { stiffness: 155, damping: 22 })
 
-  const RANGE = [-2200, 0, 2200]
-  const scaleX = useTransform(v, RANGE, [1.42, 1, 1.42])
-  const scaleY = useTransform(v, RANGE, [0.66, 1, 0.66])
+  const RANGE = [-1450, 0, 1450]
+  const scaleX = useTransform(v, RANGE, [1.72, 1, 1.72])
+  const scaleY = useTransform(v, RANGE, [0.52, 1, 0.52])
   // Signed, unlike the scales — the lean has to flip with direction.
-  const rotate = useTransform(v, RANGE, [11, 0, -11])
+  const rotate = useTransform(v, RANGE, [16, 0, -16])
 
   if (slotW === 0) return <span ref={navRef} className="absolute" aria-hidden="true" />
 
   return (
     <span ref={navRef} aria-hidden="true" className="pointer-events-none absolute inset-0 z-0">
       {/* left: 0 is load-bearing, not redundant with marginLeft — an
-          absolutely positioned element with no `left` falls back to its
-          "static position", which can vary across engines. Harmless once
-          the real bug (below) was fixed, but cheap enough to keep as a
-          second guarantee against the same class of ambiguity. */}
+           absolutely positioned element with no `left` falls back to its
+           "static position", which can vary across engines. Harmless once
+           the real bug (below) was fixed, but cheap enough to keep as a
+           second guarantee against the same class of ambiguity. */}
       <motion.div className="absolute" style={{ x: dropX, top: -12, left: 0, marginLeft: -DROP_PX / 2 }}>
         <div className="nx-tab-drop-float">
           <motion.div style={reduce ? undefined : { scaleX, scaleY, rotate }}>
