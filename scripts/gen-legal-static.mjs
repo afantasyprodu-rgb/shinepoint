@@ -24,7 +24,7 @@ const esc = (s) =>
 
 const shell = readFileSync(join(root, 'index.html'), 'utf8')
 
-function build({ file, title, desc, heading, intro, sections }) {
+function build({ file, title, desc, heading, intro, sections, bootstrapApp = true }) {
   const body = [
     `        <h1 style="font-size: 1.5rem; font-weight: 700;">${esc(heading)}</h1>`,
     `        <p style="color: #64748b; font-size: 0.875rem;">${esc(L.lastUpdated.replace('{date}', UPDATED))}</p>`,
@@ -56,11 +56,23 @@ ${body}
       </main>
     </div>`
 
-  const out = shell
+  let out = shell
     .replace(/<title>[^<]*<\/title>/, `<title>${esc(title)}</title>`)
     .replace(/(<meta name="description" content=")[^"]*(")/, `$1${esc(desc)}$2`)
     // Swap the whole existing #root block (landing fallback) for this page's.
     .replace(/ {4}<!-- Static fallback content:[\s\S]*?\n {4}<\/div>/, rootBlock)
+
+  if (!bootstrapApp) {
+    // No matching client route exists for this page (it isn't a real app
+    // screen — it exists purely for non-JS/automated readers, e.g. Twilio's
+    // toll-free verification crawler). Booting the SPA here would mount
+    // React over an unrecognized route and blank the static content out
+    // from under a real browser, same as it would blank any route with no
+    // <Route> match. Strip every bundle <script> so this page never runs
+    // JS at all and the static content is what every visitor — human or
+    // crawler — actually sees.
+    out = out.replace(/\n\s*<script type="module"[^>]*><\/script>/g, '')
+  }
 
   if (!out.includes(heading)) throw new Error(`root block not swapped for ${file} — check the marker comment in index.html still matches`)
   writeFileSync(join(root, file), out)
@@ -102,6 +114,7 @@ build({
     ['Contact phone', '(213) 534-7417'],
     ['SMS program', 'ShinePoint sends optional appointment-reminder and live-tracking text messages to customers who opt in from their account settings or at booking. Reply STOP to any message to opt out at any time; reply HELP for support. Full terms are published at shinepoint.app/terms.'],
   ],
+  bootstrapApp: false,
 })
 
 build({
