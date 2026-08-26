@@ -144,6 +144,7 @@ export default function DetailerDashboard() {
   const { bookings, getDetailer, patchBooking, declineBooking, isDemo, detailerProfile } = useStore()
   const [decliningId, setDecliningId] = useState(null)
   const [declineError, setDeclineError] = useState('')
+  const [expandedIncomingId, setExpandedIncomingId] = useState(null)
 
   async function handleDecline(id) {
     setDeclineError('')
@@ -307,47 +308,109 @@ export default function DetailerDashboard() {
                   {t('nothingWaiting')}
                 </motion.p>
               )}
-              {incoming.map((b) => (
+              {incoming.map((b) => {
+                const isExpanded = expandedIncomingId === b.id
+                const fullWhen = new Date(b.scheduledTime).toLocaleString(lang === 'es' ? 'es-US' : 'en-US', {
+                  weekday: 'short',
+                  month: 'short',
+                  day: 'numeric',
+                  hour: 'numeric',
+                  minute: '2-digit',
+                })
+                const hasPhoto = !!b.vehiclePhoto
+                return (
                 <motion.div
                   key={b.id}
                   layout
                   initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, x: 80, transition: { duration: 0.25 } }}
-                  className="card mt-3 border-brand-300 ring-2 ring-brand-100 dark:border-brand-500/40 dark:ring-brand-500/20"
+                  className="card mt-3 overflow-hidden border-brand-300 p-0 ring-2 ring-brand-100 dark:border-brand-500/40 dark:ring-brand-500/20"
                 >
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <Avatar name={b.customerName} />
-                      <div>
-                        <p className="font-semibold text-slate-900 dark:text-slate-100">
-                          {b.service} · {b.vehicle}
-                        </p>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">
-                          {b.customerName} · zip {b.zip} ·{' '}
-                          {new Date(b.scheduledTime).toLocaleString(lang === 'es' ? 'es-US' : 'en-US', {
-                            weekday: 'short',
-                            hour: 'numeric',
-                          })}
-                        </p>
-                      </div>
-                    </div>
-                    <p className="font-display text-lg font-bold text-cta-700 dark:text-cta-400">
+                  {/* Tap the header to expand — keeps the pink card look exactly as before */}
+                  <button
+                    type="button"
+                    onClick={() => setExpandedIncomingId(isExpanded ? null : b.id)}
+                    aria-expanded={isExpanded}
+                    className="flex w-full items-center gap-3 p-5 text-left focus:outline-none focus-visible:bg-brand-50/50"
+                  >
+                    <Avatar name={b.customerName} />
+                    <span className="min-w-0 flex-1 text-left">
+                      <p className="truncate font-semibold text-slate-900 dark:text-slate-100">
+                        {b.service} · {b.vehicle}
+                      </p>
+                      <p className="truncate text-sm text-slate-500 dark:text-slate-400">
+                        {b.customerName} · zip {b.zip} ·{' '}
+                        {new Date(b.scheduledTime).toLocaleString(lang === 'es' ? 'es-US' : 'en-US', {
+                          weekday: 'short',
+                          hour: 'numeric',
+                        })}
+                      </p>
+                    </span>
+                    <span className="shrink-0 font-display text-lg font-bold text-cta-700 dark:text-cta-400">
                       +${(b.price * 0.85).toFixed(0)}
-                    </p>
-                  </div>
-                  {/* h-11 (44px) — Fitts's Law: the most time-critical tap
-                      target on the screen (a 30-min response window) needs
-                      to be at least as easy to hit as it is important. */}
-                  <div className="mt-4 flex gap-2">
+                    </span>
+                    <span className={`ml-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-slate-200 transition-transform duration-200 dark:bg-white/10 dark:ring-white/10 ${isExpanded ? 'rotate-180' : ''}`} aria-hidden="true">
+                      <ChevronDownIcon className="h-4 w-4 text-slate-400" />
+                    </span>
+                  </button>
+
+                  {/* Full detail — hidden until pressed (A1b banner style) */}
+                  <AnimatePresence initial={false}>
+                    {isExpanded && (
+                      <motion.div
+                        key="expand"
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.32, ease: [0.25, 1, 0.5, 1] }}
+                        className="overflow-hidden"
+                      >
+                        <div className="relative">
+                          {hasPhoto ? (
+                            <img src={b.vehiclePhoto} alt={b.vehicle ?? 'Vehicle'} className="h-36 w-full object-cover sm:h-40" loading="lazy" />
+                          ) : (
+                            <div className="flex h-36 w-full items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 dark:from-white/5 dark:to-white/10 sm:h-40">
+                              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-slate-400 shadow-sm dark:bg-white/10 dark:text-slate-500">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 13 9 7l4 4 4-3 4 5"/><circle cx="9" cy="8.2" r="1.4"/></svg>
+                              </span>
+                            </div>
+                          )}
+                          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/45 via-black/10 to-transparent" />
+                          <div className="absolute bottom-3 left-4 right-4 flex items-end justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-bold text-white drop-shadow-sm">{b.vehicle ?? b.service}</p>
+                              <p className="truncate text-xs text-white/80">{b.customerName} · {fullWhen}</p>
+                            </div>
+                            <span className="shrink-0 rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-900 shadow-sm">+${(b.price * 0.85).toFixed(0)}</span>
+                          </div>
+                        </div>
+                        <div className="space-y-2 px-5 py-4 text-sm">
+                          <p className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+                            <span className="inline-flex items-center gap-1"><ClockIcon className="h-3.5 w-3.5" />{fullWhen}</span>
+                            {b.zip && (<><span className="h-1 w-1 rounded-full bg-slate-300 dark:bg-white/20"/><span>zip {b.zip}</span></>)}
+                            {b.vehicle && (<><span className="h-1 w-1 rounded-full bg-slate-300 dark:bg-white/20"/><span>{b.vehicle}</span></>)}
+                          </p>
+                          {b.address && <p className="text-xs text-slate-500 dark:text-slate-400">📍 {b.address}</p>}
+                          {b.notes && <p className="rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-600 dark:bg-white/5 dark:text-slate-300">“{b.notes}”</p>}
+                          <Link to={`/detailer/jobs/${b.id}`} className="inline-flex text-xs font-semibold text-brand-600 hover:underline dark:text-brand-300">
+                            {t('viewDetails') ?? 'View full details'} →
+                          </Link>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Accept/Decline stay where they were — always reachable */}
+                  <div className="flex gap-2 px-5 pb-5">
                     <button
-                      onClick={() => patchBooking(b.id, { status: 'accepted' })}
+                      onClick={(e) => { e.stopPropagation(); patchBooking(b.id, { status: 'accepted' })}}
                       className="btn btn-cta h-11 flex-1 text-sm"
                     >
                       {t('accept')}
                     </button>
                     <button
-                      onClick={() => handleDecline(b.id)}
+                      onClick={(e) => { e.stopPropagation(); handleDecline(b.id)}}
                       disabled={decliningId === b.id}
                       className="btn btn-outline h-11 flex-1 text-sm disabled:opacity-50"
                     >
@@ -355,7 +418,8 @@ export default function DetailerDashboard() {
                     </button>
                   </div>
                 </motion.div>
-              ))}
+                )
+              })}
             </AnimatePresence>
 
             {/* Jobs, grouped by date — today always expanded and sorted by

@@ -311,6 +311,50 @@
     box-shadow: 10px 10px 22px var(--neu-sd), -10px -10px 22px var(--neu-sl);
   }
 
+  /* Premium Full Detail — gradient glow surrounding the card.
+     Wraps the .card so the card's own neumorphic surface stays intact
+     while the wrapper provides the border + outer aura. Shadow now
+     MOVES too via a blurred ::before that drifts the same gradient. */
+  .premium-booking {
+    position: relative;
+    border-radius: 1.35rem;
+    padding: 2px;
+    background: linear-gradient(135deg, #f59e0b, #ec4899, #8b5cf6, #06b6d4, #f59e0b);
+    background-size: 280% 280%;
+    animation: premium-shift 4.5s ease infinite;
+    isolation: isolate;
+  }
+  .premium-booking::before {
+    content: "";
+    position: absolute;
+    inset: -10px;
+    border-radius: 1.6rem;
+    background: linear-gradient(135deg, #f59e0b, #ec4899, #8b5cf6, #06b6d4, #f59e0b);
+    background-size: 280% 280%;
+    filter: blur(18px);
+    opacity: 0.52;
+    z-index: -1;
+    animation: premium-shift 4.5s ease infinite reverse;
+    pointer-events: none;
+  }
+  .premium-booking > .card {
+    border-radius: 1.25rem;
+    box-shadow: none;
+    position: relative;
+    z-index: 1;
+  }
+  .premium-booking > .card:hover {
+    box-shadow: none;
+  }
+  @keyframes premium-shift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .premium-booking,
+    .premium-booking::before { animation: none; }
+  }
+
   .glass {
     @apply border border-white/20 bg-white/10 backdrop-blur-md;
   }

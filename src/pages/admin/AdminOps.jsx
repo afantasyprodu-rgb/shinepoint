@@ -472,7 +472,7 @@ export default function AdminOps() {
       <AnimatedPage>
         <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">{t('operations')}</h1>
 
-        <div role="tablist" aria-label={t('operationsSectionsAria')} className="mt-5 flex gap-1 overflow-x-auto rounded-xl bg-brand-100/60 p-1 sm:w-fit dark:bg-white/5">
+        <div role="tablist" aria-label={t('operationsSectionsAria')} className="mt-5 flex max-w-full gap-1 overflow-x-auto rounded-xl bg-brand-100/60 p-1 no-scrollbar sm:w-fit dark:bg-white/5">
           {TAB_KEYS.map(({ key, labelKey }) => (
             <button
               key={key}
@@ -498,16 +498,16 @@ export default function AdminOps() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.2 }}
-            className="mt-5 space-y-3"
+            className="mt-5 min-w-0 max-w-full space-y-3 overflow-hidden"
           >
             {tab === 'Bookings' &&
               bookings.map((b) => (
-                <div key={b.id} className="card flex flex-wrap items-center justify-between gap-3 !p-5">
-                  <div>
-                    <p className="font-semibold text-slate-900 dark:text-slate-100">
+                <div key={b.id} className="card flex flex-wrap items-center justify-between gap-3 !p-5 min-w-0 max-w-full overflow-hidden">
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-slate-900 dark:text-slate-100">
                       {b.id} · {b.service}
                     </p>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                    <p className="truncate text-sm text-slate-500 dark:text-slate-400">
                       {b.customerName} ↔ {getDetailer(b.detailerId)?.name} · ${b.price}
                     </p>
                   </div>

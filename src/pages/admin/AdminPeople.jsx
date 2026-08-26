@@ -301,14 +301,14 @@ export default function AdminPeople() {
       <AnimatedPage>
         <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">{t('people')}</h1>
 
-        <div role="tablist" aria-label={t('peopleSectionsAria')} className="mt-5 flex gap-1 rounded-xl bg-brand-100/60 p-1 sm:w-fit dark:bg-white/5">
+        <div role="tablist" aria-label={t('peopleSectionsAria')} className="mt-5 flex max-w-full gap-1 overflow-x-auto rounded-xl bg-brand-100/60 p-1 no-scrollbar sm:w-fit dark:bg-white/5">
           {TAB_KEYS.map(({ key, labelKey }) => (
             <button
               key={key}
               role="tab"
               aria-selected={tab === key}
               onClick={() => setTab(key)}
-              className={`flex-1 cursor-pointer rounded-lg px-4 py-2 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 sm:flex-none ${
+              className={`shrink-0 cursor-pointer whitespace-nowrap rounded-lg px-4 py-2 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
                 tab === key ? 'bg-white text-brand-800 shadow-sm dark:bg-white/10 dark:text-brand-300' : 'text-slate-600 dark:text-slate-400 hover:text-brand-800 dark:hover:text-brand-300'
               }`}
             >
@@ -329,7 +329,7 @@ export default function AdminPeople() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.2 }}
-            className="mt-5"
+            className="mt-5 min-w-0 max-w-full overflow-hidden"
           >
             {tab === 'Applications' && (
               <div className="space-y-3">
@@ -455,11 +455,11 @@ export default function AdminPeople() {
                   <p className="text-sm text-slate-500 dark:text-slate-400">{t('noAccountsRegistered')}</p>
                 )}
                 {accounts?.map((a) => (
-                  <div key={a.id} className="card flex flex-wrap items-center justify-between gap-3 !p-5">
-                    <div className="flex items-center gap-3">
+                  <div key={a.id} className="card flex flex-wrap items-center justify-between gap-3 !p-5 min-w-0 max-w-full overflow-hidden">
+                    <div className="flex min-w-0 items-center gap-3">
                       <Avatar name={a.full_name || a.email || a.phone || '?'} />
-                      <div>
-                        <p className="font-semibold text-slate-900 dark:text-slate-100">
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold text-slate-900 dark:text-slate-100">
                           {a.full_name || t('unnamed')}
                           {(a.is_banned || a.is_suspended) && (
                             <span className={`ml-2 chip ${a.is_banned ? 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'}`}>
@@ -472,7 +472,7 @@ export default function AdminPeople() {
                             </span>
                           )}
                         </p>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                        <p className="truncate text-sm text-slate-500 dark:text-slate-400">
                           {a.email || a.phone || t('noContact')} · {a.role} · {t('joined', { date: new Date(a.created_at).toLocaleDateString() })}
                         </p>
                         {a.deactivated_at && (
@@ -568,12 +568,12 @@ export default function AdminPeople() {
                 {/* Adding an admin is an ops action, not a self-service flow.
                     Promote a signed-up user in Supabase:
                     update public.users set role='admin' where email='...'; */}
-                <div className="card !p-5 border-brand-200 dark:border-white/10">
+                <div className="card !p-5 border-brand-200 dark:border-white/10 min-w-0 max-w-full overflow-hidden">
                   <p className="font-semibold text-slate-900 dark:text-slate-100">{t('addTeamMember')}</p>
                   <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
                     {t('addTeamMemberBody')}
                   </p>
-                  <code className="mt-3 block overflow-x-auto rounded-xl border border-brand-100 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 dark:text-slate-300 font-mono dark:border-white/10 dark:bg-white/5">
+                  <code className="mt-3 block max-w-full overflow-x-auto whitespace-nowrap rounded-xl border border-brand-100 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 dark:text-slate-300 font-mono dark:border-white/10 dark:bg-white/5">
                     update public.users set role='admin' where email='them@example.com';
                   </code>
                 </div>

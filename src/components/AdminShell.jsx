@@ -74,7 +74,7 @@ export default function AdminShell({ children }) {
   }
 
   return (
-    <div style={ADMIN_BLUE} className="admin-clay flex min-h-screen bg-[var(--clay-bg)]">
+    <div style={ADMIN_BLUE} className="admin-clay flex min-h-screen max-w-full overflow-x-hidden bg-[var(--clay-bg)]">
       <aside className="hidden w-56 shrink-0 flex-col px-4 py-5 sm:flex">
         <div className="flex items-center justify-between">
           <Link to="/admin" className="rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600">
@@ -112,7 +112,7 @@ export default function AdminShell({ children }) {
         </div>
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-w-0 max-w-full flex-1 flex-col overflow-x-hidden">
         {/* Mobile header — floored safe-area padding, same as the
             customer/detailer shell (see AppShell.jsx for why the floor). */}
         <header className="flex items-center justify-between px-4 py-3 pt-[max(env(safe-area-inset-top),2.75rem)] sm:hidden">
@@ -127,7 +127,7 @@ export default function AdminShell({ children }) {
         </header>
         {/* pb-20 plus the same safe-area inset the bar itself now reserves,
             so content never sits underneath the taller notch-device bar. */}
-        <main className="flex-1 px-4 py-8 pb-[calc(5rem+env(safe-area-inset-bottom))] sm:px-8 sm:pb-8">{children}</main>
+        <main className="min-w-0 max-w-full flex-1 overflow-x-hidden px-4 py-8 pb-[calc(5rem+env(safe-area-inset-bottom))] sm:px-8 sm:pb-8">{children}</main>
         <BottomTabBar items={LINKS} />
       </div>
     </div>
