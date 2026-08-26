@@ -87,6 +87,24 @@ build({
 })
 
 build({
+  file: 'business-info.html',
+  title: 'Business Information — ShinePoint',
+  desc: 'ShinePoint business registration, contact, and service information — a static, JavaScript-free page for automated verification.',
+  heading: 'Business Information',
+  intro: 'This page exists as a plain, JavaScript-free reference for automated verification (e.g. toll-free SMS registration review). Nothing here requires an account or login.',
+  sections: [
+    ['Legal business name', 'Richard David Rodriguez Padilla'],
+    ['Doing business as', 'ShinePoint'],
+    ['Business type', 'Sole proprietorship'],
+    ['Business address', '734 West Colden Avenue, Unit 1, Los Angeles, CA 90044, United States'],
+    ['Business description', 'ShinePoint is a mobile car-detailing marketplace serving Southern California. Customers book independent detailing professionals through the ShinePoint website and app; detailers travel to the customer’s vehicle to perform the service.'],
+    ['Contact email', 'shinepoint.support@gmail.com'],
+    ['Contact phone', '(213) 534-7417'],
+    ['SMS program', 'ShinePoint sends optional appointment-reminder and live-tracking text messages to customers who opt in from their account settings or at booking. Reply STOP to any message to opt out at any time; reply HELP for support. Full terms are published at shinepoint.app/terms.'],
+  ],
+})
+
+build({
   file: 'privacy.html',
   title: 'Privacy Policy — ShinePoint',
   desc: 'ShinePoint Privacy Policy, including how phone numbers and SMS opt-in data are used.',

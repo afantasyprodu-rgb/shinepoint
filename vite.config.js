@@ -27,6 +27,7 @@ export default defineConfig({
         main: `${projectRoot}/index.html`,
         terms: `${projectRoot}/terms.html`,
         privacy: `${projectRoot}/privacy.html`,
+        businessInfo: `${projectRoot}/business-info.html`,
       },
       output: {
         // Split the animation lib off the main chunk so first paint isn't
