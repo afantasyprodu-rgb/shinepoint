@@ -25,7 +25,7 @@ import { isUuid, isOneOf, isFiniteNumber, cleanText } from '../_shared/validate.
 const RESOLUTIONS = ['customer_wins', 'detailer_wins', 'split', 'dismissed'] as const
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
-  apiVersion: '2026-05-27.dahlia',
+  apiVersion: '2026-05-27.dahlia' as Stripe.LatestApiVersion,
 })
 
 // What Stripe Identity itself costs per check (043) — recovered from the

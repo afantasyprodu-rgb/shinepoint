@@ -21,7 +21,7 @@ import { isUuid, isFiniteNumber } from '../_shared/validate.ts'
 import { withinRateLimit, tooManyRequests } from '../_shared/rateLimit.ts'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
-  apiVersion: '2026-05-27.dahlia',
+  apiVersion: '2026-05-27.dahlia' as Stripe.LatestApiVersion,
 })
 
 const MAX_TIP = 500
@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
     if (!booking) return json({ error: 'Booking not found' }, 404)
 
     // Only the customer on the booking may tip it.
-    if (booking.customer_profiles?.user_id !== user.id) {
+    if ((booking.customer_profiles as any)?.user_id !== user.id) {
       return json({ error: 'Not your booking' }, 403)
     }
     if (booking.status !== 'complete') {

@@ -17,7 +17,7 @@ import { withinRateLimit, tooManyRequests } from '../_shared/rateLimit.ts'
 import { approxCentroidForZip, milesBetween } from '../_shared/geo.ts'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
-  apiVersion: '2026-05-27.dahlia',
+  apiVersion: '2026-05-27.dahlia' as Stripe.LatestApiVersion,
 })
 const FEE_PERCENT = Number(Deno.env.get('PLATFORM_FEE_PERCENT') ?? '15')
 
@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
       .eq('id', bookingId)
       .single()
     if (bErr || !booking) return json({ error: 'Booking not found' }, 404)
-    if (booking.customer_profiles?.user_id !== user.id) {
+    if ((booking.customer_profiles as any)?.user_id !== user.id) {
       return json({ error: 'Not your booking' }, 403)
     }
     if (booking.paid_at) return json({ error: 'Already paid' }, 409)

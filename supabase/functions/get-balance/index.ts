@@ -12,7 +12,7 @@ import { corsHeaders, json } from '../_shared/cors.ts'
 import { captureException } from '../_shared/sentry.ts'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
-  apiVersion: '2026-05-27.dahlia',
+  apiVersion: '2026-05-27.dahlia' as Stripe.LatestApiVersion,
 })
 
 function sumUsd(entries: { amount: number; currency: string }[]) {
