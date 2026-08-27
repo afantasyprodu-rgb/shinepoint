@@ -151,8 +151,9 @@ export default function Bookings() {
                         <p className="truncate font-semibold text-slate-900 dark:text-slate-100">
                           {b.service} · {d?.name}
                         </p>
-                        <p className="truncate text-sm text-slate-500 dark:text-slate-400">
-                          {dateLabel} · ${b.price + (b.tip ?? 0)}
+                        <p className="flex items-baseline gap-1 text-sm text-slate-500 dark:text-slate-400">
+                          <span className="truncate">{dateLabel}</span>
+                          <span className="shrink-0">· ${b.price + (b.tip ?? 0)}</span>
                         </p>
                       </div>
                       <StatusPill status={b.status} />

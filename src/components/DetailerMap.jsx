@@ -65,33 +65,23 @@ function cacheLocation(lat, lng) {
   }
 }
 
-// Both themes use CartoDB no-labels tiles — plain OSM tiles crammed every
-// street name, route shield, and POI icon onto the map, which read as
-// noisy/cluttered next to the pins. nolabels keeps just the road/park/water
-// shapes so the pins and popups stay the focus, in both themes equally.
-// Light uses Voyager (cream roads, green parks, blue water) rather than
-// Positron — Positron's near-white/grey read as washed out next to the
-// brand-colored pins; Voyager keeps the same no-labels restraint with
-// actual color so the map doesn't disappear into the page background.
-// CARTO started requiring a (free, 5M requests/month) API key on these
-// raster tiles in 2026 — without one every tile now renders with a tiled
-// "API KEY REQUIRED" watermark instead of the map. Get one at
-// https://carto.com/basemaps/apikey and set VITE_CARTO_API_KEY; unset is a
-// soft-skip like Turnstile/GIS elsewhere in this app (map still loads, just
-// watermarked, rather than the whole component erroring out).
-const CARTO_API_KEY = import.meta.env.VITE_CARTO_API_KEY
-const cartoUrl = (path) =>
-  `https://{s}.basemaps.cartocdn.com/${path}/{z}/{x}/{y}{r}.png${CARTO_API_KEY ? `?api_key=${CARTO_API_KEY}` : ''}`
+// Stadia Maps' outdoors — colored (green parks, tan terrain, blue water)
+// with fewer local streets shown than osm_bright. Stadia's free tier has no
+// trial expiry (unlike CARTO's), just needs a key from
+// https://client.stadiamaps.com/signup/ set as VITE_STADIA_API_KEY. Same
+// soft-skip pattern as the old CARTO setup: unset falls back to plain OSM
+// tiles so the map still works, just with OSM's busier default look.
+const STADIA_API_KEY = import.meta.env.VITE_STADIA_API_KEY
+const stadiaUrl = STADIA_API_KEY
+  ? `https://tiles.stadiamaps.com/tiles/outdoors/{z}/{x}/{y}{r}.png?api_key=${STADIA_API_KEY}`
+  : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+const stadiaAttribution = STADIA_API_KEY
+  ? '&copy; <a href="https://www.stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 
 export const TILES = {
-  light: {
-    url: cartoUrl('rastertiles/voyager_nolabels'),
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-  },
-  dark: {
-    url: cartoUrl('dark_nolabels'),
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-  },
+  light: { url: stadiaUrl, attribution: stadiaAttribution },
+  dark: { url: stadiaUrl, attribution: stadiaAttribution },
 }
 
 function statusLine(d) {
