@@ -271,12 +271,13 @@ export default function DetailerDashboard() {
 
         {!isDemo && isStripeConfigured && <PayoutSetup />}
 
-        {/* Nothing left to open once a real detailer is actually verified —
-            same reasoning as PayoutSetup above: a "finish onboarding" prompt
-            that never goes away after onboarding is finished is just
+        {/* Nothing left to open once a real detailer has actually submitted
+            the wizard (bio/zip present) — same reasoning as PayoutSetup
+            above: a "finish onboarding" prompt that never goes away once
+            onboarding is done (even if still pending admin review) is just
             clutter. Demo always shows it since there's no real approval
             state to reach. */}
-        {(isDemo || !verified) && (
+        {(isDemo || (!verified && !startedOnboarding)) && (
           <Link
             to="/detailer/onboarding"
             className="card card-hover mt-4 flex items-center justify-between !p-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
