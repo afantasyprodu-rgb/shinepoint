@@ -196,9 +196,13 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
 
     // Preferred path: Google Identity Services, no redirect through
     // Supabase's own domain (see googleIdentity.js for why that matters).
-    // Falls through to the classic OAuth redirect below on ANY failure —
-    // GIS not configured, One Tap blocked/dismissed, script load failure —
-    // so the button always does something instead of silently failing.
+    // Falls through to the classic OAuth redirect below on a genuine GIS
+    // failure — not configured, blocked, script load failure — so the
+    // button always does something instead of silently failing. The one
+    // exception is the user closing the One Tap prompt themselves
+    // (userDismissed): that's a deliberate "not right now," and forcing a
+    // second, different-looking full-page Google screen right after they
+    // just closed one reads as a broken double-prompt, not a fallback.
     if (isGoogleIdentityConfigured) {
       try {
         const idToken = await requestGoogleIdToken()
@@ -211,6 +215,10 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
         navigate(`/auth/callback${callbackQuery}`)
         return
       } catch (e) {
+        if (e.userDismissed) {
+          setBusy(false)
+          return
+        }
         console.warn('Google Identity Services sign-in failed, falling back to redirect flow:', e.message)
       }
     }

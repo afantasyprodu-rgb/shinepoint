@@ -50,6 +50,13 @@ function loadGis() {
 // be shown (browser blocked it, user has it disabled, cooldown after a
 // recent dismissal, etc.) — AuthCard's caller falls back to the redirect
 // flow on rejection so the button never just silently does nothing.
+//
+// One exception: if the prompt WAS shown and the user closed it themselves
+// (clicked the X, hit escape, clicked outside), the rejected error carries
+// `userDismissed: true`. That's a deliberate "not right now," not a broken
+// GIS — AuthCard checks the flag and skips the redirect fallback in that
+// case, rather than immediately shoving the user into a second, different-
+// looking full-page Google sign-in screen right after they just closed one.
 export async function requestGoogleIdToken() {
   await loadGis()
   return new Promise((resolve, reject) => {
@@ -66,8 +73,12 @@ export async function requestGoogleIdToken() {
       auto_select: false,
     })
     window.google.accounts.id.prompt((notification) => {
-      if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+      if (notification.isNotDisplayed()) {
         reject(new Error(notification.getNotDisplayedReason?.() || 'One Tap not displayed'))
+      } else if (notification.isSkippedMoment()) {
+        const err = new Error(notification.getSkippedReason?.() || 'User dismissed the One Tap prompt')
+        err.userDismissed = true
+        reject(err)
       }
     })
   })
