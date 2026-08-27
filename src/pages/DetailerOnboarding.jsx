@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import AppShell from '../components/AppShell'
+import Modal from '../components/ui/Modal'
 import MarketingTip from '../components/MarketingTip'
 import { useStore } from '../context/StoreContext'
 import { useTheme } from '../context/ThemeContext'
@@ -70,6 +71,7 @@ export default function DetailerOnboarding() {
     isDemo ? 'idle' : idStatusFromProfile(detailerProfile?.identity_status)
   )
   const [idError, setIdError] = useState('')
+  const [confirmSkipId, setConfirmSkipId] = useState(false)
   const [insurance, setInsurance] = useState(null) // insured | none
   const [noInsuranceAck, setNoInsuranceAck] = useState(false)
   const [bio, setBio] = useState('')
@@ -381,12 +383,11 @@ export default function DetailerOnboarding() {
                       <p role="alert" className="mt-3 text-sm text-red-600 dark:text-red-400">{idError}</p>
                     )}
                     <button
-                      onClick={() => setStep(1)}
+                      onClick={() => setConfirmSkipId(true)}
                       className="mt-3 block w-full text-sm font-semibold text-slate-500 underline-offset-2 hover:underline dark:text-slate-400"
                     >
                       {t('skipIdForNow')}
                     </button>
-                    <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">{t('skipIdNote')}</p>
                   </>
                 )}
                 {idStatus === 'scanning' && (
@@ -863,6 +864,32 @@ export default function DetailerOnboarding() {
           </button>
         </div>
       </div>
+
+      <Modal open={confirmSkipId} onClose={() => setConfirmSkipId(false)} labelledBy="skip-id-title">
+        <div className="p-5 text-center">
+          <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">
+            <ClockIcon className="h-6 w-6" />
+          </span>
+          <h2 id="skip-id-title" className="mt-3 font-display text-lg font-semibold text-slate-900 dark:text-slate-100">
+            {t('skipIdModalTitle')}
+          </h2>
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">{t('skipIdNote')}</p>
+          <div className="mt-5 flex gap-2">
+            <button onClick={() => setConfirmSkipId(false)} className="btn btn-outline flex-1">
+              {t('skipIdGoBack')}
+            </button>
+            <button
+              onClick={() => {
+                setConfirmSkipId(false)
+                setStep(1)
+              }}
+              className="btn btn-brand flex-1"
+            >
+              {t('skipIdConfirm')}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </AppShell>
   )
 }
