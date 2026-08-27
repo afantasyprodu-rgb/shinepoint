@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-27T00:00:00.000Z",
+  "title": "Design System: ShinePoint",
+  "extensions": {
+    "colorMeta": {
+      "brand-500": { "role": "primary", "displayName": "Bloom Pink", "canonical": "oklch(from #a78bfa L calc(C * 1.5) var(--brand-h)) -- brand-h 356", "tonalRamp": ["#a62058", "#c2246e", "#df3a8a", "#f40076", "#fb9ecb", "#fcbfe0", "#fce4f1", "#fdf3f9"] },
+      "cta-600": { "role": "secondary", "displayName": "Sage Green", "canonical": "oklch(from #16a34a L calc(C * 1.15) var(--cta-h)) -- cta-h 142", "tonalRamp": ["#0d3a1f", "#11552b", "#15803d", "#16a34a", "#22c55e", "#4ade80", "#bbf7d0", "#f0fdf4"] },
+      "accent-teal": { "role": "tertiary", "displayName": "Focus Teal", "canonical": "#2dd4bf", "tonalRamp": ["#0f5b52", "#128f80", "#17b7a5", "#2dd4bf", "#5eead4", "#99f6e4", "#ccfbf1", "#f0fdfa"] },
+      "surface": { "role": "neutral", "displayName": "Studio White", "canonical": "#ffffff", "tonalRamp": ["#0e1218", "#1a2029", "#334155", "#64748b", "#94a3b8", "#cbd5e1", "#e2e8f0", "#ffffff"] },
+      "text": { "role": "neutral", "displayName": "Slate Ink", "canonical": "#0f172a", "tonalRamp": ["#020617", "#0f172a", "#1e293b", "#334155", "#64748b", "#94a3b8", "#cbd5e1", "#f1f5f9"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display / Headline", "purpose": "Voice: headings, hero, logo wordmark. Playfair Display only." },
+      "body": { "displayName": "Body", "purpose": "Workhorse content. Inter only." },
+      "label": { "displayName": "Label / Eyebrow", "purpose": "Small uppercase kickers, stat keys. Inter 600, letter-spacing." }
+    },
+    "shadows": [
+      { "name": "raised-wash", "value": "8px 8px 18px var(--neu-sd), -8px -8px 18px var(--neu-sl)", "purpose": "Default raised card / modal surface. Neumorphic dual-shadow." },
+      { "name": "press-in", "value": "inset 3px 3px 7px var(--neu-sd), inset -3px -3px 7px var(--neu-sl)", "purpose": "Inputs at rest; buttons on :active. The moulded recess." },
+      { "name": "hover-lift", "value": "10px 10px 22px var(--neu-sd), -10px -10px 22px var(--neu-sl)", "purpose": "Interactive surfaces on hover: shadow grows before the surface moves." },
+      { "name": "cta-bloom", "value": "0 6px 16px -6px color-mix(in srgb, var(--color-cta-600) 70%, transparent)", "purpose": "The only coloured glow, reserved for the green CTA." },
+      { "name": "droplet-drop", "value": "0 10px 22px -4px color-mix(in srgb, var(--color-brand-700) 68%, transparent), 0 4px 8px -2px rgba(0, 0, 0, 0.18)", "purpose": "The water droplet nav bubble and its puddle." }
+    ],
+    "motion": [
+      { "name": "ease-spring", "value": "cubic-bezier(0.34, 1.56, 0.64, 1)", "purpose": "The bouncy press feel on every interactive element." },
+      { "name": "ease-standard", "value": "cubic-bezier(0.4, 0, 0.2, 1)", "purpose": "Default easing for non-spring state transitions." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Brand Button",
+      "kind": "button",
+      "refersTo": "button-brand",
+      "description": "The soft-neumorphic primary on the studio surface. Brand text, bouncy press.",
+      "html": "<button class=\"ds-btn-brand\">Book my wash</button>",
+      "css": ".ds-btn-brand { height: 48px; padding: 0 20px; border: none; border-radius: 12px; background: var(--neu-bg, #ffffff); color: var(--color-brand-700, #e09bc0); font-family: Inter, system-ui, sans-serif; font-weight: 600; font-size: 14px; cursor: pointer; box-shadow: 5px 5px 11px var(--neu-sd, rgba(15,23,42,0.2)), -5px -5px 11px var(--neu-sl, rgba(255,255,255,0)); transition: all 200ms cubic-bezier(0.34, 1.56, 0.64, 1); } .ds-btn-brand:hover { box-shadow: 6px 6px 14px var(--neu-sd, rgba(15,23,42,0.2)), -6px -6px 14px var(--neu-sl, rgba(255,255,255,0)); transform: translateY(-2px); } .ds-btn-brand:active { box-shadow: inset 3px 3px 7px var(--neu-sd, rgba(15,23,42,0.2)), inset -3px -3px 7px var(--neu-sl, rgba(255,255,255,0)); transform: scale(0.96); }"
+    },
+    {
+      "name": "CTA Button",
+      "kind": "button",
+      "refersTo": "button-cta",
+      "description": "The flat solid-green single primary action. Deliberately not neumorphic.",
+      "html": "<button class=\"ds-btn-cta\">Confirm booking</button>",
+      "css": ".ds-btn-cta { height: 48px; padding: 0 20px; border: none; border-radius: 12px; background: var(--color-cta-600, #16a34a); color: #fff; font-family: Inter, system-ui, sans-serif; font-weight: 700; font-size: 14px; cursor: pointer; box-shadow: 0 6px 16px -6px color-mix(in srgb, var(--color-cta-600, #16a34a) 70%, transparent); transition: background 0.2s, transform 0.2s, box-shadow 0.2s; } .ds-btn-cta:hover { background: var(--color-cta-700, #15803d); } .ds-btn-cta:active { transform: scale(0.96); }"
+    },
+    {
+      "name": "Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "A moulded neumorphic field with a soft green focus halo.",
+      "html": "<input class=\"ds-input\" placeholder=\"Enter your address\">",
+      "css": ".ds-input { height: 44px; width: 100%; padding: 0 14px; border: none; border-radius: 12px; background: var(--neu-bg, #ffffff); color: var(--color-text, #0f172a); font-family: Inter, system-ui, sans-serif; font-size: 14px; box-shadow: inset 3px 3px 7px var(--neu-sd, rgba(15,23,42,0.2)), inset -3px -3px 7px var(--neu-sl, rgba(255,255,255,0)); transition: box-shadow 0.2s; } .ds-input::placeholder { color: #94a3b8; } .ds-input:focus { outline: none; box-shadow: inset 3px 3px 7px var(--neu-sd, rgba(15,23,42,0.2)), inset -3px -3px 7px var(--neu-sl, rgba(255,255,255,0)), 0 0 0 3px color-mix(in srgb, var(--color-cta-600, #16a34a) 35%, transparent); }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "A moulded studio slab: no border, raised wash, generous padding.",
+      "html": "<div class=\"ds-card\"><h3 style=\"margin:0 0 8px; font-family:'Playfair Display',serif; font-size:20px;\">Prime interior</h3><p style=\"margin:0; color:#64748b;\">Your appointment is confirmed.</p></div>",
+      "css": ".ds-card { border: none; border-radius: 20px; padding: 32px; background: var(--neu-bg, #ffffff); color: var(--color-text, #0f172a); font-family: Inter, system-ui, sans-serif; font-size: 14px; box-shadow: 8px 8px 18px var(--neu-sd, rgba(15,23,42,0.2)), -8px -8px 18px var(--neu-sl, rgba(255,255,255,0)); }"
+    },
+    {
+      "name": "Water Droplet Bubble",
+      "kind": "custom",
+      "refersTo": "signature-droplet",
+      "description": "The signature bottom-nav teardrop: three round corners, one sharp point, brand gradient, centre ripple.",
+      "html": "<div class=\"ds-droplet\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"#fff\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z\"/></svg></div>",
+      "css": ".ds-droplet { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; transform: rotate(-45deg); border-radius: 50% 50% 50% 4px; background: linear-gradient(135deg in oklch, var(--color-brand-500, #fb9ecb), var(--color-brand-700, #e09bc0)); box-shadow: 0 10px 22px -4px color-mix(in srgb, var(--color-brand-700, #e09bc0) 68%, transparent), 0 4px 8px -2px rgba(0, 0, 0, 0.18), inset 2px 2px 4px rgba(255, 255, 255, 0.28), inset -2px -3px 6px rgba(255, 255, 255, 0.12); } .ds-droplet svg { transform: rotate(45deg); color: #fff; }"
+    },
+    {
+      "name": "Chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "A pill used for status, filters, and small labels.",
+      "html": "<span class=\"ds-chip\">Completed</span>",
+      "css": ".ds-chip { display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 9999px; background: var(--neu-bg, #ffffff); color: #64748b; font-family: Inter, system-ui, sans-serif; font-size: 12px; font-weight: 600; box-shadow: 3px 3px 8px var(--neu-sd, rgba(15,23,42,0.15)), -3px -3px 8px var(--neu-sl, rgba(255,255,255,0)); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Studio Wash",
+    "overview": "ShinePoint is SoCal's two-sided mobile detailing marketplace, and the product's visual world reads like a calm, premium atelier: soft, fleshy surfaces lit from an overhead source, a single saturated pink that glows rather than shouts, glass panels that sit quietly behind chrome, and a water-droplet that carries the mobile nav. The system is soft-neumorphic, not flat, and it is comfortable in the hand. Nothing is cold or transactional.\n\nThe operative feel is restraint with a heartbeat. Cards float on a dual-shadow wash (dark top-left, light bottom-right) so they read as molded, tactile slabs you could press; the primary accent pink is used sparingly and with intent (it's on the trust-critical moments, not on decoration), and the whole surface is warmed by a glass layer that blurs what's behind it. Typography splits cleanly: a refined serif for the voice (headings, hero, the logo wordmark), a workhorse sans for the body and controls. The one non-negotiable is the press physics: a bouncy spring (cubic-bezier(0.34, 1.56, 0.64, 1)) that makes every click feel like a tactile encounter with a soft surface.",
+    "keyCharacteristics": [
+      "Soft-neumorphic surfaces with a bouncy press spring; never flat, never cold.",
+      "A saturated pink brand (hue 356) used for trust moments; a green CTA (hue 142) for the single primary action.",
+      "A water-droplet bottom-nav bubble that ripples, squashes, and floats between tabs.",
+      "Glass panels (backdrop-blur) as calm ambient layers, not decorative card filler.",
+      "Playfair Display for voice; Inter for everything else."
+    ],
+    "rules": [
+      { "name": "The One-Action Rule", "body": "The green CTA hue appears exactly once per screen, on the single most important action. Everything else is brand pink or neutral. Green is the finish line, never the scenery.", "section": "colors" },
+      { "name": "The Voice Rule", "body": "Headings are always Playfair; body and controls are always Inter. Never set running content in the display face, and never set a heading in the sans.", "section": "typography" },
+      { "name": "The Flat-Only Exception Rule", "body": "Every interactive surface is neumorphic except the green CTA and solid action gradients, which are deliberately flat. The one flat thing on a screen is the one thing you must press.", "section": "elevation" },
+      { "name": "The One Sharp Point Rule", "body": "Only the water-droplet bubble may have a sharp corner, and only one. Every other corner in the system is rounded.", "section": "shapes" }
+    ],
+    "dos": [
+      "Do use the neumorphic dual-shadow wash for every raised surface; depth is the shadow, not a border.",
+      "Do reserve green (cta-*) for exactly one primary action per screen.",
+      "Do use brand pink for the trust-critical/active surfaces (buttons, droplet, progress, focus moments).",
+      "Do keep headings in Playfair Display and body/controls in Inter.",
+      "Do keep controls at >=44px height and chips as pills (rounded-full).",
+      "Do use the bouncy --ease-spring for press/click feedback on interactive elements.",
+      "Do use the water-droplet bubble and its centre-ripple for the mobile nav's active state."
+    ],
+    "donts": [
+      "Don't put green (cta-*) anywhere but the one primary action.",
+      "Don't use --color-accent-teal (#2dd4bf) in UI chrome - it is analytics-only.",
+      "Don't set running content (body copy) in Playfair Display, or a heading in Inter.",
+      "Don't use hard sharp edges - the only sharp corner is the droplet's single 4px point.",
+      "Don't stack flat drop shadows on cards; use the raised wash instead.",
+      "Don't turn the CTA into a neumorphic/soft surface; keep it flat and solid.",
+      "Don't add glassmorphism as decoration; glass is for ambient panels and modal backdrops, never as a default card treatment."
+    ]
+  }
+}

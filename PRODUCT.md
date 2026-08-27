@@ -1,8 +1,10 @@
 # Product
 
-## Register
+<!-- impeccable:product-schema 1 -->
 
-product
+## Platform
+
+adaptive
 
 ## Users
 
@@ -18,26 +20,55 @@ ShinePoint is SoCal's two-sided mobile detailing marketplace. Customers find vet
 
 Success for a customer: found a detailer nearby, booked in under 2 minutes, car looks great.
 
-## Brand Personality
+## Positioning
 
-Clean · Confident · Premium. The app should feel like hiring a professional service that earns your trust immediately — not a scrappy side-hustle directory. Think Uber Black energy, not yellow cab. The premium feel comes from restraint and precision, not ostentatious luxury.
+A trusted, opinionated two-sided marketplace that genuinely adapts its design language per OS: native feel on Android (Capacitor native target) and a PWA web shell elsewhere. Premium through restraint, not feature clutter.
 
-## Anti-references
+## Operating Context
 
-- **Uber / Lyft**: Dark corporate ride-share aesthetic — cold, transactional, no warmth. ShinePoint is lighter, more personal.
-- **Thumbtack / TaskRabbit**: Cluttered service marketplace — too many options, overwhelming information density, no visual hierarchy. ShinePoint is focused and opinionated.
+- Phone-first booking outdoors or in a parked car, often one-handed on mobile.
+- Two audiences on one product: customers (book/pay) and detailers (accept/navigate/get paid).
+- Bilingual English/Spanish market; labels short, translation-ready.
 
-## Design Principles
+## Capabilities and Constraints
 
-1. **Trust before transaction.** Every screen should increase confidence that the service is professional. Photos, reviews, badges, response times — surface them early.
-2. **One task per screen.** Never make the user choose between competing actions. Clear primary CTA, secondary options recede.
-3. **Premium through restraint.** Clean spacing, disciplined type hierarchy, and brand purple used sparingly — never through decoration for its own sake.
-4. **Skip is real.** Any optional step must be genuinely skippable. Don't fake-skip with "remind me later" that blocks progress.
-5. **Mobile first, desktop-capable.** Capacitor native target + PWA. Touch targets, bottom navigation, gesture affordances are first-class citizens.
+- Two-sided marketplace: customer booking/payment + detailer job intake and payout.
+- Capacitor native Android target plus PWA; mobile-first with bottom navigation.
+- Web UI driven by a generic `ui/` component set, Tailwind + Radix-style primitives, and a module-scoped motion layer.
+- Accessibility baseline WCAG AA; 44px touch targets; `prefers-reduced-motion` respected.
+
+## Brand Commitments
+
+**Name**: ShinePoint.
+
+**Personality**: Clean · Confident · Premium. Feels like hiring a professional service that earns trust immediately, not a scrappy side-hustle directory. Uber Black energy, not yellow cab. Premium comes from restraint and precision, not ostentatious luxury.
+
+**Anti-references**: Uber/Lyft (cold transactional ride-share darkness), Thumbtack/TaskRabbit (cluttered, overwhelming density).
+
+**Design Principles**:
+1. **Trust before transaction.** Surface trust signals early: photos, reviews, badges, response times.
+2. **One task per screen.** Clear primary CTA, secondary options recede.
+3. **Premium through restraint.** Clean spacing, disciplined type hierarchy, brand purple used sparingly.
+4. **Skip is real.** Optional steps genuinely skippable, never fake "remind me later."
+5. **Mobile first, desktop-capable.** Touch targets, bottom navigation, gesture affordances first-class.
+
+## Evidence on Hand
+
+- Established web/PWA UI with an incumbent visual style (pink brand, glass droplet motif, `marble-card`, bottom tab bar) already shipped in `src/`.
+- Native Android target via `android/build.gradle` (Capacitor).
+- Live dev server; vite build. No confirmed testimonials, case studies, or press to cite.
+
+## Product Principles
+
+1. Trust is the primary conversion lever; surface credibility before price or features.
+2. One decisive action per screen; competing choices collapse.
+3. Premium via restraint and precision, never decoration.
+4. Every optional flow is genuinely skippable.
+5. Design language adapts per OS while keeping one brand voice.
 
 ## Accessibility & Inclusion
 
 - WCAG AA as baseline.
-- Bilingual market (English primary, Spanish secondary). Keep labels short and translation-ready — no idioms that break in Spanish.
+- Bilingual (English primary, Spanish secondary); keep labels short and translation-ready.
 - Large touch targets (min 44px) for outdoor one-handed use.
 - Respect `prefers-reduced-motion`.
