@@ -4,9 +4,14 @@
 // a one-shot extraction, not something that needs to persist.
 //
 // Deploy: supabase functions deploy extract-flyer-prices
-// Secrets: ANTHROPIC_API_KEY (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY are
-// injected automatically, though this function only needs the caller's own
-// JWT — no service-role work happens here).
+// Secrets: DEEPSEEK_API_KEY or ANTHROPIC_API_KEY (SUPABASE_URL /
+// SUPABASE_SERVICE_ROLE_KEY are injected automatically, though this
+// function only needs the caller's own JWT — no service-role work happens
+// here). Whichever key is set wins; DEEPSEEK_API_KEY is checked first.
+// DeepSeek's Anthropic-compatible endpoint (api.deepseek.com/anthropic)
+// speaks the exact same Messages-API shape as Anthropic's own — same
+// x-api-key header, same request/response — so this is a straight
+// base-url/model swap, not a second code path.
 import { createClient } from 'npm:@supabase/supabase-js@^2'
 import { corsHeaders, json } from '../_shared/cors.ts'
 import { captureException } from '../_shared/sentry.ts'
@@ -28,8 +33,12 @@ Deno.serve(async (req) => {
     const { data: { user }, error: userErr } = await userClient.auth.getUser()
     if (userErr || !user) return json({ error: 'Not authenticated' }, 401)
 
-    const apiKey = Deno.env.get('ANTHROPIC_API_KEY')
+    const deepseekKey = Deno.env.get('DEEPSEEK_API_KEY')
+    const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY')
+    const apiKey = deepseekKey || anthropicKey
     if (!apiKey) return json({ error: 'Flyer scanning is not configured yet.' }, 503)
+    const baseUrl = deepseekKey ? 'https://api.deepseek.com/anthropic' : 'https://api.anthropic.com'
+    const model = deepseekKey ? 'deepseek-v4-flash-vision-exp' : 'claude-haiku-4-5-20251001'
 
     const admin = createClient(
       Deno.env.get('SUPABASE_URL')!,
@@ -54,7 +63,7 @@ Deno.serve(async (req) => {
       return json({ error: 'Image is too large.' }, 400)
     }
 
-    const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
+    const anthropicRes = await fetch(`${baseUrl}/v1/messages`, {
       method: 'POST',
       headers: {
         'x-api-key': apiKey,
@@ -62,7 +71,7 @@ Deno.serve(async (req) => {
         'content-type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
+        model,
         max_tokens: 1024,
         messages: [
           {
@@ -87,7 +96,7 @@ Deno.serve(async (req) => {
 
     if (!anthropicRes.ok) {
       const body = await anthropicRes.text()
-      throw new Error(`Anthropic API error ${anthropicRes.status}: ${body.slice(0, 500)}`)
+      throw new Error(`Vision API error ${anthropicRes.status}: ${body.slice(0, 500)}`)
     }
 
     const result = await anthropicRes.json()
