@@ -7,7 +7,7 @@ import ChangePassword from '../components/ChangePassword'
 import AvatarUpload from '../components/AvatarUpload'
 import { GalleryGrid } from './ProfileSetup'
 import { AnimatedPage } from '../components/ui/Motion'
-import { CheckIcon, TrashIcon, PlusIcon, LightbulbIcon, ArrowRightIcon, CreditCardIcon } from '../components/icons'
+import { CheckIcon, TrashIcon, PlusIcon, LightbulbIcon, ArrowRightIcon, CreditCardIcon, InfoIcon } from '../components/icons'
 import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
 import { fetchMyPayoutStatus } from '../lib/db'
@@ -436,8 +436,22 @@ export default function DetailerProfileEditor() {
         <PayoutManagement />
 
         <Link
-          to="/feedback"
+          to="/faq"
           className="card card-hover mt-4 flex items-center gap-4 !p-4"
+        >
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 text-brand-600 dark:text-brand-300">
+            <InfoIcon className="h-5 w-5" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-semibold text-slate-900 dark:text-slate-100">{t('faqTitle')}</span>
+            <span className="block text-sm text-slate-500 dark:text-slate-400">{t('faqBody')}</span>
+          </span>
+          <ArrowRightIcon className="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-500" />
+        </Link>
+
+        <Link
+          to="/feedback"
+          className="card card-hover mt-3 flex items-center gap-4 !p-4"
         >
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 text-brand-600 dark:text-brand-300">
             <LightbulbIcon className="h-5 w-5" />
