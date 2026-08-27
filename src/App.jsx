@@ -47,6 +47,7 @@ const Legal = lazy(() => import('./pages/Legal').then((m) => ({ default: m.Terms
 // wrappers so each route gets its own chunk reference.
 const PrivacyLazy = lazy(() => import('./pages/Legal').then((m) => ({ default: m.Privacy })))
 const PublicTracking = lazy(() => import('./pages/PublicTracking'))
+const Faq = lazy(() => import('./pages/Faq'))
 
 function PageFallback() {
   return (
@@ -111,6 +112,7 @@ export default function App() {
         <Route path="/reset-password" element={safe(<ResetPassword />)} />
         <Route path="/terms" element={safe(<Legal />)} />
         <Route path="/privacy" element={safe(<PrivacyLazy />)} />
+        <Route path="/faq" element={safe(<Faq />)} />
         {/* Public, no-login tracking link the en-route SMS points to (058) —
             deliberately outside ProtectedRoute; the booking id in the URL
             is the capability. */}
