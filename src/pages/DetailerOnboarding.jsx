@@ -5,10 +5,10 @@ import AppShell from '../components/AppShell'
 import MarketingTip from '../components/MarketingTip'
 import { useStore } from '../context/StoreContext'
 import { useTheme } from '../context/ThemeContext'
-import { CheckIcon, ShieldCheckIcon, CreditCardIcon, ClipboardCheckIcon, UsersIcon, ChevronLeftIcon, PlusIcon, XIcon, LightbulbIcon, ClockIcon, StarIcon } from '../components/icons'
+import { CheckIcon, ShieldCheckIcon, CreditCardIcon, ClipboardCheckIcon, UsersIcon, ChevronLeftIcon, PlusIcon, XIcon, LightbulbIcon, ClockIcon, StarIcon, SparklesIcon, CameraIcon } from '../components/icons'
 import { InfoPopover } from '../components/ui/bits'
 import { startIdentityVerification, startConnectOnboarding, isStripeConfigured, stripePromise } from '../lib/stripe'
-import { fetchMyPayoutStatus } from '../lib/db'
+import { fetchMyPayoutStatus, extractFlyerPrices } from '../lib/db'
 import { useT } from '../i18n/useT'
 
 // Maps the real detailer_profiles.identity_status ('unverified' | 'pending' |
@@ -41,7 +41,12 @@ const SERVICE_ADVICE_KEYS = {
 }
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
-const STEP_KEYS = ['stepIdentity', 'stepInsurance', 'stepProfile', 'stepServices', 'stepSchedule', 'stepPayout']
+const STEP_KEYS = ['stepIdentity', 'stepInsurance', 'stepProfile', 'stepSurvey', 'stepServices', 'stepSchedule', 'stepPayout']
+
+const YEARS_EXPERIENCE_OPTIONS = ['0-1', '1-3', '3-5', '5+']
+const CERT_OPTIONS = ['ida_certified', 'manufacturer_trained']
+const REFERRAL_OPTIONS = ['referral', 'social_media', 'google', 'word_of_mouth', 'other']
+const EXAMPLE_TEMPLATE = { 'Exterior Wash': 45, 'Full Detail': 175, 'Interior Deep Clean': 85, 'Wax & Seal': 60 }
 
 // Blueprint screens 4.2–4.8 — detailer onboarding wizard.
 // Stripe Identity / Connect calls are simulated until Phase 4 wiring.
@@ -84,6 +89,45 @@ export default function DetailerOnboarding() {
   const [payoutStatus, setPayoutStatus] = useState(null)
   const [connectingBank, setConnectingBank] = useState(false)
   const [connectError, setConnectError] = useState('')
+
+  // Quick-survey step — every field optional, none block continuing.
+  const [yearsExperience, setYearsExperience] = useState(null)
+  const [equipmentType, setEquipmentType] = useState(null)
+  const [certifications, setCertifications] = useState([])
+  const [teamSize, setTeamSize] = useState(null)
+  const [referralSource, setReferralSource] = useState(null)
+
+  // Flyer-to-template — once dismissed (uploaded, skipped, or example used)
+  // the prompt card stays hidden so it doesn't reappear every time this step
+  // is revisited via Back/Continue.
+  const [flyerDismissed, setFlyerDismissed] = useState(false)
+  const [flyerBusy, setFlyerBusy] = useState(false)
+  const [flyerError, setFlyerError] = useState('')
+
+  async function handleFlyerUpload(e) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    if (!file.type.startsWith('image/')) { setFlyerError(t('flyerNotImage')); return }
+    setFlyerError('')
+    setFlyerBusy(true)
+    try {
+      const extracted = await extractFlyerPrices(file)
+      setServices(Object.fromEntries(extracted.map((s) => [s.name, s.price])))
+      setFeaturedService(null)
+      setFlyerDismissed(true)
+    } catch (err) {
+      setFlyerError(err.message || t('flyerExtractFailed'))
+    } finally {
+      setFlyerBusy(false)
+    }
+  }
+
+  function useExampleTemplate() {
+    setServices(EXAMPLE_TEMPLATE)
+    setFeaturedService(null)
+    setFlyerDismissed(true)
+  }
 
   useEffect(() => {
     if (isDemo) return
@@ -174,6 +218,11 @@ export default function DetailerOnboarding() {
         chargePerMile,
         serviceDays: days,
         featuredService,
+        yearsExperience,
+        equipmentType,
+        certifications,
+        teamSize,
+        referralSource,
       })
       setSubmitted(true)
     } catch (e) {
@@ -201,6 +250,7 @@ export default function DetailerOnboarding() {
     idStatus === 'passed' || idStatus === 'pending',
     insurance === 'insured' || (insurance === 'none' && noInsuranceAck),
     bio.length > 0 && zip.length === 5,
+    true, // Survey step — every question is optional, never blocks.
     Object.keys(services).length > 0,
     days.length > 0,
     // Real payout connection is a redirect-away Stripe flow, not something
@@ -438,10 +488,120 @@ export default function DetailerOnboarding() {
             )}
 
             {step === 3 && (
+              <div className="space-y-4">
+                <MarketingTip title={t('tipSurveyTitle')}>
+                  {t('tipSurveyBody')}
+                </MarketingTip>
+
+                <div className="card space-y-5">
+                  <div>
+                    <p className="label">{t('yearsExperienceLabel')}</p>
+                    <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t('yearsExperienceLabel')}>
+                      {YEARS_EXPERIENCE_OPTIONS.map((v) => (
+                        <button key={v} type="button" role="radio" aria-checked={yearsExperience === v}
+                          onClick={() => setYearsExperience(yearsExperience === v ? null : v)}
+                          className={`cursor-pointer rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
+                            yearsExperience === v ? 'bg-brand-600 text-white shadow-md' : 'bg-brand-50 text-slate-600 hover:bg-brand-100 dark:bg-white/5 dark:text-slate-400 dark:hover:bg-white/10'
+                          }`}>
+                          {t(`years_${v.replace('+', 'plus').replace('-', '_')}`)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="label">{t('equipmentLabel')}</p>
+                    <div className="space-y-2" role="radiogroup" aria-label={t('equipmentLabel')}>
+                      {['mobile_rig', 'customer_utilities'].map((v) => (
+                        <button key={v} type="button" role="radio" aria-checked={equipmentType === v}
+                          onClick={() => setEquipmentType(equipmentType === v ? null : v)}
+                          className={`flex w-full cursor-pointer items-center justify-between rounded-xl px-4 py-3 text-left text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
+                            equipmentType === v ? 'bg-brand-50 text-brand-800 ring-1 ring-brand-300 dark:bg-brand-500/15 dark:text-brand-200 dark:ring-brand-500/30' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 dark:bg-white/5 dark:text-slate-400 dark:hover:bg-white/10'
+                          }`}>
+                          {t(`equipment_${v}`)}
+                          {equipmentType === v && <CheckIcon className="h-4 w-4 shrink-0" />}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="label">{t('certificationsLabel')}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {CERT_OPTIONS.map((v) => (
+                        <button key={v} type="button" aria-pressed={certifications.includes(v)}
+                          onClick={() => toggle(certifications, setCertifications, v)}
+                          className={`cursor-pointer rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
+                            certifications.includes(v) ? 'bg-brand-600 text-white shadow-md' : 'bg-brand-50 text-slate-600 hover:bg-brand-100 dark:bg-white/5 dark:text-slate-400 dark:hover:bg-white/10'
+                          }`}>
+                          {t(`cert_${v}`)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="label">{t('teamSizeLabel')}</p>
+                    <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t('teamSizeLabel')}>
+                      {['solo', 'team'].map((v) => (
+                        <button key={v} type="button" role="radio" aria-checked={teamSize === v}
+                          onClick={() => setTeamSize(teamSize === v ? null : v)}
+                          className={`cursor-pointer rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
+                            teamSize === v ? 'bg-brand-600 text-white shadow-md' : 'bg-brand-50 text-slate-600 hover:bg-brand-100 dark:bg-white/5 dark:text-slate-400 dark:hover:bg-white/10'
+                          }`}>
+                          {t(`teamSize_${v}`)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label htmlFor="ob-referral" className="label">{t('referralLabel')}</label>
+                    <select id="ob-referral" value={referralSource ?? ''} onChange={(e) => setReferralSource(e.target.value || null)} className="input">
+                      <option value="">{t('referralPlaceholder')}</option>
+                      {REFERRAL_OPTIONS.map((v) => (
+                        <option key={v} value={v}>{t(`referral_${v}`)}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {step === 4 && (
               <div className="space-y-2">
                 <MarketingTip title={t('tipPriceTitle')}>
                   {t('tipPriceBody')}
                 </MarketingTip>
+
+                {!flyerDismissed && (
+                  <div className="card space-y-3 border-brand-300 !p-4 dark:border-brand-400/40">
+                    <div className="flex items-start gap-2">
+                      <SparklesIcon className="mt-0.5 h-5 w-5 shrink-0 text-brand-600 dark:text-brand-300" />
+                      <div>
+                        <p className="font-semibold text-slate-900 dark:text-slate-100">{t('flyerPromptTitle')}</p>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">{t('flyerPromptBody')}</p>
+                      </div>
+                    </div>
+                    {flyerError && (
+                      <p role="alert" className="text-sm text-red-600 dark:text-red-400">{flyerError}</p>
+                    )}
+                    <div className="flex flex-wrap gap-2">
+                      <label className={`btn btn-brand cursor-pointer ${flyerBusy ? 'pointer-events-none opacity-70' : ''}`}>
+                        {flyerBusy
+                          ? <span className="inline-flex items-center gap-2"><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />{t('flyerScanning')}</span>
+                          : <span className="inline-flex items-center gap-2"><CameraIcon className="h-4 w-4" />{t('flyerUploadCta')}</span>}
+                        <input type="file" accept="image/*" className="hidden" onChange={handleFlyerUpload} disabled={flyerBusy} />
+                      </label>
+                      <button type="button" onClick={useExampleTemplate} disabled={flyerBusy} className="btn btn-outline">
+                        {t('flyerUseExample')}
+                      </button>
+                      <button type="button" onClick={() => setFlyerDismissed(true)} disabled={flyerBusy} className="text-sm font-medium text-slate-500 underline hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">
+                        {t('flyerSkip')}
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {SERVICE_GROUPS.map((group) => (
                   <div key={group.label} className="space-y-2">
@@ -568,7 +728,7 @@ export default function DetailerOnboarding() {
               </div>
             )}
 
-            {step === 4 && (
+            {step === 5 && (
               <div className="space-y-4">
                 <MarketingTip title={t('tipTravelTitle')}>
                   {t('tipTravelBody')}
@@ -608,7 +768,7 @@ export default function DetailerOnboarding() {
               </div>
             )}
 
-            {step === 5 && (
+            {step === 6 && (
               <div className="space-y-4">
                 <MarketingTip title={t('tipPayoutTitle')}>
                   {t('tipPayoutBody')}

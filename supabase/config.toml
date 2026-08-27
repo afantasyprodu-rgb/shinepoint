@@ -129,3 +129,6 @@ verify_jwt = true
 
 [functions.send-appointment-reminders]
 verify_jwt = false
+
+[functions.extract-flyer-prices]
+verify_jwt = true

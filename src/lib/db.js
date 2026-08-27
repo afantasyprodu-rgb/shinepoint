@@ -891,6 +891,29 @@ export async function fetchMyPayoutStatus() {
 // Intended for early/friends-and-family testing; flip it off with
 // `alter database postgres set app.auto_verify_detailers = 'false'` once a
 // real review process is staffed.
+// Reads a File (the flyer photo) as base64 and sends it to the
+// extract-flyer-prices edge function, which returns [{name, price}] parsed
+// from the image via Claude vision. Never uploaded to storage — one-shot,
+// nothing to clean up. Throws with a friendly message on any failure
+// (unreadable photo, no services found, rate limit, function not
+// configured) — the caller shows it and falls back to manual entry.
+export async function extractFlyerPrices(file) {
+  const base64 = await new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result).split(',')[1] ?? '')
+    reader.onerror = () => reject(new Error('Could not read that image.'))
+    reader.readAsDataURL(file)
+  })
+  const { services } = await invokeFn('extract-flyer-prices', {
+    imageBase64: base64,
+    mediaType: file.type,
+  })
+  if (!services?.length) {
+    throw new Error('No prices found on that flyer — try a clearer photo, or enter prices manually.')
+  }
+  return services
+}
+
 export async function saveDetailerOnboarding(userId, {
   bio,
   zip,
@@ -901,6 +924,11 @@ export async function saveDetailerOnboarding(userId, {
   chargePerMile,
   serviceDays,
   featuredService,
+  yearsExperience,
+  equipmentType,
+  certifications,
+  teamSize,
+  referralSource,
 }) {
   const { data: detailerId, error: profErr } = await supabase.rpc('submit_detailer_onboarding', {
     p_bio: bio,
@@ -909,6 +937,11 @@ export async function saveDetailerOnboarding(userId, {
     p_free_travel_miles: freeTravelMiles,
     p_charge_per_mile: chargePerMile,
     p_service_days: serviceDays,
+    p_years_experience: yearsExperience ?? null,
+    p_equipment_type: equipmentType ?? null,
+    p_certifications: certifications ?? [],
+    p_team_size: teamSize ?? null,
+    p_referral_source: referralSource ?? null,
   })
 
   if (profErr) {
