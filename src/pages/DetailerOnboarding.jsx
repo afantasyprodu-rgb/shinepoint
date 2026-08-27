@@ -240,8 +240,10 @@ export default function DetailerOnboarding() {
 
   const canContinue = [
     // Identity verification is skippable — Stripe Connect gates the actual
-    // payout on it later, so it doesn't need to block the wizard too.
-    true,
+    // payout on it later, so it doesn't need to block the wizard too — but
+    // Continue itself stays disabled until they've actually taken one of
+    // the two explicit actions (Upload ID & selfie, or Skip for now).
+    idStatus !== 'idle',
     insurance === 'insured' || (insurance === 'none' && noInsuranceAck),
     bio.length > 0 && zip.length === 5,
     true, // Survey step — every question is optional, never blocks.
