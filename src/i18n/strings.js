@@ -863,6 +863,8 @@ export const STRINGS = {
       skipIdNote: "You can finish this from your dashboard any time — just know we can't send you a payout until it's done.",
       skipIdGoBack: 'Go back',
       skipIdConfirm: 'Skip anyway',
+      skipIdDataLabel: "What does Stripe do with my ID?",
+      skipIdDataBody: "Stripe only uses it to confirm you're a real person, as required of anyone sending payouts in the U.S. — not to check immigration status, and it isn't shared with ShinePoint or immigration authorities. If you don't have an SSN, Stripe also accepts an ITIN.",
       // Step 1 — Insurance
       tipInsuranceTitle: 'Insurance wins you jobs',
       tipInsuranceBody: 'Insured detailers get a trust badge on their profile, and many customers filter to only insured pros. The paperwork pays for itself in bookings.',
@@ -2310,6 +2312,8 @@ export const STRINGS = {
       skipIdNote: 'Puedes terminar esto desde tu panel cuando quieras — solo ten en cuenta que no podremos enviarte pagos hasta que esté hecho.',
       skipIdGoBack: 'Volver',
       skipIdConfirm: 'Omitir de todos modos',
+      skipIdDataLabel: '¿Qué hace Stripe con mi identificación?',
+      skipIdDataBody: 'Stripe solo la usa para confirmar que eres una persona real, como se requiere de cualquiera que envíe pagos en EE. UU. — no para verificar tu estatus migratorio, y no se comparte con ShinePoint ni con autoridades de inmigración. Si no tienes un SSN, Stripe también acepta un ITIN.',
       verifyingAria: 'Verificando',
       matchingSelfie: 'Comparando selfie con identificación…',
       submittedUnderReview: 'Enviado — en revisión',

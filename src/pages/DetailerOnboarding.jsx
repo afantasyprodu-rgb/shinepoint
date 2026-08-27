@@ -72,6 +72,7 @@ export default function DetailerOnboarding() {
   )
   const [idError, setIdError] = useState('')
   const [confirmSkipId, setConfirmSkipId] = useState(false)
+  const [showIdDataInfo, setShowIdDataInfo] = useState(false)
   const [insurance, setInsurance] = useState(null) // insured | none
   const [noInsuranceAck, setNoInsuranceAck] = useState(false)
   const [bio, setBio] = useState('')
@@ -874,6 +875,19 @@ export default function DetailerOnboarding() {
             {t('skipIdModalTitle')}
           </h2>
           <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">{t('skipIdNote')}</p>
+          <button
+            type="button"
+            onClick={() => setShowIdDataInfo((s) => !s)}
+            aria-expanded={showIdDataInfo}
+            className="mt-3 text-xs font-semibold text-brand-600 underline-offset-2 hover:underline dark:text-brand-300"
+          >
+            {t('skipIdDataLabel')}
+          </button>
+          {showIdDataInfo && (
+            <p className="mt-2 rounded-lg bg-brand-50 px-3 py-2 text-left text-xs leading-relaxed text-slate-600 dark:bg-white/5 dark:text-slate-300">
+              {t('skipIdDataBody')}
+            </p>
+          )}
           <div className="mt-5 flex gap-2">
             <button onClick={() => setConfirmSkipId(false)} className="btn btn-outline flex-1">
               {t('skipIdGoBack')}
