@@ -7,7 +7,7 @@ import MarketingTip from '../components/MarketingTip'
 import { useStore } from '../context/StoreContext'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
-import { CheckIcon, ShieldCheckIcon, CreditCardIcon, ClipboardCheckIcon, UsersIcon, PlusIcon, XIcon, LightbulbIcon, ClockIcon, StarIcon, SparklesIcon, CameraIcon, FileTextIcon, TagIcon, ChevronLeftIcon } from '../components/icons'
+import { CheckIcon, ShieldCheckIcon, CreditCardIcon, ClipboardCheckIcon, UsersIcon, PlusIcon, XIcon, LightbulbIcon, ClockIcon, StarIcon, SparklesIcon, CameraIcon, FileTextIcon, TagIcon } from '../components/icons'
 import { InfoPopover } from '../components/ui/bits'
 import { startIdentityVerification, startConnectOnboarding, isStripeConfigured, stripePromise } from '../lib/stripe'
 import { fetchMyPayoutStatus, extractFlyerPrices } from '../lib/db'
@@ -594,14 +594,6 @@ export default function DetailerOnboarding() {
                   </div>
                 ) : (
                   <>
-                    <button
-                      type="button"
-                      onClick={() => setServiceMethod(null)}
-                      className="mb-1 flex cursor-pointer items-center gap-1 text-sm font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
-                    >
-                      <ChevronLeftIcon className="h-3.5 w-3.5" /> {t('changeMethod')}
-                    </button>
-
                     {serviceMethod === 'flyer' && (
                       <div className="card space-y-3 border-brand-300 !p-4 dark:border-brand-400/40">
                         <div className="flex items-start gap-2">
@@ -840,7 +832,11 @@ export default function DetailerOnboarding() {
 
         <div className="mt-6 flex gap-2">
           {step > 0 && (
-            <button onClick={() => setStep(step - 1)} disabled={saving} className="btn btn-outline">
+            <button
+              onClick={() => (step === 4 && serviceMethod ? setServiceMethod(null) : setStep(step - 1))}
+              disabled={saving}
+              className="btn btn-outline"
+            >
               {t('back')}
             </button>
           )}
