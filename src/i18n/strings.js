@@ -864,7 +864,7 @@ export const STRINGS = {
       skipIdGoBack: 'Go back',
       skipIdConfirm: 'Skip anyway',
       skipIdDataLabel: "What does Stripe do with my ID?",
-      skipIdDataBody: "Stripe only uses it to confirm you're a real person, as required of anyone sending payouts in the U.S. — not to check immigration status, and it isn't shared with ShinePoint or immigration authorities. If you don't have an SSN, Stripe also accepts an ITIN.",
+      skipIdDataBody: "Stripe only uses it to confirm you're a real person, as required of anyone sending payouts in the U.S. — it isn't shared with ShinePoint. If you don't have an SSN, Stripe also accepts an ITIN.",
       // Step 1 — Insurance
       tipInsuranceTitle: 'Insurance wins you jobs',
       tipInsuranceBody: 'Insured detailers get a trust badge on their profile, and many customers filter to only insured pros. The paperwork pays for itself in bookings.',
@@ -1281,6 +1281,8 @@ export const STRINGS = {
       detailerA4: 'Payouts go to your bank account via Stripe Connect after a job is marked complete. You do need to finish identity verification before your first payout goes out.',
       detailerQ5: 'Can I skip identity verification and finish it later?',
       detailerA5: "Yes — you can skip it during onboarding and finish the rest of your setup. Just know Stripe can't send you a payout until it's done, so it's worth finishing before your first job wraps up.",
+      detailerQ6: 'What does Stripe do with my ID? Does it check immigration status?',
+      detailerA6: "Stripe uses your ID only to confirm you're a real person, as required of anyone sending payouts in the U.S. — it's not an immigration check, and it isn't shared with ShinePoint or with immigration authorities. If you don't have an SSN, Stripe also accepts an ITIN.",
     },
     customerSettings: {
       account: 'Account',
@@ -2313,7 +2315,7 @@ export const STRINGS = {
       skipIdGoBack: 'Volver',
       skipIdConfirm: 'Omitir de todos modos',
       skipIdDataLabel: '¿Qué hace Stripe con mi identificación?',
-      skipIdDataBody: 'Stripe solo la usa para confirmar que eres una persona real, como se requiere de cualquiera que envíe pagos en EE. UU. — no para verificar tu estatus migratorio, y no se comparte con ShinePoint ni con autoridades de inmigración. Si no tienes un SSN, Stripe también acepta un ITIN.',
+      skipIdDataBody: 'Stripe solo la usa para confirmar que eres una persona real, como se requiere de cualquiera que envíe pagos en EE. UU. — no se comparte con ShinePoint. Si no tienes un SSN, Stripe también acepta un ITIN.',
       verifyingAria: 'Verificando',
       matchingSelfie: 'Comparando selfie con identificación…',
       submittedUnderReview: 'Enviado — en revisión',
@@ -2729,6 +2731,8 @@ export const STRINGS = {
       detailerA4: 'Los pagos van a tu cuenta bancaria a través de Stripe Connect después de marcar un trabajo como completado. Debes terminar la verificación de identidad antes de tu primer pago.',
       detailerQ5: '¿Puedo omitir la verificación de identidad y terminarla después?',
       detailerA5: 'Sí — puedes omitirla durante la incorporación y terminar el resto de tu configuración. Solo ten en cuenta que Stripe no puede enviarte un pago hasta que esté hecho, así que conviene terminarla antes de que finalice tu primer trabajo.',
+      detailerQ6: '¿Qué hace Stripe con mi identificación? ¿Verifica el estatus migratorio?',
+      detailerA6: 'Stripe usa tu identificación solo para confirmar que eres una persona real, como se requiere de cualquiera que envíe pagos en EE. UU. — no es una verificación migratoria, y no se comparte con ShinePoint ni con autoridades de inmigración. Si no tienes un SSN, Stripe también acepta un ITIN.',
     },
     customerSettings: {
       account: 'Cuenta',
