@@ -102,17 +102,22 @@ function statusLine(d) {
 }
 
 // A colored map pin as a divIcon (no image asset, so no Leaflet default-icon
-// 404 to patch). Anchored at the bottom tip.
-function pinIcon(status) {
+// 404 to patch). Anchored at the bottom tip. `promoted` (a detailer with a
+// service marked "Promote this" in onboarding/profile editor — is_featured
+// in the DB) adds a gold ring so it stands out while browsing the map.
+function pinIcon(status, promoted) {
   const color = PIN_COLORS[status] ?? PIN_COLORS.offline
+  const cls = promoted ? 'nx-map-pin nx-map-pin--promoted' : 'nx-map-pin'
   return L.divIcon({
     className: '',
-    html: `<span class="nx-map-pin" style="--pin:${color}"></span>`,
+    html: `<span class="${cls}" style="--pin:${color}"></span>`,
     iconSize: [24, 24],
     iconAnchor: [12, 12],
     popupAnchor: [0, -14],
   })
 }
+
+const isPromoted = (d) => d.services?.some((s) => s.isBestValue)
 
 const userIcon = L.divIcon({
   className: '',
@@ -228,7 +233,7 @@ export default function DetailerMap({ detailers, focus }) {
       .filter((d) => d.pin)
       .forEach((d) => {
         const marker = L.marker([d.pin.lat, d.pin.lng], {
-          icon: pinIcon(d.status),
+          icon: pinIcon(d.status, isPromoted(d)),
           keyboard: true,
           title: `${d.name} — ${statusLine(d)}`,
         })

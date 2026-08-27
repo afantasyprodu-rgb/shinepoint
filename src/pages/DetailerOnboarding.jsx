@@ -32,6 +32,14 @@ const SERVICE_ADVICE_KEYS = {
   'Full Detail': 'adviceFullDetail',
 }
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+// Typical detailing-business hours — 7 AM to 8 PM — as toggleable blackout
+// chips, rather than all 24, since nobody's fielding a 3 AM booking anyway.
+const BLACKOUT_HOUR_OPTIONS = Array.from({ length: 14 }, (_, i) => i + 7)
+function formatHour(h) {
+  const period = h < 12 ? 'AM' : 'PM'
+  const hour12 = h % 12 === 0 ? 12 : h % 12
+  return `${hour12} ${period}`
+}
 
 const STEP_KEYS = ['stepIdentity', 'stepInsurance', 'stepProfile', 'stepSurvey', 'stepServices', 'stepSchedule', 'stepPayout']
 
@@ -68,6 +76,7 @@ export default function DetailerOnboarding() {
   const [showIdDataInfo, setShowIdDataInfo] = useState(false)
   const [insurance, setInsurance] = useState(null) // insured | none
   const [noInsuranceAck, setNoInsuranceAck] = useState(false)
+  const [confirmNoInsurance, setConfirmNoInsurance] = useState(false)
   const [bio, setBio] = useState('')
   const [zip, setZip] = useState('')
   const [vehicles] = useState(['Sedan', 'SUV'])
@@ -78,13 +87,18 @@ export default function DetailerOnboarding() {
   const initialServicesDraft = () => readServicesDraft(draftUserId)
   const [serviceMethod, setServiceMethod] = useState(() => initialServicesDraft()?.serviceMethod ?? null)
   const [services, setServices] = useState(() => initialServicesDraft()?.services ?? {})
-  // Which enabled service gets the single "Best margin" highlight (Von
-  // Restorff — only one thing should visually stand out, and it should be
-  // the detailer's own call, not a hardcoded guess at their pricing).
+  // Free-text "what's included" per service (e.g. Full Detail → "ceramic
+  // coating, clay bar, tire shine, interior clean"), keyed by service name.
+  const [serviceDescriptions, setServiceDescriptions] = useState(() => initialServicesDraft()?.serviceDescriptions ?? {})
+  // Which service gets the single "Promote this" highlight (Von Restorff —
+  // only one thing should visually stand out, and it should be the
+  // detailer's own call). Also the one that gives their map pin a gold
+  // ring, so it's a customer-facing promo pick, not just an internal note.
   const [featuredService, setFeaturedService] = useState(() => initialServicesDraft()?.featuredService ?? null)
   const [customName, setCustomName] = useState('')
   const [customPrice, setCustomPrice] = useState('')
   const [days, setDays] = useState(['Mon', 'Tue', 'Wed', 'Thu', 'Fri'])
+  const [blackoutHours, setBlackoutHours] = useState([])
   const [travel, setTravel] = useState(10)
   const [chargePerMile, setChargePerMile] = useState(2)
   const [bank, setBank] = useState('')
@@ -98,6 +112,7 @@ export default function DetailerOnboarding() {
   const [certifications, setCertifications] = useState([])
   const [teamSize, setTeamSize] = useState(null)
   const [referralSource, setReferralSource] = useState(null)
+  const [customCertName, setCustomCertName] = useState('')
 
   const [flyerBusy, setFlyerBusy] = useState(false)
   const [flyerError, setFlyerError] = useState('')
@@ -130,8 +145,8 @@ export default function DetailerOnboarding() {
   // closing the tab entirely, until onboarding is actually submitted.
   useEffect(() => {
     if (!draftUserId) return
-    writeServicesDraft(draftUserId, { serviceMethod, services, featuredService })
-  }, [draftUserId, serviceMethod, services, featuredService])
+    writeServicesDraft(draftUserId, { serviceMethod, services, serviceDescriptions, featuredService })
+  }, [draftUserId, serviceMethod, services, serviceDescriptions, featuredService])
 
   useEffect(() => {
     if (isDemo) return
@@ -162,6 +177,11 @@ export default function DetailerOnboarding() {
   function removeService(name) {
     setServices((s) => {
       const next = { ...s }
+      delete next[name]
+      return next
+    })
+    setServiceDescriptions((d) => {
+      const next = { ...d }
       delete next[name]
       return next
     })
@@ -215,9 +235,11 @@ export default function DetailerOnboarding() {
         insurance,
         vehicles,
         services,
+        serviceDescriptions,
         freeTravelMiles: travel,
         chargePerMile,
         serviceDays: days,
+        blackoutHours,
         featuredService,
         yearsExperience,
         equipmentType,
@@ -238,6 +260,13 @@ export default function DetailerOnboarding() {
     setList(list.includes(item) ? list.filter((x) => x !== item) : [...list, item])
   }
 
+  function addCustomCert() {
+    const name = customCertName.trim()
+    if (!name || certifications.includes(name)) return
+    setCertifications((c) => [...c, name])
+    setCustomCertName('')
+  }
+
   const canContinue = [
     // Identity verification is skippable — Stripe Connect gates the actual
     // payout on it later, so it doesn't need to block the wizard too — but
@@ -245,8 +274,8 @@ export default function DetailerOnboarding() {
     // the two explicit actions (Upload ID & selfie, or Skip for now).
     idStatus !== 'idle',
     insurance === 'insured' || (insurance === 'none' && noInsuranceAck),
-    bio.length > 0 && zip.length === 5,
-    true, // Survey step — every question is optional, never blocks.
+    zip.length === 5, // Bio is optional — the zip is what places their map pin.
+    yearsExperience !== null,
     Object.keys(services).length > 0,
     days.length > 0,
     // Real payout connection is a redirect-away Stripe flow, not something
@@ -436,7 +465,10 @@ export default function DetailerOnboarding() {
                     type="button"
                     role="radio"
                     aria-checked={insurance === value}
-                    onClick={() => setInsurance(value)}
+                    onClick={() => {
+                      setInsurance(value)
+                      if (value === 'none') setConfirmNoInsurance(true)
+                    }}
                     className={`card flex w-full cursor-pointer items-start gap-3 !p-5 text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
                       insurance === value ? 'border-brand-600 ring-2 ring-brand-200 dark:ring-brand-500/20' : 'hover:border-brand-300'
                     }`}
@@ -456,11 +488,10 @@ export default function DetailerOnboarding() {
                     <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">{t('certUploadHint')}</p>
                   </motion.div>
                 )}
-                {insurance === 'none' && (
-                  <motion.label initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="card flex cursor-pointer items-start gap-2 !p-5 text-sm text-slate-700 dark:text-slate-300">
-                    <input type="checkbox" checked={noInsuranceAck} onChange={(e) => setNoInsuranceAck(e.target.checked)} className="mt-0.5 h-4 w-4 cursor-pointer accent-brand-600" />
-                    {t('noInsuranceAck')}
-                  </motion.label>
+                {insurance === 'none' && noInsuranceAck && (
+                  <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="px-1 text-xs text-slate-400 dark:text-slate-500">
+                    {t('noInsuranceAcked')}
+                  </motion.p>
                 )}
               </div>
             )}
@@ -536,6 +567,35 @@ export default function DetailerOnboarding() {
                           {t(`cert_${v}`)}
                         </button>
                       ))}
+                      {certifications.filter((c) => !CERT_OPTIONS.includes(c)).map((name) => (
+                        <span key={name} className="inline-flex items-center gap-1.5 rounded-full bg-brand-600 py-2 pl-4 pr-2 text-sm font-medium text-white shadow-md">
+                          {name}
+                          <button type="button" aria-label={t('removeCert', { name })} onClick={() => toggle(certifications, setCertifications, name)}
+                            className="flex h-5 w-5 cursor-pointer items-center justify-center rounded-full transition-colors duration-200 hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
+                            <XIcon className="h-3.5 w-3.5" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                    <div className="mt-2 flex items-center gap-2">
+                      <input
+                        type="text"
+                        aria-label={t('customCertAria')}
+                        value={customCertName}
+                        onChange={(e) => setCustomCertName(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addCustomCert())}
+                        placeholder={t('customCertPlaceholder')}
+                        className="input h-9 min-w-0 flex-1 text-sm"
+                      />
+                      <button
+                        type="button"
+                        onClick={addCustomCert}
+                        disabled={!customCertName.trim()}
+                        aria-label={t('addCert')}
+                        className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full bg-brand-600 text-white transition-colors duration-150 hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+                      >
+                        <PlusIcon className="h-4 w-4" />
+                      </button>
                     </div>
                   </div>
 
@@ -622,10 +682,16 @@ export default function DetailerOnboarding() {
                         <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
                           {t('yourServices')}
                         </p>
+                        {!featuredService && (
+                          <p className="flex items-start gap-1.5 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
+                            <StarIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                            {t('noPromotedWarning')}
+                          </p>
+                        )}
                         <AnimatePresence>
                           {Object.keys(services).map((name) => {
                             const advice = SERVICE_ADVICE_KEYS[name] ? t(SERVICE_ADVICE_KEYS[name]) : null
-                            const isBestMargin = name === featuredService
+                            const isPromoted = name === featuredService
                             return (
                               <motion.div
                                 key={name}
@@ -634,7 +700,7 @@ export default function DetailerOnboarding() {
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, scale: 0.95 }}
                                 transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-                                className={`card !p-4 transition-colors duration-200 ${isBestMargin ? 'ring-1 ring-amber-300 dark:ring-amber-500/30' : ''}`}
+                                className={`card !p-4 transition-colors duration-200 ${isPromoted ? 'ring-2 ring-amber-400 dark:ring-amber-400/50' : ''}`}
                               >
                                 <div className="flex items-center justify-between gap-3">
                                   <span className="min-w-0 truncate font-medium text-slate-900 dark:text-slate-100">{name}</span>
@@ -649,6 +715,14 @@ export default function DetailerOnboarding() {
                                     </button>
                                   </div>
                                 </div>
+                                <input
+                                  type="text"
+                                  aria-label={t('serviceIncludesAria', { name })}
+                                  value={serviceDescriptions[name] ?? ''}
+                                  onChange={(e) => setServiceDescriptions((d) => ({ ...d, [name]: e.target.value }))}
+                                  placeholder={t('serviceIncludesPlaceholder')}
+                                  className="input mt-2 h-9 text-sm"
+                                />
                                 <div className="mt-2 flex items-center justify-between gap-3 border-t border-brand-100 pt-2 dark:border-white/10">
                                   {advice ? (
                                     <p className="flex gap-1.5 text-xs text-brand-700 dark:text-brand-300">
@@ -659,16 +733,16 @@ export default function DetailerOnboarding() {
                                   <button
                                     type="button"
                                     onClick={() => setFeaturedService((f) => (f === name ? null : name))}
-                                    aria-pressed={isBestMargin}
-                                    title={isBestMargin ? t('unmarkBestMargin') : t('markBestMarginTitle')}
+                                    aria-pressed={isPromoted}
+                                    title={isPromoted ? t('unmarkBestMargin') : t('markBestMarginTitle')}
                                     className={`flex shrink-0 cursor-pointer items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
-                                      isBestMargin
+                                      isPromoted
                                         ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400'
                                         : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:text-slate-500 dark:hover:bg-white/5 dark:hover:text-slate-300'
                                     }`}
                                   >
                                     <StarIcon className="h-3.5 w-3.5" />
-                                    {isBestMargin ? t('bestMargin') : t('markAsBestMargin')}
+                                    {isPromoted ? t('bestMargin') : t('markAsBestMargin')}
                                   </button>
                                 </div>
                               </motion.div>
@@ -737,6 +811,25 @@ export default function DetailerOnboarding() {
                           days.includes(day) ? 'bg-brand-600 text-white shadow-md' : 'bg-brand-50 text-slate-600 hover:bg-brand-100 dark:bg-white/5 dark:text-slate-400 dark:hover:bg-white/10'
                         }`}>
                         {day}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <p className="label !mb-0">{t('blackoutHoursLabel')}</p>
+                    <InfoPopover label={t('whyBlackoutLabel')}>
+                      {t('whyBlackoutBody')}
+                    </InfoPopover>
+                  </div>
+                  <p className="mb-2 text-xs text-slate-400 dark:text-slate-500">{t('blackoutHoursHint')}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {BLACKOUT_HOUR_OPTIONS.map((h) => (
+                      <button key={h} type="button" aria-pressed={blackoutHours.includes(h)} onClick={() => toggle(blackoutHours, setBlackoutHours, h)}
+                        className={`cursor-pointer rounded-full px-3 py-1.5 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
+                          blackoutHours.includes(h) ? 'bg-slate-800 text-white shadow-md dark:bg-slate-200 dark:text-slate-900' : 'bg-brand-50 text-slate-600 hover:bg-brand-100 dark:bg-white/5 dark:text-slate-400 dark:hover:bg-white/10'
+                        }`}>
+                        {formatHour(h)}
                       </button>
                     ))}
                   </div>
@@ -890,6 +983,45 @@ export default function DetailerOnboarding() {
               className="btn btn-brand flex-1"
             >
               {t('skipIdConfirm')}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        open={confirmNoInsurance}
+        onClose={() => {
+          setConfirmNoInsurance(false)
+          setInsurance(null)
+        }}
+        labelledBy="no-insurance-title"
+      >
+        <div className="p-5 text-center">
+          <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100 text-red-600 dark:bg-red-500/15 dark:text-red-400">
+            <ShieldCheckIcon className="h-6 w-6" />
+          </span>
+          <h2 id="no-insurance-title" className="mt-3 font-display text-lg font-semibold text-slate-900 dark:text-slate-100">
+            {t('noInsuranceModalTitle')}
+          </h2>
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">{t('noInsuranceModalBody')}</p>
+          <div className="mt-5 flex gap-2">
+            <button
+              onClick={() => {
+                setConfirmNoInsurance(false)
+                setInsurance(null)
+              }}
+              className="btn btn-outline flex-1"
+            >
+              {t('noInsuranceGoBack')}
+            </button>
+            <button
+              onClick={() => {
+                setNoInsuranceAck(true)
+                setConfirmNoInsurance(false)
+              }}
+              className="btn btn-brand flex-1"
+            >
+              {t('noInsuranceConfirm')}
             </button>
           </div>
         </div>

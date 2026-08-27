@@ -920,6 +920,7 @@ export async function saveDetailerOnboarding(userId, {
   insurance,
   vehicles,
   services,
+  serviceDescriptions,
   freeTravelMiles,
   chargePerMile,
   serviceDays,
@@ -929,6 +930,7 @@ export async function saveDetailerOnboarding(userId, {
   certifications,
   teamSize,
   referralSource,
+  blackoutHours,
 }) {
   const { data: detailerId, error: profErr } = await supabase.rpc('submit_detailer_onboarding', {
     p_bio: bio,
@@ -942,6 +944,7 @@ export async function saveDetailerOnboarding(userId, {
     p_certifications: certifications ?? [],
     p_team_size: teamSize ?? null,
     p_referral_source: referralSource ?? null,
+    p_blackout_hours: blackoutHours ?? [],
   })
 
   if (profErr) {
@@ -965,6 +968,7 @@ export async function saveDetailerOnboarding(userId, {
   const rows = Object.entries(services).map(([name, price]) => ({
     detailer_id: detailerId,
     service_name: name,
+    description: serviceDescriptions?.[name] || null,
     price: Number(price),
     vehicle_types: vehicles,
     is_active: true,

@@ -1465,6 +1465,13 @@
 .nx-map-pin:hover {
   transform: scale(1.15);
 }
+/* A detailer promoting a service gets a gold ring on their map pin — same
+   gold as the "Promote this" outline on the onboarding/profile-editor card,
+   so the visual language matches wherever it shows up. */
+.nx-map-pin--promoted {
+  border-color: #f5b942;
+  box-shadow: 0 0 0 2px #f5b942, 0 1px 4px rgba(0, 0, 0, 0.4);
+}
 
 /* "You are here" — the ripple carries the soap-sheen hue arc (same
    @property --iri-h as the Soft System toggle) since a pulsing ring
