@@ -476,13 +476,152 @@ function ShineOverlay({ onDone }) {
   )
 }
 
-const OVERLAY_VARIANTS = [BubbleOverlay, ShineOverlay]
+// ── Polish overlay: a handful of buffing pads swirl in tight orbiting loops
+// — the actual hand motion of polishing a car — each wiping a soft-edged
+// hole through the wash and dragging a gloss trail behind it. Unlike the
+// bubble burst (radial, all-at-once) or the shine wipe (one straight pass),
+// this one reads as active circular scrubbing that gradually clears the
+// whole screen, on-brand for a detailing app.
+const POLISH_FILL_HOLD = 240 // opaque wash before the pads start moving
+const POLISH_DUR = 1500 // how long the buffing pass runs
+const POLISH_FADE_DUR = 340 // final fade for any wash the pads didn't reach
+
+function buildPolishSettings() {
+  return { hue: randomHue() }
+}
+
+function PolishOverlay({ onDone }) {
+  const canvasRef = useRef(null)
+  const [settings] = useState(buildPolishSettings)
+  const [fading, setFading] = useState(false)
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    const dpr = Math.min(window.devicePixelRatio || 1, 2)
+    let width = window.innerWidth
+    let height = window.innerHeight
+
+    function resize() {
+      width = window.innerWidth
+      height = window.innerHeight
+      canvas.width = width * dpr
+      canvas.height = height * dpr
+      canvas.style.width = `${width}px`
+      canvas.style.height = `${height}px`
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+    }
+    resize()
+    window.addEventListener('resize', resize)
+
+    // Each pad orbits its own home point in a tight loop (small circle
+    // riding a bigger slow drift) so it reads as a hand scrubbing a patch,
+    // not a mechanical sweep. Home points are laid out so their combined
+    // reach covers the whole viewport by the time the pass ends.
+    const padCount = 5
+    const padRadius = Math.max(width, height) * 0.14
+    const pads = []
+    for (let i = 0; i < padCount; i++) {
+      const gx = (i % 3) / 2
+      const gy = Math.floor(i / 3) / Math.max(1, Math.ceil(padCount / 3) - 1 || 1)
+      pads.push({
+        homeX: width * (0.15 + gx * 0.7) + randRange(-40, 40),
+        homeY: height * (0.15 + gy * 0.7) + randRange(-40, 40),
+        loopR: padRadius * randRange(0.35, 0.55),
+        loopSpeed: randRange(2.6, 3.6) * (Math.random() < 0.5 ? 1 : -1),
+        phase: Math.random() * Math.PI * 2,
+        r: padRadius * randRange(0.85, 1.15),
+      })
+    }
+
+    const start = performance.now()
+    let raf
+    let finished = false
+
+    function tick(now) {
+      const elapsed = now - start
+
+      if (elapsed < POLISH_FILL_HOLD) {
+        ctx.fillStyle = `hsl(${settings.hue} 75% 82%)`
+        ctx.fillRect(0, 0, width, height)
+        raf = requestAnimationFrame(tick)
+        return
+      }
+
+      const t = Math.min((elapsed - POLISH_FILL_HOLD) / POLISH_DUR, 1)
+      const orbitEase = easeOutCubic(t) // pads spread out to their full loop quickly
+      const growEase = easeInCubic(t) // but each pad's own erase radius ramps in slowly
+
+      for (const p of pads) {
+        const orbitT = elapsed * 0.001 * p.loopSpeed + p.phase
+        const x = p.homeX + Math.cos(orbitT) * p.loopR * orbitEase
+        const y = p.homeY + Math.sin(orbitT * 1.3) * p.loopR * orbitEase
+        const r = p.r * (0.15 + growEase * 0.95)
+
+        // Trailing gloss ring right at the pad's edge — the "catching the
+        // light" cue — drawn before the erase so it survives as a thin rim.
+        ctx.save()
+        ctx.globalCompositeOperation = 'source-over'
+        ctx.beginPath()
+        ctx.arc(x, y, r * 0.9, 0, Math.PI * 2)
+        ctx.strokeStyle = `hsla(${settings.hue}, 90%, 95%, 0.5)`
+        ctx.lineWidth = r * 0.12
+        ctx.stroke()
+        ctx.restore()
+
+        ctx.save()
+        ctx.globalCompositeOperation = 'destination-out'
+        const grad = ctx.createRadialGradient(x, y, 0, x, y, r)
+        grad.addColorStop(0, 'rgba(0,0,0,1)')
+        grad.addColorStop(0.75, 'rgba(0,0,0,1)')
+        grad.addColorStop(1, 'rgba(0,0,0,0)')
+        ctx.beginPath()
+        ctx.arc(x, y, r, 0, Math.PI * 2)
+        ctx.fillStyle = grad
+        ctx.fill()
+        ctx.restore()
+      }
+
+      if (t >= 1) {
+        if (!finished) {
+          finished = true
+          setFading(true)
+          setTimeout(onDone, POLISH_FADE_DUR)
+        }
+        return
+      }
+
+      raf = requestAnimationFrame(tick)
+    }
+
+    raf = requestAnimationFrame(tick)
+
+    return () => {
+      cancelAnimationFrame(raf)
+      window.removeEventListener('resize', resize)
+    }
+  }, [onDone, settings])
+
+  return (
+    <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-[9999] overflow-hidden">
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0"
+        style={{ opacity: fading ? 0 : 1, transition: `opacity ${POLISH_FADE_DUR}ms ease-out` }}
+      />
+    </div>
+  )
+}
+
+const OVERLAY_VARIANTS = [BubbleOverlay, ShineOverlay, PolishOverlay]
 
 // Wraps the app's routes. After login (flag set by the OAuth callback, the
 // email/password auth card, or the desktop fly-through) the freshly-navigated
-// page mounts underneath, then this overlay plays one of two random
-// transitions over it: a full-screen bubble burst, or a diagonal shine/glare
-// sweep with sparkles. No-op on normal nav / reduced-motion.
+// page mounts underneath, then this overlay plays one of three random
+// transitions over it: a full-screen bubble burst, a diagonal shine/glare
+// sweep with sparkles, or a circular buffing/polish wipe. No-op on normal
+// nav / reduced-motion.
 export default function TransitionOverlay({ children }) {
   const location = useLocation()
   const reduce = useReducedMotion()
