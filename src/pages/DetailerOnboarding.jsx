@@ -247,7 +247,9 @@ export default function DetailerOnboarding() {
   }
 
   const canContinue = [
-    idStatus === 'passed' || idStatus === 'pending',
+    // Identity verification is skippable — Stripe Connect gates the actual
+    // payout on it later, so it doesn't need to block the wizard too.
+    true,
     insurance === 'insured' || (insurance === 'none' && noInsuranceAck),
     bio.length > 0 && zip.length === 5,
     true, // Survey step — every question is optional, never blocks.
@@ -378,6 +380,13 @@ export default function DetailerOnboarding() {
                     {idError && (
                       <p role="alert" className="mt-3 text-sm text-red-600 dark:text-red-400">{idError}</p>
                     )}
+                    <button
+                      onClick={() => setStep(1)}
+                      className="mt-3 block w-full text-sm font-semibold text-slate-500 underline-offset-2 hover:underline dark:text-slate-400"
+                    >
+                      {t('skipIdForNow')}
+                    </button>
+                    <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">{t('skipIdNote')}</p>
                   </>
                 )}
                 {idStatus === 'scanning' && (

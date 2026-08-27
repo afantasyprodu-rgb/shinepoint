@@ -855,6 +855,8 @@ export const STRINGS = {
       submittedUnderReview: 'Submitted — under review',
       stripeConfirming: "Stripe usually confirms within a couple minutes. You can keep going — we'll update this automatically.",
       verified: 'Verified',
+      skipIdForNow: 'Skip for now',
+      skipIdNote: "You can finish this from your dashboard any time — just know we can't send you a payout until it's done.",
       // Step 1 — Insurance
       tipInsuranceTitle: 'Insurance wins you jobs',
       tipInsuranceBody: 'Insured detailers get a trust badge on their profile, and many customers filter to only insured pros. The paperwork pays for itself in bookings.',
@@ -2255,6 +2257,8 @@ export const STRINGS = {
       idFailedRetry: 'La verificación no se completó — Stripe necesita otro intento.',
       tryAgain: 'Intentar de nuevo',
       uploadIdSelfie: 'Subir identificación y tomar selfie',
+      skipIdForNow: 'Omitir por ahora',
+      skipIdNote: 'Puedes terminar esto desde tu panel cuando quieras — solo ten en cuenta que no podremos enviarte pagos hasta que esté hecho.',
       verifyingAria: 'Verificando',
       matchingSelfie: 'Comparando selfie con identificación…',
       submittedUnderReview: 'Enviado — en revisión',
