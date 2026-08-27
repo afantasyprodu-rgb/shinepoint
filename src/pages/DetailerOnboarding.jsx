@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import AppShell from '../components/AppShell'
 import MarketingTip from '../components/MarketingTip'
 import { useStore } from '../context/StoreContext'
 import { useTheme } from '../context/ThemeContext'
-import { CheckIcon, ShieldCheckIcon, CreditCardIcon, ClipboardCheckIcon, UsersIcon, ChevronLeftIcon, PlusIcon, XIcon, LightbulbIcon, ClockIcon, StarIcon, SparklesIcon, CameraIcon } from '../components/icons'
+import { CheckIcon, ShieldCheckIcon, CreditCardIcon, ClipboardCheckIcon, UsersIcon, PlusIcon, XIcon, LightbulbIcon, ClockIcon, StarIcon, SparklesIcon, CameraIcon } from '../components/icons'
 import { InfoPopover } from '../components/ui/bits'
 import { startIdentityVerification, startConnectOnboarding, isStripeConfigured, stripePromise } from '../lib/stripe'
 import { fetchMyPayoutStatus, extractFlyerPrices } from '../lib/db'
@@ -262,7 +262,7 @@ export default function DetailerOnboarding() {
 
   if (submitted) {
     return (
-      <AppShell role="detailer">
+      <AppShell role="detailer" locked>
         <div className="mx-auto max-w-md px-4 py-16 text-center">
           <motion.span
             initial={{ scale: 0 }}
@@ -311,15 +311,12 @@ export default function DetailerOnboarding() {
   }
 
   return (
-    <AppShell role="detailer">
+    <AppShell role="detailer" locked>
       <div className="mx-auto max-w-xl px-4 py-8 sm:px-6">
-        <Link
-          to="/detailer"
-          className="mb-3 inline-flex items-center gap-1 rounded text-sm font-medium text-slate-600 transition-colors duration-200 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-slate-400 dark:hover:text-brand-300"
-        >
-          <ChevronLeftIcon className="h-4 w-4" /> {t('dashboard')}
-        </Link>
-        <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">{t('title')}</h1>
+        {/* No "back to dashboard" escape while onboarding is locked (see
+            AppShell's `locked` doc comment) — a brand-new detailer finishes
+            this before touching anything else. */}
+        <h1 className="mt-3 font-display text-2xl font-bold text-slate-900 dark:text-slate-100">{t('title')}</h1>
 
         {/* Step rail */}
         <div className="mt-4 flex items-center gap-1.5" aria-label={t('stepAria', { n: step + 1, total: STEPS.length, step: STEPS[step] })}>

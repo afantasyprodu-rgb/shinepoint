@@ -179,7 +179,15 @@ const NAVS = {
 // permanently losing its bottom strip to the tab bar, so the bar starts
 // tucked away and a small handle button on the map brings it back on tap.
 // Every other screen keeps the bar always-visible, unchanged.
-export default function AppShell({ role, children, collapsibleBottomNav = false }) {
+// `locked` is for a screen a user MUST finish before touching the rest of
+// the app (right now: first-time detailer onboarding — see
+// DetailerOnboarding.jsx). It strips every way out of the shell except
+// sign-out: no nav links, no bottom tab bar, no notification bell, no Tools
+// launcher, logo stops being a link home. The solid brand-colored page
+// background (the "pink wall") is the visual signal that this isn't a
+// normal screen with chrome that happens to be hidden — there's nowhere to
+// tap to escape it.
+export default function AppShell({ role, children, collapsibleBottomNav = false, locked = false }) {
   const { signOut, isDemo, profile } = useAuth()
   const navigate = useNavigate()
   const t = useT('nav')
@@ -194,7 +202,7 @@ export default function AppShell({ role, children, collapsibleBottomNav = false 
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className={`flex min-h-screen flex-col ${locked ? 'bg-brand-600 dark:bg-brand-900' : ''}`}>
       {/* relative + z-[600]: backdrop-blur alone forces a stacking context
           here (independent of z-index/position), and without a `position`
           the old bare z-20 never applied — so this whole header, notification
@@ -210,46 +218,56 @@ export default function AppShell({ role, children, collapsibleBottomNav = false 
           relayout signal for. The floor is sized to the tallest current
           status bar (Dynamic Island); env() only pushes it further if a
           future device genuinely needs more. */}
-      <header className="relative z-[600] border-b border-brand-100 bg-white/90 pt-[max(env(safe-area-inset-top),2.75rem)] backdrop-blur dark:border-white/10 dark:bg-[#1A1430]/90">
+      <header className={`relative z-[600] border-b pt-[max(env(safe-area-inset-top),2.75rem)] backdrop-blur ${
+        locked
+          ? 'border-white/15 bg-brand-600/95 dark:bg-brand-900/95'
+          : 'border-brand-100 bg-white/90 dark:border-white/10 dark:bg-[#1A1430]/90'
+      }`}>
         <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="flex items-center gap-4">
-            <Link
-              to={role === 'detailer' ? '/detailer' : '/home'}
-              className="rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
-            >
-              <Logo />
-            </Link>
-            <nav aria-label="Main" className="hidden items-center gap-1 sm:flex">
-              {nav.map(({ to, label, end }) => (
-                <NavLink
-                  key={to}
-                  to={to}
-                  end={end}
-                  className={({ isActive }) =>
-                    `rounded-lg px-3 py-1.5 text-sm font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
-                      isActive
-                        ? 'bg-brand-100 text-brand-800 dark:bg-brand-500/20 dark:text-brand-200'
-                        : 'text-slate-600 hover:bg-brand-50 hover:text-brand-800 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-brand-200'
-                    }`
-                  }
-                >
-                  {label}
-                </NavLink>
-              ))}
-            </nav>
+            {locked ? (
+              <Logo tone="light" />
+            ) : (
+              <Link
+                to={role === 'detailer' ? '/detailer' : '/home'}
+                className="rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+              >
+                <Logo />
+              </Link>
+            )}
+            {!locked && (
+              <nav aria-label="Main" className="hidden items-center gap-1 sm:flex">
+                {nav.map(({ to, label, end }) => (
+                  <NavLink
+                    key={to}
+                    to={to}
+                    end={end}
+                    className={({ isActive }) =>
+                      `rounded-lg px-3 py-1.5 text-sm font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
+                        isActive
+                          ? 'bg-brand-100 text-brand-800 dark:bg-brand-500/20 dark:text-brand-200'
+                          : 'text-slate-600 hover:bg-brand-50 hover:text-brand-800 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-brand-200'
+                      }`
+                    }
+                  >
+                    {label}
+                  </NavLink>
+                ))}
+              </nav>
+            )}
           </div>
           <div className="flex items-center gap-2">
-            {isDemo && (
+            {!locked && isDemo && (
               <span className="chip hidden bg-amber-500/15 text-amber-700 dark:text-amber-300 sm:inline-flex">
                 {t('demoAs', { name: profile?.full_name })}
               </span>
             )}
-            {!isDemo && <SyncPendingBadge className="hidden sm:inline-flex" />}
+            {!locked && !isDemo && <SyncPendingBadge className="hidden sm:inline-flex" />}
             <ThemeToggle />
-            <SfxToggle />
+            {!locked && <SfxToggle />}
             <LanguageToggle />
-            <NotificationBell role={role} />
-            <button onClick={handleSignOut} className="btn btn-outline h-9 px-3 text-sm">
+            {!locked && <NotificationBell role={role} />}
+            <button onClick={handleSignOut} className={`btn h-9 px-3 text-sm ${locked ? 'border-white/30 bg-white/10 text-white hover:bg-white/20' : 'btn-outline'}`}>
               {isDemo ? t('exitDemo') : t('signOut')}
             </button>
           </div>
@@ -258,8 +276,8 @@ export default function AppShell({ role, children, collapsibleBottomNav = false 
       {/* pb-16 plus the same safe-area inset the bar itself now reserves,
           so content never sits underneath the taller notch-device bar. */}
       <div className="flex-1 pb-[calc(4rem+env(safe-area-inset-bottom))] sm:pb-0">{children}</div>
-      <BottomTabBar items={nav} hidden={collapsibleBottomNav && navHidden} />
-      {collapsibleBottomNav && (
+      {!locked && <BottomTabBar items={nav} hidden={collapsibleBottomNav && navHidden} />}
+      {!locked && collapsibleBottomNav && (
         <button
           type="button"
           onClick={() => setNavHidden((h) => !h)}
@@ -283,7 +301,7 @@ export default function AppShell({ role, children, collapsibleBottomNav = false 
           <ChevronDownIcon className={`h-4 w-4 transition-transform duration-300 ${navHidden ? '' : 'rotate-180'}`} />
         </button>
       )}
-      {role === 'detailer' && (
+      {!locked && role === 'detailer' && (
         <>
           {/* Fixed (not inside <header>, which scrolls away with the page)
               so this stays reachable from anywhere on any detailer screen —
