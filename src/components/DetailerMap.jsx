@@ -73,13 +73,23 @@ function cacheLocation(lat, lng) {
 // Positron — Positron's near-white/grey read as washed out next to the
 // brand-colored pins; Voyager keeps the same no-labels restraint with
 // actual color so the map doesn't disappear into the page background.
+// CARTO started requiring a (free, 5M requests/month) API key on these
+// raster tiles in 2026 — without one every tile now renders with a tiled
+// "API KEY REQUIRED" watermark instead of the map. Get one at
+// https://carto.com/basemaps/apikey and set VITE_CARTO_API_KEY; unset is a
+// soft-skip like Turnstile/GIS elsewhere in this app (map still loads, just
+// watermarked, rather than the whole component erroring out).
+const CARTO_API_KEY = import.meta.env.VITE_CARTO_API_KEY
+const cartoUrl = (path) =>
+  `https://{s}.basemaps.cartocdn.com/${path}/{z}/{x}/{y}{r}.png${CARTO_API_KEY ? `?api_key=${CARTO_API_KEY}` : ''}`
+
 export const TILES = {
   light: {
-    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png',
+    url: cartoUrl('rastertiles/voyager_nolabels'),
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
   },
   dark: {
-    url: 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png',
+    url: cartoUrl('dark_nolabels'),
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
   },
 }
