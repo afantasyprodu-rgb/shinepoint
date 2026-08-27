@@ -71,15 +71,43 @@ export default function HeroBubbles({
         wobbleSpeed: 0.4 + rand() * 0.8,
         rise: (0.3 + rand() * 0.7) * speed,
         hueCta: rand() < 0.2,
+        popT: null, // null = alive; 0..1 = mid-pop
       };
     }
     const bubbles = Array.from({ length: bubbleCount }, () => spawn(false));
+
+    // Bubbles are visual-only (canvas sits pointer-events-none over the
+    // hero content), so we can't rely on canvas click targets — instead
+    // hit-test every press against live bubble positions in canvas-local
+    // coordinates. A hit only pops that one bubble; anything else (a miss,
+    // or a click on the CTA buttons underneath) is left alone, so this
+    // never blocks normal hero interaction.
+    const POP_DUR = 260 // ms
+    function onPointerDown(e) {
+      const rect = canvas.getBoundingClientRect();
+      const px = e.clientX - rect.left;
+      const py = e.clientY - rect.top;
+      if (px < 0 || py < 0 || px > rect.width || py > rect.height) return
+      // Topmost (last-drawn) bubble under the press wins, same as visual stacking.
+      for (let i = bubbles.length - 1; i >= 0; i--) {
+        const b = bubbles[i]
+        if (b.popT != null) continue
+        if (Math.hypot(px - b.x, py - b.y) <= b.r * 1.15) {
+          b.popT = 0
+          break
+        }
+      }
+    }
+    window.addEventListener('pointerdown', onPointerDown)
 
     let raf;
     let t = 0;
     let frame = 0;
     let c = colors();
-    function draw() {
+    let lastNow = performance.now();
+    function draw(now) {
+      const dt = now - lastNow;
+      lastNow = now;
       t += 0.02;
       // re-read CSS vars a few times a second, not every frame — cheap enough
       // to react to a hue-shift click almost instantly, without the per-frame cost
@@ -88,6 +116,25 @@ export default function HeroBubbles({
       ctx.clearRect(0, 0, w, h);
 
       for (const b of bubbles) {
+        if (b.popT != null) {
+          // Burst: quick outward ring + fade, then respawn from the bottom
+          // like a natural bubble re-entering the field.
+          b.popT += dt / POP_DUR;
+          if (b.popT >= 1) {
+            Object.assign(b, spawn(true));
+            continue;
+          }
+          const color = b.hueCta ? c.cta : c.brand;
+          const growth = 1 + b.popT * 0.8;
+          ctx.globalAlpha = (1 - b.popT) * 0.9;
+          ctx.beginPath();
+          ctx.arc(b.x, b.y, b.r * growth, 0, Math.PI * 2);
+          ctx.lineWidth = 2;
+          ctx.strokeStyle = color;
+          ctx.stroke();
+          continue;
+        }
+
         const drift = Math.sin(t * b.wobbleSpeed + b.wobble) * 0.6;
         b.x += drift;
         b.y -= b.rise;
@@ -124,11 +171,12 @@ export default function HeroBubbles({
       ctx.globalAlpha = 1;
       raf = requestAnimationFrame(draw);
     }
-    draw();
+    raf = requestAnimationFrame(draw);
 
     return () => {
       cancelAnimationFrame(raf);
       ro.disconnect();
+      window.removeEventListener('pointerdown', onPointerDown);
     };
   }, [seed, bubbleCount, speed]);
 
