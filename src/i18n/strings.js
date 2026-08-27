@@ -1283,6 +1283,8 @@ export const STRINGS = {
       detailerA5: "Yes — you can skip it during onboarding and finish the rest of your setup. Just know Stripe can't send you a payout until it's done, so it's worth finishing before your first job wraps up.",
       detailerQ6: 'What does Stripe do with my ID? Does it check immigration status?',
       detailerA6: "Stripe uses your ID only to confirm you're a real person, as required of anyone sending payouts in the U.S. — it's not an immigration check, and it isn't shared with ShinePoint or with immigration authorities. If you don't have an SSN, Stripe also accepts an ITIN.",
+      detailerQ7: 'Why is a bank-level ID check needed just to get paid?',
+      detailerA7: "It's Stripe's job, not ShinePoint's — when you upload your ID + selfie, it goes straight to Stripe, and ShinePoint only ever sees back a status (verified, pending, or failed), never the photo or ID details. Stripe is a licensed payment processor, and U.S. financial law requires anyone sending payouts to verify who they're paying — the same \"know your customer\" rule banks follow. It's fraud and anti-money-laundering compliance, not a background or immigration check. Stripe also needs a tax ID to report earnings to the IRS, same as any employer; most people use their SSN, but anyone without one can use an ITIN (a tax ID the IRS issues regardless of immigration status) instead — so it doesn't shut anyone out.",
     },
     customerSettings: {
       account: 'Account',
@@ -2733,6 +2735,8 @@ export const STRINGS = {
       detailerA5: 'Sí — puedes omitirla durante la incorporación y terminar el resto de tu configuración. Solo ten en cuenta que Stripe no puede enviarte un pago hasta que esté hecho, así que conviene terminarla antes de que finalice tu primer trabajo.',
       detailerQ6: '¿Qué hace Stripe con mi identificación? ¿Verifica el estatus migratorio?',
       detailerA6: 'Stripe usa tu identificación solo para confirmar que eres una persona real, como se requiere de cualquiera que envíe pagos en EE. UU. — no es una verificación migratoria, y no se comparte con ShinePoint ni con autoridades de inmigración. Si no tienes un SSN, Stripe también acepta un ITIN.',
+      detailerQ7: '¿Por qué se necesita una verificación de identidad de nivel bancario solo para cobrar?',
+      detailerA7: 'Es responsabilidad de Stripe, no de ShinePoint — cuando subes tu identificación y selfie, van directo a Stripe, y ShinePoint solo recibe de vuelta un estado (verificada, pendiente o fallida), nunca la foto ni los datos de la identificación. Stripe es un procesador de pagos con licencia, y la ley financiera de EE. UU. exige que cualquiera que envíe pagos verifique a quién le paga — la misma regla de "conoce a tu cliente" que siguen los bancos. Es cumplimiento contra fraude y lavado de dinero, no una verificación de antecedentes o migratoria. Stripe también necesita un número de identificación fiscal para reportar ingresos al IRS, igual que cualquier empleador; la mayoría usa su SSN, pero quien no tenga uno puede usar un ITIN (un número fiscal que el IRS emite sin importar el estatus migratorio) — así que no deja a nadie fuera.',
     },
     customerSettings: {
       account: 'Cuenta',

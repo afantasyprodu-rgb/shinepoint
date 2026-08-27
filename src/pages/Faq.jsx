@@ -8,7 +8,7 @@ import { useT } from '../i18n/useT'
 const SECTIONS = [
   { key: 'general', questionCount: 4 },
   { key: 'customer', questionCount: 4 },
-  { key: 'detailer', questionCount: 6 },
+  { key: 'detailer', questionCount: 7 },
 ]
 
 function QaItem({ question, answer }) {
