@@ -202,7 +202,16 @@ export default function AppShell({ role, children, collapsibleBottomNav = false,
   }
 
   return (
-    <div className={`flex min-h-screen flex-col ${locked ? 'bg-brand-600 dark:bg-brand-900' : ''}`}>
+    <div className={`relative flex min-h-screen flex-col ${locked ? 'overflow-hidden bg-white dark:bg-[#141026]' : ''}`}>
+      {/* Same soft blurred-blob treatment as the public landing page
+          (Welcome.jsx) rather than a solid fill — a wall of saturated
+          brand-600 read as overwhelming for a whole onboarding flow. */}
+      {locked && (
+        <>
+          <div aria-hidden="true" className="pointer-events-none absolute left-1/2 top-[8%] h-80 w-80 -translate-x-1/2 rounded-full bg-brand-200/40 blur-3xl dark:bg-brand-800/15" />
+          <div aria-hidden="true" className="pointer-events-none absolute bottom-[10%] right-[-6rem] h-64 w-64 rounded-full bg-cta-500/10 blur-3xl" />
+        </>
+      )}
       {/* relative + z-[600]: backdrop-blur alone forces a stacking context
           here (independent of z-index/position), and without a `position`
           the old bare z-20 never applied — so this whole header, notification
@@ -218,15 +227,11 @@ export default function AppShell({ role, children, collapsibleBottomNav = false,
           relayout signal for. The floor is sized to the tallest current
           status bar (Dynamic Island); env() only pushes it further if a
           future device genuinely needs more. */}
-      <header className={`relative z-[600] border-b pt-[max(env(safe-area-inset-top),2.75rem)] backdrop-blur ${
-        locked
-          ? 'border-white/15 bg-brand-600/95 dark:bg-brand-900/95'
-          : 'border-brand-100 bg-white/90 dark:border-white/10 dark:bg-[#1A1430]/90'
-      }`}>
+      <header className="relative z-[600] border-b border-brand-100 bg-white/90 pt-[max(env(safe-area-inset-top),2.75rem)] backdrop-blur dark:border-white/10 dark:bg-[#1A1430]/90">
         <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="flex items-center gap-4">
             {locked ? (
-              <Logo tone="light" />
+              <Logo />
             ) : (
               <Link
                 to={role === 'detailer' ? '/detailer' : '/home'}
@@ -267,7 +272,7 @@ export default function AppShell({ role, children, collapsibleBottomNav = false,
             {!locked && <SfxToggle />}
             <LanguageToggle />
             {!locked && <NotificationBell role={role} />}
-            <button onClick={handleSignOut} className={`btn h-9 px-3 text-sm ${locked ? 'border-white/30 bg-white/10 text-white hover:bg-white/20' : 'btn-outline'}`}>
+            <button onClick={handleSignOut} className="btn btn-outline h-9 px-3 text-sm">
               {isDemo ? t('exitDemo') : t('signOut')}
             </button>
           </div>
@@ -275,7 +280,7 @@ export default function AppShell({ role, children, collapsibleBottomNav = false,
       </header>
       {/* pb-16 plus the same safe-area inset the bar itself now reserves,
           so content never sits underneath the taller notch-device bar. */}
-      <div className="flex-1 pb-[calc(4rem+env(safe-area-inset-bottom))] sm:pb-0">{children}</div>
+      <div className={`flex-1 pb-[calc(4rem+env(safe-area-inset-bottom))] sm:pb-0 ${locked ? 'relative z-10' : ''}`}>{children}</div>
       {!locked && <BottomTabBar items={nav} hidden={collapsibleBottomNav && navHidden} />}
       {!locked && collapsibleBottomNav && (
         <button
