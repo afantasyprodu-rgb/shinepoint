@@ -611,6 +611,14 @@ export default function DetailerOnboarding() {
                   </div>
                 )}
 
+                {flyerDismissed && (
+                  <div className="mb-1 text-right">
+                    <button type="button" onClick={() => setFlyerDismissed(false)} className="text-sm font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300">
+                      {t('flyerTryAgain')}
+                    </button>
+                  </div>
+                )}
+
                 {SERVICE_GROUPS.map((group) => (
                   <div key={group.label} className="space-y-2">
                     <p className="pt-1 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
