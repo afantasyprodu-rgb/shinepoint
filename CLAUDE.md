@@ -63,7 +63,7 @@ The whole app reads through two providers — understand the split before touchi
 - **Hard URL navigation drops demo state.** Demo session lives in React memory; a full page
   load (or Chrome `navigate` to a guarded route) bounces to /login. Navigate within the SPA
   by clicking, not by loading URLs.
-- The 15% platform fee shows as `price * 0.85` (detailer net). Tips are 100% to the detailer.
+- The platform fee is tiered (15% under $100, stepping down to 7% at $1,000+) — see `supabase/functions/_shared/fees.ts` (source of truth, real payouts) and `src/lib/fees.js` (frontend display estimates; never used for the actual charge). Tips are 100% to the detailer.
 
 ## Verification expectation
 After a previewable change, actually run it: `npm run dev`, drive the relevant role in the

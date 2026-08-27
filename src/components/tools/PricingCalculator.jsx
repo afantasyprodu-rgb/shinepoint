@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { FadeIn } from '../ui/Motion'
+import { detailerShare } from '../../lib/fees'
 import { useT } from '../../i18n/useT'
 
 // Suggested SoCal-market base prices at "Sedan" — starting points (see the
@@ -23,10 +24,6 @@ const VEHICLES = [
   { name: 'Truck', mult: 1.3 },
   { name: 'Van', mult: 1.35 },
 ]
-
-// Matches the platform's real cut — see docs/payments-deploy.md
-// (PLATFORM_FEE_PERCENT, default 15%, taken on the full charged total).
-const PLATFORM_FEE_PCT = 15
 
 function money(n) {
   return `$${(Math.round(n * 100) / 100).toFixed(2)}`
@@ -56,8 +53,12 @@ export default function PricingCalculator() {
   const subtotal = breakdown.reduce((sum, s) => sum + s.adjusted, 0)
   const adjPct = Number(adjustment) || 0
   const fee = Number(travelFee) || 0
-  const total = subtotal * (1 + adjPct / 100) + fee
-  const takeHome = total * (1 - PLATFORM_FEE_PCT / 100)
+  const servicePrice = subtotal * (1 + adjPct / 100)
+  const total = servicePrice + fee
+  // Matches the platform's real cut — see docs/payments-deploy.md and
+  // supabase/functions/_shared/fees.ts: tiered by service price (mileage
+  // passes through to the detailer untouched, same as server-side).
+  const takeHome = servicePrice * detailerShare(servicePrice) + fee
 
   return (
     <div>
@@ -171,7 +172,7 @@ export default function PricingCalculator() {
               </div>
 
               <div className="mt-3 rounded-xl bg-cta-500/10 px-4 py-3 text-sm text-cta-800 dark:text-cta-500">
-                {t('takeHomeLabel', { pct: 100 - PLATFORM_FEE_PCT })}: <strong>{money(takeHome)}</strong>
+                {t('takeHomeLabel', { pct: Math.round(detailerShare(servicePrice) * 100) })}: <strong>{money(takeHome)}</strong>
               </div>
             </>
           )}

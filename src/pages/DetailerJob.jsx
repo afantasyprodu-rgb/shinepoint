@@ -25,6 +25,7 @@ import { useT } from '../i18n/useT'
 import { sendReceiptEmail, sendEnRouteEmail } from '../lib/email'
 import { startTracking, stopTracking } from '../lib/tracking'
 import { playSfx } from '../lib/sfx'
+import { detailerPayoutEstimate } from '../lib/fees'
 
 // Blueprint 5.3–5.5 — the detailer's gated job flow:
 // en route → arrived → damage report → before photos → start →
@@ -315,7 +316,7 @@ export default function DetailerJob() {
                 </div>
                 <div className="mt-2 flex items-center justify-between text-sm">
                   <span className="text-slate-500 dark:text-slate-400">{t('yourTake')}</span>
-                  <span className="font-semibold text-cta-700 dark:text-cta-400">+${(b.price * 0.85).toFixed(0)}</span>
+                  <span className="font-semibold text-cta-700 dark:text-cta-400">+${(b.detailerPayout ?? detailerPayoutEstimate(b.price)).toFixed(0)}</span>
                 </div>
                 <button
                   onClick={g.action}
@@ -380,7 +381,7 @@ export default function DetailerJob() {
               <div className="text-right">
                 <StatusPill status={b.status} />
                 <p className="mt-1 font-display text-lg font-bold text-cta-700 dark:text-cta-400">
-                  +${(b.price * 0.85 + (b.tip ?? 0)).toFixed(0)}
+                  +${((b.detailerPayout ?? detailerPayoutEstimate(b.price)) + (b.tip ?? 0)).toFixed(0)}
                 </p>
               </div>
               <button
@@ -516,7 +517,7 @@ export default function DetailerJob() {
             <CheckIcon className="mx-auto h-8 w-8 text-cta-700 dark:text-cta-400" />
             <h2 className="mt-2 font-display text-lg font-bold text-slate-900 dark:text-slate-100">{t('jobComplete')}</h2>
             <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-              {t('payoutInitiated', { amount: (b.price * 0.85).toFixed(0) })}
+              {t('payoutInitiated', { amount: (b.detailerPayout ?? detailerPayoutEstimate(b.price)).toFixed(0) })}
               {b.tip ? t('tipSuffix', { amount: b.tip }) : ''}.
             </p>
           </motion.div>
@@ -637,7 +638,7 @@ export default function DetailerJob() {
                 transition={{ delay: 0.5 }}
                 className="mt-1 text-3xl font-bold text-cta-700"
               >
-                +${(b.price * 0.85).toFixed(0)}
+                +${(b.detailerPayout ?? detailerPayoutEstimate(b.price)).toFixed(0)}
                 {b.tip ? <span className="text-xl">{t('tipSuffixShort', { amount: b.tip })}</span> : null}
               </motion.p>
 

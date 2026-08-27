@@ -7,6 +7,7 @@ import { useStore } from '../context/StoreContext'
 import { milesBetweenZips } from '../lib/fuzzyPin'
 import { openDetailerDashboard, getDetailerBalance, requestPayout, isStripeConfigured } from '../lib/stripe'
 import { ClockIcon, ChevronDownIcon, LightbulbIcon } from '../components/icons'
+import { detailerPayoutEstimate } from '../lib/fees'
 import { useT } from '../i18n/useT'
 
 const ME = 'det-1'
@@ -15,7 +16,7 @@ const ME = 'det-1'
 const DEMO_WEEKLY = [240, 310, 285, 390, 364, 412]
 
 const DAY_MS = 86_400_000
-const payoutFor = (b) => b.detailerPayout ?? b.price * 0.85
+const payoutFor = (b) => b.detailerPayout ?? detailerPayoutEstimate(b.price)
 
 // Real net-earnings-by-week from actual completed jobs, bucketed by
 // completedAt (falling back to scheduledTime for older rows that predate
@@ -300,7 +301,10 @@ export default function DetailerEarnings() {
   function exportCsv() {
     const rows = [
       ['booking_id', 'service', 'gross', 'platform_cut', 'payout', 'tip'],
-      ...complete.map((b) => [b.id, b.service, b.price, (b.price * 0.15).toFixed(2), (b.price * 0.85).toFixed(2), b.tip ?? 0]),
+      ...complete.map((b) => {
+        const payout = b.detailerPayout ?? detailerPayoutEstimate(b.price)
+        return [b.id, b.service, b.price, (b.price - payout).toFixed(2), payout.toFixed(2), b.tip ?? 0]
+      }),
     ]
     const blob = new Blob([rows.map((r) => r.join(',')).join('\n')], { type: 'text/csv' })
     const a = document.createElement('a')
@@ -400,24 +404,27 @@ export default function DetailerEarnings() {
 
         <h2 className="mt-8 font-display text-lg font-semibold text-slate-900 dark:text-slate-100">{t('recentPayouts')}</h2>
         <Stagger className="mt-3 space-y-3">
-          {complete.map((b) => (
+          {complete.map((b) => {
+            const payout = b.detailerPayout ?? detailerPayoutEstimate(b.price)
+            return (
             <StaggerItem key={b.id}>
               <div className="card flex items-center justify-between !p-5">
                 <div>
                   <p className="font-semibold text-slate-900 dark:text-slate-100">{b.service}</p>
                   <p className="text-sm text-slate-500 dark:text-slate-400">
-                    {b.id} · {t('grossPlatformCut', { gross: b.price, cut: (b.price * 0.15).toFixed(0) })}
+                    {b.id} · {t('grossPlatformCut', { gross: b.price, cut: (b.price - payout).toFixed(0) })}
                   </p>
                 </div>
                 <div className="text-right">
                   <p className="font-display text-lg font-bold text-cta-700 dark:text-cta-500">
-                    +${(b.price * 0.85).toFixed(0)}
+                    +${payout.toFixed(0)}
                   </p>
                   {b.tip > 0 && <p className="text-xs text-slate-500 dark:text-slate-400">{t('tip', { amount: b.tip })}</p>}
                 </div>
               </div>
             </StaggerItem>
-          ))}
+            )
+          })}
           {complete.length === 0 && (
             <p className="text-sm text-slate-500 dark:text-slate-400">{t('noPayoutsYet')}</p>
           )}

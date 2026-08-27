@@ -7,7 +7,7 @@
 // account. Returns the client_secret for the embedded Payment Element.
 //
 // Deploy: supabase functions deploy create-payment-intent
-// Secrets: STRIPE_SECRET_KEY, PLATFORM_FEE_PERCENT (optional, default 15).
+// Secrets: STRIPE_SECRET_KEY, PLATFORM_FEE_PERCENT (optional flat-rate override).
 import Stripe from 'npm:stripe@^18'
 import { createClient } from 'npm:@supabase/supabase-js@^2'
 import { corsHeaders, json } from '../_shared/cors.ts'
@@ -15,11 +15,11 @@ import { captureException } from '../_shared/sentry.ts'
 import { isUuid } from '../_shared/validate.ts'
 import { withinRateLimit, tooManyRequests } from '../_shared/rateLimit.ts'
 import { approxCentroidForZip, milesBetween } from '../_shared/geo.ts'
+import { platformFeePercent } from '../_shared/fees.ts'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
   apiVersion: '2026-05-27.dahlia' as Stripe.LatestApiVersion,
 })
-const FEE_PERCENT = Number(Deno.env.get('PLATFORM_FEE_PERCENT') ?? '15')
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
@@ -195,7 +195,7 @@ Deno.serve(async (req) => {
     // one. release-payouts transfers this from the platform balance, so a
     // fully-discounted booking still pays the detailer properly. Mileage
     // passes through in full, same as the service commission split.
-    const detailerPayout = Number((servicePrice * (1 - FEE_PERCENT / 100) + mileageFee).toFixed(2))
+    const detailerPayout = Number((servicePrice * (1 - platformFeePercent(servicePrice) / 100) + mileageFee).toFixed(2))
 
     // Consume whatever was actually applied, once the booking is committed
     // to being paid. Idempotent: the reward update is keyed on redeemed_at

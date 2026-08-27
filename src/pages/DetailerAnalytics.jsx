@@ -4,6 +4,7 @@ import { CountUp } from '../components/ui/bits'
 import { NxLineChart, NxDonut } from '../components/ui/AnalyticsCharts'
 import { useStore } from '../context/StoreContext'
 import { TrendingUpIcon, PieChartIcon, LightbulbIcon, TrophyIcon, ClockIcon } from '../components/icons'
+import { detailerPayoutEstimate } from '../lib/fees'
 import { useT } from '../i18n/useT'
 
 const ME = 'det-1'
@@ -14,7 +15,7 @@ const DEMO_WEEKLY = [240, 310, 285, 390, 364, 412]
 const SEGMENT_COLORS = ['var(--color-cta-500)', 'var(--color-brand-400)', 'var(--color-accent-teal)']
 
 const DAY_MS = 86_400_000
-const payoutFor = (b) => b.detailerPayout ?? b.price * 0.85
+const payoutFor = (b) => b.detailerPayout ?? detailerPayoutEstimate(b.price)
 
 // Same computation as DetailerEarnings.jsx's weeklyNetFor — real net by
 // week from `complete` bookings, bucketed by completedAt.
@@ -75,11 +76,11 @@ export default function DetailerAnalytics() {
     .map(([label, value], i) => ({ label, value, color: SEGMENT_COLORS[i % SEGMENT_COLORS.length] }))
 
   // Per-service net (what actually lands in the detailer's pocket — the
-  // 85% cut plus 100%-yours tips) so "most/least profitable" reflects
-  // take-home pay per job, not just gross booking price.
+  // tiered platform cut plus 100%-yours tips) so "most/least profitable"
+  // reflects take-home pay per job, not just gross booking price.
   const serviceStats = {}
   complete.forEach((b) => {
-    const net = b.price * 0.85 + (b.tip ?? 0)
+    const net = (b.detailerPayout ?? detailerPayoutEstimate(b.price)) + (b.tip ?? 0)
     const s = (serviceStats[b.service] ??= { service: b.service, count: 0, totalNet: 0 })
     s.count += 1
     s.totalNet += net

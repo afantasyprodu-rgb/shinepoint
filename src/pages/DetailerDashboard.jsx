@@ -9,6 +9,7 @@ import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
 import { startConnectOnboarding, isStripeConfigured } from '../lib/stripe'
 import { fetchMyPayoutStatus } from '../lib/db'
+import { detailerPayoutEstimate } from '../lib/fees'
 import { LockIcon, AlertTriangleIcon, ClockIcon, ChevronDownIcon } from '../components/icons'
 import { useT } from '../i18n/useT'
 import { useLanguage } from '../context/LanguageContext'
@@ -195,7 +196,7 @@ export default function DetailerDashboard() {
   }
   const earningsToday = mine
     .filter((b) => b.status === 'complete')
-    .reduce((sum, b) => sum + b.price * 0.85 + (b.tip ?? 0), 0)
+    .reduce((sum, b) => sum + (b.detailerPayout ?? detailerPayoutEstimate(b.price)) + (b.tip ?? 0), 0)
 
   // Real rate = accepted-or-beyond / decided (declines are recorded as
   // status:'cancelled', cancelledBy:'detailer' — see the decline button
@@ -349,7 +350,7 @@ export default function DetailerDashboard() {
                       </p>
                     </span>
                     <span className="shrink-0 font-display text-lg font-bold text-cta-700 dark:text-cta-400">
-                      +${(b.price * 0.85).toFixed(0)}
+                      +${(b.detailerPayout ?? detailerPayoutEstimate(b.price)).toFixed(0)}
                     </span>
                     <span className={`ml-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-slate-200 transition-transform duration-200 dark:bg-white/10 dark:ring-white/10 ${isExpanded ? 'rotate-180' : ''}`} aria-hidden="true">
                       <ChevronDownIcon className="h-4 w-4 text-slate-400" />
@@ -383,7 +384,7 @@ export default function DetailerDashboard() {
                               <p className="truncate text-sm font-bold text-white drop-shadow-sm">{b.vehicle ?? b.service}</p>
                               <p className="truncate text-xs text-white/80">{b.customerName} · {fullWhen}</p>
                             </div>
-                            <span className="shrink-0 rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-900 shadow-sm">+${(b.price * 0.85).toFixed(0)}</span>
+                            <span className="shrink-0 rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-900 shadow-sm">+${(b.detailerPayout ?? detailerPayoutEstimate(b.price)).toFixed(0)}</span>
                           </div>
                         </div>
                         <div className="space-y-2 px-5 py-4 text-sm">

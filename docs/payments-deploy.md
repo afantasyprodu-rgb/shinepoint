@@ -41,7 +41,9 @@ Get your keys from Stripe → Developers → API keys.
 
 ```bash
 supabase secrets set STRIPE_SECRET_KEY=sk_test_xxx
-supabase secrets set PLATFORM_FEE_PERCENT=15
+# PLATFORM_FEE_PERCENT is optional — omit it to use the tiered schedule in
+# supabase/functions/_shared/fees.ts (15% down to 7% as price goes up); set
+# it only to force a single flat rate everywhere instead.
 supabase secrets set CRON_SECRET=$(openssl rand -hex 24)
 supabase secrets set RESEND_API_KEY=re_your_key_here
 supabase secrets set RESEND_FROM="ShinePoint <notifications@yourdomain.com>"
@@ -168,6 +170,6 @@ select cron.schedule(
 
 ## Notes / future hardening
 
-- **Fee:** `PLATFORM_FEE_PERCENT` (default 15) is taken on `total_price` (the service price, net of any promo discount). Tips are charged separately (`charge-tip`) and are 100% the detailer's — no platform fee.
+- **Fee:** tiered, taken on `total_price` (the service price, net of any promo discount) — see `supabase/functions/_shared/fees.ts` for the schedule (15% under $100, stepping down to 7% at $1,000+). `PLATFORM_FEE_PERCENT` overrides it with a flat rate everywhere, if set. Tips are charged separately (`charge-tip`) and are 100% the detailer's — no platform fee.
 - **Real Stripe disputes (chargebacks):** wired since 040 — `charge.dispute.created` (endpoint A, above) pushes `payout_hold_until` a year out on the linked booking so `release-payouts` can't transfer money mid-chargeback. This is separate from the in-app dispute flow (`fileDispute` → booking status `'disputed'`), which is the normal path for a customer/detailer complaint and gates the payout hold the same way.
 - **Go live:** swap test keys for live keys, re-run steps 1–5 with the live webhook endpoint and a live `CRON_SECRET`, and complete Stripe's live-mode Connect activation.
