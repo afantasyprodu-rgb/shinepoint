@@ -5,11 +5,13 @@ import AppShell from '../components/AppShell'
 import Modal from '../components/ui/Modal'
 import MarketingTip from '../components/MarketingTip'
 import { useStore } from '../context/StoreContext'
+import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
-import { CheckIcon, ShieldCheckIcon, CreditCardIcon, ClipboardCheckIcon, UsersIcon, PlusIcon, XIcon, LightbulbIcon, ClockIcon, StarIcon, SparklesIcon, CameraIcon } from '../components/icons'
+import { CheckIcon, ShieldCheckIcon, CreditCardIcon, ClipboardCheckIcon, UsersIcon, PlusIcon, XIcon, LightbulbIcon, ClockIcon, StarIcon, SparklesIcon, CameraIcon, FileTextIcon, TagIcon, ChevronLeftIcon } from '../components/icons'
 import { InfoPopover } from '../components/ui/bits'
 import { startIdentityVerification, startConnectOnboarding, isStripeConfigured, stripePromise } from '../lib/stripe'
 import { fetchMyPayoutStatus, extractFlyerPrices } from '../lib/db'
+import { readServicesDraft, writeServicesDraft, clearServicesDraft } from '../lib/onboardingDraft'
 import { useT } from '../i18n/useT'
 
 // Maps the real detailer_profiles.identity_status ('unverified' | 'pending' |
@@ -21,19 +23,8 @@ function idStatusFromProfile(status) {
   return 'idle'
 }
 
-// Two chunked groups of 4 (Miller's Law — easier to scan than one flat list
-// of 8), each ordered so the single most-wanted item leads and the next-most
-// leads the other group, since users disproportionately remember/act on the
-// first and last items in a list (serial position effect): "Full Detail" is
-// the flagship (leads group 1), "Ceramic Coating" is the best-margin add-on
-// (leads group 2).
-const SERVICE_GROUPS = [
-  { label: 'Core services', items: ['Full Detail', 'Exterior Wash', 'Interior Deep Clean', 'Wax & Seal'] },
-  { label: 'Premium add-ons', items: ['Ceramic Coating', 'Pet Hair Removal', 'Engine Bay Clean', 'Headlight Restoration'] },
-]
-const SERVICE_MENU = SERVICE_GROUPS.flatMap((g) => g.items)
-
-// Per-service coaching shown when a detailer enables it.
+// Per-service coaching shown when a detailer's added one of these by name
+// (from the example template, or by typing the same name manually).
 const SERVICE_ADVICE_KEYS = {
   'Interior Deep Clean': 'adviceInteriorDeepClean',
   'Pet Hair Removal': 'advicePetHairRemoval',
@@ -54,6 +45,8 @@ const EXAMPLE_TEMPLATE = { 'Exterior Wash': 45, 'Full Detail': 175, 'Interior De
 export default function DetailerOnboarding() {
   const navigate = useNavigate()
   const { isDemo, saveOnboarding, detailerProfile } = useStore()
+  const { session } = useAuth()
+  const draftUserId = isDemo ? null : session?.user?.id
   const { theme } = useTheme()
   const t = useT('detailerOnboarding')
   const STEPS = STEP_KEYS.map((k) => t(k))
@@ -78,11 +71,17 @@ export default function DetailerOnboarding() {
   const [bio, setBio] = useState('')
   const [zip, setZip] = useState('')
   const [vehicles] = useState(['Sedan', 'SUV'])
-  const [services, setServices] = useState({ 'Exterior Wash': 45, 'Full Detail': 175 })
+  // Services step — picking a pricing path (flyer / template / manual) is a
+  // separate choice from the prices themselves, and both are restored from a
+  // localStorage draft so backing out or closing the tab mid-setup doesn't
+  // lose the work (the wizard has no save button until final submit).
+  const initialServicesDraft = () => readServicesDraft(draftUserId)
+  const [serviceMethod, setServiceMethod] = useState(() => initialServicesDraft()?.serviceMethod ?? null)
+  const [services, setServices] = useState(() => initialServicesDraft()?.services ?? {})
   // Which enabled service gets the single "Best margin" highlight (Von
   // Restorff — only one thing should visually stand out, and it should be
   // the detailer's own call, not a hardcoded guess at their pricing).
-  const [featuredService, setFeaturedService] = useState(null)
+  const [featuredService, setFeaturedService] = useState(() => initialServicesDraft()?.featuredService ?? null)
   const [customName, setCustomName] = useState('')
   const [customPrice, setCustomPrice] = useState('')
   const [days, setDays] = useState(['Mon', 'Tue', 'Wed', 'Thu', 'Fri'])
@@ -100,10 +99,6 @@ export default function DetailerOnboarding() {
   const [teamSize, setTeamSize] = useState(null)
   const [referralSource, setReferralSource] = useState(null)
 
-  // Flyer-to-template — once dismissed (uploaded, skipped, or example used)
-  // the prompt card stays hidden so it doesn't reappear every time this step
-  // is revisited via Back/Continue.
-  const [flyerDismissed, setFlyerDismissed] = useState(false)
   const [flyerBusy, setFlyerBusy] = useState(false)
   const [flyerError, setFlyerError] = useState('')
 
@@ -118,7 +113,6 @@ export default function DetailerOnboarding() {
       const extracted = await extractFlyerPrices(file)
       setServices(Object.fromEntries(extracted.map((s) => [s.name, s.price])))
       setFeaturedService(null)
-      setFlyerDismissed(true)
     } catch (err) {
       setFlyerError(err.message || t('flyerExtractFailed'))
     } finally {
@@ -126,11 +120,18 @@ export default function DetailerOnboarding() {
     }
   }
 
-  function useExampleTemplate() {
+  function applyExampleTemplate() {
     setServices(EXAMPLE_TEMPLATE)
     setFeaturedService(null)
-    setFlyerDismissed(true)
+    setServiceMethod('template')
   }
+
+  // Persist the pricing-path draft so it survives Back navigation and
+  // closing the tab entirely, until onboarding is actually submitted.
+  useEffect(() => {
+    if (!draftUserId) return
+    writeServicesDraft(draftUserId, { serviceMethod, services, featuredService })
+  }, [draftUserId, serviceMethod, services, featuredService])
 
   useEffect(() => {
     if (isDemo) return
@@ -148,9 +149,6 @@ export default function DetailerOnboarding() {
       setConnectError(e.message || t('idStartError'))
     }
   }
-
-  // Anything in `services` that isn't on the standard menu is a custom add.
-  const customServices = Object.keys(services).filter((n) => !SERVICE_MENU.includes(n))
 
   function addCustomService() {
     const name = customName.trim()
@@ -227,6 +225,7 @@ export default function DetailerOnboarding() {
         teamSize,
         referralSource,
       })
+      clearServicesDraft(draftUserId)
       setSubmitted(true)
     } catch (e) {
       setSaveError(e?.message || t('saveApplicationError'))
@@ -237,16 +236,6 @@ export default function DetailerOnboarding() {
 
   function toggle(list, setList, item) {
     setList(list.includes(item) ? list.filter((x) => x !== item) : [...list, item])
-  }
-
-  function toggleService(name) {
-    setServices((s) => {
-      const next = { ...s }
-      if (name in next) delete next[name]
-      else next[name] = 50
-      return next
-    })
-    setFeaturedService((f) => (f === name ? null : f))
   }
 
   const canContinue = [
@@ -582,165 +571,160 @@ export default function DetailerOnboarding() {
                   {t('tipPriceBody')}
                 </MarketingTip>
 
-                {!flyerDismissed && (
-                  <div className="card space-y-3 border-brand-300 !p-4 dark:border-brand-400/40">
-                    <div className="flex items-start gap-2">
-                      <SparklesIcon className="mt-0.5 h-5 w-5 shrink-0 text-brand-600 dark:text-brand-300" />
-                      <div>
-                        <p className="font-semibold text-slate-900 dark:text-slate-100">{t('flyerPromptTitle')}</p>
-                        <p className="text-sm text-slate-600 dark:text-slate-400">{t('flyerPromptBody')}</p>
-                      </div>
-                    </div>
-                    {flyerError && (
-                      <p role="alert" className="text-sm text-red-600 dark:text-red-400">{flyerError}</p>
-                    )}
-                    <div className="flex flex-wrap gap-2">
-                      <label className={`btn btn-brand cursor-pointer ${flyerBusy ? 'pointer-events-none opacity-70' : ''}`}>
-                        {flyerBusy
-                          ? <span className="inline-flex items-center gap-2"><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />{t('flyerScanning')}</span>
-                          : <span className="inline-flex items-center gap-2"><CameraIcon className="h-4 w-4" />{t('flyerUploadCta')}</span>}
-                        <input type="file" accept="image/*" className="hidden" onChange={handleFlyerUpload} disabled={flyerBusy} />
-                      </label>
-                      <button type="button" onClick={useExampleTemplate} disabled={flyerBusy} className="btn btn-outline">
-                        {t('flyerUseExample')}
-                      </button>
-                      <button type="button" onClick={() => setFlyerDismissed(true)} disabled={flyerBusy} className="text-sm font-medium text-slate-500 underline hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">
-                        {t('flyerSkip')}
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {flyerDismissed && (
-                  <div className="mb-1 text-right">
-                    <button type="button" onClick={() => setFlyerDismissed(false)} className="text-sm font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300">
-                      {t('flyerTryAgain')}
-                    </button>
-                  </div>
-                )}
-
-                {SERVICE_GROUPS.map((group) => (
-                  <div key={group.label} className="space-y-2">
-                    <p className="pt-1 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
-                      {group.label === 'Core services' ? t('coreServices') : t('premiumAddOns')}
-                    </p>
-                    {group.items.map((name) => {
-                  const on = name in services
-                  const advice = SERVICE_ADVICE_KEYS[name] ? t(SERVICE_ADVICE_KEYS[name]) : null
-                  const isBestMargin = name === featuredService
-                  return (
-                    <div key={name} className={`card !p-4 transition-colors duration-200 ${on ? 'border-brand-400 dark:border-brand-400/60' : ''} ${isBestMargin ? 'ring-1 ring-amber-300 dark:ring-amber-500/30' : ''}`}>
-                      <div className="flex items-center justify-between gap-3">
-                        <button type="button" aria-pressed={on} onClick={() => toggleService(name)}
-                          className="flex min-w-0 cursor-pointer items-center gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600">
-                          <motion.span animate={{ backgroundColor: on ? '#f40076' : pipOff }} className="flex h-6 w-10 shrink-0 items-center rounded-full p-0.5">
-                            <motion.span animate={{ x: on ? 16 : 0 }} transition={{ type: 'spring', stiffness: 400, damping: 25 }} className="h-5 w-5 rounded-full bg-white shadow" />
-                          </motion.span>
-                          <span className={`truncate font-medium ${on ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}`}>{name}</span>
-                        </button>
-                        {on && (
-                          <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex shrink-0 items-center gap-1">
-                            <span className="text-slate-500 dark:text-slate-400">$</span>
-                            <input type="number" min={10} aria-label={t('priceAria', { name })} value={services[name]}
-                              onChange={(e) => setServices((s) => ({ ...s, [name]: Number(e.target.value) }))}
-                              className="input h-9 w-20" />
-                          </motion.div>
-                        )}
-                      </div>
-                      {on && (
-                        <div className="mt-2 flex items-center justify-between gap-3 border-t border-brand-100 pt-2 dark:border-white/10">
-                          {advice ? (
-                            <p className="flex gap-1.5 text-xs text-brand-700 dark:text-brand-300">
-                              <LightbulbIcon className="h-3.5 w-3.5 shrink-0" />
-                              {advice}
-                            </p>
-                          ) : <span />}
-                          <button
-                            type="button"
-                            onClick={() => setFeaturedService((f) => (f === name ? null : name))}
-                            aria-pressed={isBestMargin}
-                            title={isBestMargin ? t('unmarkBestMargin') : t('markBestMarginTitle')}
-                            className={`flex shrink-0 cursor-pointer items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
-                              isBestMargin
-                                ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400'
-                                : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:text-slate-500 dark:hover:bg-white/5 dark:hover:text-slate-300'
-                            }`}
-                          >
-                            <StarIcon className="h-3.5 w-3.5" />
-                            {isBestMargin ? t('bestMargin') : t('markAsBestMargin')}
-                          </button>
+                {!serviceMethod ? (
+                  <div className="space-y-3">
+                    {[
+                      ['flyer', CameraIcon, 'methodFlyerTitle', 'methodFlyerBody'],
+                      ['template', FileTextIcon, 'methodTemplateTitle', 'methodTemplateBody'],
+                      ['manual', TagIcon, 'methodManualTitle', 'methodManualBody'],
+                    ].map(([method, Icon, titleKey, bodyKey]) => (
+                      <button
+                        key={method}
+                        type="button"
+                        onClick={() => (method === 'template' ? applyExampleTemplate() : setServiceMethod(method))}
+                        className="card flex w-full cursor-pointer items-start gap-3 !p-5 text-left transition-all duration-200 hover:border-brand-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+                      >
+                        <Icon className="mt-0.5 h-5 w-5 shrink-0 text-brand-600 dark:text-brand-300" />
+                        <div>
+                          <p className="font-semibold text-slate-900 dark:text-slate-100">{t(titleKey)}</p>
+                          <p className="text-sm text-slate-600 dark:text-slate-400">{t(bodyKey)}</p>
                         </div>
-                      )}
-                    </div>
-                  )
-                    })}
+                      </button>
+                    ))}
                   </div>
-                ))}
-
-                {/* Custom services as removable bubbles */}
-                {customServices.length > 0 && (
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    <AnimatePresence>
-                      {customServices.map((name) => (
-                        <motion.span
-                          key={name}
-                          layout
-                          initial={{ opacity: 0, scale: 0.8 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.8 }}
-                          transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-                          className="inline-flex items-center gap-2 rounded-full border border-brand-300 bg-brand-100 py-1.5 pl-3 pr-1.5 text-sm font-medium text-brand-800 dark:border-brand-500/30 dark:bg-brand-500/15 dark:text-brand-300"
-                        >
-                          {name} · ${services[name]}
-                          <button type="button" aria-label={t('removeService', { name })} onClick={() => removeService(name)}
-                            className="flex h-5 w-5 cursor-pointer items-center justify-center rounded-full text-brand-600 transition-colors duration-200 hover:bg-brand-200 hover:text-brand-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-brand-300 dark:hover:bg-brand-500/25 dark:hover:text-brand-100">
-                            <XIcon className="h-3.5 w-3.5" />
-                          </button>
-                        </motion.span>
-                      ))}
-                    </AnimatePresence>
-                  </div>
-                )}
-
-                {/* Add a custom service */}
-                <div className="card !p-4">
-                  <p className="label">{t('addOwnService')}</p>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <input
-                      type="text"
-                      aria-label={t('customServiceNameAria')}
-                      value={customName}
-                      onChange={(e) => setCustomName(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addCustomService())}
-                      placeholder={t('customServiceNamePlaceholder')}
-                      className="input h-10 min-w-0 flex-1"
-                    />
-                    <div className="flex items-center gap-1">
-                      <span className="text-slate-500 dark:text-slate-400">$</span>
-                      <input
-                        type="number"
-                        min={1}
-                        aria-label={t('customServicePriceAria')}
-                        value={customPrice}
-                        onChange={(e) => setCustomPrice(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addCustomService())}
-                        placeholder="0"
-                        className="input h-10 w-20"
-                      />
-                    </div>
+                ) : (
+                  <>
                     <button
                       type="button"
-                      onClick={addCustomService}
-                      disabled={!customName.trim() || !Number(customPrice)}
-                      className="btn btn-brand h-10 px-4 text-sm"
+                      onClick={() => setServiceMethod(null)}
+                      className="mb-1 flex cursor-pointer items-center gap-1 text-sm font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
                     >
-                      <PlusIcon className="h-4 w-4" /> {t('add')}
+                      <ChevronLeftIcon className="h-3.5 w-3.5" /> {t('changeMethod')}
                     </button>
-                  </div>
-                  <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
-                    {t('addServiceHint')}
-                  </p>
-                </div>
+
+                    {serviceMethod === 'flyer' && (
+                      <div className="card space-y-3 border-brand-300 !p-4 dark:border-brand-400/40">
+                        <div className="flex items-start gap-2">
+                          <SparklesIcon className="mt-0.5 h-5 w-5 shrink-0 text-brand-600 dark:text-brand-300" />
+                          <div>
+                            <p className="font-semibold text-slate-900 dark:text-slate-100">{t('flyerPromptTitle')}</p>
+                            <p className="text-sm text-slate-600 dark:text-slate-400">{t('flyerPromptBody')}</p>
+                          </div>
+                        </div>
+                        {flyerError && (
+                          <p role="alert" className="text-sm text-red-600 dark:text-red-400">{flyerError}</p>
+                        )}
+                        <label className={`btn btn-brand inline-flex cursor-pointer ${flyerBusy ? 'pointer-events-none opacity-70' : ''}`}>
+                          {flyerBusy
+                            ? <span className="inline-flex items-center gap-2"><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />{t('flyerScanning')}</span>
+                            : <span className="inline-flex items-center gap-2"><CameraIcon className="h-4 w-4" />{Object.keys(services).length > 0 ? t('flyerUploadAgainCta') : t('flyerUploadCta')}</span>}
+                          <input type="file" accept="image/*" className="hidden" onChange={handleFlyerUpload} disabled={flyerBusy} />
+                        </label>
+                      </div>
+                    )}
+
+                    {Object.keys(services).length > 0 && (
+                      <div className="space-y-2 pt-1">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                          {t('yourServices')}
+                        </p>
+                        <AnimatePresence>
+                          {Object.keys(services).map((name) => {
+                            const advice = SERVICE_ADVICE_KEYS[name] ? t(SERVICE_ADVICE_KEYS[name]) : null
+                            const isBestMargin = name === featuredService
+                            return (
+                              <motion.div
+                                key={name}
+                                layout
+                                initial={{ opacity: 0, y: -6 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                                className={`card !p-4 transition-colors duration-200 ${isBestMargin ? 'ring-1 ring-amber-300 dark:ring-amber-500/30' : ''}`}
+                              >
+                                <div className="flex items-center justify-between gap-3">
+                                  <span className="min-w-0 truncate font-medium text-slate-900 dark:text-slate-100">{name}</span>
+                                  <div className="flex shrink-0 items-center gap-1">
+                                    <span className="text-slate-500 dark:text-slate-400">$</span>
+                                    <input type="number" min={1} aria-label={t('priceAria', { name })} value={services[name]}
+                                      onChange={(e) => setServices((s) => ({ ...s, [name]: Number(e.target.value) }))}
+                                      className="input h-9 w-20" />
+                                    <button type="button" aria-label={t('removeService', { name })} onClick={() => removeService(name)}
+                                      className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-slate-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:hover:bg-red-500/10 dark:hover:text-red-400">
+                                      <XIcon className="h-4 w-4" />
+                                    </button>
+                                  </div>
+                                </div>
+                                <div className="mt-2 flex items-center justify-between gap-3 border-t border-brand-100 pt-2 dark:border-white/10">
+                                  {advice ? (
+                                    <p className="flex gap-1.5 text-xs text-brand-700 dark:text-brand-300">
+                                      <LightbulbIcon className="h-3.5 w-3.5 shrink-0" />
+                                      {advice}
+                                    </p>
+                                  ) : <span />}
+                                  <button
+                                    type="button"
+                                    onClick={() => setFeaturedService((f) => (f === name ? null : name))}
+                                    aria-pressed={isBestMargin}
+                                    title={isBestMargin ? t('unmarkBestMargin') : t('markBestMarginTitle')}
+                                    className={`flex shrink-0 cursor-pointer items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
+                                      isBestMargin
+                                        ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400'
+                                        : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:text-slate-500 dark:hover:bg-white/5 dark:hover:text-slate-300'
+                                    }`}
+                                  >
+                                    <StarIcon className="h-3.5 w-3.5" />
+                                    {isBestMargin ? t('bestMargin') : t('markAsBestMargin')}
+                                  </button>
+                                </div>
+                              </motion.div>
+                            )
+                          })}
+                        </AnimatePresence>
+                      </div>
+                    )}
+
+                    {/* Add a service */}
+                    <div className="card !p-4">
+                      <p className="label">{t('addOwnService')}</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <input
+                          type="text"
+                          aria-label={t('customServiceNameAria')}
+                          value={customName}
+                          onChange={(e) => setCustomName(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addCustomService())}
+                          placeholder={t('customServiceNamePlaceholder')}
+                          className="input h-10 min-w-0 flex-1"
+                        />
+                        <div className="flex items-center gap-1">
+                          <span className="text-slate-500 dark:text-slate-400">$</span>
+                          <input
+                            type="number"
+                            min={1}
+                            aria-label={t('customServicePriceAria')}
+                            value={customPrice}
+                            onChange={(e) => setCustomPrice(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addCustomService())}
+                            placeholder="0"
+                            className="input h-10 w-20"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={addCustomService}
+                          disabled={!customName.trim() || !Number(customPrice)}
+                          className="btn btn-brand h-10 px-4 text-sm"
+                        >
+                          <PlusIcon className="h-4 w-4" /> {t('add')}
+                        </button>
+                      </div>
+                      <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
+                        {t('addServiceHint')}
+                      </p>
+                    </div>
+                  </>
+                )}
               </div>
             )}
 
