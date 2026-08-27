@@ -24,11 +24,13 @@ export default function BottomTabBar({ items, hidden = false }) {
   const notchX = `${((activeIndex + 0.5) / items.length) * 100}%`
 
   // Pressing a tab nudges the droplet to "splat" into a puddle (see the
-  // WaterDroplet puddle animation). Lifting off lets it reform. We use
-  // pointer capture on the nav so a press that starts on one tab and slides
-  // is treated as a single press.
-  const onPointerDown = (e) => {
-    e.currentTarget.setPointerCapture?.(e.pointerId)
+  // WaterDroplet puddle animation). Lifting off lets it reform. Deliberately
+  // NOT pointer-capturing on the nav here: setPointerCapture on an ancestor
+  // of the NavLink <a> stopped the click event from ever reaching it in
+  // Chromium — the bar visibly pressed/puddled but every tap silently failed
+  // to navigate. onPointerUp/Cancel/Leave below already cover "release
+  // happened somewhere in the bar" via normal bubbling, no capture needed.
+  const onPointerDown = () => {
     setPressed(true)
   }
   const onPointerUp = () => setPressed(false)
