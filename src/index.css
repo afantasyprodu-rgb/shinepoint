@@ -1270,9 +1270,30 @@
   border-radius: 50% 50% 50% 4px;
   background: linear-gradient(135deg in oklch, var(--color-brand-500), var(--color-brand-700));
   box-shadow:
-    0 6px 14px -4px color-mix(in srgb, var(--color-brand-600) 60%, transparent),
-    inset 2px 2px 4px rgba(255, 255, 255, 0.3),
-    inset -2px -2px 4px rgba(0, 0, 0, 0.15);
+    0 10px 22px -4px color-mix(in srgb, var(--color-brand-700) 68%, transparent),
+    0 4px 8px -2px rgba(0, 0, 0, 0.18),
+    inset 2px 2px 4px rgba(255, 255, 255, 0.28),
+    inset -2px -3px 6px rgba(255, 255, 255, 0.12);
+}
+
+/* Puddle wrapper — the droplet spreads flat on press and casts a wider,
+   wetter pool of shadow onto the bar. A separate pseudo-element carries the
+   splat shadow so it can scale with the puddle without clipping against the
+   droplet's own box-shadow above. */
+.nx-tab-drop-puddle {
+  position: relative;
+}
+.nx-tab-drop-puddle::after {
+  content: "";
+  position: absolute;
+  left: -6px;
+  right: -6px;
+  bottom: -4px;
+  top: -4px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-brand-700) 30%, transparent);
+  filter: blur(6px);
+  z-index: -1;
 }
 
 /* Idle wobble — surface tension holding a blob together in freefall, where
@@ -1335,9 +1356,58 @@
 .nx-tab-drop-float {
   animation: nx-drop-float 5.8s ease-in-out infinite;
 }
+
+/* Active-icon warp — the glyph rides INSIDE the droplet and squishes and
+   stretches in lockstep with the blob's idle morph (same duration +
+   percentages as nx-drop-idle) so it feels part of the liquid body.
+   Scale-only, no skew: the refraction/shear was dropped deliberately so the
+   icon just answers the droplet's wobble instead of looking distorted. */
+@keyframes nx-icon-warp {
+  0%,
+  100% {
+    transform: scale(1, 1);
+  }
+  15% {
+    transform: scale(1.04, 0.96);
+  }
+  35% {
+    transform: scale(0.96, 1.06);
+  }
+  55% {
+    transform: scale(1.03, 0.97);
+  }
+  75% {
+    transform: scale(0.98, 1.03);
+  }
+}
+.nx-icon-warp {
+  display: inline-flex;
+  animation: nx-icon-warp 7.5s ease-in-out infinite;
+}
+/* Icon mounted inside the droplet. The droplet shape is rotated -45deg, so
+   counter-rotate here to keep the glyph upright. top: 34% places it in the
+   round body (visual centre) rather than down at the sharp point, so it's
+   centred the way the mockup was. It also carries the idle warp so it
+   breathes WITH the blob. */
+.nx-tab-drop-icon {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 34%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+.nx-tab-drop-icon svg {
+  color: #fff;
+  animation: nx-icon-warp 7.5s ease-in-out infinite;
+}
 @media (prefers-reduced-motion: reduce) {
   .nx-tab-drop-idle,
-  .nx-tab-drop-float {
+  .nx-tab-drop-float,
+  .nx-icon-warp {
     animation: none;
   }
 }
