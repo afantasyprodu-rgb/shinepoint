@@ -228,9 +228,10 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
 
     // Role also rides in the redirect URL itself (not just localStorage) since
     // storage can be partitioned/cleared across the Google redirect hop.
-    // On native, window.location.origin is Capacitor's local webview origin
-    // (e.g. https://localhost), not a URL Google/Supabase can bounce back
-    // into the app with — it has to be the shinepoint:// deep link that
+    // On native, window.location.origin is https://shinepoint.app (Capacitor's
+    // server.hostname override, capacitor.config.ts) but that's still not a
+    // URL Google/Supabase can bounce back into the app with — it has to be
+    // the shinepoint:// deep link that
     // NativeBridge's appUrlOpen listener catches instead, or the OAuth
     // flow completes in the system browser and just strands the user on
     // the web page instead of returning to the app.
