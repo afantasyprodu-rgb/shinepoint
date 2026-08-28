@@ -35,7 +35,9 @@ function Field({ index, children }) {
 // standalone=true (default): renders as a full centered page with logo.
 // standalone=false: renders just the form content (for embedding in DesktopLanding).
 // onAuthenticated: optional callback, parent handles nav (desktop fly-through).
-export default function AuthCard({ defaultMode = 'login', role = 'customer', onAuthenticated, standalone = true }) {
+// showBackLink=false: hides the "Back" link to "/" — for callers where this
+// IS the root screen (native), so it isn't a no-op link back to itself.
+export default function AuthCard({ defaultMode = 'login', role = 'customer', onAuthenticated, standalone = true, showBackLink = true }) {
   const navigate = useNavigate()
   const t = useT('auth')
   const reduce = useReducedMotion()
@@ -529,13 +531,15 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
       )}
       <LanguageToggle className="fixed right-4 top-4 z-50 border border-brand-100 bg-white/90 text-slate-700 shadow-sm backdrop-blur hover:bg-slate-50" />
       <div className="auth-card auth-card-surface">
-        <Link
-          to="/"
-          className="mb-2 inline-flex items-center gap-1 text-sm text-slate-500 transition-colors hover:text-slate-700"
-        >
-          <ChevronLeftIcon className="h-4 w-4" />
-          {t('back')}
-        </Link>
+        {showBackLink && (
+          <Link
+            to="/"
+            className="mb-2 inline-flex items-center gap-1 text-sm text-slate-500 transition-colors hover:text-slate-700"
+          >
+            <ChevronLeftIcon className="h-4 w-4" />
+            {t('back')}
+          </Link>
+        )}
         <div className="auth-logo-block">
           <div className="relative">
             <div className="absolute inset-0 -z-10 scale-[2] rounded-full bg-brand-100/60 blur-xl" />

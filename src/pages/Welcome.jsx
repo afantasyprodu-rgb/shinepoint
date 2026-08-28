@@ -69,7 +69,7 @@ export default function Welcome() {
   // grid, detailer CTA) is web-only, and the app is for people who already
   // have (or are about to create) an account, not acquisition browsing.
   if (Capacitor.isNativePlatform()) {
-    return <AuthCard defaultMode="login" />
+    return <AuthCard defaultMode="login" showBackLink={false} />
   }
 
   // Product guarantees, not metrics. The app hasn't launched, so there is no
