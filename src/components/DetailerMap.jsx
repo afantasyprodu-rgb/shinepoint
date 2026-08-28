@@ -153,34 +153,42 @@ function layoutMarkers(map, markersRef) {
   const entries = Array.from(markersRef.current.values())
   if (!entries.length) return
 
-  const points = entries.map((marker) => ({ marker, pt: map.project(marker._basePin, zoom) }))
-  const visited = new Array(points.length).fill(false)
+  // Every point starts at its true projected position. Iterative pairwise
+  // repulsion (not a one-shot "group into a circle" pass) is what actually
+  // guarantees no two pins end up closer than PIXEL_MIN_DIST: a discrete
+  // grouping pass only resolves overlaps *within* a group it detected up
+  // front, so two separately-detected mini-clusters (e.g. two nearby zip
+  // codes) could each spread out fine on their own and still collide with
+  // each other, since neither pass knew about the other's members. Running
+  // every pin against every other pin, repeatedly, catches that case (and
+  // chains of 3+ overlapping pins) too.
+  const pts = entries.map((marker) => map.project(marker._basePin, zoom))
 
-  for (let i = 0; i < points.length; i++) {
-    if (visited[i]) continue
-    const group = [i]
-    visited[i] = true
-    for (let j = i + 1; j < points.length; j++) {
-      if (visited[j]) continue
-      if (points[i].pt.distanceTo(points[j].pt) < PIXEL_MIN_DIST) {
-        group.push(j)
-        visited[j] = true
+  for (let iter = 0; iter < 12; iter++) {
+    let moved = false
+    for (let i = 0; i < pts.length; i++) {
+      for (let j = i + 1; j < pts.length; j++) {
+        const dx = pts[j].x - pts[i].x
+        const dy = pts[j].y - pts[i].y
+        const dist = Math.sqrt(dx * dx + dy * dy)
+        if (dist >= PIXEL_MIN_DIST) continue
+        moved = true
+        // Deterministic push direction (seeded by index) for the
+        // exactly-coincident case, instead of Math.random — keeps the
+        // layout reproducible between renders.
+        const ux = dist > 0.01 ? dx / dist : Math.cos(i - j)
+        const uy = dist > 0.01 ? dy / dist : Math.sin(i - j)
+        const push = (PIXEL_MIN_DIST - dist) / 2 + 0.5
+        pts[i].x -= ux * push
+        pts[i].y -= uy * push
+        pts[j].x += ux * push
+        pts[j].y += uy * push
       }
     }
-    if (group.length === 1) {
-      points[i].marker.setLatLng(points[i].marker._basePin)
-      continue
-    }
-    const center = group
-      .reduce((acc, idx) => acc.add(points[idx].pt), L.point(0, 0))
-      .divideBy(group.length)
-    const radius = PIXEL_MIN_DIST * 0.7
-    group.forEach((idx, k) => {
-      const angle = (2 * Math.PI * k) / group.length
-      const offsetPt = center.add(L.point(Math.cos(angle) * radius, Math.sin(angle) * radius))
-      points[idx].marker.setLatLng(map.unproject(offsetPt, zoom))
-    })
+    if (!moved) break
   }
+
+  entries.forEach((marker, idx) => marker.setLatLng(map.unproject(pts[idx], zoom)))
 }
 
 export default function DetailerMap({ detailers, focus }) {
