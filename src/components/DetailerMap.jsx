@@ -137,6 +137,52 @@ function popupHtml(d) {
     </div>`
 }
 
+// Two or more detailer pins can land at (near-)identical screen positions —
+// same zip, close jitter in fuzzyPin.js, or just a tight real-world cluster —
+// and whichever Leaflet stacks on top then blocks every pin under it from
+// being tapped at all. This spreads any pins within PIXEL_MIN_DIST of each
+// other into a small circle around their shared center so every pin stays
+// individually tappable, recomputed on zoom (pixel distances change with
+// zoom; panning doesn't, so zoomend alone is enough). Markers keep their
+// true coordinates in `_basePin` — only the on-map position is nudged.
+const PIXEL_MIN_DIST = 26
+
+function layoutMarkers(map, markersRef) {
+  if (!map) return
+  const zoom = map.getZoom()
+  const entries = Array.from(markersRef.current.values())
+  if (!entries.length) return
+
+  const points = entries.map((marker) => ({ marker, pt: map.project(marker._basePin, zoom) }))
+  const visited = new Array(points.length).fill(false)
+
+  for (let i = 0; i < points.length; i++) {
+    if (visited[i]) continue
+    const group = [i]
+    visited[i] = true
+    for (let j = i + 1; j < points.length; j++) {
+      if (visited[j]) continue
+      if (points[i].pt.distanceTo(points[j].pt) < PIXEL_MIN_DIST) {
+        group.push(j)
+        visited[j] = true
+      }
+    }
+    if (group.length === 1) {
+      points[i].marker.setLatLng(points[i].marker._basePin)
+      continue
+    }
+    const center = group
+      .reduce((acc, idx) => acc.add(points[idx].pt), L.point(0, 0))
+      .divideBy(group.length)
+    const radius = PIXEL_MIN_DIST * 0.7
+    group.forEach((idx, k) => {
+      const angle = (2 * Math.PI * k) / group.length
+      const offsetPt = center.add(L.point(Math.cos(angle) * radius, Math.sin(angle) * radius))
+      points[idx].marker.setLatLng(map.unproject(offsetPt, zoom))
+    })
+  }
+}
+
 export default function DetailerMap({ detailers, focus }) {
   const containerRef = useRef(null)
   const mapRef = useRef(null)
@@ -164,6 +210,8 @@ export default function DetailerMap({ detailers, focus }) {
     const t = TILES[theme] ?? TILES.light
     tileRef.current = L.tileLayer(t.url, { attribution: t.attribution, maxZoom: 19 }).addTo(map)
     mapRef.current = map
+    const onZoomEnd = () => layoutMarkers(mapRef.current, markersRef)
+    map.on('zoomend', onZoomEnd)
     // Snapshot for the cleanup below: markersRef.current is reassigned
     // elsewhere, and reading the ref at cleanup time would clear whatever
     // Map is current THEN — not the one this effect created.
@@ -193,6 +241,7 @@ export default function DetailerMap({ detailers, focus }) {
     }
 
     return () => {
+      map.off('zoomend', onZoomEnd)
       map.remove()
       mapRef.current = null
       markers.clear()
@@ -243,13 +292,19 @@ export default function DetailerMap({ detailers, focus }) {
             autoPanPadding: [16, 90],
           })
           .addTo(map)
+        // True coordinates, kept separate from the marker's on-map position
+        // so layoutMarkers() (below) can nudge overlapping pins apart
+        // without losing track of where they actually are.
+        marker._basePin = { lat: d.pin.lat, lng: d.pin.lng }
         // Tapping a pin centers it — same zoom, just re-centered — before
         // Leaflet's own click handler opens the popup (autoPan is off above
         // so the two pans don't fight). Shifted down from dead-center so the
         // popup, which grows upward from the pin, clears the search/filter
         // chrome pinned to the top of the map instead of running under it.
+        // Uses the marker's current (possibly de-overlap-nudged) position so
+        // the map centers on where the pin is actually drawn.
         marker.on('click', () => {
-          const targetPoint = map.project([d.pin.lat, d.pin.lng], map.getZoom()).subtract([0, 90])
+          const targetPoint = map.project(marker.getLatLng(), map.getZoom()).subtract([0, 90])
           const targetLatLng = map.unproject(targetPoint, map.getZoom())
           map.flyTo(targetLatLng, map.getZoom(), { duration: 0.5 })
         })
@@ -267,7 +322,7 @@ export default function DetailerMap({ detailers, focus }) {
         marker.on('popupopen', () => {
           if (radarRef.current) radarRef.current.remove()
           const color = PIN_COLORS[d.status] ?? PIN_COLORS.offline
-          radarRef.current = L.circle([d.pin.lat, d.pin.lng], {
+          radarRef.current = L.circle(marker.getLatLng(), {
             radius: d.travelMiles * 1609.34,
             className: 'nx-radar-ring',
             color,
@@ -286,16 +341,23 @@ export default function DetailerMap({ detailers, focus }) {
         })
         markersRef.current.set(d.id, marker)
       })
+    layoutMarkers(map, markersRef)
   }, [detailers, navigate])
 
   // "Locate" from a card (if still passed): fly to a pin and open its popup.
+  // Matches against `_basePin` (the true coordinate) rather than the
+  // marker's current position, since layoutMarkers() may have nudged it.
   useEffect(() => {
     if (!focus || !mapRef.current) return
-    mapRef.current.flyTo([focus.lat, focus.lng], 14, { duration: 1.1 })
+    let target = focus
     markersRef.current.forEach((m) => {
-      const ll = m.getLatLng()
-      if (Math.abs(ll.lat - focus.lat) < 1e-6 && Math.abs(ll.lng - focus.lng) < 1e-6) m.openPopup()
+      const base = m._basePin
+      if (base && Math.abs(base.lat - focus.lat) < 1e-6 && Math.abs(base.lng - focus.lng) < 1e-6) {
+        target = m.getLatLng()
+        m.openPopup()
+      }
     })
+    mapRef.current.flyTo(target, 14, { duration: 1.1 })
   }, [focus])
 
   function locateMe() {
