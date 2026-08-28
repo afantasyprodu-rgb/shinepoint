@@ -49,7 +49,6 @@ export const STRINGS = {
       detailerCtaBody: 'Set your own prices, radius, and hours. Get paid fast with photo-protected jobs and zero marketing spend.',
       joinAsDetailer: 'Join as a detailer',
       footerFaq: 'FAQ',
-      footerBusinessInfo: 'Business Info',
       footer: 'ShinePoint · Southern California',
     },
     auth: {
@@ -1530,7 +1529,6 @@ export const STRINGS = {
       detailerCtaBody: 'Define tus propios precios, radio y horarios. Cobra rápido con trabajos protegidos por fotos y sin gastar en marketing.',
       joinAsDetailer: 'Únete como detallista',
       footerFaq: 'Preguntas frecuentes',
-      footerBusinessInfo: 'Información del negocio',
       footer: 'ShinePoint · Los Ángeles, CA',
     },
     auth: {
