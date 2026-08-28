@@ -2,6 +2,7 @@ import { useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion, useScroll, useTransform, useReducedMotion } from 'motion/react'
 import { Capacitor } from '@capacitor/core'
+import AuthCard from '../components/AuthCard'
 import Logo from '../components/Logo'
 import ThemeToggle from '../components/ThemeToggle'
 import LanguageToggle from '../components/LanguageToggle'
@@ -63,42 +64,12 @@ export default function Welcome() {
   // advertising seeded people as if they were real, bookable pros.
   const featured = detailers.filter((d) => d.status === 'available').slice(0, 3)
 
-  // Native Android: just the background + logo + login, per product
-  // decision — the full marketing page (how-it-works, featured detailers,
-  // live-demo grid, detailer CTA) is web-only. No signup CTA in the hero,
-  // but a small link stays so a new user isn't locked out entirely — the
-  // Android app is for people who already have an account, not acquisition.
+  // Native Android: open straight into the auth card, per product decision
+  // — the full marketing page (how-it-works, featured detailers, live-demo
+  // grid, detailer CTA) is web-only, and the app is for people who already
+  // have (or are about to create) an account, not acquisition browsing.
   if (Capacitor.isNativePlatform()) {
-    return (
-      <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 text-center">
-        <div aria-hidden="true" className="absolute left-1/2 top-[12%] h-80 w-80 -translate-x-1/2 rounded-full bg-brand-200/40 blur-3xl dark:bg-brand-800/15" />
-        <div aria-hidden="true" className="absolute bottom-[12%] right-[-6rem] h-64 w-64 rounded-full bg-cta-500/10 blur-3xl" />
-        {!reduce && (
-          <div aria-hidden="true" className="pointer-events-none absolute inset-0">
-            <HeroBubbles seed={7} />
-          </div>
-        )}
-        <div className="relative z-10 flex w-full max-w-sm flex-col items-center">
-          <FadeIn y={18}>
-            <Logo size="lg" />
-          </FadeIn>
-          <FadeIn delay={0.15}>
-            <Link to="/login" onClick={haptic} className="btn btn-brand press-spring mt-10 w-full">
-              {t('loginCta')}
-            </Link>
-          </FadeIn>
-          <FadeIn delay={0.25}>
-            <Link
-              to="/signup"
-              onClick={haptic}
-              className="mt-5 text-sm text-slate-500 underline-offset-4 hover:text-brand-700 hover:underline dark:text-slate-400 dark:hover:text-brand-300"
-            >
-              {t('signupLink')}
-            </Link>
-          </FadeIn>
-        </div>
-      </div>
-    )
+    return <AuthCard defaultMode="login" />
   }
 
   // Product guarantees, not metrics. The app hasn't launched, so there is no
