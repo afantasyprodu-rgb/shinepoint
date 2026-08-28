@@ -166,6 +166,9 @@ const scaleX = motionValue(1)
 const scaleY = motionValue(1)
 const rotate = motionValue(0)
 let followerSpring = 0
+// Velocity of followerSpring itself — a real damped spring needs this as
+// separate state (this WAS missing, see below), not just the position.
+let followerVel = 0
 let framePrev = 0
 let loopStarted = false
 
@@ -179,9 +182,18 @@ function startSquashLoop() {
     // Live velocity of the travelling droplet (0 when idle).
     const vel = dropX.getVelocity()
     // Spring the follower toward it (k 240, c 32, m 1) — stays behind the
-    // motion like goo, no dead reset on remount.
-    const a = (240 * (vel - followerSpring) - 32 * followerSpring) / 1
-    followerSpring += a * dt
+    // motion like goo, no dead reset on remount. The damping term (c) has
+    // to act on the follower's OWN velocity (followerVel), not its
+    // position (followerSpring) — damping against position isn't a real
+    // spring at all, and integrating that directly into followerSpring
+    // every frame (with no separate velocity state) was numerically
+    // unstable: it overshot harder each frame instead of settling, until
+    // it pinned at the `s` cap below and just flipped sign frame to frame
+    // forever. That's what read as the droplet staying permanently
+    // squashed/twitchy instead of resting back to its round shape.
+    const a = 240 * (vel - followerSpring) - 32 * followerVel
+    followerVel += a * dt
+    followerSpring += followerVel * dt
     const s = Math.min(Math.abs(followerSpring) / 1000, 1.4)
     scaleX.set(1 + 0.72 * s)
     scaleY.set(1 - 0.48 * s)
