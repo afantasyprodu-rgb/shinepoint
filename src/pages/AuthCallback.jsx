@@ -19,6 +19,18 @@ export default function AuthCallback() {
     let cancelled = false
 
     async function finish() {
+      // NativeBridge attaches this when the OAuth redirect itself carried an
+      // error (e.g. Supabase rejected the /authorize request before ever
+      // reaching Google) — show the real reason instead of the generic
+      // message below, which used to be the only thing shown here no matter
+      // what actually went wrong.
+      const oauthError = new URLSearchParams(window.location.search).get('oauthError')
+      if (oauthError) {
+        setError(oauthError)
+        setTimeout(() => navigate('/login', { replace: true }), 3000)
+        return
+      }
+
       const { data, error: sessionError } = await supabase.auth.getSession()
       if (cancelled) return
 

@@ -55,21 +55,34 @@ export default function NativeBridge() {
         // after the redirect started working. A failure here used to be
         // swallowed silently too, so it looked identical to the (rare)
         // benign already-exchanged case; now it's logged for real.
-        const code = new URL(url).searchParams.get('code')
+        const params = new URL(url).searchParams
+        const code = params.get('code')
+        // Supabase can bounce back with no code at all — e.g. the /authorize
+        // request itself was rejected (redirect_to not allow-listed, the
+        // provider misconfigured, etc.) — and instead attaches error/
+        // error_description. That case used to fall straight through to
+        // AuthCallback's generic "Could not complete sign-in" with the real
+        // reason discarded. Carry it along as a query param so it's visible.
+        let oauthError = params.get('error_description') || params.get('error')
         if (code) {
           try {
             const { error } = await supabase.auth.exchangeCodeForSession(code)
             if (error) {
               console.error('exchangeCodeForSession:', error.message)
               captureException(error, { scope: 'NativeBridge:exchangeCodeForSession' })
+              oauthError = error.message
             }
           } catch (e) {
             console.error('exchangeCodeForSession threw:', e.message)
             captureException(e, { scope: 'NativeBridge:exchangeCodeForSession' })
+            oauthError = e.message
           }
+        } else if (oauthError) {
+          console.error('OAuth redirect returned an error:', oauthError)
+          captureException(new Error(oauthError), { scope: 'NativeBridge:oauthRedirect' })
         }
 
-        navigate('/auth/callback', { replace: true })
+        navigate(oauthError ? `/auth/callback?oauthError=${encodeURIComponent(oauthError)}` : '/auth/callback', { replace: true })
       })
     })()
 
