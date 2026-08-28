@@ -74,8 +74,13 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Photo pickers are plain <input type="file">, which the WebView hands to
-         the system file/camera chooser — no CAMERA permission needed. Location
-         is required: the map's locate-me button calls navigator.geolocation. -->
+         the system file/camera chooser. Several OEM choosers (confirmed:
+         Samsung) silently drop the "Camera" option from that chooser if the
+         app hasn't declared CAMERA, leaving only Files/Gallery — so it's
+         needed even though nothing here calls the Camera API directly.
+         Location is required: the map's locate-me button calls
+         navigator.geolocation. -->
+    <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <!-- Detailer-side en-route GPS tracking (src/lib/tracking.js), so pings

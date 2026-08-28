@@ -23,6 +23,18 @@ function apiKey() {
   return import.meta.env.VITE_GOOGLE_PLACES_API_KEY
 }
 
+// An Android-app-restricted key rejects every request with
+// androidPackage:"<empty>" unless the caller sends its own package name +
+// signing-cert SHA-1 (no colons) as headers — Play Services' native HTTP
+// client attaches these automatically, but a WebView fetch() has no such
+// magic and must set them by hand.
+function platformHeaders() {
+  if (Capacitor.getPlatform() !== 'android') return {}
+  const cert = import.meta.env.VITE_GOOGLE_PLACES_ANDROID_CERT_SHA1
+  if (!cert) return {}
+  return { 'X-Android-Package': 'app.shinepoint', 'X-Android-Cert': cert }
+}
+
 // Session tokens bill a whole autocomplete-then-details flow as one
 // "session" instead of per-keystroke — pass the same token through a
 // typing session and drop it once a place is chosen (Google's own guidance).
@@ -40,6 +52,7 @@ export async function autocomplete(input, sessionToken, signal) {
     headers: {
       'Content-Type': 'application/json',
       'X-Goog-Api-Key': key,
+      ...platformHeaders(),
     },
     body: JSON.stringify({
       input,
@@ -82,6 +95,7 @@ export async function placeDetails(placeId, sessionToken, signal) {
       headers: {
         'X-Goog-Api-Key': key,
         'X-Goog-FieldMask': 'formattedAddress,addressComponents,location',
+        ...platformHeaders(),
       },
     }
   )
