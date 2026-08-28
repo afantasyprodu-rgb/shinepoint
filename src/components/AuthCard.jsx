@@ -7,6 +7,7 @@ import { isNative } from '../lib/native'
 import { homePathForRole, signupHomePath } from '../context/AuthContext'
 import { needsMfaChallenge } from '../lib/mfa'
 import { markArrival } from '../lib/transition'
+import { captureException } from '../lib/sentry'
 import Logo from './Logo'
 import LanguageToggle from './LanguageToggle'
 import OtpBoxInput from './OtpBoxInput'
@@ -93,29 +94,39 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
   // accounts, step up to MFA if the account has a verified TOTP factor,
   // otherwise hand off to the caller (fly-through) or navigate home.
   async function finishLogin(userId) {
-    const { data: userRow } = await supabase
-      .from('users').select('role, is_suspended, is_banned, deactivated_at').eq('id', userId).single()
-    if (userRow?.is_banned || userRow?.is_suspended) {
+    try {
+      const { data: userRow } = await supabase
+        .from('users').select('role, is_suspended, is_banned, deactivated_at').eq('id', userId).single()
+      if (userRow?.is_banned || userRow?.is_suspended) {
+        setBusy(false)
+        await supabase.auth.signOut()
+        setError(userRow.is_banned ? t('accountBanned') : t('accountSuspended'))
+        return
+      }
+      // Soft-deleted (deactivated_at set): logging back in is the un-delete —
+      // clear it and continue straight through, no separate "reactivate" step.
+      if (userRow?.deactivated_at) {
+        await supabase.from('users').update({ deactivated_at: null }).eq('id', userId)
+      }
+      const homePath = homePathForRole(userRow?.role)
+      if (await needsMfaChallenge()) {
+        setBusy(false)
+        navigate('/mfa-challenge', { state: { next: homePath } })
+        return
+      }
       setBusy(false)
-      await supabase.auth.signOut()
-      setError(userRow.is_banned ? t('accountBanned') : t('accountSuspended'))
-      return
-    }
-    // Soft-deleted (deactivated_at set): logging back in is the un-delete —
-    // clear it and continue straight through, no separate "reactivate" step.
-    if (userRow?.deactivated_at) {
-      await supabase.from('users').update({ deactivated_at: null }).eq('id', userId)
-    }
-    const homePath = homePathForRole(userRow?.role)
-    if (await needsMfaChallenge()) {
+      if (onAuthenticated) { onAuthenticated(userRow?.role); return }
+      markArrival(userRow?.role)
+      navigate(homePath)
+    } catch (e) {
+      // Same silent-hang risk as handleVerifyEmailCode: an uncaught throw
+      // here left the screen stuck on the OTP boxes forever, disabled, with
+      // no error and no navigation.
+      console.error('finishLogin threw:', e.message)
+      captureException(e, { scope: 'AuthCard:finishLogin' })
       setBusy(false)
-      navigate('/mfa-challenge', { state: { next: homePath } })
-      return
+      setError(e.message || t('signinError'))
     }
-    setBusy(false)
-    if (onAuthenticated) { onAuthenticated(userRow?.role); return }
-    markArrival(userRow?.role)
-    navigate(homePath)
   }
 
   async function handleEmail(e) {
@@ -156,15 +167,26 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
   async function handleVerifyEmailCode(code) {
     setError('')
     setBusy(true)
-    const { data, error: err } = await supabase.auth.verifyOtp({ email, token: code, type: 'email' })
-    if (err) { setBusy(false); setError(err.message); setOtpCode(''); return }
-    if (mode === 'signup') {
+    try {
+      const { data, error: err } = await supabase.auth.verifyOtp({ email, token: code, type: 'email' })
+      if (err) { setBusy(false); setError(err.message); setOtpCode(''); return }
+      if (mode === 'signup') {
+        setBusy(false)
+        const homePath = signupHomePath(role)
+        navigate('/mfa-setup', { state: { next: homePath } })
+        return
+      }
+      await finishLogin(data.user.id)
+    } catch (e) {
+      // A thrown (not returned) error here — e.g. a native WebView fetch
+      // failure — used to leave the boxes stuck disabled forever with no
+      // feedback, since nothing downstream ever cleared `busy`.
+      console.error('verifyOtp threw:', e.message)
+      captureException(e, { scope: 'AuthCard:handleVerifyEmailCode' })
       setBusy(false)
-      const homePath = signupHomePath(role)
-      navigate('/mfa-setup', { state: { next: homePath } })
-      return
+      setError(e.message || t('signinError'))
+      setOtpCode('')
     }
-    await finishLogin(data.user.id)
   }
 
   async function handleForgotPassword(e) {
