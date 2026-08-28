@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react'
 import { supabase } from '../lib/supabase'
 import { isGoogleIdentityConfigured, requestGoogleIdToken } from '../lib/googleIdentity'
+import { isNative } from '../lib/native'
 import { homePathForRole, signupHomePath } from '../context/AuthContext'
 import { needsMfaChallenge } from '../lib/mfa'
 import { markArrival } from '../lib/transition'
@@ -225,7 +226,15 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
 
     // Role also rides in the redirect URL itself (not just localStorage) since
     // storage can be partitioned/cleared across the Google redirect hop.
-    const redirectTo = `${window.location.origin}/auth/callback${callbackQuery}`
+    // On native, window.location.origin is Capacitor's local webview origin
+    // (e.g. https://localhost), not a URL Google/Supabase can bounce back
+    // into the app with — it has to be the shinepoint:// deep link that
+    // NativeBridge's appUrlOpen listener catches instead, or the OAuth
+    // flow completes in the system browser and just strands the user on
+    // the web page instead of returning to the app.
+    const redirectTo = isNative
+      ? `shinepoint://auth/callback${callbackQuery}`
+      : `${window.location.origin}/auth/callback${callbackQuery}`
     const { error: err } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo },
