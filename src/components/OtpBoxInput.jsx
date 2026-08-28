@@ -20,7 +20,7 @@ export default function OtpBoxInput({ length = 6, value, onChange, onComplete, e
     if (!digit) return
     const joined = setDigit(i, digit)
     if (i < length - 1) inputsRef.current[i + 1]?.focus()
-    if (joined.length === length && !joined.includes('')) onComplete?.(joined)
+    if (joined.length === length) onComplete?.(joined)
   }
 
   function handleKeyDown(i, e) {
@@ -41,7 +41,7 @@ export default function OtpBoxInput({ length = 6, value, onChange, onComplete, e
   }
 
   return (
-    <div className="flex justify-center gap-2.5" onPaste={handlePaste}>
+    <div className="flex justify-center gap-1.5 sm:gap-2.5" onPaste={handlePaste}>
       {digits.map((digit, i) => (
         <input
           key={i}
