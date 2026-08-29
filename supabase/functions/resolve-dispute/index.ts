@@ -67,18 +67,25 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    // Admin-only. The RPC checks this too, but refunding before that check
-    // would move money for a non-admin.
     const { data: me } = await admin.from('users').select('role').eq('id', user.id).single()
-    if (me?.role !== 'admin') return json({ error: 'Admin only' }, 403)
+    const isAdmin = me?.role === 'admin'
 
     const { data: dispute } = await admin
       .from('disputes')
-      .select('id, status, filed_by, required_identity, booking_id, stripe_refund_id, bookings!inner(customer_id, total_price, stripe_payment_intent, refunded_amount, stripe_payment_method)')
+      .select('id, status, filed_by, filed_against, required_identity, booking_id, stripe_refund_id, bookings!inner(customer_id, total_price, stripe_payment_intent, refunded_amount, stripe_payment_method)')
       .eq('id', disputeId)
       .single()
     if (!dispute) return json({ error: 'Dispute not found' }, 404)
-    if (dispute.status === 'resolved') {
+
+    // Admin, or the party the dispute was filed against, resolving it
+    // themselves with the other side. The RPC checks this too, but
+    // refunding before that check would move money for an unauthorized user.
+    if (!isAdmin && user.id !== dispute.filed_against) {
+      return json({ error: 'Admin or the disputed party only' }, 403)
+    }
+    // A detailer resolving their own case can't re-resolve one that's
+    // already closed; admin can still override a prior resolution.
+    if (dispute.status === 'resolved' && !isAdmin) {
       return json({ error: 'This dispute is already resolved.' }, 409)
     }
 

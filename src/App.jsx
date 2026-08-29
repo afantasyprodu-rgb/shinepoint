@@ -30,6 +30,7 @@ const DetailerJob = lazy(() => import('./pages/DetailerJob'))
 const DetailerOnboarding = lazy(() => import('./pages/DetailerOnboarding'))
 const DetailerEarnings = lazy(() => import('./pages/DetailerEarnings'))
 const DetailerAnalytics = lazy(() => import('./pages/DetailerAnalytics'))
+const DetailerReports = lazy(() => import('./pages/DetailerReports'))
 const DetailerTools = lazy(() => import('./pages/DetailerTools'))
 const DetailerProfileEditor = lazy(() => import('./pages/DetailerProfileEditor'))
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'))
@@ -143,6 +144,7 @@ export default function App() {
         <Route path="/detailer/onboarding" element={guard('detailer', <DetailerOnboarding />)} />
         <Route path="/detailer/earnings" element={guard('detailer', <DetailerEarnings />)} />
         <Route path="/detailer/analytics" element={guard('detailer', <DetailerAnalytics />)} />
+        <Route path="/detailer/reports" element={guard('detailer', <DetailerReports />)} />
         <Route path="/detailer/tools" element={guard('detailer', <DetailerTools />)} />
         <Route path="/detailer/profile" element={guard('detailer', <DetailerProfileEditor />)} />
 

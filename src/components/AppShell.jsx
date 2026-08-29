@@ -7,7 +7,7 @@ import SfxToggle from './SfxToggle'
 import SyncPendingBadge from './SyncPendingBadge'
 import LanguageToggle from './LanguageToggle'
 import ToolsSidebar from './ToolsSidebar'
-import { BellIcon, ClipboardCheckIcon, TrendingUpIcon, UsersIcon, PieChartIcon, MapPinIcon, MoreIcon, ChevronDownIcon } from './icons'
+import { BellIcon, ClipboardCheckIcon, TrendingUpIcon, UsersIcon, PieChartIcon, MapPinIcon, MoreIcon, ChevronDownIcon, AlertTriangleIcon } from './icons'
 import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
 import BottomTabBar from './ui/BottomTabBar'
@@ -168,6 +168,7 @@ const NAVS = {
   ],
   detailer: [
     { to: '/detailer', labelKey: 'jobs', end: true, icon: ClipboardCheckIcon },
+    { to: '/detailer/reports', labelKey: 'reports', icon: AlertTriangleIcon },
     { to: '/detailer/earnings', labelKey: 'earnings', icon: TrendingUpIcon },
     { to: '/detailer/analytics', labelKey: 'analytics', icon: PieChartIcon },
     { to: '/detailer/profile', labelKey: 'account', icon: UsersIcon },
