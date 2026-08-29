@@ -138,32 +138,53 @@ function popupHtml(d) {
 }
 
 // Two or more detailer pins can land at (near-)identical screen positions —
-// same zip, close jitter in fuzzyPin.js, or just a tight real-world cluster —
-// and whichever Leaflet stacks on top then blocks every pin under it from
-// being tapped at all. This spreads any pins within PIXEL_MIN_DIST of each
-// other into a small circle around their shared center so every pin stays
-// individually tappable, recomputed on zoom (pixel distances change with
-// zoom; panning doesn't, so zoomend alone is enough). Markers keep their
-// true coordinates in `_basePin` — only the on-map position is nudged.
+// same zip, close jitter in fuzzyPin.js, or just a tight real-world cluster.
+// Below CLUSTER_PIXEL_DIST they're merged into one numbered pill instead of
+// stacking pins on top of each other; whatever's left (lone pins, or pills
+// that are still crowded relative to EACH OTHER) gets spread apart by
+// PIXEL_MIN_DIST so nothing is ever fully hidden underneath something else.
+// Recomputed on zoom (pixel distances change with zoom; panning doesn't, so
+// zoomend alone is enough).
+const CLUSTER_PIXEL_DIST = 60
 const PIXEL_MIN_DIST = 26
 
-function layoutMarkers(map, markersRef) {
-  if (!map) return
-  const zoom = map.getZoom()
-  const entries = Array.from(markersRef.current.values())
-  if (!entries.length) return
+// Union-find over pixel points within `threshold` of each other,
+// transitively — a chain of near-neighbors all end up in one group even if
+// the two ends are individually far apart, same reasoning as the old
+// single-pass repulsion missing separately-detected mini-clusters.
+function clusterIndices(points, threshold) {
+  const n = points.length
+  const parent = Array.from({ length: n }, (_, i) => i)
+  function find(a) {
+    while (parent[a] !== a) {
+      parent[a] = parent[parent[a]]
+      a = parent[a]
+    }
+    return a
+  }
+  function union(a, b) {
+    const ra = find(a)
+    const rb = find(b)
+    if (ra !== rb) parent[ra] = rb
+  }
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      if (points[i].distanceTo(points[j]) < threshold) union(i, j)
+    }
+  }
+  const groups = new Map()
+  for (let i = 0; i < n; i++) {
+    const r = find(i)
+    if (!groups.has(r)) groups.set(r, [])
+    groups.get(r).push(i)
+  }
+  return Array.from(groups.values())
+}
 
-  // Every point starts at its true projected position. Iterative pairwise
-  // repulsion (not a one-shot "group into a circle" pass) is what actually
-  // guarantees no two pins end up closer than PIXEL_MIN_DIST: a discrete
-  // grouping pass only resolves overlaps *within* a group it detected up
-  // front, so two separately-detected mini-clusters (e.g. two nearby zip
-  // codes) could each spread out fine on their own and still collide with
-  // each other, since neither pass knew about the other's members. Running
-  // every pin against every other pin, repeatedly, catches that case (and
-  // chains of 3+ overlapping pins) too.
-  const pts = entries.map((marker) => map.project(marker._basePin, zoom))
-
+// Iterative pairwise repulsion — pushes any two points closer than minDist
+// apart, apart, repeated a few passes so chains/larger groups fully
+// resolve. Mutates `pts` in place.
+function declutterPoints(pts, minDist) {
   for (let iter = 0; iter < 12; iter++) {
     let moved = false
     for (let i = 0; i < pts.length; i++) {
@@ -171,14 +192,14 @@ function layoutMarkers(map, markersRef) {
         const dx = pts[j].x - pts[i].x
         const dy = pts[j].y - pts[i].y
         const dist = Math.sqrt(dx * dx + dy * dy)
-        if (dist >= PIXEL_MIN_DIST) continue
+        if (dist >= minDist) continue
         moved = true
         // Deterministic push direction (seeded by index) for the
         // exactly-coincident case, instead of Math.random — keeps the
         // layout reproducible between renders.
         const ux = dist > 0.01 ? dx / dist : Math.cos(i - j)
         const uy = dist > 0.01 ? dy / dist : Math.sin(i - j)
-        const push = (PIXEL_MIN_DIST - dist) / 2 + 0.5
+        const push = (minDist - dist) / 2 + 0.5
         pts[i].x -= ux * push
         pts[i].y -= uy * push
         pts[j].x += ux * push
@@ -187,8 +208,144 @@ function layoutMarkers(map, markersRef) {
     }
     if (!moved) break
   }
+}
 
-  entries.forEach((marker, idx) => marker.setLatLng(map.unproject(pts[idx], zoom)))
+function clusterIcon(count, promoted) {
+  const size = count < 10 ? 34 : count < 100 ? 40 : 46
+  const cls = promoted ? 'nx-map-cluster nx-map-cluster--promoted' : 'nx-map-cluster'
+  return L.divIcon({
+    className: '',
+    html: `<span class="${cls}" style="--size:${size}px">${count}</span>`,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+  })
+}
+
+// Rebuilds every marker from scratch each call — simplest way to keep
+// clustering, decluttering, and the individual-pin wiring (click/popup/
+// radar ring) all consistent with each other, and cheap enough at demo/
+// real detailer-roster scale (tens to low hundreds of pins) to run on
+// every zoom change, not just when the filtered detailer list changes.
+function renderMarkers(map, markersRef, radarRef, detailers, navigate) {
+  if (!map) return
+  markersRef.current.forEach((m) => m.remove())
+  markersRef.current.clear()
+  if (radarRef.current) {
+    radarRef.current.remove()
+    radarRef.current = null
+  }
+
+  const withPin = detailers.filter((d) => d.pin)
+  if (!withPin.length) return
+  const zoom = map.getZoom()
+  const points = withPin.map((d) => map.project([d.pin.lat, d.pin.lng], zoom))
+  const groups = clusterIndices(points, CLUSTER_PIXEL_DIST)
+
+  // One render point per group: the group's own pixel centroid (a single
+  // pin just centroids to itself). Decluttered together so a cluster pill
+  // and a lone pin — or two pills — never land on top of each other either.
+  const renderPts = groups.map((group) =>
+    group
+      .reduce((acc, idx) => acc.add(points[idx]), L.point(0, 0))
+      .divideBy(group.length)
+  )
+  declutterPoints(renderPts, PIXEL_MIN_DIST)
+
+  groups.forEach((group, k) => {
+    const latLng = map.unproject(renderPts[k], zoom)
+
+    if (group.length === 1) {
+      const d = withPin[group[0]]
+      const marker = L.marker(latLng, {
+        icon: pinIcon(d.status, isPromoted(d)),
+        keyboard: true,
+        title: `${d.name} — ${statusLine(d)}`,
+      })
+        .bindPopup(popupHtml(d), {
+          closeButton: false,
+          offset: [0, -4],
+          className: 'nx-popup',
+          // The manual vertical-offset centering below already keeps the
+          // popup clear of the top chrome in the common case, and always
+          // keeps the pin (and so the popup) horizontally centered — but
+          // autoPan stays on as a safety net for edge cases the manual
+          // math doesn't cover (very narrow viewports, popup content that
+          // grows past its current max-width later). It only engages when
+          // the popup genuinely doesn't fit, so it's a no-op the rest of
+          // the time.
+          autoPan: true,
+          autoPanPadding: [16, 90],
+        })
+        .addTo(map)
+      // True coordinates, kept separate from the marker's on-map position
+      // so the focus effect below can match against it regardless of any
+      // cluster/declutter nudging.
+      marker._basePin = { lat: d.pin.lat, lng: d.pin.lng }
+      // Tapping a pin centers it — same zoom, just re-centered — before
+      // Leaflet's own click handler opens the popup (autoPan is off above
+      // so the two pans don't fight). Shifted down from dead-center so the
+      // popup, which grows upward from the pin, clears the search/filter
+      // chrome pinned to the top of the map instead of running under it.
+      marker.on('click', () => {
+        const targetPoint = map.project(marker.getLatLng(), map.getZoom()).subtract([0, 90])
+        const targetLatLng = map.unproject(targetPoint, map.getZoom())
+        map.flyTo(targetLatLng, map.getZoom(), { duration: 0.5 })
+      })
+      // Wire the popup's "View profile" button to SPA navigation (a plain
+      // <a href> would hard-reload and drop demo state).
+      marker.on('popupopen', () => {
+        const el = marker.getPopup().getElement()
+        const btn = el?.querySelector('[data-view]')
+        if (btn) btn.onclick = () => navigate(`/detailers/${d.id}`)
+      })
+      // Tapping a pin reveals its free-travel radius as a "radar" ring —
+      // a geo-accurate circle (miles -> meters) rather than a fixed-pixel
+      // one, so it actually shrinks/grows with zoom like a real coverage
+      // area. Only one ring is ever shown at a time.
+      marker.on('popupopen', () => {
+        if (radarRef.current) radarRef.current.remove()
+        const color = PIN_COLORS[d.status] ?? PIN_COLORS.offline
+        radarRef.current = L.circle(marker.getLatLng(), {
+          radius: d.travelMiles * 1609.34,
+          className: 'nx-radar-ring',
+          color,
+          weight: 1.5,
+          fillColor: color,
+          fillOpacity: 0.08,
+          interactive: false,
+        }).addTo(map)
+        radarRef.current.bringToBack()
+      })
+      marker.on('popupclose', () => {
+        if (radarRef.current) {
+          radarRef.current.remove()
+          radarRef.current = null
+        }
+      })
+      markersRef.current.set(d.id, marker)
+    } else {
+      const members = group.map((idx) => withPin[idx])
+      const promoted = members.some(isPromoted)
+      const marker = L.marker(latLng, {
+        icon: clusterIcon(members.length, promoted),
+        keyboard: true,
+        title: `${members.length} detailers in this area — zoom in to see them`,
+        zIndexOffset: 400,
+      }).addTo(map)
+      // True centroid of the group's real pins (not the possibly-nudged
+      // render position) — flying here on click is what makes the pins
+      // underneath actually spread out again once zoomed in, rather than
+      // flying to an arbitrary decluttered point nearby.
+      const trueCentroid = members.reduce(
+        (acc, d) => ({ lat: acc.lat + d.pin.lat / members.length, lng: acc.lng + d.pin.lng / members.length }),
+        { lat: 0, lng: 0 }
+      )
+      marker.on('click', () => {
+        map.flyTo(trueCentroid, Math.min(19, map.getZoom() + 3), { duration: 0.6 })
+      })
+      markersRef.current.set(`cluster-${group.join('-')}`, marker)
+    }
+  })
 }
 
 export default function DetailerMap({ detailers, focus }) {
@@ -198,6 +355,10 @@ export default function DetailerMap({ detailers, focus }) {
   const markersRef = useRef(new Map())
   const userRef = useRef(null)
   const radarRef = useRef(null)
+  // Latest detailers list, for the zoomend handler below — that listener is
+  // registered once in the mount-only map-creation effect, so it can't close
+  // over the `detailers` prop directly; it reads this ref instead.
+  const detailersRef = useRef([])
   const navigate = useNavigate()
   const { theme } = useTheme()
   const [locating, setLocating] = useState(false)
@@ -218,7 +379,7 @@ export default function DetailerMap({ detailers, focus }) {
     const t = TILES[theme] ?? TILES.light
     tileRef.current = L.tileLayer(t.url, { attribution: t.attribution, maxZoom: 19 }).addTo(map)
     mapRef.current = map
-    const onZoomEnd = () => layoutMarkers(mapRef.current, markersRef)
+    const onZoomEnd = () => renderMarkers(mapRef.current, markersRef, radarRef, detailersRef.current, navigate)
     map.on('zoomend', onZoomEnd)
     // Snapshot for the cleanup below: markersRef.current is reassigned
     // elsewhere, and reading the ref at cleanup time would clear whatever
@@ -265,107 +426,37 @@ export default function DetailerMap({ detailers, focus }) {
     tileRef.current.options.attribution = t.attribution
   }, [theme])
 
-  // Rebuild markers when the filtered detailer list changes.
+  // Rebuild markers (clustered + decluttered) when the filtered detailer
+  // list changes.
   useEffect(() => {
+    detailersRef.current = detailers
     const map = mapRef.current
     if (!map) return
-    markersRef.current.forEach((m) => m.remove())
-    markersRef.current.clear()
-    if (radarRef.current) {
-      radarRef.current.remove()
-      radarRef.current = null
-    }
-
-    detailers
-      .filter((d) => d.pin)
-      .forEach((d) => {
-        const marker = L.marker([d.pin.lat, d.pin.lng], {
-          icon: pinIcon(d.status, isPromoted(d)),
-          keyboard: true,
-          title: `${d.name} — ${statusLine(d)}`,
-        })
-          .bindPopup(popupHtml(d), {
-            closeButton: false,
-            offset: [0, -4],
-            className: 'nx-popup',
-            // The manual vertical-offset centering below already keeps the
-            // popup clear of the top chrome in the common case, and always
-            // keeps the pin (and so the popup) horizontally centered — but
-            // autoPan stays on as a safety net for edge cases the manual
-            // math doesn't cover (very narrow viewports, popup content that
-            // grows past its current max-width later). It only engages when
-            // the popup genuinely doesn't fit, so it's a no-op the rest of
-            // the time.
-            autoPan: true,
-            autoPanPadding: [16, 90],
-          })
-          .addTo(map)
-        // True coordinates, kept separate from the marker's on-map position
-        // so layoutMarkers() (below) can nudge overlapping pins apart
-        // without losing track of where they actually are.
-        marker._basePin = { lat: d.pin.lat, lng: d.pin.lng }
-        // Tapping a pin centers it — same zoom, just re-centered — before
-        // Leaflet's own click handler opens the popup (autoPan is off above
-        // so the two pans don't fight). Shifted down from dead-center so the
-        // popup, which grows upward from the pin, clears the search/filter
-        // chrome pinned to the top of the map instead of running under it.
-        // Uses the marker's current (possibly de-overlap-nudged) position so
-        // the map centers on where the pin is actually drawn.
-        marker.on('click', () => {
-          const targetPoint = map.project(marker.getLatLng(), map.getZoom()).subtract([0, 90])
-          const targetLatLng = map.unproject(targetPoint, map.getZoom())
-          map.flyTo(targetLatLng, map.getZoom(), { duration: 0.5 })
-        })
-        // Wire the popup's "View profile" button to SPA navigation (a plain
-        // <a href> would hard-reload and drop demo state).
-        marker.on('popupopen', () => {
-          const el = marker.getPopup().getElement()
-          const btn = el?.querySelector('[data-view]')
-          if (btn) btn.onclick = () => navigate(`/detailers/${d.id}`)
-        })
-        // Tapping a pin reveals its free-travel radius as a "radar" ring —
-        // a geo-accurate circle (miles -> meters) rather than a fixed-pixel
-        // one, so it actually shrinks/grows with zoom like a real coverage
-        // area. Only one ring is ever shown at a time.
-        marker.on('popupopen', () => {
-          if (radarRef.current) radarRef.current.remove()
-          const color = PIN_COLORS[d.status] ?? PIN_COLORS.offline
-          radarRef.current = L.circle(marker.getLatLng(), {
-            radius: d.travelMiles * 1609.34,
-            className: 'nx-radar-ring',
-            color,
-            weight: 1.5,
-            fillColor: color,
-            fillOpacity: 0.08,
-            interactive: false,
-          }).addTo(map)
-          radarRef.current.bringToBack()
-        })
-        marker.on('popupclose', () => {
-          if (radarRef.current) {
-            radarRef.current.remove()
-            radarRef.current = null
-          }
-        })
-        markersRef.current.set(d.id, marker)
-      })
-    layoutMarkers(map, markersRef)
+    renderMarkers(map, markersRef, radarRef, detailers, navigate)
   }, [detailers, navigate])
 
   // "Locate" from a card (if still passed): fly to a pin and open its popup.
-  // Matches against `_basePin` (the true coordinate) rather than the
-  // marker's current position, since layoutMarkers() may have nudged it.
+  // The target detailer may currently be merged into a cluster pill, so
+  // this flies to a zoom deep enough to guarantee individual pins split
+  // back out (comfortably past CLUSTER_PIXEL_DIST at any latitude in the
+  // service area), then waits for that move — and the zoomend-triggered
+  // re-cluster it triggers — to actually finish before opening the popup.
+  // Opening it synchronously here would target a marker that's about to be
+  // torn down and rebuilt for the new zoom.
   useEffect(() => {
     if (!focus || !mapRef.current) return
-    let target = focus
-    markersRef.current.forEach((m) => {
-      const base = m._basePin
-      if (base && Math.abs(base.lat - focus.lat) < 1e-6 && Math.abs(base.lng - focus.lng) < 1e-6) {
-        target = m.getLatLng()
-        m.openPopup()
-      }
-    })
-    mapRef.current.flyTo(target, 14, { duration: 1.1 })
+    const map = mapRef.current
+    function openFocusPopup() {
+      markersRef.current.forEach((m) => {
+        const base = m._basePin
+        if (base && Math.abs(base.lat - focus.lat) < 1e-6 && Math.abs(base.lng - focus.lng) < 1e-6) {
+          m.openPopup()
+        }
+      })
+    }
+    map.once('moveend', openFocusPopup)
+    map.flyTo([focus.lat, focus.lng], 15, { duration: 1.1 })
+    return () => map.off('moveend', openFocusPopup)
   }, [focus])
 
   function locateMe() {

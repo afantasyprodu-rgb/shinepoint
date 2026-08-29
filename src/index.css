@@ -1473,6 +1473,37 @@
   box-shadow: 0 0 0 2px #f5b942, 0 1px 4px rgba(0, 0, 0, 0.4);
 }
 
+/* Cluster pill — replaces a tight group of pins at low zoom with one
+   marker showing how many detailers are in that spot. Same solid-circle +
+   white-ring + drop-shadow language as .nx-map-pin (not the app's
+   neumorphic chrome) so it still reads as "a map marker," just for a
+   place instead of a person. Brand pink rather than a status color since
+   a cluster mixes available/busy/offline detailers together. */
+.nx-map-cluster {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size, 34px);
+  height: var(--size, 34px);
+  border-radius: 9999px;
+  background: linear-gradient(135deg in oklch, var(--color-brand-500), var(--color-brand-700));
+  border: 3px solid #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  color: #fff;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: transform 0.15s var(--ease-spring);
+}
+.nx-map-cluster:hover {
+  transform: scale(1.08);
+}
+.nx-map-cluster--promoted {
+  border-color: #f5b942;
+  box-shadow: 0 0 0 2px #f5b942, 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
 /* "You are here" — the ripple carries the soap-sheen hue arc (same
    @property --iri-h as the Soft System toggle) since a pulsing ring
    reads naturally as a bubble; the solid center dot stays put on one
