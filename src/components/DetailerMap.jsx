@@ -397,9 +397,12 @@ export default function DetailerMap({ detailers, focus }) {
     const map = L.map(containerRef.current, {
       center: cached ?? SOCAL_CENTER,
       zoom: initialZoomForWidth(containerRef.current.clientWidth),
-      // No on-screen zoom buttons — pinch/scroll zoom still works, and one
-      // less floating control keeps the map itself the focus.
+      // No on-screen zoom buttons — pinch-to-zoom still works. Mouse-wheel
+      // zoom is off too: on a page-embedded map, scrolling to read the rest
+      // of the screen instead zoomed the map out from under the cursor.
+      // Pinch/tap-to-zoom and the locate button remain the way to zoom.
       zoomControl: false,
+      scrollWheelZoom: false,
       attributionControl: true,
     })
     const t = TILES[theme] ?? TILES.light
