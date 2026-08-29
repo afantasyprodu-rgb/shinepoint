@@ -193,7 +193,14 @@ export default function AppShell({ role, children, collapsibleBottomNav = false,
   const t = useT('nav')
   const nav = (NAVS[role] ?? []).map((item) => ({ ...item, label: t(item.labelKey) }))
   const [toolsOpen, setToolsOpen] = useState(false)
-  const [navHidden, setNavHidden] = useState(collapsibleBottomNav)
+  // Starts VISIBLE even on a collapsible-nav screen (the map) — it used to
+  // start hidden, on the theory that the map wants full screen on open, but
+  // that left first-time users with no visible nav and only a small chevron
+  // pill (easy to miss, and cut off near the safe-area edge on short
+  // viewports) to bring it back. A map is a drag-to-pan surface, not a
+  // scrollable page, so the natural "just scroll down" instinct did nothing
+  // but move the map. Collapsing for more map room is still one tap away.
+  const [navHidden, setNavHidden] = useState(false)
 
   // Land on the public welcome page, not the /login redirect ProtectedRoute fires.
   async function handleSignOut() {
