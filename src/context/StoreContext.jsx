@@ -333,6 +333,25 @@ export function StoreProvider({ children }) {
     return () => { cancelled = true }
   }, [isDemo, profile?.role])
 
+  // Demo mode merges real + demo detailers (useful for debugging — you can
+  // see live/real detailers alongside the full seeded roster). A real,
+  // non-demo session must never show the fake roster — a genuine customer
+  // should see exactly the real detailers who've actually signed up (zero,
+  // until someone does), not a map full of made-up businesses.
+  //
+  // Memoized on its own, separately from the big `api` useMemo below: that
+  // one recomputes on plenty of changes that have nothing to do with
+  // detailers (a new notification, a chat message, a booking update), and
+  // building this array inline there would still hand out a fresh identity
+  // every time. That was enough to retrigger every consumer's
+  // `useEffect(..., [detailers])` — DetailerMap's marker-rebuild effect in
+  // particular, which tore down and rebuilt every marker mid-render, so a
+  // just-opened popup could vanish within a second of tapping a pin.
+  const allDetailers = useMemo(
+    () => (isDemo ? [...realDetailers, ...demoDetailers] : realDetailers),
+    [isDemo, realDetailers, demoDetailers]
+  )
+
   const api = useMemo(() => {
     // bookingId/stage let the notification bell deep-link straight back to
     // what changed — stage is the exact TIMELINE key so the customer lands on
@@ -348,12 +367,8 @@ export function StoreProvider({ children }) {
     }
 
     // ── Detailers ───────────────────────────────────────────────────────────
-    // Demo mode merges real + demo detailers (useful for debugging — you can
-    // see live/real detailers alongside the full seeded roster). A real,
-    // non-demo session must never show the fake roster — a genuine customer
-    // should see exactly the real detailers who've actually signed up (zero,
-    // until someone does), not a map full of made-up businesses.
-    const allDetailers = isDemo ? [...realDetailers, ...demoDetailers] : realDetailers
+    // allDetailers itself is computed above, outside this useMemo — see
+    // that comment for why.
 
     // The logged-in detailer's own merged record (demo seeds 'det-1').
     const myDetailer = isDemo
@@ -1036,8 +1051,9 @@ export function StoreProvider({ children }) {
     }
   }, [
     isDemo,
+    allDetailers,
     demoDetailers, demoBookings, demoMessages, demoCustomer, demoAdmin,
-    realDetailers, realBookings, loyalty,
+    realBookings, loyalty,
     customerProfile, detailerProfile,
     profile,
     notifications, realNotifications, realAdmin,

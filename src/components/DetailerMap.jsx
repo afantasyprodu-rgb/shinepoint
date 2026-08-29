@@ -315,7 +315,14 @@ function renderMarkers(map, markersRef, radarRef, detailers, navigate) {
       marker.on('click', () => {
         const targetPoint = map.project(marker.getLatLng(), map.getZoom()).subtract([0, 90])
         const targetLatLng = map.unproject(targetPoint, map.getZoom())
-        map.flyTo(targetLatLng, map.getZoom(), { duration: 0.5 })
+        // panTo, not flyTo: flyTo always finishes through the same reset
+        // path as a real zoom animation and fires 'zoomend' even when the
+        // destination zoom equals the current one — which retriggers the
+        // zoomend listener's full marker rebuild (tearing down the very
+        // marker whose popup Leaflet just opened from this same click), so
+        // the popup would appear and then vanish within half a second.
+        // panTo only ever moves, never zooms, so it can't trigger that.
+        map.panTo(targetLatLng, { duration: 0.5 })
       })
       // Wire the popup's "View profile" button to SPA navigation (a plain
       // <a href> would hard-reload and drop demo state).
