@@ -549,6 +549,16 @@ export function StoreProvider({ children }) {
         if ('photo' in patch) cols.profile_photo_url = patch.photo
         if (patch.gallery) cols.gallery_urls = patch.gallery
         if (patch.vehicleEmoji != null) cols.vehicle_emoji = patch.vehicleEmoji
+        // Each key is only touched if present in the patch, so a caller can
+        // update just one upcharge without clobbering the others — but
+        // '' explicitly clears a previously-set one back to null ("not
+        // set"), same optional-field convention as onboarding.
+        if (patch.vehicleUpcharges) {
+          const vu = patch.vehicleUpcharges
+          if ('SUV' in vu) cols.vehicle_upcharge_suv = vu.SUV === '' ? null : vu.SUV
+          if ('Truck' in vu) cols.vehicle_upcharge_truck = vu.Truck === '' ? null : vu.Truck
+          if ('Van' in vu) cols.vehicle_upcharge_van = vu.Van === '' ? null : vu.Van
+        }
         if (Object.keys(cols).length) {
           await updateDetailerProfile(profile.id, cols)
           setDetailerProfile((dp) => ({ ...(dp ?? {}), ...cols }))

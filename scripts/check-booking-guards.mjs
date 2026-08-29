@@ -33,6 +33,7 @@ const REQUIRED_UPDATE_COLS = [
   'stripe_payment_method',
   'stripe_payment_intent',
   'mileage_fee',
+  'vehicle_upcharge_fee',
   'payout_hold_until',
   'transferred_at',
   'stripe_transfer_id',

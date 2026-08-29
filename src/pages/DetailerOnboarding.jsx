@@ -101,6 +101,11 @@ export default function DetailerOnboarding() {
   const [blackoutHours, setBlackoutHours] = useState([])
   const [travel, setTravel] = useState(10)
   const [chargePerMile, setChargePerMile] = useState(2)
+  // Optional per-vehicle-type upcharge — '' (not 0) means "not set", so a
+  // detailer who never touches these fields never charges anyone extra.
+  const [upchargeSuv, setUpchargeSuv] = useState('')
+  const [upchargeTruck, setUpchargeTruck] = useState('')
+  const [upchargeVan, setUpchargeVan] = useState('')
   const [bank, setBank] = useState('')
   const [payoutStatus, setPayoutStatus] = useState(null)
   const [connectingBank, setConnectingBank] = useState(false)
@@ -246,6 +251,7 @@ export default function DetailerOnboarding() {
         certifications,
         teamSize,
         referralSource,
+        vehicleUpcharges: { SUV: upchargeSuv, Truck: upchargeTruck, Van: upchargeVan },
       })
       clearServicesDraft(draftUserId)
       setSubmitted(true)
@@ -851,6 +857,40 @@ export default function DetailerOnboarding() {
                     {t('chargePerMileHint')}
                   </p>
                 </div>
+                </div>
+
+                <div className="card space-y-4">
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <p className="label !mb-0">{t('vehicleUpchargesLabel')}</p>
+                      <span className="rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-500 dark:bg-white/5 dark:text-slate-400">
+                        {t('optionalTag')}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">{t('vehicleUpchargesHint')}</p>
+                  </div>
+                  {[
+                    { key: 'suv', label: t('vehicleTypeSuv'), value: upchargeSuv, set: setUpchargeSuv },
+                    { key: 'truck', label: t('vehicleTypeTruck'), value: upchargeTruck, set: setUpchargeTruck },
+                    { key: 'van', label: t('vehicleTypeVan'), value: upchargeVan, set: setUpchargeVan },
+                  ].map(({ key, label, value, set }) => (
+                    <div key={key} className="flex items-center justify-between gap-3">
+                      <label htmlFor={`ob-upcharge-${key}`} className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                        {label}
+                      </label>
+                      <div className="flex items-center gap-1">
+                        <span className="text-slate-500 dark:text-slate-400">$</span>
+                        <input
+                          id={`ob-upcharge-${key}`}
+                          type="number" min={0} step={1} inputMode="decimal"
+                          value={value}
+                          onChange={(e) => set(e.target.value)}
+                          placeholder="0"
+                          className="input h-10 w-24"
+                        />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

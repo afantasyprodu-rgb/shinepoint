@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
     // Load booking + verify the caller owns it (customer side).
     const { data: booking, error: bErr } = await admin
       .from('bookings')
-      .select('id, total_price, paid_at, stripe_payment_intent, customer_id, detailer_id, service_id, addon_service_ids, is_loyalty_redemption, promo_code, booking_zip, customer_profiles!bookings_customer_id_fkey(user_id)')
+      .select('id, total_price, paid_at, stripe_payment_intent, customer_id, detailer_id, service_id, addon_service_ids, is_loyalty_redemption, promo_code, booking_zip, vehicle_type, customer_profiles!bookings_customer_id_fkey(user_id)')
       .eq('id', bookingId)
       .single()
     if (bErr || !booking) return json({ error: 'Booking not found' }, 404)
@@ -122,7 +122,7 @@ Deno.serve(async (req) => {
     // 100%, same as a tip: it's their gas, not commissionable revenue.
     const { data: detailerGeo } = await admin
       .from('detailer_profiles')
-      .select('zip_code, pin_lat, pin_lng, free_travel_miles, charge_per_extra_mile')
+      .select('zip_code, pin_lat, pin_lng, free_travel_miles, charge_per_extra_mile, vehicle_upcharge_suv, vehicle_upcharge_truck, vehicle_upcharge_van')
       .eq('id', booking.detailer_id)
       .single()
     let mileageFee = 0
@@ -139,6 +139,24 @@ Deno.serve(async (req) => {
         const extraMiles = Math.max(0, Math.ceil(distanceMiles - freeMiles))
         mileageFee = Number((extraMiles * perMile).toFixed(2))
       }
+    }
+
+    // ── Vehicle-size upcharge ────────────────────────────────────────────
+    // A detailer optionally sets a flat upcharge per vehicle type at
+    // onboarding/profile (066); never trust whatever the client's estimate
+    // showed. Null (not set) means no upcharge for that type — distinct from
+    // a $0 upcharge, so an unset field must never fall back to 0 here. Same
+    // 100%-to-detailer treatment as mileage: it's not commissionable.
+    const UPCHARGE_COLUMN: Record<string, string> = {
+      SUV: 'vehicle_upcharge_suv',
+      Truck: 'vehicle_upcharge_truck',
+      Van: 'vehicle_upcharge_van',
+    }
+    let vehicleUpchargeFee = 0
+    const upchargeCol = booking.vehicle_type ? UPCHARGE_COLUMN[booking.vehicle_type] : undefined
+    if (detailerGeo && upchargeCol) {
+      const raw = (detailerGeo as any)[upchargeCol]
+      if (raw != null) vehicleUpchargeFee = Number(Number(raw).toFixed(2))
     }
 
     // ── Discounts ─────────────────────────────────────────────────────────
@@ -188,14 +206,17 @@ Deno.serve(async (req) => {
       Math.max(0, servicePrice - rewardCredit),
     )
 
-    // Mileage isn't discountable — rewards/referral credits/promo all apply
-    // to the service price only, then the travel fee is added on top.
-    const expected = Number((Math.max(0, servicePrice - rewardCredit - referralCredit) + mileageFee).toFixed(2))
+    // Mileage/vehicle-upcharge aren't discountable — rewards/referral
+    // credits/promo all apply to the service price only, then these fees are
+    // added on top.
+    const extraFees = mileageFee + vehicleUpchargeFee
+    const expected = Number((Math.max(0, servicePrice - rewardCredit - referralCredit) + extraFees).toFixed(2))
     // The detailer's cut is computed off the FULL price, not the discounted
     // one. release-payouts transfers this from the platform balance, so a
-    // fully-discounted booking still pays the detailer properly. Mileage
-    // passes through in full, same as the service commission split.
-    const detailerPayout = Number((servicePrice * (1 - platformFeePercent(servicePrice) / 100) + mileageFee).toFixed(2))
+    // fully-discounted booking still pays the detailer properly. Mileage and
+    // the vehicle upcharge pass through in full, same as the service
+    // commission split.
+    const detailerPayout = Number((servicePrice * (1 - platformFeePercent(servicePrice) / 100) + extraFees).toFixed(2))
 
     // Consume whatever was actually applied, once the booking is committed
     // to being paid. Idempotent: the reward update is keyed on redeemed_at
@@ -241,8 +262,8 @@ Deno.serve(async (req) => {
     const amount = Math.round(expected * 100)
     // Correct the row so downstream reads (detailer payout views, receipts)
     // show the enforced price, not whatever the client inserted.
-    if (Number(booking.total_price) !== expected || mileageFee > 0) {
-      await admin.from('bookings').update({ total_price: expected, mileage_fee: mileageFee }).eq('id', booking.id)
+    if (Number(booking.total_price) !== expected || mileageFee > 0 || vehicleUpchargeFee > 0) {
+      await admin.from('bookings').update({ total_price: expected, mileage_fee: mileageFee, vehicle_upcharge_fee: vehicleUpchargeFee }).eq('id', booking.id)
     }
 
     if (amount <= 0) {

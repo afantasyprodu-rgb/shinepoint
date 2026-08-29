@@ -487,7 +487,14 @@ const [smsError, setSmsError] = useState(null)
   const chargePerMile = d.chargePerMile ?? (isDemo ? 2 : 0)
   const extraMiles = distanceMiles != null ? Math.max(0, Math.ceil(distanceMiles - d.travelMiles)) : 0
   const mileageFee = extraMiles > 0 ? Number((extraMiles * chargePerMile).toFixed(2)) : 0
-  const total = Number((baseAfterReward - creditUsed + mileageFee).toFixed(2))
+  // Vehicle-size upcharge — automatic, based on the vehicle already selected
+  // above (defaults to the customer's own saved car, no separate step for
+  // them). Same "not discountable, added after credits" treatment as
+  // mileage. A detailer who never set an upcharge for this vehicle type has
+  // vehicleUpcharges[vehicle] === null/undefined, not 0 — so nothing is
+  // added, not "$0 added".
+  const vehicleUpcharge = Number(d.vehicleUpcharges?.[vehicle] ?? 0)
+  const total = Number((baseAfterReward - creditUsed + mileageFee + vehicleUpcharge).toFixed(2))
 
   function continueFromSchedule() {
     setScheduleError('')
@@ -519,6 +526,7 @@ const [smsError, setSmsError] = useState(null)
       addonServiceIds: addonServices.map((s) => s.id),
       price: total,
       mileageFee,
+      vehicleUpchargeFee: vehicleUpcharge,
       tip: 0,
       vehicle,
       // DetailerJob.jsx reads vehicleType/vehicleMake/vehicleModel (matching
@@ -974,6 +982,12 @@ const [smsError, setSmsError] = useState(null)
                     <span>+${mileageFee.toFixed(2)}</span>
                   </div>
                 )}
+                {vehicleUpcharge > 0 && (
+                  <div className="flex justify-between text-sm font-medium text-amber-700 dark:text-amber-400">
+                    <span>{t('vehicleUpchargeFee', { type: vehicle })}</span>
+                    <span>+${vehicleUpcharge.toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="mt-2 flex justify-between border-t border-brand-100 pt-2 font-display text-lg font-bold text-slate-900 dark:border-white/10 dark:text-slate-100">
                   <span>{t('total')}</span>
                   <motion.span key={total} initial={{ scale: 1.2, color: totalColors[0] }} animate={{ scale: 1, color: totalColors[1] }}>
@@ -1057,6 +1071,9 @@ const [smsError, setSmsError] = useState(null)
                       : []),
                     ...(mileageFee > 0
                       ? [{ label: t('mileageFee', { miles: extraMiles }), value: `+$${mileageFee.toFixed(2)}` }]
+                      : []),
+                    ...(vehicleUpcharge > 0
+                      ? [{ label: t('vehicleUpchargeFee', { type: vehicle }), value: `+$${vehicleUpcharge.toFixed(2)}` }]
                       : []),
                   ]}
                 />

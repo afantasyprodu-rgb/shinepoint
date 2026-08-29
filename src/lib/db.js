@@ -2,6 +2,13 @@ import { supabase, invokeFn } from './supabase'
 import { fuzzyPinForZip } from './fuzzyPin'
 import { enqueue, registerHandler } from './offlineQueue'
 
+// '' / null / undefined -> null ("not set"); anything else -> a number.
+// Used for optional priced fields (vehicle upcharges) where blank must never
+// collapse to 0 — an unset upcharge and a $0 upcharge mean different things.
+function toOptionalNumber(v) {
+  return v === '' || v == null ? null : Number(v)
+}
+
 function normalizeDetailer(row) {
   const pin =
     row.pin_lat && row.pin_lng
@@ -33,6 +40,14 @@ function normalizeDetailer(row) {
     // Per-mile fee past the free radius (028) — was collected at onboarding
     // and never charged anywhere until BookingWizard's mileage-fee check.
     chargePerMile: Number(row.charge_per_extra_mile ?? 0),
+    // Optional per-vehicle-type flat upcharge (066). Null/undefined means
+    // "not set" — no upcharge for that type, not $0 — so callers must check
+    // presence, not just truthiness-of-zero, before displaying/charging it.
+    vehicleUpcharges: {
+      SUV: row.vehicle_upcharge_suv != null ? Number(row.vehicle_upcharge_suv) : null,
+      Truck: row.vehicle_upcharge_truck != null ? Number(row.vehicle_upcharge_truck) : null,
+      Van: row.vehicle_upcharge_van != null ? Number(row.vehicle_upcharge_van) : null,
+    },
     // Minimum gap the detailer wants between bookings — see BookingWizard's
     // conflict pre-check and migration 053's server-side guard.
     bufferMinutes: row.booking_buffer_min ?? 60,
@@ -272,6 +287,7 @@ export async function fetchDetailers() {
         insurance_status, total_completed_jobs, average_rating, total_reviews, bio,
         profile_photo_url, gallery_urls,
         probation_jobs_remaining, service_days, free_travel_miles, booking_buffer_min, charge_per_extra_mile, vehicle_emoji,
+        vehicle_upcharge_suv, vehicle_upcharge_truck, vehicle_upcharge_van,
         services(id, service_name, description, price, vehicle_types, is_active, is_addon, is_featured, is_package, package_includes)
       `),
     fetchDetailerNames(),
@@ -931,6 +947,7 @@ export async function saveDetailerOnboarding(userId, {
   teamSize,
   referralSource,
   blackoutHours,
+  vehicleUpcharges,
 }) {
   const { data: detailerId, error: profErr } = await supabase.rpc('submit_detailer_onboarding', {
     p_bio: bio,
@@ -945,6 +962,12 @@ export async function saveDetailerOnboarding(userId, {
     p_team_size: teamSize ?? null,
     p_referral_source: referralSource ?? null,
     p_blackout_hours: blackoutHours ?? [],
+    // Blank field ('', null, undefined) = not set, not $0 — must reach the
+    // RPC as null so it coalesces to "leave whatever's already there"
+    // instead of writing a stray 0.
+    p_vehicle_upcharge_suv: toOptionalNumber(vehicleUpcharges?.SUV),
+    p_vehicle_upcharge_truck: toOptionalNumber(vehicleUpcharges?.Truck),
+    p_vehicle_upcharge_van: toOptionalNumber(vehicleUpcharges?.Van),
   })
 
   if (profErr) {
