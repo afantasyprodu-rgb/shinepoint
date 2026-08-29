@@ -120,6 +120,13 @@ begin
 end; $$;
 
 -- ── submit_detailer_onboarding: extend 065's signature ──
+-- Same overload trap as 065 -- drop the 12-arg version first so adding
+-- 3 more trailing params replaces it cleanly instead of creating a second
+-- ambiguous overload.
+drop function if exists public.submit_detailer_onboarding(
+  text, text, text, integer, numeric, text[], text, text, text[], text, text, integer[]
+);
+
 create or replace function public.submit_detailer_onboarding(
   p_bio text, p_zip text, p_insurance text,
   p_free_travel_miles integer, p_charge_per_mile numeric, p_service_days text[],

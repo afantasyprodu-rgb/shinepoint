@@ -12,6 +12,15 @@ alter table public.detailer_profiles
 
 comment on column public.detailer_profiles.blackout_hours is 'Onboarding: hour-of-day (0-23, local) the detailer never wants booked, e.g. {12} for a noon lunch block.';
 
+-- CREATE OR REPLACE only replaces a function with the IDENTICAL argument
+-- list (same count + types) -- adding a trailing parameter (even with a
+-- default) creates a SECOND overloaded function instead of replacing 064's,
+-- which then makes the named-parameter RPC call ambiguous ("function name
+-- is not unique"). Drop the old 11-arg signature first so only one survives.
+drop function if exists public.submit_detailer_onboarding(
+  text, text, text, integer, numeric, text[], text, text, text[], text, text
+);
+
 create or replace function public.submit_detailer_onboarding(
   p_bio text, p_zip text, p_insurance text,
   p_free_travel_miles integer, p_charge_per_mile numeric, p_service_days text[],
