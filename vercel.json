@@ -5,7 +5,7 @@
     { "source": "/terms", "destination": "/terms.html" },
     { "source": "/privacy", "destination": "/privacy.html" },
     { "source": "/business-info", "destination": "/business-info.html" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/((?!assets/|.*\\.[\\w]+$).*)", "destination": "/index.html" }
   ],
   "headers": [
     {
