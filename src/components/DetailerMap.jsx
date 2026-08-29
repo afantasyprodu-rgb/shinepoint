@@ -184,7 +184,18 @@ function clusterIndices(points, threshold) {
 // Iterative pairwise repulsion — pushes any two points closer than minDist
 // apart, apart, repeated a few passes so chains/larger groups fully
 // resolve. Mutates `pts` in place.
-function declutterPoints(pts, minDist) {
+//
+// `fixed[i]` marks a point as an anchor that repels but never itself moves
+// — used for lone (un-clustered) pins, which must render at their TRUE
+// lat/lng every time. Nudging them by a pixel amount and unprojecting back
+// to lat/lng ties the nudge to that zoom's pixel scale, so the same pin
+// would land at a different real-world position at every zoom level —
+// visibly "walking" as you zoom, even though nothing about the pin
+// changed. Two fixed points can never be within minDist of each other
+// anyway (clusterIndices already merges anything closer than
+// CLUSTER_PIXEL_DIST, which is well above minDist), so this never leaves
+// a genuine overlap unresolved.
+function declutterPoints(pts, minDist, fixed = []) {
   for (let iter = 0; iter < 12; iter++) {
     let moved = false
     for (let i = 0; i < pts.length; i++) {
@@ -193,17 +204,29 @@ function declutterPoints(pts, minDist) {
         const dy = pts[j].y - pts[i].y
         const dist = Math.sqrt(dx * dx + dy * dy)
         if (dist >= minDist) continue
+        const iFixed = fixed[i]
+        const jFixed = fixed[j]
+        if (iFixed && jFixed) continue
         moved = true
         // Deterministic push direction (seeded by index) for the
         // exactly-coincident case, instead of Math.random — keeps the
         // layout reproducible between renders.
         const ux = dist > 0.01 ? dx / dist : Math.cos(i - j)
         const uy = dist > 0.01 ? dy / dist : Math.sin(i - j)
-        const push = (minDist - dist) / 2 + 0.5
-        pts[i].x -= ux * push
-        pts[i].y -= uy * push
-        pts[j].x += ux * push
-        pts[j].y += uy * push
+        const needed = minDist - dist + 1
+        if (!iFixed && !jFixed) {
+          const push = needed / 2
+          pts[i].x -= ux * push
+          pts[i].y -= uy * push
+          pts[j].x += ux * push
+          pts[j].y += uy * push
+        } else if (!iFixed) {
+          pts[i].x -= ux * needed
+          pts[i].y -= uy * needed
+        } else {
+          pts[j].x += ux * needed
+          pts[j].y += uy * needed
+        }
       }
     }
     if (!moved) break
@@ -249,7 +272,10 @@ function renderMarkers(map, markersRef, radarRef, detailers, navigate) {
       .reduce((acc, idx) => acc.add(points[idx]), L.point(0, 0))
       .divideBy(group.length)
   )
-  declutterPoints(renderPts, PIXEL_MIN_DIST)
+  // Lone pins are anchors (see declutterPoints) — only cluster pills move
+  // to make room, so a single detailer's pin never shifts between zooms.
+  const fixed = groups.map((group) => group.length === 1)
+  declutterPoints(renderPts, PIXEL_MIN_DIST, fixed)
 
   groups.forEach((group, k) => {
     const latLng = map.unproject(renderPts[k], zoom)
