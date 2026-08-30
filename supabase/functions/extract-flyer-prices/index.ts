@@ -72,7 +72,13 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         model,
-        max_tokens: 1024,
+        // deepseek-v4-flash-vision-exp reasons in an extended `thinking`
+        // block before answering (see the content-block fix below) — on a
+        // busy flyer with a couple dozen line items that reasoning alone
+        // can run past 1000 tokens, so 1024 total cut the model off mid-
+        // thought before it ever reached the actual JSON answer. 4096
+        // leaves real headroom for both.
+        max_tokens: 4096,
         messages: [
           {
             role: 'user',
@@ -100,14 +106,13 @@ Deno.serve(async (req) => {
     }
 
     const result = await anthropicRes.json()
-    const text = result?.content?.[0]?.text ?? '[]'
-    // TEMP DEBUG (remove after diagnosing the empty-extraction reports):
-    // logs the raw response shape when we're about to fall back to "[]" so
-    // we can tell a real empty-array model reply from a shape mismatch
-    // (DeepSeek's Anthropic-compat response not matching content[0].text).
-    if (text === '[]') {
-      console.log('extract-flyer-prices DEBUG raw result:', JSON.stringify(result).slice(0, 2000))
-    }
+    // NOT content[0] — deepseek-v4-flash-vision-exp reasons first, so
+    // content[0] is a {type: "thinking"} block with no .text field and the
+    // actual answer is a later {type: "text"} block. Assuming index 0 was
+    // silently returning "no prices found" on every real photo, since
+    // .text on a thinking block is undefined and fell through to '[]'.
+    const textBlock = (result?.content ?? []).find((c: any) => c?.type === 'text')
+    const text = textBlock?.text ?? '[]'
     let services: unknown
     try {
       services = JSON.parse(text)
