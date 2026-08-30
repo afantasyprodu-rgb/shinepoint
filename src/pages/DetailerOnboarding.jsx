@@ -90,6 +90,13 @@ export default function DetailerOnboarding() {
   // Free-text "what's included" per service (e.g. Full Detail → "ceramic
   // coating, clay bar, tire shine, interior clean"), keyed by service name.
   const [serviceDescriptions, setServiceDescriptions] = useState(() => initialServicesDraft()?.serviceDescriptions ?? {})
+  // Which services are add-ons rather than main packages, keyed by name —
+  // a single-line item with one price (Pet Hair Removal, Engine Bay Detail)
+  // vs. a bundled package with its own sub-items (Full Detail + Sealant).
+  // Flyer extraction sets this from whether the item had an "includes"
+  // list; manually-added services default to add-on too (a lone name+price
+  // with nothing bundled in is exactly what makes something an add-on).
+  const [serviceAddons, setServiceAddons] = useState(() => initialServicesDraft()?.serviceAddons ?? {})
   // Which service gets the single "Promote this" highlight (Von Restorff —
   // only one thing should visually stand out, and it should be the
   // detailer's own call). Also the one that gives their map pin a gold
@@ -143,6 +150,20 @@ export default function DetailerOnboarding() {
         return count === 1 ? s : { ...s, name: `${s.name} (${count})` }
       })
       setServices(Object.fromEntries(disambiguated.map((s) => [s.name, s.price])))
+      // A package lists what's bundled in (the flyer's own sub-items go
+      // straight into the description, same field the manual "what's
+      // included" box writes to); a plain single-line item with nothing
+      // bundled is an add-on. A range/"+" price note is surfaced the same
+      // way so the detailer sees the flyer wasn't a single clean number.
+      setServiceDescriptions((d) => {
+        const next = { ...d }
+        for (const s of disambiguated) {
+          if (s.includes?.length) next[s.name] = s.includes.join(', ')
+          else if (s.priceNote) next[s.name] = t('flyerPriceRangeNote', { range: s.priceNote })
+        }
+        return next
+      })
+      setServiceAddons(Object.fromEntries(disambiguated.map((s) => [s.name, !s.includes?.length])))
       setFeaturedService(null)
     } catch (err) {
       setFlyerError(err.message || t('flyerExtractFailed'))
@@ -153,6 +174,7 @@ export default function DetailerOnboarding() {
 
   function applyExampleTemplate() {
     setServices(EXAMPLE_TEMPLATE)
+    setServiceAddons({})
     setFeaturedService(null)
     setServiceMethod('template')
   }
@@ -161,8 +183,8 @@ export default function DetailerOnboarding() {
   // closing the tab entirely, until onboarding is actually submitted.
   useEffect(() => {
     if (!draftUserId) return
-    writeServicesDraft(draftUserId, { serviceMethod, services, serviceDescriptions, featuredService })
-  }, [draftUserId, serviceMethod, services, serviceDescriptions, featuredService])
+    writeServicesDraft(draftUserId, { serviceMethod, services, serviceDescriptions, serviceAddons, featuredService })
+  }, [draftUserId, serviceMethod, services, serviceDescriptions, serviceAddons, featuredService])
 
   useEffect(() => {
     if (isDemo) return
@@ -186,6 +208,11 @@ export default function DetailerOnboarding() {
     const price = Number(customPrice)
     if (!name || !price || price <= 0 || name in services) return
     setServices((s) => ({ ...s, [name]: price }))
+    // A hand-typed name+price with nothing bundled in is exactly what makes
+    // something an add-on rather than a package — same rule the flyer
+    // extraction uses, just applied to a manual entry instead of an
+    // "includes" list.
+    setServiceAddons((a) => ({ ...a, [name]: true }))
     setCustomName('')
     setCustomPrice('')
   }
@@ -198,6 +225,11 @@ export default function DetailerOnboarding() {
     })
     setServiceDescriptions((d) => {
       const next = { ...d }
+      delete next[name]
+      return next
+    })
+    setServiceAddons((a) => {
+      const next = { ...a }
       delete next[name]
       return next
     })
@@ -252,6 +284,7 @@ export default function DetailerOnboarding() {
         vehicles,
         services,
         serviceDescriptions,
+        serviceAddons,
         freeTravelMiles: travel,
         chargePerMile,
         serviceDays: days,
@@ -694,80 +727,108 @@ export default function DetailerOnboarding() {
                       </div>
                     )}
 
-                    {Object.keys(services).length > 0 && (
-                      <div className="space-y-2 pt-1">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
-                          {t('yourServices')}
-                        </p>
-                        {!featuredService && (
-                          <p className="flex items-start gap-1.5 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
-                            <StarIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                            {t('noPromotedWarning')}
-                          </p>
-                        )}
-                        <AnimatePresence>
-                          {Object.keys(services).map((name) => {
-                            const advice = SERVICE_ADVICE_KEYS[name] ? t(SERVICE_ADVICE_KEYS[name]) : null
-                            const isPromoted = name === featuredService
-                            return (
-                              <motion.div
-                                key={name}
-                                layout
-                                initial={{ opacity: 0, y: -6 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, scale: 0.95 }}
-                                transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-                                className={`card !p-4 transition-colors duration-200 ${isPromoted ? 'ring-2 ring-amber-400 dark:ring-amber-400/50' : ''}`}
-                              >
-                                <div className="flex items-center justify-between gap-3">
-                                  <span className="min-w-0 truncate font-medium text-slate-900 dark:text-slate-100">{name}</span>
-                                  <div className="flex shrink-0 items-center gap-1">
-                                    <span className="text-slate-500 dark:text-slate-400">$</span>
-                                    <input type="number" min={1} aria-label={t('priceAria', { name })} value={services[name]}
-                                      onChange={(e) => setServices((s) => ({ ...s, [name]: Number(e.target.value) }))}
-                                      className="input h-9 w-20" />
-                                    <button type="button" aria-label={t('removeService', { name })} onClick={() => removeService(name)}
-                                      className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-slate-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:hover:bg-red-500/10 dark:hover:text-red-400">
-                                      <XIcon className="h-4 w-4" />
-                                    </button>
-                                  </div>
-                                </div>
-                                <input
-                                  type="text"
-                                  aria-label={t('serviceIncludesAria', { name })}
-                                  value={serviceDescriptions[name] ?? ''}
-                                  onChange={(e) => setServiceDescriptions((d) => ({ ...d, [name]: e.target.value }))}
-                                  placeholder={t('serviceIncludesPlaceholder')}
-                                  className="input mt-2 h-9 text-sm"
-                                />
-                                <div className="mt-2 flex items-center justify-between gap-3 border-t border-brand-100 pt-2 dark:border-white/10">
-                                  {advice ? (
-                                    <p className="flex gap-1.5 text-xs text-brand-700 dark:text-brand-300">
-                                      <LightbulbIcon className="h-3.5 w-3.5 shrink-0" />
-                                      {advice}
-                                    </p>
-                                  ) : <span />}
-                                  <button
-                                    type="button"
-                                    onClick={() => setFeaturedService((f) => (f === name ? null : name))}
-                                    aria-pressed={isPromoted}
-                                    title={isPromoted ? t('unmarkBestMargin') : t('markBestMarginTitle')}
-                                    className={`flex shrink-0 cursor-pointer items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
-                                      isPromoted
-                                        ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400'
-                                        : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:text-slate-500 dark:hover:bg-white/5 dark:hover:text-slate-300'
-                                    }`}
-                                  >
-                                    <StarIcon className="h-3.5 w-3.5" />
-                                    {isPromoted ? t('bestMargin') : t('markAsBestMargin')}
-                                  </button>
-                                </div>
-                              </motion.div>
-                            )
-                          })}
-                        </AnimatePresence>
-                      </div>
-                    )}
+                    {Object.keys(services).length > 0 && (() => {
+                      const names = Object.keys(services)
+                      const packageNames = names.filter((n) => !serviceAddons[n])
+                      const addonNames = names.filter((n) => serviceAddons[n])
+                      const renderCard = (name) => {
+                        const advice = SERVICE_ADVICE_KEYS[name] ? t(SERVICE_ADVICE_KEYS[name]) : null
+                        const isPromoted = name === featuredService
+                        const isAddon = Boolean(serviceAddons[name])
+                        return (
+                          <motion.div
+                            key={name}
+                            layout
+                            initial={{ opacity: 0, y: -6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                            className={`card !p-4 transition-colors duration-200 ${isPromoted ? 'ring-2 ring-amber-400 dark:ring-amber-400/50' : ''}`}
+                          >
+                            <div className="flex items-center justify-between gap-3">
+                              <span className="min-w-0 truncate font-medium text-slate-900 dark:text-slate-100">{name}</span>
+                              <div className="flex shrink-0 items-center gap-1">
+                                <span className="text-slate-500 dark:text-slate-400">$</span>
+                                <input type="number" min={1} aria-label={t('priceAria', { name })} value={services[name]}
+                                  onChange={(e) => setServices((s) => ({ ...s, [name]: Number(e.target.value) }))}
+                                  className="input h-9 w-20" />
+                                <button type="button" aria-label={t('removeService', { name })} onClick={() => removeService(name)}
+                                  className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-slate-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:hover:bg-red-500/10 dark:hover:text-red-400">
+                                  <XIcon className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </div>
+                            <input
+                              type="text"
+                              aria-label={t('serviceIncludesAria', { name })}
+                              value={serviceDescriptions[name] ?? ''}
+                              onChange={(e) => setServiceDescriptions((d) => ({ ...d, [name]: e.target.value }))}
+                              placeholder={t('serviceIncludesPlaceholder')}
+                              className="input mt-2 h-9 text-sm"
+                            />
+                            <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-brand-100 pt-2 dark:border-white/10">
+                              {advice ? (
+                                <p className="flex gap-1.5 text-xs text-brand-700 dark:text-brand-300">
+                                  <LightbulbIcon className="h-3.5 w-3.5 shrink-0" />
+                                  {advice}
+                                </p>
+                              ) : <span />}
+                              <div className="flex shrink-0 items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => setServiceAddons((a) => ({ ...a, [name]: !isAddon }))}
+                                  title={t('toggleAddonTitle')}
+                                  className="flex cursor-pointer items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold text-slate-400 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-slate-500 dark:hover:bg-white/5 dark:hover:text-slate-300"
+                                >
+                                  <TagIcon className="h-3.5 w-3.5" />
+                                  {isAddon ? t('markAsPackage') : t('markAsAddon')}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setFeaturedService((f) => (f === name ? null : name))}
+                                  aria-pressed={isPromoted}
+                                  title={isPromoted ? t('unmarkBestMargin') : t('markBestMarginTitle')}
+                                  className={`flex cursor-pointer items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
+                                    isPromoted
+                                      ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400'
+                                      : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:text-slate-500 dark:hover:bg-white/5 dark:hover:text-slate-300'
+                                  }`}
+                                >
+                                  <StarIcon className="h-3.5 w-3.5" />
+                                  {isPromoted ? t('bestMargin') : t('markAsBestMargin')}
+                                </button>
+                              </div>
+                            </div>
+                          </motion.div>
+                        )
+                      }
+                      return (
+                        <>
+                          {packageNames.length > 0 && (
+                            <div className="space-y-2 pt-1">
+                              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                                {t('yourServices')}
+                              </p>
+                              {!featuredService && (
+                                <p className="flex items-start gap-1.5 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
+                                  <StarIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                                  {t('noPromotedWarning')}
+                                </p>
+                              )}
+                              <AnimatePresence>{packageNames.map(renderCard)}</AnimatePresence>
+                            </div>
+                          )}
+                          {addonNames.length > 0 && (
+                            <div className="space-y-2 pt-1">
+                              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                                {t('yourAddons')}
+                              </p>
+                              <AnimatePresence>{addonNames.map(renderCard)}</AnimatePresence>
+                            </div>
+                          )}
+                        </>
+                      )
+                    })()}
 
                     {/* Add a service */}
                     <div className="card !p-4">

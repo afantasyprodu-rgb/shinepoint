@@ -908,11 +908,16 @@ export async function fetchMyPayoutStatus() {
 // `alter database postgres set app.auto_verify_detailers = 'false'` once a
 // real review process is staffed.
 // Reads a File (the flyer photo) as base64 and sends it to the
-// extract-flyer-prices edge function, which returns [{name, price}] parsed
-// from the image via Claude vision. Never uploaded to storage — one-shot,
-// nothing to clean up. Throws with a friendly message on any failure
-// (unreadable photo, no services found, rate limit, function not
-// configured) — the caller shows it and falls back to manual entry.
+// extract-flyer-prices edge function, which returns
+// [{name, price, includes, priceNote}] parsed from the image via vision AI.
+// `includes` (a sub-item list) marks a bundled package; an empty array means
+// a plain single-line item — see DetailerOnboarding's handleFlyerUpload for
+// how that becomes the add-on/package split. `priceNote` carries the flyer's
+// original text when `price` was approximated from a range or a "+" price.
+// Never uploaded to storage — one-shot, nothing to clean up. Throws with a
+// friendly message on any failure (unreadable photo, no services found,
+// rate limit, function not configured) — the caller shows it and falls back
+// to manual entry.
 export async function extractFlyerPrices(file) {
   const base64 = await new Promise((resolve, reject) => {
     const reader = new FileReader()
@@ -937,6 +942,7 @@ export async function saveDetailerOnboarding(userId, {
   vehicles,
   services,
   serviceDescriptions,
+  serviceAddons,
   freeTravelMiles,
   chargePerMile,
   serviceDays,
@@ -995,6 +1001,7 @@ export async function saveDetailerOnboarding(userId, {
     price: Number(price),
     vehicle_types: vehicles,
     is_active: true,
+    is_addon: Boolean(serviceAddons?.[name]),
     is_featured: name === featuredService,
   }))
 

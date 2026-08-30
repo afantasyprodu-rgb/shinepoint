@@ -87,12 +87,23 @@ Deno.serve(async (req) => {
               {
                 type: 'text',
                 text:
-                  'This is a photo of a car detailing price-list flyer. Extract every service ' +
-                  'name and its price as a JSON array, nothing else — no markdown fences, no ' +
-                  'commentary. Shape: [{"name": "Full Detail", "price": 175}, ...]. Round each ' +
-                  'price to the nearest whole dollar. Skip any line that has no clear single ' +
-                  'price (a range, "call for quote", etc). If you cannot find any priced ' +
-                  'services at all, return [].',
+                  'This is a photo of a car detailing price-list flyer. Extract every priced ' +
+                  'detailing package or add-on service as a JSON array, nothing else — no ' +
+                  'markdown fences, no commentary. Shape: [{"name": "Full Detail", "price": 175, ' +
+                  '"includes": ["Exterior wash", "Wax"], "priceNote": null}, ...]. For each item: ' +
+                  '"price" is a number, rounded to the nearest whole dollar — for a range like ' +
+                  '"$25-60" use the LOW end (25), for "$35+" use 35; "priceNote" is the exact ' +
+                  'raw price text ONLY when it was a range or had a "+"/"call for quote" ' +
+                  'qualifier (e.g. "$25-60" or "$35+"), otherwise null. Skip a line only if it ' +
+                  'has no number in the price at all (pure "call for quote" with no dollar ' +
+                  'figure). "includes" is an array of the sub-items listed under a bundled ' +
+                  'package (e.g. a "Full Detail" flyer entry with its own bullet list of what\'s ' +
+                  'in it) — use [] or omit it for a plain single-line item with no sub-list ' +
+                  '(add-ons, fees, single services). Do NOT extract vehicle-size upcharge tables ' +
+                  '(SUV/Truck/Van/Minivan rows), travel-fee-by-distance tables, or condition-fee ' +
+                  'rows (heavy dirt, extreme condition, etc.) — those are surcharge schedules, ' +
+                  'not services, and must not appear in the output at all. If you cannot find ' +
+                  'any priced services, return [].',
               },
             ],
           },
@@ -126,7 +137,22 @@ Deno.serve(async (req) => {
     if (!Array.isArray(services)) services = []
     const clean = (services as any[])
       .filter((s) => s && typeof s.name === 'string' && s.name.trim() && Number.isFinite(Number(s.price)) && Number(s.price) > 0)
-      .map((s) => ({ name: String(s.name).trim().slice(0, 60), price: Math.round(Number(s.price)) }))
+      .map((s) => ({
+        name: String(s.name).trim().slice(0, 60),
+        price: Math.round(Number(s.price)),
+        // A bundled package lists what's inside it; a plain add-on/fee line
+        // doesn't. The client uses "has includes" to sort each item into
+        // the packages vs. add-ons section, so an add-on being [] here (not
+        // just absent) matters just as much as a package's list being full.
+        includes: Array.isArray(s.includes)
+          ? s.includes.filter((x: unknown) => typeof x === 'string' && x.trim()).map((x: string) => x.trim().slice(0, 80)).slice(0, 12)
+          : [],
+        // The model's rounded/low-end `price` is always a real, editable
+        // number; priceNote preserves the flyer's original range/"+" text
+        // (e.g. "$25-60") so the detailer sees it was approximated, not a
+        // clean single price the model made up.
+        priceNote: typeof s.priceNote === 'string' && s.priceNote.trim() ? s.priceNote.trim().slice(0, 30) : null,
+      }))
       .slice(0, 20)
 
     return json({ services: clean })
