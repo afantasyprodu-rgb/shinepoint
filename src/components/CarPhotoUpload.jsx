@@ -4,7 +4,10 @@ import { useFileUpload } from '../hooks/useFileUpload'
 // Compact square photo picker for a single vehicle — same upload contract as
 // AvatarUpload (both run on useFileUpload) but rounded-xl instead of circular,
 // with a car-icon placeholder instead of initials when there's no photo yet.
-export default function CarPhotoUpload({ photo, onFile, onChange }) {
+// `paintHex` (a real hex, e.g. from PaintContext's current accent once the
+// onboarding photo scan has matched one) rings the thumbnail in the
+// vehicle's own paint color once one's known.
+export default function CarPhotoUpload({ photo, onFile, onChange, paintHex }) {
   const { inputRef, busy, error, handlePick, open } = useFileUpload({ onFile, onChange })
 
   return (
@@ -14,6 +17,7 @@ export default function CarPhotoUpload({ photo, onFile, onChange }) {
         onClick={open}
         disabled={busy}
         aria-label={photo ? 'Change vehicle photo' : 'Add vehicle photo'}
+        style={paintHex ? { boxShadow: `0 0 0 2px white, 0 0 0 4px ${paintHex}` } : undefined}
         className="group relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-xl bg-brand-50 text-brand-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:bg-white/5 dark:text-brand-300"
       >
         {photo ? (

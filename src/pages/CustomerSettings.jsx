@@ -108,6 +108,7 @@ export default function CustomerSettings() {
   const { customer, uploadImage, updateCustomer, detailers } = useStore()
   const tiltRef = useTiltShadow()
   const t = useT('customerSettings')
+  const { accent } = usePaint()
 
   const [photo, setPhoto] = useState(customer.photo ?? null)
   const [name, setName] = useState(customer.name)
@@ -118,6 +119,7 @@ export default function CustomerSettings() {
   const [vehModel, setVehModel] = useState(customer.vehicle?.model ?? '')
   const [vehType, setVehType] = useState(customer.vehicle?.type ?? '')
   const [vehPhoto, setVehPhoto] = useState(customer.vehicle?.photo ?? null)
+  const [vehYear, setVehYear] = useState(customer.vehicle?.year ? String(customer.vehicle.year) : '')
   const [vehicles, setVehicles] = useState(customer.vehicles ?? [])
   const [address, setAddress] = useState(customer.address)
   const [zip, setZip] = useState(customer.zip)
@@ -162,7 +164,7 @@ export default function CustomerSettings() {
         bio,
         phone: normalizePhone(phone),
         smsOptIn,
-        vehicle: { make: vehMake, model: vehModel, type: vehType, photo: vehPhoto },
+        vehicle: { make: vehMake, model: vehModel, type: vehType, photo: vehPhoto, year: vehYear ? Number(vehYear) : null },
         vehicles,
         address,
         zip,
@@ -293,10 +295,20 @@ export default function CustomerSettings() {
                 </button>
               ))}
             </div>
+            <input
+              type="number"
+              inputMode="numeric"
+              value={vehYear}
+              onChange={(e) => setVehYear(e.target.value)}
+              placeholder="Year (2021)"
+              aria-label="Vehicle year"
+              className="input"
+            />
             <div className="flex flex-col items-center gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
               <p className="text-xs font-medium text-slate-600 dark:text-slate-400">Vehicle Photo (optional)</p>
               <CarPhotoUpload
                 photo={vehPhoto}
+                paintHex={accent}
                 onChange={setVehPhoto}
                 onFile={async (file) => {
                   const reader = new FileReader()

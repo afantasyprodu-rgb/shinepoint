@@ -801,15 +801,16 @@ const [smsError, setSmsError] = useState(null)
                   <div className="mt-2 flex flex-wrap gap-2" role="radiogroup" aria-label={t('whichCar')}>
                     {vehicleOptions.map((opt) => {
                       const label = [opt.make, opt.model].filter(Boolean).join(' ') || opt.type || t('vehicleFallback')
+                      const checked = selectedVehicleId === opt.id
                       return (
                         <button
                           key={opt.id}
                           type="button"
                           role="radio"
-                          aria-checked={selectedVehicleId === opt.id}
+                          aria-checked={checked}
                           onClick={() => selectVehicle(opt)}
                           className={`flex items-center gap-2 rounded-2xl border px-4 py-2.5 text-left text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
-                            selectedVehicleId === opt.id
+                            checked
                               ? 'border-brand-600 bg-brand-600 text-white shadow-md'
                               : 'border-brand-100 bg-white text-slate-700 hover:border-brand-300 hover:bg-brand-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10'
                           }`}

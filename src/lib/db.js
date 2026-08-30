@@ -462,7 +462,11 @@ export async function deletePromoCode(id) {
 export async function fetchCustomerProfile(userId) {
   const { data, error } = await supabase
     .from('customer_profiles')
-    .select('id, referral_code, referral_credit, identity_status, default_address, default_zip, profile_photo_url, bio, vehicle_make, vehicle_model, vehicle_type, vehicles')
+    // vehicle_photo was missing here even though StoreContext reads
+    // customerProfile.vehicle_photo and CustomerOnboarding captures it —
+    // a real customer's uploaded vehicle photo never actually came back
+    // after the initial save (it just silently read as null on refetch).
+    .select('id, referral_code, referral_credit, identity_status, default_address, default_zip, profile_photo_url, bio, vehicle_make, vehicle_model, vehicle_type, vehicle_photo, vehicle_year, vehicles')
     .eq('user_id', userId)
     .single()
   if (error) {
@@ -937,6 +941,28 @@ export async function extractFlyerPrices(file) {
     throw new Error('No prices found on that flyer — try a clearer photo, or enter prices manually.')
   }
   return services
+}
+
+// Reads a File (the customer's vehicle photo, captured during onboarding)
+// as base64 and sends it to the extract-vehicle-photo edge function, which
+// returns { make, model, type, year, color } via vision AI — any field it
+// isn't confident about comes back null rather than a guess, so the caller
+// knows exactly what still needs a manual fill-in (year in particular:
+// reading a model year off a photo is genuinely hard, so a null there is
+// the common case, not a bug). Throws with a friendly message on any
+// failure — the caller falls back to the manual make/model fields, which
+// stay usable either way.
+export async function extractVehiclePhoto(file) {
+  const base64 = await new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result).split(',')[1] ?? '')
+    reader.onerror = () => reject(new Error('Could not read that image.'))
+    reader.readAsDataURL(file)
+  })
+  return invokeFn('extract-vehicle-photo', {
+    imageBase64: base64,
+    mediaType: file.type,
+  })
 }
 
 export async function saveDetailerOnboarding(userId, {

@@ -6,10 +6,12 @@ import { AnimatedPage } from '../components/ui/Motion'
 import Combobox from '../components/ui/Combobox'
 import AddressAutocomplete from '../components/ui/AddressAutocomplete'
 import CarPhotoUpload from '../components/CarPhotoUpload'
-import { CarIcon, MapPinIcon } from '../components/icons'
+import { CarIcon, MapPinIcon, SparklesIcon } from '../components/icons'
 import { useStore } from '../context/StoreContext'
+import { usePaint, PAINTS } from '../context/PaintContext'
 import { CA_ZIP_CENTROIDS, closestDetailer } from '../lib/fuzzyPin'
 import { CAR_MAKES, CAR_MODELS, MODEL_TO_TYPE } from '../lib/vehicleData'
+import { extractVehiclePhoto } from '../lib/db'
 import { useT } from '../i18n/useT'
 
 const VEHICLE_TYPES = ['Sedan', 'SUV', 'Truck', 'Van', 'Coupe', 'EV']
@@ -31,7 +33,8 @@ export default function CustomerOnboarding() {
   const navigate = useNavigate()
   const location = useLocation()
   const returnTo = location.state?.returnTo ?? '/home'
-  const { updateCustomer, detailers } = useStore()
+  const { updateCustomer, detailers, isDemo } = useStore()
+  const { setAccent } = usePaint()
   const t = useT('customerOnboarding')
 
   const [step, setStep] = useState(0)
@@ -42,10 +45,46 @@ export default function CustomerOnboarding() {
   const [model, setModel] = useState('')
   const [type, setType] = useState('')
   const [vehiclePhoto, setVehiclePhoto] = useState(null)
+  const [year, setYear] = useState('')
+  const [scanning, setScanning] = useState(false)
+  const [scanError, setScanError] = useState('')
+  const [paintDetected, setPaintDetected] = useState('')
+  // The scan couldn't read a year off the photo — nudge the customer to
+  // type it in rather than just leaving the field quietly blank.
+  const [yearNeeded, setYearNeeded] = useState(false)
 
   const [address, setAddress] = useState('')
   const [zip, setZip] = useState('')
   const [saveError, setSaveError] = useState(null)
+
+  // Runs automatically as soon as a vehicle photo is picked (demo mode
+  // skips it — there's no real account/JWT for the edge function to
+  // authenticate). Autofills whatever it's confident about; make/model
+  // stay in ordinary Combobox fields either way, so a wrong or missing
+  // guess is just as easy to fix by hand as typing from scratch. The
+  // detected paint feeds straight into the existing "Your garage" accent
+  // system (PaintContext) — same PAINTS list as the manual picker in
+  // CustomerSettings, so this is just an automatic way to land on one of
+  // those swatches instead of a whole separate color feature.
+  async function scanVehiclePhoto(file) {
+    if (isDemo) return
+    setScanning(true)
+    setScanError('')
+    try {
+      const detected = await extractVehiclePhoto(file)
+      if (detected.make) setMake(detected.make)
+      if (detected.model) setModel(detected.model)
+      if (detected.type) setType(detected.type)
+      if (detected.year) { setYear(String(detected.year)); setYearNeeded(false) }
+      else setYearNeeded(true)
+      const paint = PAINTS.find((p) => p.name === detected.paintName)
+      if (paint) { setAccent(paint.hex); setPaintDetected(paint.name) }
+    } catch (e) {
+      setScanError(e.message || t('scanFailed'))
+    } finally {
+      setScanning(false)
+    }
+  }
 
   function done() { navigate(returnTo, { replace: true }) }
 
@@ -54,7 +93,9 @@ export default function CustomerOnboarding() {
     setSaveError(null)
     try {
       if (step === 0 && (make || model || type || vehiclePhoto)) {
-        await updateCustomer({ vehicle: { make, model, type, photo: vehiclePhoto } })
+        await updateCustomer({
+          vehicle: { make, model, type, photo: vehiclePhoto, year: year ? Number(year) : null },
+        })
       } else if (step === 1 && (address || zip)) {
         await updateCustomer({ address, zip })
       }
@@ -162,19 +203,54 @@ export default function CustomerOnboarding() {
 
                 <div>
                   <label className="label">{t('photoLabel')}</label>
-                  <div className="mt-1 flex justify-center">
+                  <div className="mt-1 flex flex-col items-center gap-2">
                     <CarPhotoUpload
                       photo={vehiclePhoto}
-                      onChange={setVehiclePhoto}
+                      paintHex={PAINTS.find((p) => p.name === paintDetected)?.hex}
+                      onChange={(photo) => {
+                        setVehiclePhoto(photo)
+                        if (!photo) { setScanError(''); setYearNeeded(false); setPaintDetected('') }
+                      }}
                       onFile={async (file) => {
                         // For now just set the file as data URL for demo
                         // In production, uploadImage would be called via onFile handler
                         const reader = new FileReader()
                         reader.onload = (e) => setVehiclePhoto(e.target.result)
                         reader.readAsDataURL(file)
+                        scanVehiclePhoto(file)
                       }}
                     />
+                    {scanning && (
+                      <p className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+                        <span className="h-3 w-3 animate-spin rounded-full border-2 border-brand-400 border-t-transparent" />
+                        {t('scanning')}
+                      </p>
+                    )}
+                    {!scanning && scanError && (
+                      <p role="alert" className="text-xs text-red-600 dark:text-red-400">{scanError}</p>
+                    )}
+                    {!scanning && !scanError && (make || model) && (
+                      <p className="flex items-center gap-1 text-xs text-cta-700 dark:text-cta-400">
+                        <SparklesIcon className="h-3 w-3" /> {paintDetected ? t('scanDetectedPaint', { paint: paintDetected }) : t('scanDetected')}
+                      </p>
+                    )}
                   </div>
+                </div>
+
+                <div>
+                  <label className="label" htmlFor="onb-vehicle-year">{t('yearLabel')}</label>
+                  <input
+                    id="onb-vehicle-year"
+                    type="number"
+                    inputMode="numeric"
+                    value={year}
+                    onChange={(e) => { setYear(e.target.value); setYearNeeded(false) }}
+                    placeholder="2021"
+                    className="input"
+                  />
+                  {yearNeeded && (
+                    <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">{t('yearNotDetected')}</p>
+                  )}
                 </div>
 
                 <div className="mt-1 flex flex-col gap-2">

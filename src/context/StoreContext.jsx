@@ -397,6 +397,10 @@ export function StoreProvider({ children }) {
             model: customerProfile?.vehicle_model ?? '',
             type: customerProfile?.vehicle_type ?? '',
             photo: customerProfile?.vehicle_photo ?? null,
+            // Model year, customer-confirmed or read off the onboarding
+            // photo scan (071) — paint color lives in PaintContext
+            // (device-local, not this DB row; see its own header comment).
+            year: customerProfile?.vehicle_year ?? null,
           },
           // Additional cars beyond the primary one (013_customer_vehicles.sql).
           vehicles: customerProfile?.vehicles ?? [],
@@ -540,6 +544,7 @@ export function StoreProvider({ children }) {
           cols.vehicle_model = patch.vehicle.model ?? ''
           cols.vehicle_type = patch.vehicle.type ?? ''
           if ('photo' in patch.vehicle) cols.vehicle_photo = patch.vehicle.photo
+          if ('year' in patch.vehicle) cols.vehicle_year = patch.vehicle.year || null
         }
         if (patch.vehicles) cols.vehicles = patch.vehicles
         if (Object.keys(cols).length) {
