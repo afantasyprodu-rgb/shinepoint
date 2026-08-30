@@ -101,6 +101,13 @@ Deno.serve(async (req) => {
 
     const result = await anthropicRes.json()
     const text = result?.content?.[0]?.text ?? '[]'
+    // TEMP DEBUG (remove after diagnosing the empty-extraction reports):
+    // logs the raw response shape when we're about to fall back to "[]" so
+    // we can tell a real empty-array model reply from a shape mismatch
+    // (DeepSeek's Anthropic-compat response not matching content[0].text).
+    if (text === '[]') {
+      console.log('extract-flyer-prices DEBUG raw result:', JSON.stringify(result).slice(0, 2000))
+    }
     let services: unknown
     try {
       services = JSON.parse(text)
