@@ -7,7 +7,7 @@ import MarketingTip from '../components/MarketingTip'
 import { useStore } from '../context/StoreContext'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
-import { CheckIcon, ShieldCheckIcon, CreditCardIcon, ClipboardCheckIcon, UsersIcon, PlusIcon, XIcon, LightbulbIcon, ClockIcon, StarIcon, SparklesIcon, CameraIcon, FileTextIcon, TagIcon } from '../components/icons'
+import { CheckIcon, ShieldCheckIcon, CreditCardIcon, ClipboardCheckIcon, UsersIcon, PlusIcon, XIcon, LightbulbIcon, ClockIcon, StarIcon, SparklesIcon, CameraIcon, ImageIcon, FileTextIcon, TagIcon } from '../components/icons'
 import { InfoPopover } from '../components/ui/bits'
 import { startIdentityVerification, startConnectOnboarding, isStripeConfigured, stripePromise } from '../lib/stripe'
 import { fetchMyPayoutStatus, extractFlyerPrices } from '../lib/db'
@@ -718,12 +718,27 @@ export default function DetailerOnboarding() {
                         {flyerError && (
                           <p role="alert" className="text-sm text-red-600 dark:text-red-400">{flyerError}</p>
                         )}
-                        <label className={`btn btn-brand inline-flex cursor-pointer ${flyerBusy ? 'pointer-events-none opacity-70' : ''}`}>
-                          {flyerBusy
-                            ? <span className="inline-flex items-center gap-2"><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />{t('flyerScanning')}</span>
-                            : <span className="inline-flex items-center gap-2"><CameraIcon className="h-4 w-4" />{Object.keys(services).length > 0 ? t('flyerUploadAgainCta') : t('flyerUploadCta')}</span>}
-                          <input type="file" accept="image/*" className="hidden" onChange={handleFlyerUpload} disabled={flyerBusy} />
-                        </label>
+                        {flyerBusy ? (
+                          <span className="btn btn-brand pointer-events-none inline-flex opacity-70">
+                            <span className="inline-flex items-center gap-2"><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />{t('flyerScanning')}</span>
+                          </span>
+                        ) : (
+                          <div className="flex flex-wrap gap-2">
+                            <label className="btn btn-brand inline-flex cursor-pointer">
+                              <span className="inline-flex items-center gap-2"><CameraIcon className="h-4 w-4" />{t('flyerTakePhotoCta')}</span>
+                              {/* capture="environment" opens the rear camera directly instead
+                                  of the OS's mixed photo/camera picker — keeps this button's
+                                  behavior distinct from the "choose a file" one below. */}
+                              <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFlyerUpload} />
+                            </label>
+                            <label className="btn btn-outline inline-flex cursor-pointer">
+                              <span className="inline-flex items-center gap-2"><ImageIcon className="h-4 w-4" />
+                                {Object.keys(services).length > 0 ? t('flyerUploadAgainCta') : t('flyerUploadCta')}
+                              </span>
+                              <input type="file" accept="image/*" className="hidden" onChange={handleFlyerUpload} />
+                            </label>
+                          </div>
+                        )}
                       </div>
                     )}
 
