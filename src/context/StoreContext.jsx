@@ -230,7 +230,12 @@ export function StoreProvider({ children }) {
           setRealBookings((bs) =>
             bs.map((b) =>
               b.id === payload.new.id
-                ? { ...b, status: payload.new.status, tip: payload.new.tip_amount }
+                // paid_at was missing here — the stripe-webhook confirming a
+                // payment only ever touches paid_at (status stays 'pending'
+                // until the detailer accepts), so a customer sitting on the
+                // booking-detail screen after finishing checkout never saw
+                // it flip from "payment pending" without a manual reload.
+                ? { ...b, status: payload.new.status, tip: payload.new.tip_amount, paidAt: payload.new.paid_at }
                 : b
             )
           )

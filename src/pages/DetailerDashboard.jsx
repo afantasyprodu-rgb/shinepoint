@@ -182,6 +182,11 @@ export default function DetailerDashboard() {
   // was a real bug this caught (a detailer's Accept had no payment check at
   // all). Demo bookings have no paidAt to check, so they pass through as-is.
   const incoming = mine.filter((b) => b.status === 'pending' && (isDemo || b.paidAt))
+  // Visible but not actionable — a customer's checkout that hasn't
+  // finished yet. Surfacing it (read-only) instead of just hiding it
+  // outright means a detailer isn't blindsided by a request appearing
+  // fully formed the moment payment does clear a few minutes later.
+  const awaitingPayment = isDemo ? [] : mine.filter((b) => b.status === 'pending' && !b.paidAt)
   const active = mine.filter((b) => !['pending', 'complete', 'cancelled'].includes(b.status))
   const todayKey = localDateKey(new Date())
   const groupedActive = groupJobsByDate(active)
@@ -423,6 +428,45 @@ export default function DetailerDashboard() {
                 )
               })}
             </AnimatePresence>
+
+            {/* Read-only visibility into a checkout that hasn't cleared yet
+                (see awaitingPayment above) — no Accept/Decline, since there's
+                nothing to act on until the customer's payment actually goes
+                through. Just enough detail that it doesn't look like nothing
+                is happening. */}
+            {awaitingPayment.length > 0 && (
+              <>
+                <h2 className="mt-8 font-display text-lg font-semibold text-slate-900 dark:text-slate-100">
+                  {t('awaitingPaymentHeading')}
+                </h2>
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{t('awaitingPaymentBlurb')}</p>
+                <div className="mt-3 space-y-2">
+                  {awaitingPayment.map((b) => (
+                    <div
+                      key={b.id}
+                      className="card flex items-center gap-3 !p-4 opacity-80"
+                    >
+                      <Avatar name={b.customerName} />
+                      <span className="min-w-0 flex-1">
+                        <p className="truncate font-medium text-slate-900 dark:text-slate-100">
+                          {b.service} · {b.vehicle}
+                        </p>
+                        <p className="truncate text-sm text-slate-500 dark:text-slate-400">
+                          {b.customerName} ·{' '}
+                          {new Date(b.scheduledTime).toLocaleString(lang === 'es' ? 'es-US' : 'en-US', {
+                            weekday: 'short',
+                            hour: 'numeric',
+                          })}
+                        </p>
+                      </span>
+                      <span className="chip shrink-0 bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">
+                        {t('awaitingPaymentChip')}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
 
             {/* Jobs, grouped by date — today always expanded and sorted by
                 time so "what's next" never needs a click; every later date

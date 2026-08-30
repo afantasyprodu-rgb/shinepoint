@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
+import { Elements } from '@stripe/react-stripe-js'
 import AppShell from '../components/AppShell'
 import ChatThread from '../components/ChatThread'
 import PhotoGrid from '../components/PhotoGrid'
+import PaymentForm from '../components/PaymentForm'
 import Modal from '../components/ui/Modal'
 import EnRouteTracker from '../components/EnRouteTracker'
 import { InvoicePrintable, InvoiceReceipt } from '../components/InvoiceBuilder'
@@ -18,11 +20,13 @@ import {
   LightbulbIcon,
   StarIcon,
   SunIcon,
+  CreditCardIcon,
 } from '../components/icons'
 import { useStore } from '../context/StoreContext'
 import { useLanguage } from '../context/LanguageContext'
 import { useT } from '../i18n/useT'
-import { startIdentityVerification, stripePromise, isStripeConfigured } from '../lib/stripe'
+import { startIdentityVerification, stripePromise, isStripeConfigured, createPaymentIntent } from '../lib/stripe'
+import { playSfx } from '../lib/sfx'
 
 // Half the tick hit-target (.job-progress-tick is 2.75rem) — insetting every
 // tick position by this amount keeps the end ticks' centers a full radius
@@ -93,6 +97,28 @@ export default function BookingDetail() {
   const [identityRequired, setIdentityRequired] = useState(false)
   const [idStatus, setIdStatus] = useState('idle') // idle | scanning | pending
   const [idError, setIdError] = useState('')
+  // A booking whose checkout was closed/abandoned before Stripe confirmed —
+  // the row exists (createBooking runs before payment) but paid_at never
+  // got set. Lets the customer pick payment back up right here instead of
+  // it just sitting invisible to everyone including them.
+  const [payBusy, setPayBusy] = useState(false)
+  const [payError, setPayError] = useState('')
+  const [payClientSecret, setPayClientSecret] = useState('')
+  const [justPaid, setJustPaid] = useState(false)
+
+  async function startPayment() {
+    setPayBusy(true)
+    setPayError('')
+    try {
+      const res = await createPaymentIntent(id)
+      if (res.free) { setJustPaid(true); return }
+      setPayClientSecret(res.clientSecret)
+    } catch (e) {
+      setPayError(e.message || t('payErrorFallback'))
+    } finally {
+      setPayBusy(false)
+    }
+  }
   // A notification bell link arrives as ?stage=en_route — jump straight to
   // that stage's preview instead of following the booking's current status,
   // so an older notification still opens the stage it was actually about.
@@ -128,6 +154,13 @@ const shownStage = openStage ?? stageIdx
   const shownKey = TIMELINE[shownStage]
   const stageKeys = STAGE_KEYS[shownKey]
   const detailerName = d?.name ?? 'Your detailer'
+  // createBooking (BookingWizard) inserts the row BEFORE payment even
+  // starts, so a checkout closed/abandoned mid-Stripe leaves a real row
+  // with no paid_at — invisible progress with no way back in. justPaid is
+  // a same-session optimistic override so the payment card doesn't flash
+  // back after a successful confirmPayment while the webhook + realtime
+  // paid_at merge (StoreContext) catch up.
+  const unpaid = !isDemo && b.status === 'pending' && !b.paidAt && !justPaid
 
   // Demo helper: advance the job to showcase the full lifecycle.
   function advance() {
@@ -188,8 +221,43 @@ const shownStage = openStage ?? stageIdx
             </p>
           )}
 
+          {unpaid && (
+            <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-500/30 dark:bg-amber-500/10">
+              <p className="flex items-center gap-1.5 font-display text-sm font-bold text-amber-800 dark:text-amber-300">
+                <CreditCardIcon className="h-4 w-4" /> {t('paymentPendingTitle')}
+              </p>
+              <p className="mt-1 text-sm text-amber-800/90 dark:text-amber-300/90">
+                {t('paymentPendingBody', { name: detailerName })}
+              </p>
+              {payError && (
+                <p role="alert" className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-400">
+                  {payError}
+                </p>
+              )}
+              {!payClientSecret ? (
+                <button
+                  type="button"
+                  onClick={startPayment}
+                  disabled={payBusy}
+                  className="btn btn-cta mt-3 w-full disabled:opacity-60"
+                >
+                  {payBusy ? t('payLoading') : t('finishPayment', { amount: b.price })}
+                </button>
+              ) : (
+                <div className="mt-3 rounded-xl bg-white p-3 dark:bg-slate-900">
+                  <Elements
+                    stripe={stripePromise}
+                    options={{ clientSecret: payClientSecret, appearance: { theme: 'stripe', variables: { colorPrimary: '#f40076' } } }}
+                  >
+                    <PaymentForm amount={b.price} onSuccess={() => { playSfx('success'); setJustPaid(true); setPayClientSecret('') }} />
+                  </Elements>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Timeline — every dot is tappable to preview that stage's process */}
-          {b.status !== 'cancelled' && b.status !== 'disputed' && (
+          {!unpaid && b.status !== 'cancelled' && b.status !== 'disputed' && (
             <>
               {/* Every tick position (and the fill/ball that ride the same
                   track) is inset by TICK_R so tick 1 and tick 6 sit flush

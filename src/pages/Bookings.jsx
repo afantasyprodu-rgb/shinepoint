@@ -134,6 +134,13 @@ export default function Bookings() {
                 day: 'numeric',
               })
               const hasPhoto = !!b.vehiclePhoto
+              // createBooking inserts the row before Stripe checkout even
+              // starts — if that got closed/abandoned, the booking exists
+              // but paid_at never got set. Surface it here, not just on the
+              // detail page, since this list is the first thing a customer
+              // sees and "pending" alone reads as "waiting on the detailer,"
+              // not "you still owe money."
+              const unpaid = !isDemo && b.status === 'pending' && !b.paidAt
               return (
                 <StaggerItem key={b.id}>
                   <div className={isPremium ? 'premium-booking' : ''}>
@@ -156,7 +163,13 @@ export default function Bookings() {
                           <span className="shrink-0">· ${b.price + (b.tip ?? 0)}</span>
                         </p>
                       </div>
-                      <StatusPill status={b.status} />
+                      {unpaid ? (
+                        <span className="chip shrink-0 bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">
+                          {t('paymentPending')}
+                        </span>
+                      ) : (
+                        <StatusPill status={b.status} />
+                      )}
                       <Chevron open={isExpanded} />
                     </button>
 
