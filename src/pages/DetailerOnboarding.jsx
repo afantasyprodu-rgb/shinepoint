@@ -131,7 +131,18 @@ export default function DetailerOnboarding() {
     setFlyerBusy(true)
     try {
       const extracted = await extractFlyerPrices(file)
-      setServices(Object.fromEntries(extracted.map((s) => [s.name, s.price])))
+      // A flyer can genuinely reuse the same name for two tiers (e.g. two
+      // "Full Detail + Sealant" packages at different prices) — services
+      // are keyed by name, so building the object straight from the list
+      // let the second entry silently clobber the first. Disambiguate any
+      // repeat name so both survive; the detailer can rename them below.
+      const seen = new Map()
+      const disambiguated = extracted.map((s) => {
+        const count = (seen.get(s.name) ?? 0) + 1
+        seen.set(s.name, count)
+        return count === 1 ? s : { ...s, name: `${s.name} (${count})` }
+      })
+      setServices(Object.fromEntries(disambiguated.map((s) => [s.name, s.price])))
       setFeaturedService(null)
     } catch (err) {
       setFlyerError(err.message || t('flyerExtractFailed'))
