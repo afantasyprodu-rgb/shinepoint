@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { Elements } from '@stripe/react-stripe-js'
 import AppShell from '../components/AppShell'
@@ -16,7 +16,12 @@ import { approxCentroidForZip, milesBetween } from '../lib/fuzzyPin'
 import { playSfx } from '../lib/sfx'
 import { useT } from '../i18n/useT'
 
-const VEHICLES = ['Sedan', 'SUV', 'Truck', 'Coupe', 'Van']
+// Must match ProfileSetup.jsx / CustomerOnboarding.jsx's VEHICLE_TYPES —
+// this list was missing 'EV' (many Tesla/EV models auto-detect to that
+// type, see vehicleData.js), so a customer whose profile vehicle was an
+// EV had no chip here match customer.vehicle.type and nothing appeared
+// selected even though the pre-fill effect below was setting it correctly.
+const VEHICLES = ['Sedan', 'SUV', 'Truck', 'Coupe', 'Van', 'EV']
 
 // time is already "HH:MM" from <input type="time">
 function parseTime(t) {
@@ -31,11 +36,12 @@ function formatTime(t) {
   return `${h12}:${String(m).padStart(2, '0')} ${ampm}`
 }
 
-// Same-day booking is allowed up until this local hour — after it, today
-// drops off the strip/calendar entirely and the earliest bookable day
-// becomes tomorrow. Gives a detailer a predictable cutoff instead of a
-// same-day request landing with no time left to prep.
-const SAME_DAY_CUTOFF_HOUR = 18
+// Same-day booking is allowed up until this local hour — matches
+// TimePicker's own last bookable slot (9 PM) so "today" only drops off the
+// strip/calendar once there's genuinely no time left in the day to pick,
+// rather than an earlier, separate cutoff hiding today while hours were
+// technically still open. Past that, the earliest bookable day is tomorrow.
+const SAME_DAY_CUTOFF_HOUR = 21
 
 function pastSameDayCutoff(now = new Date()) {
   return now.getHours() >= SAME_DAY_CUTOFF_HOUR
@@ -43,6 +49,16 @@ function pastSameDayCutoff(now = new Date()) {
 
 function localDateKey(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+// The earliest slot worth showing right now, rounded UP to the next 15-min
+// tick — "it's 1:07 PM" should never offer "1:00 PM." Only meaningful for
+// today; any other day has no such floor.
+function nextSlotFloor(now = new Date()) {
+  const m = Math.ceil(now.getMinutes() / 15) * 15
+  const h = now.getHours() + Math.floor(m / 60)
+  const mm = m % 60
+  return `${String(h).padStart(2, '0')}:${String(mm).padStart(2, '0')}`
 }
 
 // startOffset: 0 includes today (before the cutoff), 1 starts tomorrow
@@ -183,7 +199,8 @@ function CalendarModal({ open, onClose, weatherDays, isDemo, selected, onSelect 
             >
               <span className="font-semibold tabular-nums">{cellDate.getDate()}</span>
               {!disabled && tempF != null && (
-                <span className={`text-[9px] tabular-nums ${isSelected ? 'text-white/80' : 'text-slate-400 dark:text-slate-500'}`}>
+                <span className={`flex items-center gap-0.5 text-[9px] tabular-nums ${isSelected ? 'text-white/80' : 'text-slate-400 dark:text-slate-500'}`}>
+                  <WeatherGlyph tempF={tempF} className="text-[10px]" />
                   {tempF}°
                 </span>
               )}
@@ -194,6 +211,46 @@ function CalendarModal({ open, onClose, weatherDays, isDemo, selected, onSelect 
       </div>
     </Modal>
   )
+}
+
+// A sun that visibly radiates more the hotter it gets, a snowflake that
+// spins/drifts more the colder — an at-a-glance read on a day before the
+// customer even looks at the numeral next to it. Renders nothing in the
+// comfortable middle of the range (rain already has its own indicator).
+function WeatherGlyph({ tempF, className = '' }) {
+  if (tempF == null) return null
+  if (tempF >= 78) {
+    // 78 -> mild glow/slow pulse; 105+ -> strong glow/fast pulse.
+    const heat = Math.min(1, Math.max(0, (tempF - 78) / 27))
+    const duration = 1.6 - heat * 1 // 1.6s down to 0.6s
+    return (
+      <span
+        className={`inline-block leading-none ${className}`}
+        style={{
+          animation: `nx-sun-pulse ${duration}s ease-in-out infinite`,
+          filter: `drop-shadow(0 0 ${2 + heat * 6}px rgba(251,146,60,${0.5 + heat * 0.4}))`,
+        }}
+        aria-hidden="true"
+      >
+        ☀️
+      </span>
+    )
+  }
+  if (tempF <= 45) {
+    // 45 -> gentle sway; 20 and below -> brisk spin.
+    const cold = Math.min(1, Math.max(0, (45 - tempF) / 25))
+    const duration = 4 - cold * 3.2 // 4s down to 0.8s
+    return (
+      <span
+        className={`inline-block leading-none ${className}`}
+        style={{ animation: `nx-snow-spin ${duration}s linear infinite` }}
+        aria-hidden="true"
+      >
+        ❄️
+      </span>
+    )
+  }
+  return null
 }
 
 const stepVariants = {
@@ -289,6 +346,7 @@ function PackageCard({ service, checked, tapNonce, onToggle, t }) {
 export default function BookingWizard() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const { getDetailer, customer, createBooking, isDemo, customerProfile, updateCustomer } = useStore()
   const { theme } = useTheme()
   const t = useT('bookingWizard')
@@ -296,8 +354,13 @@ export default function BookingWizard() {
   const totalColors = theme === 'dark' ? ['#4ade80', '#f1f5f9'] : ['#15803d', '#0f172a']
   const d = getDetailer(id)
 
-  const [step, setStep] = useState(0) // 0 service, 1 schedule, 2 review, 3 processing, 4 confirmed, 5 card
-  const [selectedServiceIds, setSelectedServiceIds] = useState([])
+  // The customer may already have picked a service on the detailer's
+  // profile page (DetailerProfile.jsx) before tapping "Book" — in that
+  // case skip straight to scheduling instead of showing the exact same
+  // service list a second time.
+  const preselectedServiceIds = location.state?.preselectedServiceIds
+  const [step, setStep] = useState(() => (preselectedServiceIds?.length ? 1 : 0)) // 0 service, 1 schedule, 2 review, 3 processing, 4 confirmed, 5 card
+  const [selectedServiceIds, setSelectedServiceIds] = useState(() => preselectedServiceIds ?? [])
   const [packageTapNonce, setPackageTapNonce] = useState({})
 
   function toggleService(id) {
@@ -834,7 +897,8 @@ const [smsError, setSmsError] = useState(null)
                     <span className="text-xs font-medium opacity-80">{day.label}</span>
                     <span className="font-display text-xl font-bold">{day.day}</span>
                     {day.tempF != null && (
-                      <span className={`text-[10px] font-medium tabular-nums ${date?.key === day.key ? 'text-white/80' : 'text-slate-400 dark:text-slate-500'}`}>
+                      <span className={`flex items-center gap-0.5 text-[10px] font-medium tabular-nums ${date?.key === day.key ? 'text-white/80' : 'text-slate-400 dark:text-slate-500'}`}>
+                        <WeatherGlyph tempF={day.tempF} className="text-xs" />
                         {day.tempF}°
                       </span>
                     )}
@@ -850,6 +914,10 @@ const [smsError, setSmsError] = useState(null)
                     setTime(v)
                     setScheduleError('')
                   }}
+                  // Only today has a "past" to hide — any later day's full
+                  // range is fair game.
+                  minTime={date?.key === localDateKey(new Date()) ? nextSlotFloor() : undefined}
+                  blackoutHours={d.blackoutHours}
                 />
               </div>
 

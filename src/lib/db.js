@@ -51,6 +51,10 @@ function normalizeDetailer(row) {
     // Minimum gap the detailer wants between bookings — see BookingWizard's
     // conflict pre-check and migration 053's server-side guard.
     bufferMinutes: row.booking_buffer_min ?? 60,
+    // Recurring hour-of-day (0-23, local) the detailer never wants booked
+    // (065) — e.g. a lunch block. Captured at onboarding; BookingWizard's
+    // TimePicker grays these out.
+    blackoutHours: row.blackout_hours ?? [],
     // Shown as the moving marker on EnRouteTracker's live map once this
     // detailer is en route to a job (057).
     vehicleEmoji: row.vehicle_emoji || '🚗',
@@ -287,7 +291,7 @@ export async function fetchDetailers() {
         insurance_status, total_completed_jobs, average_rating, total_reviews, bio,
         profile_photo_url, gallery_urls,
         probation_jobs_remaining, service_days, free_travel_miles, booking_buffer_min, charge_per_extra_mile, vehicle_emoji,
-        vehicle_upcharge_suv, vehicle_upcharge_truck, vehicle_upcharge_van,
+        vehicle_upcharge_suv, vehicle_upcharge_truck, vehicle_upcharge_van, blackout_hours,
         services(id, service_name, description, price, vehicle_types, is_active, is_addon, is_featured, is_package, package_includes)
       `),
     fetchDetailerNames(),

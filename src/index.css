@@ -1713,3 +1713,17 @@
   to   { filter: hue-rotate(0deg) saturate(1); }
 }
 
+/* Booking wizard day-strip weather glyphs (WeatherGlyph in
+   BookingWizard.jsx) — the sun "breathes" hotter/faster the higher the
+   forecast temp, the snowflake spins faster the colder. Duration is set
+   inline per-instance (scaled by how extreme the temp is); these keyframes
+   just define the motion shape. */
+@keyframes nx-sun-pulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.18); }
+}
+@keyframes nx-snow-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+

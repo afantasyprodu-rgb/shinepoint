@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { AnimatePresence, motion } from 'motion/react'
 import AppShell from '../components/AppShell'
 import EvidencePhotos from '../components/EvidencePhotos'
 import { AnimatedPage, FadeIn, Stagger, StaggerItem } from '../components/ui/Motion'
@@ -9,11 +10,78 @@ import {
   AlertTriangleIcon,
   MapPinIcon,
   ChevronLeftIcon,
+  ChevronDownIcon,
   ArrowRightIcon,
+  StarIcon,
+  TagIcon,
 } from '../components/icons'
 import { useStore } from '../context/StoreContext'
 import { fetchDetailerReviews } from '../lib/db'
 import { useT } from '../i18n/useT'
+
+// Tap to select AND expand — same convention BookingWizard's own package
+// card uses, so the interaction is already familiar by the time a customer
+// reaches step 1. `promoted` (the detailer's own "best value"/feature pick)
+// gets a gold ring so it visually reads as the recommended option while
+// scanning the full list, not just a chip buried in the text.
+function ServiceCard({ service, selected, promoted, onToggle, t }) {
+  return (
+    <motion.button
+      type="button"
+      role="checkbox"
+      aria-checked={selected}
+      aria-expanded={selected}
+      whileTap={{ scale: 0.98 }}
+      onClick={onToggle}
+      className={`card card-hover w-full cursor-pointer text-left !p-5 transition-all duration-200 ${
+        selected
+          ? promoted
+            ? 'border-amber-400 ring-2 ring-amber-300 dark:ring-amber-400/40'
+            : 'border-brand-600 ring-2 ring-brand-200 dark:ring-brand-500/20'
+          : promoted
+            ? 'border-amber-300 ring-1 ring-amber-200 dark:border-amber-400/50 dark:ring-amber-400/20'
+            : ''
+      }`}
+    >
+      <div className="flex items-center justify-between gap-4">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <p className="font-semibold text-slate-900 dark:text-slate-100">{service.name}</p>
+            {promoted && (
+              <span className="chip bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">
+                <StarIcon className="h-3 w-3" /> {t('bestOffer')}
+              </span>
+            )}
+          </div>
+          {!selected && service.desc && (
+            <p className="mt-0.5 truncate text-sm text-slate-600 dark:text-slate-400">{service.desc}</p>
+          )}
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <span className="font-display text-lg font-bold text-brand-700 dark:text-brand-300">${service.price}</span>
+          {service.desc && (
+            <ChevronDownIcon className={`h-4 w-4 text-slate-400 transition-transform duration-200 dark:text-slate-500 ${selected ? 'rotate-180' : ''}`} />
+          )}
+        </div>
+      </div>
+      <AnimatePresence initial={false}>
+        {selected && service.desc && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22, ease: 'easeOut' }}
+            className="overflow-hidden"
+          >
+            <p className="mt-3 border-t border-brand-100 pt-3 text-sm text-slate-600 dark:border-white/10 dark:text-slate-400">
+              {t('includesLabel')} {service.desc}
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.button>
+  )
+}
 
 // before/after photo is null (no real job photo in the demo) — EvidencePhotos
 // falls back to a labeled gradient tile, same as everywhere else in the app
@@ -40,9 +108,19 @@ export default function DetailerProfile() {
   // then bounce them straight back to finish booking this detailer.
   const needsSetup = !customer?.address || !customer?.vehicle?.make
 
+  // Picking a service here carries straight into the booking wizard
+  // (BookingWizard reads location.state.preselectedServiceIds and skips
+  // its own, otherwise-identical service-list step) — so a customer who's
+  // already decided what they want doesn't see the same list twice.
+  const [selectedIds, setSelectedIds] = useState([])
+  const [addonsOpen, setAddonsOpen] = useState(false)
+  function toggleSelected(sid) {
+    setSelectedIds((ids) => (ids.includes(sid) ? ids.filter((x) => x !== sid) : [...ids, sid]))
+  }
+
   function bookOrSetup() {
     if (needsSetup) navigate('/onboarding', { state: { returnTo: `/book/${d.id}` } })
-    else navigate(`/book/${d.id}`)
+    else navigate(`/book/${d.id}`, { state: { preselectedServiceIds: selectedIds } })
   }
 
   // Demo shows the sample testimonials; a real profile shows only reviews
@@ -73,6 +151,11 @@ export default function DetailerProfile() {
 
   const uninsured = d.insurance === 'none'
   const bookable = d.status === 'available' || (d.status === 'busy' && d.acceptsWhenBusy)
+  // Same rule DetailerOnboarding uses to sort a flyer-scanned/manually-typed
+  // service into one section or the other: an add-on is a plain single
+  // item, a "service" is the detailer's main packages.
+  const packages = d.services.filter((s) => !s.isAddon)
+  const addons = d.services.filter((s) => s.isAddon)
 
   return (
     <AppShell role="customer">
@@ -142,19 +225,61 @@ export default function DetailerProfile() {
         </div>
 
         <h2 className="mt-8 font-display text-lg font-semibold text-slate-900 dark:text-slate-100">{t('servicesAndPricing')}</h2>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{t('tapToSelect')}</p>
         <Stagger className="mt-3 space-y-3">
-          {d.services.map((s) => (
+          {packages.map((s) => (
             <StaggerItem key={s.id}>
-              <div className="card card-hover flex items-center justify-between gap-4 !p-5">
-                <div>
-                  <p className="font-semibold text-slate-900 dark:text-slate-100">{s.name}</p>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">{s.desc}</p>
-                </div>
-                <span className="font-display text-lg font-bold text-brand-700 dark:text-brand-300">${s.price}</span>
-              </div>
+              <ServiceCard
+                service={s}
+                selected={selectedIds.includes(s.id)}
+                promoted={s.isBestValue}
+                onToggle={() => toggleSelected(s.id)}
+                t={t}
+              />
             </StaggerItem>
           ))}
         </Stagger>
+
+        {addons.length > 0 && (
+          <div className="mt-4">
+            <button
+              type="button"
+              onClick={() => setAddonsOpen((o) => !o)}
+              aria-expanded={addonsOpen}
+              className="flex w-full cursor-pointer items-center justify-between rounded-2xl border border-brand-100 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:border-brand-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"
+            >
+              <span className="flex items-center gap-2">
+                <TagIcon className="h-4 w-4 text-brand-600 dark:text-brand-300" />
+                {t('addOns', { count: addons.length })}
+              </span>
+              <ChevronDownIcon className={`h-4 w-4 text-slate-400 transition-transform duration-200 dark:text-slate-500 ${addonsOpen ? 'rotate-180' : ''}`} />
+            </button>
+            <AnimatePresence initial={false}>
+              {addonsOpen && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.25, ease: 'easeOut' }}
+                  className="overflow-hidden"
+                >
+                  <div className="mt-3 space-y-3">
+                    {addons.map((s) => (
+                      <ServiceCard
+                        key={s.id}
+                        service={s}
+                        selected={selectedIds.includes(s.id)}
+                        promoted={s.isBestValue}
+                        onToggle={() => toggleSelected(s.id)}
+                        t={t}
+                      />
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
 
         {d.gallery?.length > 0 && (
           <>
