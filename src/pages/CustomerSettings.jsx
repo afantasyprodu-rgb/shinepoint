@@ -16,6 +16,7 @@ import { useStore } from '../context/StoreContext'
 import { usePaint, PAINTS } from '../context/PaintContext'
 import { CA_ZIP_CENTROIDS, closestDetailer } from '../lib/fuzzyPin'
 import { CAR_MAKES, CAR_MODELS, MODEL_TO_TYPE } from '../lib/vehicleData'
+import { extractVehiclePhoto } from '../lib/db'
 import { useTiltShadow } from '../hooks/useTiltShadow'
 import { useT } from '../i18n/useT'
 import { TILES } from '../components/DetailerMap'
@@ -105,7 +106,7 @@ function GarageCard({ make, model, type, t }) {
 }
 
 export default function CustomerSettings() {
-  const { customer, uploadImage, updateCustomer, detailers } = useStore()
+  const { customer, uploadImage, updateCustomer, detailers, isDemo } = useStore()
   const tiltRef = useTiltShadow()
   const t = useT('customerSettings')
   const { accent } = usePaint()
@@ -143,6 +144,32 @@ export default function CustomerSettings() {
   }
   function removeVehicle(id) {
     setVehicles((vs) => vs.filter((v) => v.id !== id))
+    setVehicleScanError((m) => { const next = { ...m }; delete next[id]; return next })
+  }
+
+  // Same photo-scan the primary vehicle uses (extractVehiclePhoto), just
+  // without the paint-accent side effect — "Your garage" is one device-wide
+  // accent tied to your main car, not something a second/third car in the
+  // list should keep re-theming the app to. Runs alongside the actual photo
+  // upload (uploadImage, wired below), not instead of it.
+  const [scanningVehicleId, setScanningVehicleId] = useState(null)
+  const [vehicleScanError, setVehicleScanError] = useState({})
+  async function scanExtraVehicle(id, file) {
+    if (isDemo) return
+    setScanningVehicleId(id)
+    setVehicleScanError((m) => { const next = { ...m }; delete next[id]; return next })
+    try {
+      const detected = await extractVehiclePhoto(file)
+      const patch = {}
+      if (detected.make) patch.make = detected.make
+      if (detected.model) patch.model = detected.model
+      if (detected.type) patch.type = detected.type
+      if (Object.keys(patch).length) patchVehicle(id, patch)
+    } catch (e) {
+      setVehicleScanError((m) => ({ ...m, [id]: e.message || t('scanFailed') }))
+    } finally {
+      setScanningVehicleId((cur) => (cur === id ? null : cur))
+    }
   }
 
   // Stored/sent in E.164 (+1XXXXXXXXXX) — what Twilio requires. A bare
@@ -333,10 +360,19 @@ export default function CustomerSettings() {
               <div key={v.id} className="flex gap-3 rounded-2xl bg-brand-50/60 p-3 dark:bg-white/5">
                 <CarPhotoUpload
                   photo={v.photo}
-                  onFile={(file) => uploadImage(file, 'vehicles')}
+                  onFile={(file) => { uploadImage(file, 'vehicles'); scanExtraVehicle(v.id, file) }}
                   onChange={(url) => patchVehicle(v.id, { photo: url })}
                 />
                 <div className="min-w-0 flex-1 space-y-2">
+                  {scanningVehicleId === v.id && (
+                    <p className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+                      <span className="h-3 w-3 animate-spin rounded-full border-2 border-brand-400 border-t-transparent" />
+                      {t('scanning')}
+                    </p>
+                  )}
+                  {vehicleScanError[v.id] && (
+                    <p role="alert" className="text-xs text-red-600 dark:text-red-400">{vehicleScanError[v.id]}</p>
+                  )}
                   <Combobox
                     value={v.make}
                     onChange={(val) => patchVehicle(v.id, { make: val })}
