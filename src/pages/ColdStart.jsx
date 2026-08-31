@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -6,20 +6,37 @@ import { TILES } from '../components/DetailerMap'
 import { useStore } from '../context/StoreContext'
 import { fuzzyPinForZip } from '../lib/fuzzyPin'
 import { Stars } from '../components/ui/bits'
-import { useT } from '../i18n/useT'
 
 export default function ColdStart() {
-  const t = useT('welcome')
   const { detailers } = useStore()
   const mapRef = useRef(null)
   const mapContainerRef = useRef(null)
   const markersRef = useRef(new Map())
   const [activeIdx, setActiveIdx] = useState(0)
+  const [demoDetailers, setDemoDetailers] = useState([])
 
-  // Only close detailers — for demo, available ones are "nearby"
-  const closeDetailers = detailers.filter((d) => d.status === 'available').slice(0, 3)
+  // The cold start is logged-out/pre-auth, so the store has no detailers unless
+  // demo mode is on. Its whole point is to attract new users, so it shows a
+  // curated demo roster as "nearby pros" when the store is empty — clearly a
+  // preview, replaced by real nearby detailers once live.
+  useEffect(() => {
+    if (detailers.length > 0 || demoDetailers.length > 0) return
+    let cancelled = false
+    import('../data/demoData.js').then((m) => {
+      if (!cancelled) setDemoDetailers(m.DEMO_DETAILERS.slice(0, 30))
+    }).catch(() => {})
+    return () => { cancelled = true }
+  }, [detailers.length, demoDetailers.length])
 
-  // Create map and pins
+  // "Nearby" = available pros; fall back to the demo roster when empty.
+  const closeDetailers = useMemo(() => {
+    const src = detailers.length > 0 ? detailers : demoDetailers
+    return src.filter((d) => d.status === 'available').slice(0, 3)
+  }, [detailers, demoDetailers])
+
+  const zipFor = (d) => d.zip ?? d.zip_code ?? '90026'
+
+  // Create the map once (independent of detailers).
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return
     const map = L.map(mapContainerRef.current, {
@@ -30,10 +47,28 @@ export default function ColdStart() {
     })
     L.tileLayer(TILES.light.url, { attribution: TILES.light.attribution, maxZoom: 19 }).addTo(map)
     mapRef.current = map
+    // Leaflet sizes to the container at creation, but the container can be
+    // 0-height before first paint (esp. h-dvh on mobile). Re-measure after
+    // layout and on resize so tiles/pins actually render.
+    const t = setTimeout(() => map.invalidateSize(), 50)
+    const ro = new ResizeObserver(() => map.invalidateSize())
+    if (mapContainerRef.current) ro.observe(mapContainerRef.current)
+    return () => {
+      clearTimeout(t)
+      ro.disconnect()
+      map.remove()
+      mapRef.current = null
+    }
+  }, [])
 
-    const markers = new Map()
+  // Render markers when the nearby detailers resolve.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || closeDetailers.length === 0) return
+    markersRef.current.forEach((m) => m.remove())
+    markersRef.current = new Map()
     closeDetailers.forEach((d) => {
-      const pin = d.pin ?? fuzzyPinForZip(String(d.zip_code ?? ''), d.id)
+      const pin = d.pin ?? fuzzyPinForZip(zipFor(d), d.id)
       if (!pin) return
       const m = L.marker([pin.lat, pin.lng], {
         icon: L.divIcon({
@@ -43,21 +78,16 @@ export default function ColdStart() {
           iconAnchor: [12, 12],
         }),
       }).addTo(map)
-      markers.set(d.id, m)
+      markersRef.current.set(d.id, m)
     })
-    markersRef.current = markers
-
-    return () => {
-      map.remove()
-      mapRef.current = null
-    }
+    map.invalidateSize()
   }, [closeDetailers])
 
   // Pan map to active detailer
   useEffect(() => {
     if (!mapRef.current || !closeDetailers[activeIdx]) return
     const d = closeDetailers[activeIdx]
-    const pin = d.pin ?? fuzzyPinForZip(String(d.zip_code ?? ''), d.id)
+    const pin = d.pin ?? fuzzyPinForZip(zipFor(d), d.id)
     if (pin) mapRef.current.setView([pin.lat, pin.lng], 12, { animate: true })
   }, [activeIdx, closeDetailers])
 
@@ -68,33 +98,37 @@ export default function ColdStart() {
     return () => clearInterval(id)
   }, [closeDetailers.length])
 
-  if (closeDetailers.length === 0) {
-    return (
-      <div className="flex h-dvh w-full flex-col items-center justify-center gap-6 bg-slate-50 p-6 text-center">
-        <p className="text-sm text-slate-500">No nearby detailers — check back soon.</p>
-        <div className="flex w-full max-w-xs flex-col gap-2">
-          <Link to="/login" className="btn btn-cta press-spring w-full">
-            Sign in
-          </Link>
-          <Link to="/signup/detailer" className="flex-1 rounded-full border border-slate-200 py-2.5 text-center text-sm font-semibold text-slate-700">
-            Join as detailer
-          </Link>
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className="relative h-dvh w-full overflow-hidden bg-slate-100">
-      {/* Map behind */}
-      <div ref={mapContainerRef} className="absolute inset-0 z-0" />
+    <div className="relative h-screen min-h-screen w-full overflow-hidden bg-slate-100">
+      {/* Map behind — h-screen + min-h-screen so it can't collapse on WebViews
+          that don't support dvh. ALWAYS rendered, even with zero nearby
+          detailers: the create-map effect above only ever runs once (empty
+          deps, "create on mount"), and this div used to only exist in a
+          separate branch's JSX that rendered when closeDetailers started out
+          empty (the demo roster loads async, so that's true on first paint)
+          — the effect's one shot fired against a null ref and the map never
+          got created, even after detailers resolved and this branch mounted
+          in its place. */}
+      <div ref={mapContainerRef} className="absolute inset-0 z-0" style={{ minHeight: '100vh' }} />
 
-      {/* Overlay UI */}
+      {closeDetailers.length === 0 ? (
+        <div className="pointer-events-auto absolute inset-0 z-10 flex flex-col items-center justify-center gap-6 bg-slate-50/90 p-6 text-center backdrop-blur-sm">
+          <p className="text-sm text-slate-500">No nearby detailers — check back soon.</p>
+          <div className="flex w-full max-w-xs flex-col gap-2">
+            <Link to="/login" className="btn btn-cta press-spring w-full">
+              Sign in
+            </Link>
+            <Link to="/signup/detailer" className="flex-1 rounded-full border border-slate-200 py-2.5 text-center text-sm font-semibold text-slate-700">
+              Join as detailer
+            </Link>
+          </div>
+        </div>
+      ) : (
       <div className="pointer-events-none absolute inset-0 z-10 flex flex-col justify-end">
         {/* Chip */}
         <div className="pointer-events-auto absolute left-1/2 top-4 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 shadow-md">
           <span className="h-2 w-2 rounded-full bg-cta-600" aria-hidden="true" />
-          {closeDetailers.length} {t('nearbyChip') ?? 'nearby pros'}
+          {closeDetailers.length} nearby pros
         </div>
 
         {/* Avatars */}
@@ -149,6 +183,7 @@ export default function ColdStart() {
           </div>
         </div>
       </div>
+      )}
     </div>
   )
 }

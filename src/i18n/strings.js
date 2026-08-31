@@ -5,6 +5,7 @@
 export const STRINGS = {
   en: {
     welcome: {
+      nearbyChip: 'nearby pros',
       badge: 'Mobile detailing · Southern California',
       titlePre: 'Your car,',
       titleAccent: 'detailed',
@@ -1559,6 +1560,7 @@ export const STRINGS = {
   },
   es: {
     welcome: {
+      nearbyChip: 'profesionales cerca',
       badge: 'Detallado móvil · Los Ángeles',
       titlePre: 'Tu auto,',
       titleAccent: 'detallado',
