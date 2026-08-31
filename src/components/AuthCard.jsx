@@ -260,6 +260,25 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
     const redirectTo = isNative
       ? `shinepoint://auth/callback${callbackQuery}`
       : `${window.location.origin}/auth/callback${callbackQuery}`
+    // On native, signInWithOAuth's default behavior navigates THIS webview
+    // to accounts.google.com via window.location.assign() — that tears the
+    // Capacitor JS bridge out from under the page mid-navigation (surfaced
+    // as an uncaught "Cannot read properties of undefined (reading
+    // 'triggerEvent')" — Capacitor's own bridge method — right as the
+    // redirect starts), so Google is never even reached. skipBrowserRedirect
+    // + manually opening the URL in the system browser via @capacitor/browser
+    // keeps this webview intact; NativeBridge's appUrlOpen listener catches
+    // the shinepoint:// deep link when the system browser hands control back.
+    if (isNative) {
+      const { data, error: err } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo, skipBrowserRedirect: true },
+      })
+      if (err) { setBusy(false); setError(err.message); return }
+      const { Browser } = await import('@capacitor/browser')
+      await Browser.open({ url: data.url })
+      return
+    }
     const { error: err } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo },
