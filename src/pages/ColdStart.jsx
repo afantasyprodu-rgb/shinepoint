@@ -50,9 +50,12 @@ export default function ColdStart() {
 
   return (
     <div className="relative h-screen min-h-screen w-full overflow-hidden bg-slate-100">
-      {/* Map behind — the proven DetailerMap fills and sizes itself */}
+      {/* Map behind — the proven DetailerMap fills and sizes itself. `focus`
+          flies the map to the active card's pin (same zoom-and-open-popup
+          behavior the real map screen uses) and re-fires every time
+          activeIdx changes, whether from the 2.8s auto-scroll or a tap. */}
       <div className="absolute inset-0 z-0">
-        <DetailerMap detailers={detailers.length > 0 ? detailers : demoDetailers} />
+        <DetailerMap detailers={detailers.length > 0 ? detailers : demoDetailers} focus={closeDetailers[activeIdx]?.pin} />
       </div>
 
       {/* Overlay UI */}
