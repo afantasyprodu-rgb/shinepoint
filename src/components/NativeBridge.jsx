@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Capacitor } from '@capacitor/core'
 import { supabase } from '../lib/supabase'
 import { captureException } from '../lib/sentry'
+import { useTheme } from '../context/ThemeContext'
 
 // Renders nothing. On native it wires up the pieces a webview can't do on its
 // own: hide the splash, theme the status bar, and — most importantly — catch the
@@ -10,18 +11,30 @@ import { captureException } from '../lib/sentry'
 // returns the user into the app. No-op in the browser.
 export default function NativeBridge() {
   const navigate = useNavigate()
+  const { theme } = useTheme()
+
+  // Status bar follows the app theme: pink bar + light icons in light mode,
+  // dark surface + light icons in dark mode. Re-runs whenever the theme flips.
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return
+    const applyStatusBar = async () => {
+      try {
+        const { StatusBar, Style } = await import('@capacitor/status-bar')
+        StatusBar.setStyle({ style: Style.Light }).catch(() => {})
+        StatusBar.setBackgroundColor({
+          color: theme === 'dark' ? '#1a2029' : '#de0067',
+        }).catch(() => {})
+      } catch { /* plugin missing on this platform */ }
+    }
+    applyStatusBar()
+  }, [theme])
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return
     let listener
 
     ;(async () => {
-      // Status bar + splash are best-effort; never block on them.
-      try {
-        const { StatusBar, Style } = await import('@capacitor/status-bar')
-        StatusBar.setStyle({ style: Style.Light }).catch(() => {})
-        StatusBar.setBackgroundColor({ color: '#de0067' }).catch(() => {})
-      } catch { /* plugin missing on this platform */ }
+      // Splash hide is best-effort; never block on it.
       try {
         const { SplashScreen } = await import('@capacitor/splash-screen')
         SplashScreen.hide().catch(() => {})
@@ -30,10 +43,20 @@ export default function NativeBridge() {
       const { App } = await import('@capacitor/app')
       listener = await App.addListener('appUrlOpen', async ({ url }) => {
         // Home-screen widget tap (shinepoint://widget?path=...) — see
-        // ShinePointWidgetProvider.java / src/lib/widget.js.
-        if (url.includes('://widget')) {
-          const path = new URL(url).searchParams.get('path')
-          if (path) navigate(path, { replace: true })
+        // ShinePointWidgetProvider.java / src/lib/widget.js. Any app on the
+        // device can fire this intent, so an exact scheme+host match (not a
+        // substring check — `includes('://widget')` would also match a
+        // hostile `shinepoint://widget.evil.com/...`) plus a route allowlist
+        // keep it from navigating somewhere the widget never actually links
+        // to. The three paths here are the only ones widget.js ever sends:
+        // '/' (no active booking), '/bookings/:id' (customer), and
+        // '/detailer/jobs/:id' (detailer).
+        let parsed
+        try { parsed = new URL(url) } catch { parsed = null }
+        if (parsed && parsed.protocol === 'shinepoint:' && parsed.host === 'widget') {
+          const path = parsed.searchParams.get('path')
+          const WIDGET_PATH_ALLOWLIST = /^\/$|^\/bookings(\/[0-9a-f-]{36})?$|^\/detailer\/jobs\/[0-9a-f-]{36}$/i
+          if (path && WIDGET_PATH_ALLOWLIST.test(path)) navigate(path, { replace: true })
           return
         }
 
