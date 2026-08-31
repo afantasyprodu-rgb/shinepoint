@@ -39,16 +39,18 @@ function HomeMiniMap({ zip, address }) {
   const [center, setCenter] = useState(null)
   const [zoom, setZoom] = useState(12)
 
-  // Geocode the street address (or fall back to the ZIP centroid). Runs once
-  // on mount/when the address changes; the result is stale-safe because the
-  // effect below only recenters once a center resolves.
+  // Geocode the street address (or fall back to the ZIP centroid), debounced
+  // — `address` comes from AddressAutocomplete's onChange, which fires on
+  // every keystroke, and Nominatim's usage policy caps free requests at
+  // ~1/sec. Without the debounce this fired a live geocode per keystroke,
+  // risking the app's shared egress IP getting rate-limited by Nominatim.
   useEffect(() => {
     let cancelled = false
     const query = address?.trim().length > 8 ? address.trim() : null
     const base = zip?.length === 5 ? CA_ZIP_CENTROIDS[zip] : null
     if (base) { setCenter([base.lat, base.lng]); setZoom(12) }
     if (!query) return
-    ;(async () => {
+    const timer = setTimeout(async () => {
       try {
         const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=us&q=${encodeURIComponent(query)}`
         const res = await fetch(url, { headers: { 'Accept': 'application/json' } })
@@ -58,8 +60,8 @@ function HomeMiniMap({ zip, address }) {
         const lat = Number(data[0].lat), lng = Number(data[0].lon)
         if (Number.isFinite(lat) && Number.isFinite(lng)) { setCenter([lat, lng]); setZoom(15) }
       } catch { /* network/parse — keep the fallback */ }
-    })()
-    return () => { cancelled = true }
+    }, 800)
+    return () => { cancelled = true; clearTimeout(timer) }
   }, [address, zip])
 
   useEffect(() => {
