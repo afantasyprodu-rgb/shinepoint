@@ -1,5 +1,5 @@
 import { useRef } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { motion, useScroll, useTransform, useReducedMotion } from 'motion/react'
 import { Capacitor } from '@capacitor/core'
 import ColdStart from './ColdStart'
@@ -44,7 +44,7 @@ function haptic() {
 
 export default function Welcome() {
   const navigate = useNavigate()
-  const { enterDemo } = useAuth()
+  const { enterDemo, session, profile, loading, isDemo } = useAuth()
   const { detailers } = useStore()
   const reduce = useReducedMotion()
   const heroRef = useRef(null)
@@ -63,6 +63,15 @@ export default function Welcome() {
   // are none, so the whole "Available now" section hides itself rather than
   // advertising seeded people as if they were real, bookable pros.
   const featured = detailers.filter((d) => d.status === 'available').slice(0, 3)
+
+  // A returning signed-in user relaunching the native app landed back on
+  // this pre-login teaser (ColdStart below) every single time — this route
+  // never checked auth state at all, real OR demo, before showing it.
+  // `loading` briefly true on first mount while the session check resolves;
+  // rendering nothing for that instant beats a flash of the teaser screen
+  // right before bouncing away from it.
+  if (loading) return null
+  if (isDemo || session) return <Navigate to={homePathForRole(profile?.role)} replace />
 
   // Native Android: map-first cold start (C1). Desktop/mobile web keep the
   // full marketing page. `?coldstart` forces it in the browser for preview.

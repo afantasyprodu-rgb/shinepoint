@@ -70,8 +70,16 @@ export default function ColdStart() {
 
   if (closeDetailers.length === 0) {
     return (
-      <div className="flex h-dvh w-full items-center justify-center bg-slate-50 p-6 text-center">
+      <div className="flex h-dvh w-full flex-col items-center justify-center gap-6 bg-slate-50 p-6 text-center">
         <p className="text-sm text-slate-500">No nearby detailers — check back soon.</p>
+        <div className="flex w-full max-w-xs flex-col gap-2">
+          <Link to="/login" className="btn btn-cta press-spring w-full">
+            Sign in
+          </Link>
+          <Link to="/signup/detailer" className="flex-1 rounded-full border border-slate-200 py-2.5 text-center text-sm font-semibold text-slate-700">
+            Join as detailer
+          </Link>
+        </div>
       </div>
     )
   }
