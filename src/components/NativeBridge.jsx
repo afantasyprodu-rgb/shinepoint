@@ -78,16 +78,42 @@ export default function NativeBridge() {
         // after the redirect started working. A failure here used to be
         // swallowed silently too, so it looked identical to the (rare)
         // benign already-exchanged case; now it's logged for real.
-        const params = new URL(url).searchParams
+        const parsedUrl = new URL(url)
+        const params = parsedUrl.searchParams
         const code = params.get('code')
-        // Supabase can bounce back with no code at all — e.g. the /authorize
-        // request itself was rejected (redirect_to not allow-listed, the
-        // provider misconfigured, etc.) — and instead attaches error/
-        // error_description. That case used to fall straight through to
-        // AuthCallback's generic "Could not complete sign-in" with the real
-        // reason discarded. Carry it along as a query param so it's visible.
-        let oauthError = params.get('error_description') || params.get('error')
-        if (code) {
+        // Confirmed live: this redirect actually comes back as an implicit-
+        // flow hash fragment (#access_token=...&refresh_token=...), not a
+        // ?code= query param — the tokens were sitting right there in every
+        // appUrlOpen event, but nothing ever read them, so the client never
+        // got a session, AuthCallback found none, and bounced back to
+        // /login on a ~1.8s timer, over and over, on every single attempt.
+        const hashParams = new URLSearchParams(parsedUrl.hash.replace(/^#/, ''))
+        const accessToken = hashParams.get('access_token')
+        const refreshToken = hashParams.get('refresh_token')
+        // Supabase can bounce back with no code/token at all — e.g. the
+        // /authorize request itself was rejected (redirect_to not allow-
+        // listed, the provider misconfigured, etc.) — and instead attaches
+        // error/error_description (as a query param OR in the hash). That
+        // case used to fall straight through to AuthCallback's generic
+        // "Could not complete sign-in" with the real reason discarded.
+        // Carry it along as a query param so it's visible.
+        let oauthError =
+          params.get('error_description') || params.get('error') ||
+          hashParams.get('error_description') || hashParams.get('error')
+        if (accessToken && refreshToken) {
+          try {
+            const { error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+            if (error) {
+              console.error('setSession:', error.message)
+              captureException(error, { scope: 'NativeBridge:setSession' })
+              oauthError = error.message
+            }
+          } catch (e) {
+            console.error('setSession threw:', e.message)
+            captureException(e, { scope: 'NativeBridge:setSession' })
+            oauthError = e.message
+          }
+        } else if (code) {
           try {
             const { error } = await supabase.auth.exchangeCodeForSession(code)
             if (error) {
