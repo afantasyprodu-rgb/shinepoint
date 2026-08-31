@@ -12,6 +12,7 @@ import { createClient } from 'npm:@supabase/supabase-js@^2'
 import { corsHeaders, json } from '../_shared/cors.ts'
 import { captureException } from '../_shared/sentry.ts'
 import { withinRateLimit, tooManyRequests } from '../_shared/rateLimit.ts'
+import { isUuid } from '../_shared/validate.ts'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
   apiVersion: '2026-05-27.dahlia' as Stripe.LatestApiVersion,
@@ -33,9 +34,12 @@ Deno.serve(async (req) => {
     } = await userClient.auth.getUser()
     if (userErr || !user) return json({ error: 'Not authenticated' }, 401)
 
-    const { amount } = await req.json().catch(() => ({ amount: null }))
+    const { amount, idempotencyKey } = await req.json().catch(() => ({ amount: null, idempotencyKey: null }))
     if (typeof amount !== 'number' || !(amount > 0)) {
       return json({ error: 'Enter an amount greater than $0.' }, 400)
+    }
+    if (!isUuid(idempotencyKey)) {
+      return json({ error: 'idempotencyKey required' }, 400)
     }
 
     const admin = createClient(
@@ -69,7 +73,7 @@ Deno.serve(async (req) => {
 
     const payout = await stripe.payouts.create(
       { amount: cents, currency: 'usd' },
-      { stripeAccount: profile.stripe_account_id }
+      { stripeAccount: profile.stripe_account_id, idempotencyKey: `payout-req-${idempotencyKey}` }
     )
     return json({ id: payout.id, status: payout.status, amount: payout.amount / 100 })
   } catch (e) {

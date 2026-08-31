@@ -108,6 +108,12 @@ Deno.serve(async (req) => {
         payment_intent: booking.stripe_payment_intent,
         amount: Math.round(amount * 100),
         metadata: { dispute_id: disputeId, booking_id: dispute.booking_id },
+      }, {
+        // Amount is part of the key deliberately: an admin CAN legitimately
+        // issue a second, different-amount refund by overriding a prior
+        // resolution, and this lets that still work while a same-amount
+        // retry/double-click replays the first refund instead of stacking.
+        idempotencyKey: `refund-${disputeId}-${Math.round(amount * 100)}`,
       })
       refundId = refund.id
     }

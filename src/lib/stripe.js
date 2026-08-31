@@ -43,7 +43,7 @@ export const getDetailerBalance = () => invokeFn('get-balance')
 // Withdraws an arbitrary dollar amount from the detailer's available Stripe
 // balance to their bank. The server re-validates the amount against a fresh
 // balance read — this is just the request, not the source of truth.
-export const requestPayout = (amount) => invokeFn('request-payout', { amount })
+export const requestPayout = (amount) => invokeFn('request-payout', { amount, idempotencyKey: crypto.randomUUID() })
 
 // Charge a post-job tip against the card saved from the booking payment.
 // Tips are 100% the detailer's; release-payouts adds this on top of their

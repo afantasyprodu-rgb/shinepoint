@@ -68,6 +68,8 @@ Deno.serve(async (req) => {
         payment_intent: booking.stripe_payment_intent,
         amount: Math.round(refundable * 100),
         metadata: { booking_id: booking.id, reason: 'detailer_declined' },
+      }, {
+        idempotencyKey: `refund-${booking.id}`,
       })
       refundId = refund.id
     }

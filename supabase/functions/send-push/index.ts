@@ -66,7 +66,10 @@ Deno.serve(async (req) => {
     if (typeof body !== 'string' || body.length > MAX_BODY) {
       return json({ error: 'body too long' }, 400)
     }
-    if (path !== undefined && (typeof path !== 'string' || !path.startsWith('/') || path.includes('//'))) {
+    // Only known in-app deep-link routes — the actual call sites (db.js) only
+    // ever send `/detailer/jobs/<booking-id>`, so that's the whole allowlist.
+    const DEEP_LINK_ALLOWLIST = /^\/detailer\/jobs\/[0-9a-f-]+$/i
+    if (path !== undefined && (typeof path !== 'string' || !DEEP_LINK_ALLOWLIST.test(path))) {
       return json({ error: 'invalid path' }, 400)
     }
 
