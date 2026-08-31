@@ -2,7 +2,8 @@ import { useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion, useScroll, useTransform, useReducedMotion } from 'motion/react'
 import { Capacitor } from '@capacitor/core'
-import AuthCard from '../components/AuthCard'
+import ColdStart from './ColdStart'
+import { useMediaQuery } from '../hooks/useMediaQuery'
 import Logo from '../components/Logo'
 import ThemeToggle from '../components/ThemeToggle'
 import LanguageToggle from '../components/LanguageToggle'
@@ -64,12 +65,12 @@ export default function Welcome() {
   // advertising seeded people as if they were real, bookable pros.
   const featured = detailers.filter((d) => d.status === 'available').slice(0, 3)
 
-  // Native Android: open straight into the auth card, per product decision
-  // — the full marketing page (how-it-works, featured detailers, live-demo
-  // grid, detailer CTA) is web-only, and the app is for people who already
-  // have (or are about to create) an account, not acquisition browsing.
-  if (Capacitor.isNativePlatform()) {
-    return <AuthCard defaultMode="login" showBackLink={false} />
+  // Phone web + native app: map-first cold start (C1). Desktop web keeps the
+  // full marketing page. `?coldstart` forces it in the browser for preview.
+  const isPhone = useMediaQuery('(max-width: 767px)')
+  const previewColdStart = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('coldstart')
+  if (Capacitor.isNativePlatform() || isPhone || previewColdStart) {
+    return <ColdStart />
   }
 
   // Product guarantees, not metrics. The app hasn't launched, so there is no

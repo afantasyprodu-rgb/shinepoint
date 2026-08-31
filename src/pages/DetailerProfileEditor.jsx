@@ -97,6 +97,7 @@ export default function DetailerProfileEditor() {
   const [upchargeVan, setUpchargeVan] = useState(me.vehicleUpcharges?.Van ?? '')
   const [days, setDays] = useState(me.serviceDays?.length ? me.serviceDays : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'])
   const [rewardsOptIn, setRewardsOptIn] = useState(me.acceptsRewards ?? false)
+  const [activeTab, setActiveTab] = useState('profile')
   const [saved, setSaved] = useState(false)
   const [busy, setBusy] = useState(false)
 
@@ -194,11 +195,17 @@ export default function DetailerProfileEditor() {
       <AnimatedPage className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
         <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">{t('yourProfile')}</h1>
 
-        <form onSubmit={save} className="mt-6 space-y-6">
-          {/* Identity — avatar straddles a notch carved into the card's top
-              edge (same masked-layer technique as the bottom tab bar's
-              notch), instead of just floating over an intact edge. */}
-          <div ref={tiltRef} className="relative mt-12">
+        <div className="mt-4 flex gap-1 overflow-x-auto rounded-full bg-brand-50 p-1 dark:bg-white/5" role="tablist">
+          <button type="button" role="tab" aria-selected={activeTab === 'profile'} onClick={() => setActiveTab('profile')} className={`flex-1 whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${activeTab === 'profile' ? 'bg-white text-brand-700 shadow-sm dark:bg-white/10 dark:text-brand-200' : 'text-slate-500 dark:text-slate-400'}`}>Profile</button>
+          <button type="button" role="tab" aria-selected={activeTab === 'services'} onClick={() => setActiveTab('services')} className={`flex-1 whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${activeTab === 'services' ? 'bg-white text-brand-700 shadow-sm dark:bg-white/10 dark:text-brand-200' : 'text-slate-500 dark:text-slate-400'}`}>Services</button>
+          <button type="button" role="tab" aria-selected={activeTab === 'schedule'} onClick={() => setActiveTab('schedule')} className={`flex-1 whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${activeTab === 'schedule' ? 'bg-white text-brand-700 shadow-sm dark:bg-white/10 dark:text-brand-200' : 'text-slate-500 dark:text-slate-400'}`}>Schedule</button>
+          <button type="button" role="tab" aria-selected={activeTab === 'account'} onClick={() => setActiveTab('account')} className={`flex-1 whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${activeTab === 'account' ? 'bg-white text-brand-700 shadow-sm dark:bg-white/10 dark:text-brand-200' : 'text-slate-500 dark:text-slate-400'}`}>Account</button>
+        </div>
+
+        <form onSubmit={save} className="mt-4 space-y-4">
+          {activeTab === 'profile' && (
+          <div className="space-y-4">
+          <div ref={tiltRef} className="relative mt-6">
             <div className="nx-card-notch-shadow absolute inset-0 rounded-[2rem]" aria-hidden="true" />
             <div
               className="nx-card-notch-bg absolute inset-0 rounded-[2rem]"
@@ -257,8 +264,10 @@ export default function DetailerProfileEditor() {
               ))}
             </div>
           </div>
-
-          {/* Services & pricing — editable */}
+          </div>
+          )}
+          {activeTab === 'services' && (
+          <div className="space-y-4">
           <div className="card">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t('servicesAndPricing')}</h2>
@@ -383,15 +392,15 @@ export default function DetailerProfileEditor() {
               )}
             </div>
           </div>
-
-          {/* Portfolio gallery */}
           <div className="card">
             <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t('portfolioGallery')}</h2>
             <p className="mb-3 mt-1 text-xs text-slate-400 dark:text-slate-500">{t('portfolioBlurb')}</p>
             <GalleryGrid gallery={gallery} setGallery={setGallery} onAdd={addGalleryPhoto} />
           </div>
-
-          {/* Availability */}
+          </div>
+          )}
+          {activeTab === 'schedule' && (
+          <div className="space-y-4">
           <div className="card">
             <label htmlFor="travel" className="label">{t('freeTravelRadius')}</label>
             <input
@@ -456,7 +465,8 @@ export default function DetailerProfileEditor() {
               </div>
             ))}
           </div>
-
+          </div>
+          )}
           <div className="relative">
             <button type="submit" disabled={busy} className="btn btn-cta w-full">
               {busy ? t('saving') : t('saveChanges')}
@@ -475,11 +485,13 @@ export default function DetailerProfileEditor() {
           </div>
         </form>
 
+        {activeTab === 'account' && (
+        <div className="space-y-4">
         <PayoutManagement />
 
         <Link
           to="/faq"
-          className="card card-hover mt-4 flex items-center gap-4 !p-4"
+          className="card card-hover flex items-center gap-4 !p-4"
         >
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 text-brand-600 dark:text-brand-300">
             <InfoIcon className="h-5 w-5" />
@@ -493,7 +505,7 @@ export default function DetailerProfileEditor() {
 
         <Link
           to="/feedback"
-          className="card card-hover mt-3 flex items-center gap-4 !p-4"
+          className="card card-hover flex items-center gap-4 !p-4"
         >
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 text-brand-600 dark:text-brand-300">
             <LightbulbIcon className="h-5 w-5" />
@@ -510,6 +522,8 @@ export default function DetailerProfileEditor() {
         <div className="mt-6">
           <AccountDangerZone />
         </div>
+        </div>
+        )}
       </AnimatedPage>
     </AppShell>
   )

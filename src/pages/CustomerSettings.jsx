@@ -160,8 +160,15 @@ export default function CustomerSettings() {
   const [saved, setSaved] = useState(false)
   const [busy, setBusy] = useState(false)
 
+  const [activeTab, setActiveTab] = useState('profile')
   const knownZip = zip.length === 5 && zip in CA_ZIP_CENTROIDS
   const nearest = zip.length === 5 && !knownZip ? closestDetailer(zip, detailers) : null
+  const tabs = [
+    { id: 'profile', label: t('profile') },
+    { id: 'vehicles', label: t('primaryVehicle') },
+    { id: 'address', label: t('homeAddress') },
+    { id: 'account', label: t('account') },
+  ]
 
   // Persist photo immediately so the avatar updates everywhere without a save.
   async function changePhoto(url) {
@@ -269,10 +276,14 @@ export default function CustomerSettings() {
           </div>
         </div>
 
-        <GarageCard make={vehMake} model={vehModel} type={vehType} t={t} />
+        <div className="flex gap-1 overflow-x-auto rounded-full bg-brand-50 p-1 dark:bg-white/5" role="tablist">
+          {tabs.map((tab) => (
+            <button key={tab.id} type="button" role="tab" aria-selected={activeTab === tab.id} onClick={() => setActiveTab(tab.id)} className={`flex-1 whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${activeTab === tab.id ? 'bg-white text-brand-700 shadow-sm dark:bg-white/10 dark:text-brand-200' : 'text-slate-500 dark:text-slate-400'}`}>{tab.label}</button>
+          ))}
+        </div>
 
         <form onSubmit={save} className="mt-4 space-y-4">
-          {/* Basics */}
+          {activeTab === 'profile' && (
           <div className="card space-y-4">
             <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">{t('profile')}</h2>
             <div>
@@ -318,8 +329,10 @@ export default function CustomerSettings() {
               <Link to="/privacy" className="underline hover:text-slate-600 dark:hover:text-slate-300">{t('smsDisclaimerPrivacy')}</Link>
             </p>
           </div>
-
-          {/* Primary vehicle */}
+          )}
+          {activeTab === 'vehicles' && (
+          <div className="space-y-4">
+          <GarageCard make={vehMake} model={vehModel} type={vehType} t={t} />
           <div className="card space-y-3">
             <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">{t('primaryVehicle')}</h2>
             <p className="-mt-1 text-sm text-slate-500 dark:text-slate-400">{t('primaryVehicleBlurb')}</p>
@@ -455,8 +468,10 @@ export default function CustomerSettings() {
               <PlusIcon className="h-4 w-4" /> {t('addAnotherCar')}
             </button>
           </div>
-
-          {/* Home address — now with open-source mini map (Leaflet + Carto) */}
+          </div>
+          )}
+          {activeTab === 'address' && (
+          <div className="space-y-4">
           <div className="card space-y-4">
             <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">{t('homeAddress')}</h2>
             <p className="-mt-2 text-sm text-slate-500 dark:text-slate-400">{t('homeAddressBlurb')}</p>
@@ -491,7 +506,8 @@ export default function CustomerSettings() {
             <HomeMiniMap zip={zip} address={address} />
             <p className="text-[11px] text-slate-400 dark:text-slate-500">OpenStreetMap via CARTO Voyager — same open-source stack as the discovery map.</p>
           </div>
-
+          </div>
+          )}
           <div className="relative">
             <button type="submit" disabled={busy || zip.length !== 5} className="btn btn-cta w-full">
               {busy ? t('saving') : t('saveChanges')}
@@ -510,9 +526,11 @@ export default function CustomerSettings() {
           </div>
         </form>
 
+        {activeTab === 'account' && (
+        <div className="mt-4 space-y-4">
         <Link
           to="/faq"
-          className="card card-hover mt-4 flex items-center gap-4 !p-4"
+          className="card card-hover flex items-center gap-4 !p-4"
         >
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 text-brand-600 dark:text-brand-300">
             <InfoIcon className="h-5 w-5" />
@@ -526,7 +544,7 @@ export default function CustomerSettings() {
 
         <Link
           to="/feedback"
-          className="card card-hover mt-3 flex items-center gap-4 !p-4"
+          className="card card-hover flex items-center gap-4 !p-4"
         >
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 text-brand-600 dark:text-brand-300">
             <LightbulbIcon className="h-5 w-5" />
@@ -540,9 +558,9 @@ export default function CustomerSettings() {
 
         <ChangePassword />
 
-        <div className="mt-6">
-          <AccountDangerZone />
+        <AccountDangerZone />
         </div>
+        )}
       </AnimatedPage>
     </AppShell>
   )
