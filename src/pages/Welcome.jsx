@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom'
 import { motion, useScroll, useTransform, useReducedMotion } from 'motion/react'
 import { Capacitor } from '@capacitor/core'
 import ColdStart from './ColdStart'
-import { useMediaQuery } from '../hooks/useMediaQuery'
 import Logo from '../components/Logo'
 import ThemeToggle from '../components/ThemeToggle'
 import LanguageToggle from '../components/LanguageToggle'
@@ -65,11 +64,10 @@ export default function Welcome() {
   // advertising seeded people as if they were real, bookable pros.
   const featured = detailers.filter((d) => d.status === 'available').slice(0, 3)
 
-  // Phone web + native app: map-first cold start (C1). Desktop web keeps the
+  // Native Android: map-first cold start (C1). Desktop/mobile web keep the
   // full marketing page. `?coldstart` forces it in the browser for preview.
-  const isPhone = useMediaQuery('(max-width: 767px)')
   const previewColdStart = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('coldstart')
-  if (Capacitor.isNativePlatform() || isPhone || previewColdStart) {
+  if (Capacitor.isNativePlatform() || previewColdStart) {
     return <ColdStart />
   }
 
