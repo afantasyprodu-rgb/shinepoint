@@ -330,6 +330,11 @@ Deno.serve(async (req) => {
           customer_id: booking.customer_id,
           detailer_id: booking.detailer_id,
         },
+      }, {
+        // A dropped response or double-click before stripe_payment_intent
+        // is saved below would otherwise create a second live intent for
+        // the same booking — this makes the retry replay the first one.
+        idempotencyKey: `intent-${booking.id}`,
       })
       await admin
         .from('bookings')

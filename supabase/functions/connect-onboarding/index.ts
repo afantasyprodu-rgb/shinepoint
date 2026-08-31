@@ -78,6 +78,12 @@ Deno.serve(async (req) => {
           payouts: { schedule: { interval: 'manual' } },
         },
         metadata: { detailer_profile_id: profile.id },
+      }, {
+        // Two concurrent requests can both read stripe_account_id as null
+        // above and both reach this call — without a deterministic key
+        // that creates two connected accounts, and the second DB update
+        // orphans the first. This makes the race replay the same account.
+        idempotencyKey: `connect-account-${user.id}`,
       })
       accountId = account.id
       await admin
