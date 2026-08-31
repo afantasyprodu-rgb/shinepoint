@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.shinepoint",
+      "sha256_cert_fingerprints": [
+        "B3:72:5D:CD:62:B6:67:1A:C8:E8:E3:4E:2F:08:D6:F1:F9:2C:D6:44:0E:76:88:8C:42:9F:C1:67:EF:E8:C0:19"
+      ]
+    }
+  }
+]

@@ -23,13 +23,24 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Google/Supabase OAuth redirects back into the app via this
-                 custom scheme — see docs/android-capacitor.md. -->
-            <intent-filter>
+            <!-- Google/Supabase OAuth redirects back into the app via this App
+                 Link (HTTPS, not a custom scheme) — see docs/android-capacitor.md.
+                 A custom scheme is unverified and any app on the device can
+                 register the same one to intercept the OAuth code; autoVerify
+                 makes Android confirm this app actually owns shinepoint.app
+                 before routing the link here instead of the browser.
+                 REQUIRES publishing https://shinepoint.app/.well-known/assetlinks.json
+                 (source: public/.well-known/assetlinks.json) declaring this app's
+                 signing certificate's SHA-256 fingerprint — without it, verification
+                 fails silently and the link just opens in the browser instead of the
+                 app. Currently lists the DEBUG keystore's fingerprint only; add the
+                 release keystore's fingerprint there too before shipping a signed
+                 build through any channel other than this sideloaded debug APK. -->
+            <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="shinepoint" android:host="auth" />
+                <data android:scheme="https" android:host="shinepoint.app" android:pathPrefix="/auth/callback" />
             </intent-filter>
 
             <!-- Tapping the home-screen widget (ShinePointWidgetProvider) opens
