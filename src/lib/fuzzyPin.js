@@ -65,6 +65,85 @@ export const CA_ZIP_CENTROIDS = {
   93030: { lat: 34.1975, lng: -119.1771 }, // Oxnard
   93010: { lat: 34.2164, lng: -119.0376 }, // Camarillo
   93065: { lat: 34.2694, lng: -118.7815 }, // Simi Valley
+  // Anaheim / convention-corridor zips (92800 block)
+  92801: { lat: 33.8452, lng: -117.9877 }, // Anaheim
+  92802: { lat: 33.8073, lng: -117.9146 }, // Anaheim (Convention Ctr / Disney)
+  92804: { lat: 33.8332, lng: -117.9636 }, // Anaheim
+  92806: { lat: 33.8329, lng: -117.8789 }, // Anaheim
+  92807: { lat: 33.8556, lng: -117.8185 }, // Anaheim Hills
+  92808: { lat: 33.8649, lng: -117.7738 }, // Anaheim Hills
+  // Northern CA metros - Bay Area, Sacramento, Silicon Valley
+  94105: { lat: 37.79, lng: -122.3946 }, // San Francisco
+  94110: { lat: 37.7498, lng: -122.4151 }, // San Francisco (Mission)
+  94607: { lat: 37.7989, lng: -122.2906 }, // Oakland
+  94704: { lat: 37.8701, lng: -122.2657 }, // Berkeley
+  95110: { lat: 37.3576, lng: -121.8982 }, // San Jose
+  95014: { lat: 37.3243, lng: -122.0306 }, // Cupertino
+  94040: { lat: 37.3788, lng: -122.0794 }, // Mountain View
+  94301: { lat: 37.4441, lng: -122.1616 }, // Palo Alto
+  94025: { lat: 37.4545, lng: -122.1814 }, // Menlo Park
+  94501: { lat: 37.7737, lng: -122.2592 }, // Alameda
+  94544: { lat: 37.6449, lng: -122.1062 }, // Hayward
+  94545: { lat: 37.6305, lng: -122.084 }, // Hayward
+  94587: { lat: 37.4908, lng: -121.9986 }, // Union City
+  95814: { lat: 38.5841, lng: -121.4947 }, // Sacramento
+  95816: { lat: 38.5715, lng: -121.4649 }, // Sacramento
+  95616: { lat: 38.5459, lng: -121.7436 }, // Davis
+  95618: { lat: 38.5434, lng: -121.7468 }, // Davis
+  94520: { lat: 38.0198, lng: -122.2898 }, // Concord
+  94553: { lat: 37.9765, lng: -122.0221 }, // Martinez
+  94588: { lat: 37.7082, lng: -121.9193 }, // Pleasanton
+  94566: { lat: 37.6714, lng: -121.8758 }, // Pleasanton
+  94568: { lat: 37.7032, lng: -121.9037 }, // Dublin
+  // Central Valley - Fresno, Bakersfield, Stockton, Modesto
+  93720: { lat: 36.8715, lng: -119.7767 }, // Fresno
+  93726: { lat: 36.8126, lng: -119.7867 }, // Fresno
+  93274: { lat: 36.3177, lng: -119.3054 }, // Tulare
+  93301: { lat: 35.3611, lng: -119.0151 }, // Bakersfield
+  93304: { lat: 35.3344, lng: -119.0217 }, // Bakersfield
+  95202: { lat: 37.9537, lng: -121.2908 }, // Stockton
+  95207: { lat: 38.0031, lng: -121.3132 }, // Stockton
+  95350: { lat: 37.6541, lng: -120.999 }, // Modesto
+  95354: { lat: 37.6383, lng: -120.9975 }, // Modesto
+  95301: { lat: 37.3029, lng: -120.4826 }, // Merced
+  95356: { lat: 37.7427, lng: -121.0009 }, // Modesto
+  95610: { lat: 38.7121, lng: -121.2925 }, // Citrus Heights
+  95660: { lat: 38.6912, lng: -121.3774 }, // North Highlands
+  // Coastal & Central California - Monterey, Salinas, SLO, Santa Cruz
+  93901: { lat: 36.676, lng: -121.6555 }, // Salinas
+  93940: { lat: 36.5965, lng: -121.8882 }, // Monterey
+  95060: { lat: 36.9725, lng: -122.0274 }, // Santa Cruz
+  95062: { lat: 36.9737, lng: -121.9666 }, // Santa Cruz
+  95064: { lat: 36.9897, lng: -122.0567 }, // Santa Cruz
+  93401: { lat: 35.3016, lng: -120.6776 }, // San Luis Obispo
+  93405: { lat: 35.3231, lng: -120.6806 }, // San Luis Obispo
+  93035: { lat: 34.1786, lng: -119.2004 }, // Oxnard
+  93036: { lat: 34.2371, lng: -119.1715 }, // Oxnard
+  93117: { lat: 34.4389, lng: -119.8466 }, // Goleta
+  93420: { lat: 35.1378, lng: -120.5556 }, // Arroyo Grande
+  // Central Coast gaps + Inland Empire expansion
+  93454: { lat: 34.6911, lng: -120.5888 }, // Santa Maria
+  93455: { lat: 34.8725, lng: -120.4365 }, // Santa Maria
+  96001: { lat: 40.5818, lng: -122.3916 }, // Redding
+  96003: { lat: 40.6337, lng: -122.3391 }, // Redding
+  92507: { lat: 33.9277, lng: -117.5054 }, // Riverside
+  92504: { lat: 33.9173, lng: -117.4087 }, // Riverside
+  92324: { lat: 34.0547, lng: -117.2256 }, // San Bernardino
+  92336: { lat: 34.1473, lng: -117.4606 }, // Fontana
+  91759: { lat: 34.1328, lng: -117.6318 }, // Fontana
+  92373: { lat: 34.0569, lng: -117.2026 }, // Redlands
+  92399: { lat: 34.0121, lng: -117.1094 }, // Yucaipa
+  92223: { lat: 33.9392, lng: -117.0586 }, // Beaumont
+  92860: { lat: 33.9263, lng: -117.5779 }, // Norco
+  91761: { lat: 34.0584, lng: -117.6239 }, // Ontario
+  91764: { lat: 34.0837, lng: -117.6341 }, // Ontario
+  91710: { lat: 34.035, lng: -117.7229 }, // Chino
+  92653: { lat: 33.6169, lng: -117.7159 }, // Laguna Hills
+  92656: { lat: 33.5654, lng: -117.7329 }, // Aliso Viejo
+  92679: { lat: 33.6023, lng: -117.5846 }, // Trabuco Canyon
+  92703: { lat: 33.7535, lng: -117.9286 }, // Santa Ana
+  92602: { lat: 33.7414, lng: -117.7433 }, // Irvine
+  92620: { lat: 33.6948, lng: -117.7526 }, // Irvine
 }
 
 // Best-effort coordinate for ANY 5-digit zip, not just ones in the table

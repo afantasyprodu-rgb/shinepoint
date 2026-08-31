@@ -23,27 +23,60 @@ import { TILES } from '../components/DetailerMap'
 
 // Mini open-source map for the Home address card — same Leaflet + Carto tiles
 // we already use in DetailerMap (Voyager nolabels = OpenStreetMap + CARTO).
-function HomeMiniMap({ zip }) {
+//
+// The mini-map should show the customer's actual home, not a generic pin. We
+// geocode the full street address via Nominatim (OSM's free geocoder, same
+// open-source stack as the tiles) so "700 W Convention Way, Anaheim" lands on
+// that exact point. Resolution order, each a fallback for the last:
+//   1. geocoded street address (exact point, zoom 15)
+//   2. CA_ZIP_CENTROIDS entry (city-level, zoom 12)
+//   3. no marker (never fall back to a wrong city like downtown LA)
+function HomeMiniMap({ zip, address }) {
   const ref = useRef(null)
   const mapRef = useRef(null)
   const markerRef = useRef(null)
   const tileRef = useRef(null)
-  const centroid = zip?.length === 5 ? CA_ZIP_CENTROIDS[zip] : null
-  const center = centroid ?? [34.0522, -118.2437]
+  const [center, setCenter] = useState(null)
+  const [zoom, setZoom] = useState(12)
+
+  // Geocode the street address (or fall back to the ZIP centroid). Runs once
+  // on mount/when the address changes; the result is stale-safe because the
+  // effect below only recenters once a center resolves.
+  useEffect(() => {
+    let cancelled = false
+    const query = address?.trim().length > 8 ? address.trim() : null
+    const base = zip?.length === 5 ? CA_ZIP_CENTROIDS[zip] : null
+    if (base) { setCenter([base.lat, base.lng]); setZoom(12) }
+    if (!query) return
+    ;(async () => {
+      try {
+        const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=us&q=${encodeURIComponent(query)}`
+        const res = await fetch(url, { headers: { 'Accept': 'application/json' } })
+        if (!res.ok) return
+        const data = await res.json()
+        if (cancelled || !data || !data.length) return
+        const lat = Number(data[0].lat), lng = Number(data[0].lon)
+        if (Number.isFinite(lat) && Number.isFinite(lng)) { setCenter([lat, lng]); setZoom(15) }
+      } catch { /* network/parse — keep the fallback */ }
+    })()
+    return () => { cancelled = true }
+  }, [address, zip])
+
   useEffect(() => {
     if (!ref.current || mapRef.current) return
-    const map = L.map(ref.current, { center, zoom: 12, zoomControl: false, attributionControl: true, dragging: true, scrollWheelZoom: false })
+    const map = L.map(ref.current, { center: center ?? [34.05, -118.24], zoom: zoom || 12, zoomControl: false, attributionControl: true, dragging: true, scrollWheelZoom: false })
     tileRef.current = L.tileLayer(TILES.light.url, { attribution: TILES.light.attribution, maxZoom: 19 }).addTo(map)
     mapRef.current = map
     return () => { map.remove(); mapRef.current = null }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   useEffect(() => {
-    if (!mapRef.current) return
-    mapRef.current.setView(center, 12)
+    if (!mapRef.current || !center) return
+    mapRef.current.setView(center, zoom || 12)
     if (markerRef.current) { markerRef.current.setLatLng(center) } else {
       markerRef.current = L.marker(center, { icon: L.divIcon({ className: '', html: '<span class="nx-map-pin" style="--pin:#0ea5e9"></span>', iconSize: [24,24], iconAnchor:[12,12] }) }).addTo(mapRef.current)
     }
-  }, [zip])
+  }, [center, zoom])
   return <div ref={ref} className="h-36 w-full rounded-xl overflow-hidden ring-1 ring-slate-200 dark:ring-white/10" />
 }
 
@@ -455,7 +488,7 @@ export default function CustomerSettings() {
                 </p>
               )}
             </div>
-            <HomeMiniMap zip={zip} />
+            <HomeMiniMap zip={zip} address={address} />
             <p className="text-[11px] text-slate-400 dark:text-slate-500">OpenStreetMap via CARTO Voyager — same open-source stack as the discovery map.</p>
           </div>
 
