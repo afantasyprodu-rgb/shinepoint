@@ -170,17 +170,26 @@ let followerSpring = 0
 // separate state (this WAS missing, see below), not just the position.
 let followerVel = 0
 let framePrev = 0
+let prevDropX = 0
 let loopStarted = false
 
 function startSquashLoop() {
   if (loopStarted) return
   loopStarted = true
   framePrev = performance.now()
+  prevDropX = dropX.get()
   const step = (now) => {
     const dt = Math.min((now - framePrev) / 1000, 0.05)
     framePrev = now
-    // Live velocity of the travelling droplet (0 when idle).
-    const vel = dropX.getVelocity()
+    // Live velocity of the travelling droplet, computed by hand — Motion's
+    // own motionValue.getVelocity() caches the last delta it saw and never
+    // decays once the driving animate() stops calling .set() on dropX, so
+    // the squash got stuck permanently deformed after a spring settled
+    // instead of relaxing back to identity. Diffing the value ourselves
+    // each frame guarantees exactly 0 the instant dropX stops moving.
+    const x = dropX.get()
+    const vel = dt > 0 ? (x - prevDropX) / dt : 0
+    prevDropX = x
     // Spring the follower toward it (k 240, c 32, m 1) — stays behind the
     // motion like goo, no dead reset on remount. The damping term (c) has
     // to act on the follower's OWN velocity (followerVel), not its

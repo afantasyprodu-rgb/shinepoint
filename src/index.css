@@ -923,7 +923,7 @@
     border: none;
     background: var(--auth-bg, #1a2029);
     color: var(--auth-text, #fff);
-    @apply h-14 w-12 rounded-2xl text-center text-2xl font-bold transition-all duration-150 focus:outline-none sm:h-16 sm:w-14;
+    @apply h-12 w-8 rounded-2xl text-center text-lg font-bold transition-all duration-150 focus:outline-none sm:h-16 sm:w-14 sm:text-2xl;
     box-shadow: inset 3px 3px 7px var(--auth-sd, #0e1218), inset -3px -3px 7px var(--auth-sl, #262e3a);
   }
   .otp-box:focus {

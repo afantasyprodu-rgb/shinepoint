@@ -41,8 +41,14 @@ android {
     }
     buildTypes {
         release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            // R8 shrinking + resource shrinking for a lean release APK. The
+            // webview app is shipped as bundled assets in `dist/`, so JS-side
+            // logic is untouched by ProGuard; these rules only affect Java
+            // bytecode (Capacitor + the two small app classes). Capacitor
+            // ships keep rules that cover its reflection usage.
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             if (hasSigningConfig) {
                 signingConfig signingConfigs.release
             }

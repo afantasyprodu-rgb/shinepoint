@@ -102,11 +102,25 @@ function applyHue(hue) {
 
 // Resolve the initial theme the same way the inline seed in index.html does,
 // so React's first render matches what's already painted (no flash, no
-// hydration mismatch). Default is light regardless of OS preference — dark
-// is opt-in only, never auto-selected from prefers-color-scheme.
+// hydration mismatch).
+//
+// Android/iOS native (adaptive platform): the app is expected to follow the
+// system appearance by default — a user who set their phone to dark mode gets
+// a dark ShinePoint on first launch. The in-app toggle still overrides it and
+// persists, so the manual choice always wins once made. On the web, light
+// stays the default (existing behavior) and the toggle opts in.
+function systemPrefersDark() {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false
+  try { return window.matchMedia('(prefers-color-scheme: dark)').matches } catch { return false }
+}
+
 function initialTheme() {
   if (typeof window === 'undefined') return 'light'
-  return localStorage.getItem(STORAGE_KEY) === 'dark' ? 'dark' : 'light'
+  const stored = localStorage.getItem(STORAGE_KEY)
+  if (stored === 'dark' || stored === 'light') return stored
+  // No stored choice: follow the OS on native (Capacitor WebView surfaces the
+  // system appearance via matchMedia), keep light as the web default.
+  return systemPrefersDark() ? 'dark' : 'light'
 }
 
 export function ThemeProvider({ children }) {
