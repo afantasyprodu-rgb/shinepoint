@@ -253,15 +253,12 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
     // On native, window.location.origin is https://shinepoint.app (Capacitor's
     // server.hostname override, capacitor.config.ts) but that's still not a
     // URL Google/Supabase can bounce back into the app with — it has to be
-    // an HTTPS App Link (android:autoVerify, backed by
-    // public/.well-known/assetlinks.json) that NativeBridge's appUrlOpen
-    // listener catches instead, or the OAuth flow completes in the system
-    // browser and just strands the user on the web page instead of
-    // returning to the app. NOT a custom shinepoint:// scheme — that's
-    // unverified and any app on the device can register the same scheme to
-    // intercept the OAuth code.
+    // the shinepoint:// deep link that
+    // NativeBridge's appUrlOpen listener catches instead, or the OAuth
+    // flow completes in the system browser and just strands the user on
+    // the web page instead of returning to the app.
     const redirectTo = isNative
-      ? `https://shinepoint.app/auth/callback${callbackQuery}`
+      ? `shinepoint://auth/callback${callbackQuery}`
       : `${window.location.origin}/auth/callback${callbackQuery}`
     // On native, signInWithOAuth's default behavior navigates THIS webview
     // to accounts.google.com via window.location.assign() — that tears the
@@ -271,8 +268,7 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
     // redirect starts), so Google is never even reached. skipBrowserRedirect
     // + manually opening the URL in the system browser via @capacitor/browser
     // keeps this webview intact; NativeBridge's appUrlOpen listener catches
-    // the https://shinepoint.app/auth/callback App Link when the system
-    // browser hands control back.
+    // the shinepoint:// deep link when the system browser hands control back.
     if (isNative) {
       const { data, error: err } = await supabase.auth.signInWithOAuth({
         provider: 'google',
