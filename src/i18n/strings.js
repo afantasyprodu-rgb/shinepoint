@@ -50,6 +50,7 @@ export const STRINGS = {
       detailerCtaBody: 'Set your own prices, radius, and hours. Get paid fast with photo-protected jobs and zero marketing spend.',
       joinAsDetailer: 'Join as a detailer',
       footerFaq: 'FAQ',
+      footerBusinessInfo: 'Business Info',
       footer: 'ShinePoint · Southern California',
       footerContact: '734 W Colden Ave, Los Angeles, CA 90044 · shinepoint.support@gmail.com · (213) 534-7417',
     },
@@ -346,6 +347,7 @@ export const STRINGS = {
       exploreDemo: 'Explore the demo',
       joinAsDetailer: 'Join as a detailer',
       footerContact: '734 W Colden Ave, Los Angeles, CA 90044 · shinepoint.support@gmail.com · (213) 534-7417',
+      footerBusinessInfo: 'Business Info',
     },
     checkEmail: {
       title: 'Check your email',
@@ -1607,6 +1609,7 @@ export const STRINGS = {
       detailerCtaBody: 'Define tus propios precios, radio y horarios. Cobra rápido con trabajos protegidos por fotos y sin gastar en marketing.',
       joinAsDetailer: 'Únete como detallista',
       footerFaq: 'Preguntas frecuentes',
+      footerBusinessInfo: 'Información del negocio',
       footer: 'ShinePoint · Los Ángeles, CA',
       footerContact: '734 W Colden Ave, Los Angeles, CA 90044 · shinepoint.support@gmail.com · (213) 534-7417',
     },
@@ -1903,6 +1906,7 @@ export const STRINGS = {
       exploreDemo: 'Explora la demo',
       joinAsDetailer: 'Únete como detallista',
       footerContact: '734 W Colden Ave, Los Angeles, CA 90044 · shinepoint.support@gmail.com · (213) 534-7417',
+      footerBusinessInfo: 'Información del negocio',
     },
     checkEmail: {
       title: 'Revisa tu correo',

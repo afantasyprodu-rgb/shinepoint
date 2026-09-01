@@ -312,6 +312,12 @@ export default function Welcome() {
 
       <footer className="bg-brand-900 px-6 py-8 text-center text-sm text-brand-300">
         <Link to="/faq" className="underline hover:text-brand-100">{t('footerFaq')}</Link>
+        {' · '}
+        {/* Plain <a>, not <Link> — business-info.html is a static file with
+            no matching client route (see App.jsx); a client-side <Link>
+            would hit nothing but blank space instead of a full navigation
+            to Vercel's /business-info rewrite. */}
+        <a href="/business-info" className="underline hover:text-brand-100">{t('footerBusinessInfo')}</a>
         <p className="mt-2">{t('footer')}</p>
         <p className="mt-1 text-xs text-brand-400">{t('footerContact')}</p>
       </footer>

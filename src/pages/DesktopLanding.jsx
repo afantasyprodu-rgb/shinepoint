@@ -236,7 +236,13 @@ export default function DesktopLanding() {
             so this is the only place it's visible on desktop. Carrier/toll-
             free verification checks the public site for a real, matching
             phone/email/address; keep it in sync with the Welcome.jsx footer. */}
-        <p className="mt-8 text-xs text-white/40">{t('footerContact')}</p>
+        <p className="mt-8 text-xs text-white/40">
+          {t('footerContact')}
+          {' · '}
+          {/* Plain <a>, not <Link> — business-info.html is a static file
+              with no matching client route (see App.jsx). */}
+          <a href="/business-info" className="underline hover:text-white/70">{t('footerBusinessInfo')}</a>
+        </p>
       </motion.div>
     </section>
   )
