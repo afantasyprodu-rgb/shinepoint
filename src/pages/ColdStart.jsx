@@ -5,7 +5,7 @@ import DetailerMap from '../components/DetailerMap'
 import { useStore } from '../context/StoreContext'
 import { Stars } from '../components/ui/bits'
 import HeroBubbles from '../components/ui/HeroBubbles'
-import { UserIcon, ArrowRightIcon } from '../components/icons'
+import { UserIcon, ArrowRightIcon, SparklesIcon } from '../components/icons'
 import ThemeToggle from '../components/ThemeToggle'
 import LanguageToggle from '../components/LanguageToggle'
 
@@ -155,11 +155,15 @@ export default function ColdStart() {
       <motion.div
         layout
         transition={reduce ? { duration: 0 } : { type: 'spring', stiffness: 260, damping: 28 }}
-        className={`pointer-events-auto absolute z-20 overflow-hidden bg-white shadow-[0_-8px_24px_rgba(0,0,0,0.08)] ${
+        className={`pointer-events-auto absolute z-20 overflow-hidden shadow-[0_-8px_24px_rgba(0,0,0,0.08)] ${
           revealed
             ? 'inset-x-0 bottom-0 rounded-t-3xl px-6 pb-8 pt-5'
             : 'inset-0 flex flex-col items-center justify-center rounded-none px-6 text-center'
         }`}
+        // G1+G4 — Studio Wash: rose-tinted neumorphic surface (#f1eff3) with a
+        // soft-embossed dual shadow, so the sheet reads as a moulded slab the
+        // user can press, matching the brand mockup.
+        style={{ background: '#f5edf3', boxShadow: '0 -8px 24px rgba(0,0,0,0.08), 6px 6px 18px rgba(15,23,42,0.12), -6px -6px 18px rgba(255,255,255,0.9)' }}
       >
         {/* Same ambient brand-pink glow + soap-bubble field as the auth
             card's hero (AuthCard.jsx) — this sheet is the other main
@@ -173,13 +177,31 @@ export default function ColdStart() {
         )}
         <div className="relative w-full max-w-xs">
           {revealed && <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-slate-200" aria-hidden="true" />}
-          <h1 className="font-display text-xl font-bold text-slate-950">See who's nearby</h1>
-          <p className="mt-1 text-sm text-slate-600">Browse vetted detailers live before you sign in.</p>
+          {!revealed && (
+            // Not the shared <Logo> component here: its wordmark switches to
+            // light text in dark mode (dark:text-brand-200) for surfaces
+            // that actually go dark — this sheet's background is a fixed
+            // light pink gradient regardless of theme, so that swap made
+            // "ShinePoint" nearly invisible (light-on-light) whenever
+            // someone toggled dark mode on this screen specifically.
+            <div className="mx-auto mb-4 flex items-center justify-center gap-2.5">
+              <span className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-sm">
+                <SparklesIcon className="h-8 w-8" />
+              </span>
+              <span className="font-display text-3xl font-semibold text-brand-900">ShinePoint</span>
+            </div>
+          )}
+          {!revealed && (
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-600">Mobile detailing</p>
+          )}
+          <h1 className={`font-display font-bold text-slate-950 ${revealed ? 'text-xl' : 'mt-1 text-3xl'}`}>See who's nearby</h1>
+          <p className={`mt-1 text-sm text-slate-600 ${revealed ? '' : 'mt-2'}`}>Browse vetted detailers live before you sign in.</p>
           {!revealed && (
             <button
               type="button"
               onClick={() => setRevealed(true)}
-              className="btn btn-outline press-spring mt-4 flex w-full items-center justify-center gap-1.5 text-brand-700 dark:text-brand-300"
+              className="press-spring mt-5 flex w-full items-center justify-center gap-1.5 rounded-2xl bg-[#f5edf3] py-3 text-sm font-bold text-brand-700 shadow-[6px_6px_14px_rgba(15,23,42,0.18),-6px_-6px_14px_rgba(255,255,255,0.9)]"
+              style={{ color: '#de0067' }}
             >
               Explore detailers <ArrowRightIcon className="h-4 w-4" />
             </button>
@@ -191,8 +213,8 @@ export default function ColdStart() {
               heavy for a secondary action sitting right under the primary
               pink CTA above. */}
           <div className="mt-3 flex gap-2">
-            <Link to="/login" className="press-spring flex-1 rounded-full border border-slate-200 bg-white py-2.5 text-center text-sm font-semibold text-slate-700 shadow-sm">Sign in</Link>
-            <Link to="/signup/detailer" className="press-spring flex-1 rounded-full border border-slate-200 bg-white py-2.5 text-center text-sm font-semibold text-slate-700 shadow-sm">Join as detailer</Link>
+            <Link to="/login" className="press-spring flex-1 rounded-full bg-[#f5edf3] py-2.5 text-center text-sm font-semibold text-slate-700 shadow-[4px_4px_9px_rgba(15,23,42,0.12),-4px_-4px_9px_rgba(255,255,255,0.9)]">Sign in</Link>
+            <Link to="/signup/detailer" className="press-spring flex-1 rounded-full bg-[#f5edf3] py-2.5 text-center text-sm font-semibold text-slate-700 shadow-[4px_4px_9px_rgba(15,23,42,0.12),-4px_-4px_9px_rgba(255,255,255,0.9)]">Join as detailer</Link>
           </div>
         </div>
       </motion.div>
