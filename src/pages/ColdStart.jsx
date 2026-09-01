@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { motion, useReducedMotion } from 'motion/react'
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react'
 import DetailerMap from '../components/DetailerMap'
 import { useStore } from '../context/StoreContext'
 import { Stars } from '../components/ui/bits'
@@ -150,19 +150,24 @@ export default function ColdStart() {
             {closeDetailers.length} detailers nearby
           </div>
 
-          <div className="pointer-events-auto mx-3 mb-2 flex gap-2 overflow-x-auto rounded-2xl bg-white/92 p-2 backdrop-blur-md">
+          {/* Each avatar is its own glass chip now — no shared strip
+              background behind all three, so they read as separate people
+              rather than icons pinned to one shared bar. */}
+          <div className="pointer-events-auto mx-3 mb-3 flex gap-3 overflow-x-auto pb-1">
             {closeDetailers.map((d, i) => (
               <button
                 key={d.id}
                 onClick={() => setActiveIdx(i)}
-                className={`flex min-w-[64px] flex-col items-center gap-1 rounded-xl px-2 py-2 transition-colors ${i === activeIdx ? 'bg-brand-50 ring-1 ring-brand-200' : ''}`}
+                className={`flex min-w-[76px] flex-col items-center gap-1.5 rounded-2xl border p-2.5 backdrop-blur-md transition-all ${
+                  i === activeIdx ? 'border-brand-300 bg-white/60 shadow-md' : 'border-white/40 bg-white/35 shadow-sm'
+                }`}
               >
-                <span className="relative flex h-10 w-10 items-center justify-center">
-                  <span className={`flex h-10 w-10 items-center justify-center rounded-full border-2 bg-slate-100 ${i === activeIdx ? 'border-brand-500' : 'border-slate-200'}`}>
-                    <UserIcon className="h-5 w-5 text-slate-400" />
+                <span className="relative flex h-14 w-14 items-center justify-center">
+                  <span className={`flex h-14 w-14 items-center justify-center rounded-full border-2 bg-slate-100 ${i === activeIdx ? 'border-brand-500' : 'border-slate-200'}`}>
+                    <UserIcon className="h-7 w-7 text-slate-400" />
                   </span>
                   <span
-                    className={`absolute -right-0.5 -bottom-0.5 h-3 w-3 rounded-full border-2 border-white ${d.status === 'available' ? 'bg-cta-500' : 'bg-slate-300'}`}
+                    className={`absolute -right-0.5 -bottom-0.5 h-3.5 w-3.5 rounded-full border-2 border-white ${d.status === 'available' ? 'bg-cta-500' : 'bg-slate-300'}`}
                     aria-hidden="true"
                   />
                 </span>
@@ -172,20 +177,29 @@ export default function ColdStart() {
             ))}
           </div>
 
-          <div className="pointer-events-auto mx-3 mb-3 flex gap-3 overflow-x-auto pb-1">
-            {closeDetailers.map((d, i) => (
-              <button
-                key={d.id}
-                onClick={() => setActiveIdx(i)}
-                className={`min-w-[160px] shrink-0 rounded-2xl border bg-white p-3 text-left transition-all ${i === activeIdx ? 'border-brand-500 shadow-md' : 'border-slate-200 shadow-sm'}`}
-              >
-                <p className="text-sm font-semibold text-slate-900">{d.name}</p>
-                <p className="mt-1 flex items-center gap-1 text-xs text-slate-600">
-                  <Stars rating={d.rating ?? 5} className="h-3.5 w-3.5" />
-                  {d.rating?.toFixed(1) ?? '5.0'} · {d.reviews ?? 0} reviews
-                </p>
-              </button>
-            ))}
+          {/* Only the active detailer's card, not all three at once — the
+              horizontal-scroll row read as everyone "sharing" the same
+              strip. AnimatePresence + a key per detailer id gives a quick
+              spring pop-in every time activeIdx changes. */}
+          <div className="pointer-events-auto mx-3 mb-3">
+            <AnimatePresence mode="popLayout" initial={false}>
+              {closeDetailers[activeIdx] && (
+                <motion.div
+                  key={closeDetailers[activeIdx].id}
+                  initial={reduce ? false : { opacity: 0, scale: 0.85, y: 12 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={reduce ? undefined : { opacity: 0, scale: 0.9 }}
+                  transition={{ type: 'spring', stiffness: 420, damping: 24 }}
+                  className="rounded-2xl border border-brand-300 bg-white p-3 text-left shadow-md"
+                >
+                  <p className="text-sm font-semibold text-slate-900">{closeDetailers[activeIdx].name}</p>
+                  <p className="mt-1 flex items-center gap-1 text-xs text-slate-600">
+                    <Stars rating={closeDetailers[activeIdx].rating ?? 5} className="h-3.5 w-3.5" />
+                    {closeDetailers[activeIdx].rating?.toFixed(1) ?? '5.0'} · {closeDetailers[activeIdx].reviews ?? 0} reviews
+                  </p>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       )}
