@@ -172,12 +172,12 @@ export default function ColdStart() {
             ))}
           </div>
 
-          <div className="pointer-events-auto mx-3 mb-3 flex gap-2 overflow-x-auto pb-1">
+          <div className="pointer-events-auto mx-3 mb-3 flex gap-3 overflow-x-auto pb-1">
             {closeDetailers.map((d, i) => (
               <button
                 key={d.id}
                 onClick={() => setActiveIdx(i)}
-                className={`min-w-[160px] flex-1 rounded-2xl border bg-white/92 p-3 text-left backdrop-blur-md transition-all ${i === activeIdx ? 'border-brand-500 shadow-md' : 'border-white/60 shadow-sm'}`}
+                className={`min-w-[160px] shrink-0 rounded-2xl border bg-white p-3 text-left transition-all ${i === activeIdx ? 'border-brand-500 shadow-md' : 'border-slate-200 shadow-sm'}`}
               >
                 <p className="text-sm font-semibold text-slate-900">{d.name}</p>
                 <p className="mt-1 flex items-center gap-1 text-xs text-slate-600">
