@@ -51,6 +51,7 @@ export const STRINGS = {
       joinAsDetailer: 'Join as a detailer',
       footerFaq: 'FAQ',
       footer: 'ShinePoint · Southern California',
+      footerContact: '734 W Colden Ave, Los Angeles, CA 90044 · shinepoint.support@gmail.com · (213) 534-7417',
     },
     auth: {
       createAccount: 'Create your account',
@@ -344,6 +345,7 @@ export const STRINGS = {
       subtitle: "Log in to book SoCal's vetted mobile detailers.",
       exploreDemo: 'Explore the demo',
       joinAsDetailer: 'Join as a detailer',
+      footerContact: '734 W Colden Ave, Los Angeles, CA 90044 · shinepoint.support@gmail.com · (213) 534-7417',
     },
     checkEmail: {
       title: 'Check your email',
@@ -1606,6 +1608,7 @@ export const STRINGS = {
       joinAsDetailer: 'Únete como detallista',
       footerFaq: 'Preguntas frecuentes',
       footer: 'ShinePoint · Los Ángeles, CA',
+      footerContact: '734 W Colden Ave, Los Angeles, CA 90044 · shinepoint.support@gmail.com · (213) 534-7417',
     },
     auth: {
       createAccount: 'Crea tu cuenta',
@@ -1899,6 +1902,7 @@ export const STRINGS = {
       subtitle: 'Inicia sesión para reservar detallistas móviles verificados del sur de California.',
       exploreDemo: 'Explora la demo',
       joinAsDetailer: 'Únete como detallista',
+      footerContact: '734 W Colden Ave, Los Angeles, CA 90044 · shinepoint.support@gmail.com · (213) 534-7417',
     },
     checkEmail: {
       title: 'Revisa tu correo',

@@ -231,6 +231,12 @@ export default function DesktopLanding() {
             {t('joinAsDetailer')}
           </Link>
         </div>
+
+        {/* Business contact info — this full-bleed hero has no page footer,
+            so this is the only place it's visible on desktop. Carrier/toll-
+            free verification checks the public site for a real, matching
+            phone/email/address; keep it in sync with the Welcome.jsx footer. */}
+        <p className="mt-8 text-xs text-white/40">{t('footerContact')}</p>
       </motion.div>
     </section>
   )

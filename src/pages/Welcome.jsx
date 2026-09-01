@@ -313,6 +313,7 @@ export default function Welcome() {
       <footer className="bg-brand-900 px-6 py-8 text-center text-sm text-brand-300">
         <Link to="/faq" className="underline hover:text-brand-100">{t('footerFaq')}</Link>
         <p className="mt-2">{t('footer')}</p>
+        <p className="mt-1 text-xs text-brand-400">{t('footerContact')}</p>
       </footer>
     </div>
   )
