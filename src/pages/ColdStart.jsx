@@ -10,6 +10,17 @@ import ThemeToggle from '../components/ThemeToggle'
 import LanguageToggle from '../components/LanguageToggle'
 import { milesBetween } from '../lib/fuzzyPin'
 
+// Spots the "Join as detailer" sparkles fade in/out at — more spots than
+// visible at once, each with its own delay/repeatDelay/size so they don't
+// all blink in sync and appear to hop around the pill over time.
+const JOIN_SPARKLES = [
+  { top: '-10px', left: '-6px', size: 'h-3 w-3', delay: 0, repeatDelay: 1.8 },
+  { top: '-14px', left: '55%', size: 'h-2 w-2', delay: 0.6, repeatDelay: 2.4 },
+  { top: '55%', left: '-10px', size: 'h-2.5 w-2.5', delay: 1.1, repeatDelay: 2 },
+  { top: 'calc(100% + 2px)', left: '70%', size: 'h-2.5 w-2.5', delay: 1.6, repeatDelay: 1.6 },
+  { top: 'calc(100% + 6px)', left: '20%', size: 'h-2 w-2', delay: 0.3, repeatDelay: 2.8 },
+]
+
 // Map-first cold start: the full DetailerMap (already proven to render, size
 // itself, and show pins) sits behind the UI. An avatar strip + auto-scrolling
 // review cards + a bottom sheet float over it. "Nearby pros" are the available
@@ -267,11 +278,34 @@ export default function ColdStart() {
             <div className="relative flex-1">
               {/* Outer golden ring glow + sparkles around "Join as detailer"
                   — decorative accent to draw the detailer-side eye, amber-400
-                  to read gold rather than yellow. */}
-              <div aria-hidden="true" className="pointer-events-none absolute -inset-1 rounded-full bg-amber-400/60 blur-md" />
-              <SparklesIcon aria-hidden="true" className="pointer-events-none absolute -top-2 -left-1.5 h-3 w-3 text-amber-400" />
-              <SparklesIcon aria-hidden="true" className="pointer-events-none absolute -bottom-2 -right-1.5 h-2.5 w-2.5 text-amber-300" />
-              <SparklesIcon aria-hidden="true" className="pointer-events-none absolute -top-1.5 right-1/4 h-2 w-2 text-amber-400" />
+                  to read gold rather than yellow. Glow "breathes" (opacity +
+                  scale pulse); each sparkle drifts between a few spots around
+                  the pill, fading in/out at its own spot rather than staying
+                  fixed, so they read as randomly appearing/disappearing. */}
+              {!reduce && (
+                <motion.div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute -inset-1 rounded-full bg-amber-400/60 blur-md"
+                  animate={{ opacity: [0.35, 0.75, 0.35], scale: [1, 1.08, 1] }}
+                  transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut' }}
+                />
+              )}
+              {JOIN_SPARKLES.map((spot, i) => (
+                <motion.span
+                  key={i}
+                  aria-hidden="true"
+                  className="pointer-events-none absolute"
+                  style={{ top: spot.top, left: spot.left }}
+                  animate={
+                    reduce
+                      ? { opacity: 0.8 }
+                      : { opacity: [0, 1, 0], scale: [0.4, 1, 0.4], rotate: [0, 25, 0] }
+                  }
+                  transition={{ duration: 2.2, repeat: Infinity, repeatDelay: spot.repeatDelay, delay: spot.delay, ease: 'easeInOut' }}
+                >
+                  <SparklesIcon className={`${spot.size} text-amber-400`} />
+                </motion.span>
+              ))}
               <Link to="/signup/detailer" className={`press-spring relative z-10 block w-full rounded-full py-2.5 text-center text-sm font-semibold text-slate-700 shadow-[4px_4px_9px_rgba(15,23,42,0.12),-4px_-4px_9px_rgba(255,255,255,0.9)] ${revealed ? 'bg-white' : 'bg-[#f5edf3]'}`}>Join as detailer</Link>
             </div>
           </div>
