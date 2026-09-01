@@ -6,6 +6,8 @@ import { useStore } from '../context/StoreContext'
 import { Stars } from '../components/ui/bits'
 import HeroBubbles from '../components/ui/HeroBubbles'
 import { UserIcon, ArrowRightIcon } from '../components/icons'
+import ThemeToggle from '../components/ThemeToggle'
+import LanguageToggle from '../components/LanguageToggle'
 
 // Map-first cold start: the full DetailerMap (already proven to render, size
 // itself, and show pins) sits behind the UI. An avatar strip + auto-scrolling
@@ -70,6 +72,15 @@ export default function ColdStart() {
 
   return (
     <div className="relative h-screen min-h-screen w-full overflow-hidden bg-slate-100">
+      {/* Same fixed top-right pair as Welcome.jsx's own hero — every other
+          entry point (marketing page, auth card) has these, this one was
+          just missing them. z-30: above the sheet (z-20) so they stay
+          reachable even full-screen, pre-reveal. */}
+      <div className="fixed right-4 top-4 z-30 flex gap-2">
+        <ThemeToggle className="border border-brand-100 bg-white/90 shadow-sm backdrop-blur dark:border-white/10 dark:bg-[#1d1826]/90" />
+        <LanguageToggle className="border border-brand-100 bg-white/90 shadow-sm backdrop-blur dark:border-white/10 dark:bg-[#1d1826]/90" />
+      </div>
+
       {/* Map behind — hidden entirely by the full-screen sheet until
           revealed. `focus` flies the map to the active card's pin (same
           zoom-and-open-popup behavior the real map screen uses) and
