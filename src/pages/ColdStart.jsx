@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react'
 import DetailerMap from '../components/DetailerMap'
@@ -43,6 +43,29 @@ function reviewsFor(detailerId) {
   return [REVIEW_SNIPPET_POOL[start], REVIEW_SNIPPET_POOL[(start + 1) % REVIEW_SNIPPET_POOL.length]]
 }
 
+// H3 — service chips for a detailer. Shows the services a pro offers as a
+// row of tappable chips (Interior / Exterior / Ceramic / ...), filling the
+// space under the review card. Falls back to a placeholder when the detailer
+// has no services in the demo data, and shows nothing at all if there's
+// genuinely nothing to list.
+function ServiceChips({ detailer }) {
+  const services = detailer?.services ?? []
+  if (services.length === 0) return null
+  return (
+    <div className="flex gap-2 overflow-x-auto pb-1">
+      {services.map((s, i) => (
+        <button
+          key={i}
+          onClick={() => {}}
+          className="shrink-0 rounded-full border border-white/50 bg-white/70 px-3.5 py-1.5 text-xs font-semibold text-slate-800 shadow-sm backdrop-blur-md transition-all hover:scale-[1.02] active:scale-[0.97]"
+        >
+          {s.name}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 // Map-first cold start: the full DetailerMap (already proven to render, size
 // itself, and show pins) sits behind the UI. An avatar strip + auto-scrolling
 // review cards + a bottom sheet float over it. "Nearby pros" are the available
@@ -61,6 +84,16 @@ export default function ColdStart() {
   const [demoDetailers, setDemoDetailers] = useState([])
   const [revealed, setRevealed] = useState(false)
   const [userLocation, setUserLocation] = useState(null)
+  // Auto-scroll pauses when the user taps a detailer; it resumes a few seconds
+  // after their last interaction so browsing isn't yanked away mid-look, but
+  // the rotation comes back if they stop engaging.
+  const [autoScroll, setAutoScroll] = useState(true)
+  const carouselRef = useRef(null)
+  // True while we're smooth-scrolling the carousel programmatically (the
+  // auto-advance). `handleCarouselScroll` ignores scroll-position changes
+  // during that window so a mid-scroll frame doesn't pick the wrong card and
+  // hijack activeIdx away from the auto-advance target (the stuck bug).
+  const programmaticScroll = useRef(false)
 
   // Requested on "Explore detailers" rather than on mount — a permission
   // prompt firing the instant this screen opens, before anyone has done
@@ -85,20 +118,25 @@ export default function ColdStart() {
     return () => { cancelled = true }
   }, [detailers.length, demoDetailers.length])
 
-  const closeDetailers = useMemo(() => {
+  const { closeDetailers, milesByDetailer } = useMemo(() => {
     const src = detailers.length > 0 ? detailers : demoDetailers
     const available = src.filter((d) => d.status === 'available')
     // With a real fix, sort by actual distance and take the genuinely
-    // closest three instead of whatever happened to be first in the array.
+    // closest few instead of whatever happened to be first in the array.
     // Without one (denied/unsupported/still pending), same array-order
     // slice as before.
-    if (!userLocation) return available.slice(0, 3)
-    return available
-      .filter((d) => d.pin)
-      .map((d) => ({ d, miles: milesBetween(userLocation, d.pin) }))
-      .sort((a, b) => a.miles - b.miles)
-      .slice(0, 3)
-      .map(({ d }) => d)
+    let picked = available.slice(0, 6)
+    let milesById = {}
+    if (userLocation) {
+      picked = available
+        .filter((d) => d.pin)
+        .map((d) => ({ d, miles: milesBetween(userLocation, d.pin) }))
+        .sort((a, b) => a.miles - b.miles)
+        .slice(0, 6)
+      milesById = Object.fromEntries(picked.map(({ d, miles }) => [d.id, miles]))
+      picked = picked.map(({ d }) => d)
+    }
+    return { closeDetailers: picked, milesByDetailer: milesById }
   }, [detailers, demoDetailers, userLocation])
 
   // Illustrative arrival slots for the avatar strip — matches the mockup's
@@ -106,17 +144,62 @@ export default function ColdStart() {
   // draw this from (and this screen only ever shows demo data anyway, per
   // the decision to keep it demo-only pre-launch), so it's a fixed,
   // decorative sequence keyed by position, not per-detailer data.
-  const SLOT_LABELS = [
-    { text: 'now', className: 'text-cta-600' },
-    { text: '12:30', className: 'text-slate-500' },
-    { text: '3pm', className: 'text-slate-400' },
-  ]
+  // Auto-scroll rotates through the nearby pros (5s each — slow enough to
+  // read the bio/reviews before moving on). It only runs when `autoScroll` is
+  // true — which is true at rest and flipped off by a manual tap, then flipped
+  // back on a few seconds after that tap (see the interaction effect below).
+  useEffect(() => {
+    if (!revealed || !autoScroll || closeDetailers.length <= 1) return
+    const id = setInterval(() => setActiveIdx((i) => (i + 1) % closeDetailers.length), 5000)
+    return () => clearInterval(id)
+  }, [revealed, autoScroll, closeDetailers.length])
 
+  // Manual interaction (tap an avatar or a card) pauses auto-scroll and arms
+  // a resume timer. Tapping again resets that timer, so continuous browsing
+  // keeps it paused; only a few silent seconds bring the rotation back.
   useEffect(() => {
     if (!revealed || closeDetailers.length <= 1) return
-    const id = setInterval(() => setActiveIdx((i) => (i + 1) % closeDetailers.length), 2800)
-    return () => clearInterval(id)
-  }, [revealed, closeDetailers.length])
+    if (autoScroll) return
+    const id = setTimeout(() => setAutoScroll(true), 5000)
+    return () => clearTimeout(id)
+  }, [revealed, autoScroll, activeIdx, closeDetailers.length])
+
+  // Sync the carousel scroll position to the active card whenever activeIdx
+  // changes (from the auto-advance or a tap). Scrolls the centred card into
+  // place so the reader is always looking at the active pro.
+  useEffect(() => {
+    if (!revealed || !carouselRef.current) return
+    const el = carouselRef.current
+    const card = el.children[activeIdx]
+    if (!card) return
+    programmaticScroll.current = true
+    el.scrollTo({ left: card.offsetLeft - (el.clientWidth - card.offsetWidth) / 2, behavior: reduce ? 'auto' : 'smooth' })
+    // Clear once the scroll settles so a genuine swipe can take over.
+    const t = setTimeout(() => { programmaticScroll.current = false }, reduce ? 100 : 700)
+    return () => clearTimeout(t)
+  }, [revealed, activeIdx, closeDetailers.length, reduce])
+
+  // Swiping the carousel updates the active detailer, so the map focus +
+  // avatar highlight follow what the reader is actually looking at. Ignored
+  // during a programmatic scroll so the auto-advance can't be hijacked.
+  function handleCarouselScroll() {
+    if (programmaticScroll.current) return
+    const el = carouselRef.current
+    if (!el) return
+    const center = el.scrollLeft + el.clientWidth / 2
+    let best = 0, bestDist = Infinity
+    Array.from(el.children).forEach((child, i) => {
+      const c = child.offsetLeft + child.offsetWidth / 2
+      const dist = Math.abs(c - center)
+      if (dist < bestDist) { bestDist = dist; best = i }
+    })
+    if (best !== activeIdx) setActiveIdx(best)
+  }
+
+  function selectDetailer(i) {
+    setActiveIdx(i)
+    setAutoScroll(false)
+  }
 
   if (closeDetailers.length === 0) {
     return (
@@ -155,91 +238,151 @@ export default function ColdStart() {
         {/* focusOpensPopup=false: the real map screen's dark detail popup
             isn't part of this design — it was covering the avatar strip
             and story cards entirely. The zoom-to-pin still happens, just
-            without the popup on top of everything. */}
-        <DetailerMap detailers={detailers.length > 0 ? detailers : demoDetailers} focus={revealed ? closeDetailers[activeIdx]?.pin : null} focusOpensPopup={false} />
+            without the popup on top of everything. Remount (key) on reveal
+            so Leaflet re-measures at full container size — it mounted behind
+            the full-screen sheet and would otherwise keep a stale
+            partial-width tile grid. */}
+        <DetailerMap
+          key={revealed ? 'revealed' : 'hidden'}
+          detailers={detailers.length > 0 ? detailers : demoDetailers}
+          focus={revealed ? closeDetailers[activeIdx]?.pin : null}
+          focusOpensPopup={false}
+        />
       </div>
 
       {revealed && (
-        // pb-44: the sheet below is a separate absolutely-positioned sibling
-        // (needed for the full-screen<->bottom-sheet layout animation), so
-        // this justify-end column has no natural way to know its height and
-        // was placing the story cards row directly underneath it — visually
-        // hidden behind the sheet's opaque background. Reserves roughly the
-        // sheet's real rendered height (~174px) so the cards stack above it.
-        <div className="pointer-events-none absolute inset-0 z-10 flex flex-col justify-end pb-44">
+        // pb-16: reserves just the sheet's own height (the sheet is a separate
+        // absolutely-positioned sibling; this column has no natural way to know
+        // it). The content is vertically CENTERED in the space above the sheet
+        // instead of justify-end, so the avatars + review card float higher with
+        // the map breathing around them rather than being crammed at the bottom.
+        <div className="pointer-events-none absolute inset-0 z-10 flex flex-col justify-center pb-16">
           <div className="pointer-events-auto absolute left-1/2 top-4 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 shadow-md">
             <span className="h-2 w-2 rounded-full bg-cta-600" aria-hidden="true" />
             {closeDetailers.length} detailers nearby
           </div>
 
-          {/* Each avatar is its own glass chip now — no shared strip
-              background behind all three, so they read as separate people
-              rather than icons pinned to one shared bar. */}
-          <div className="pointer-events-auto mx-3 mb-3 flex gap-3 overflow-x-auto pb-1">
-            {closeDetailers.map((d, i) => (
-              <button
-                key={d.id}
-                onClick={() => setActiveIdx(i)}
-                className={`flex min-w-[76px] flex-col items-center gap-1.5 rounded-2xl border p-2.5 backdrop-blur-md transition-all ${
-                  i === activeIdx ? 'border-brand-300 bg-white/60 shadow-md' : 'border-white/40 bg-white/35 shadow-sm'
-                }`}
-              >
-                <span className="relative flex h-14 w-14 items-center justify-center">
-                  <span className={`flex h-14 w-14 items-center justify-center rounded-full border-2 bg-slate-100 ${i === activeIdx ? 'border-brand-500' : 'border-slate-200'}`}>
-                    <UserIcon className="h-7 w-7 text-slate-400" />
+          {/* Detailer cards as a horizontal SNAP CAROUSEL — the nearby pros
+              are swipeable side by side, the centred one highlighted and the
+              neighbours peeking from each edge. Swiping (or the auto-advance)
+              moves the selection, which drives the map focus + the review
+              card below. Each chip is `snap-center` so it snaps into place. */}
+          <div className="pointer-events-auto mb-4 w-full">
+            <div
+              ref={carouselRef}
+              onScroll={handleCarouselScroll}
+              className="mx-3 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-3 pb-1"
+            >
+              {closeDetailers.map((d, i) => (
+                <button
+                  key={d.id}
+                  onClick={() => selectDetailer(i)}
+                  className={`flex min-w-[100px] shrink-0 snap-center flex-col items-center gap-1.5 rounded-2xl border p-2.5 backdrop-blur-md transition-all ${
+                    i === activeIdx ? 'border-brand-300 bg-white/60 shadow-md' : 'border-white/40 bg-white/35 shadow-sm'
+                  }`}
+                >
+                  <span className="relative flex h-14 w-14 items-center justify-center">
+                    <span className={`flex h-14 w-14 items-center justify-center rounded-full border-2 bg-slate-100 ${i === activeIdx ? 'border-brand-500' : 'border-slate-200'}`}>
+                      <UserIcon className="h-7 w-7 text-slate-400" />
+                    </span>
+                    <span
+                      className={`absolute -right-0.5 -bottom-0.5 h-3.5 w-3.5 rounded-full border-2 border-white ${d.status === 'available' ? 'bg-cta-500' : 'bg-slate-300'}`}
+                      aria-hidden="true"
+                    />
                   </span>
-                  <span
-                    className={`absolute -right-0.5 -bottom-0.5 h-3.5 w-3.5 rounded-full border-2 border-white ${d.status === 'available' ? 'bg-cta-500' : 'bg-slate-300'}`}
-                    aria-hidden="true"
-                  />
-                </span>
-                <span className="text-[11px] font-semibold text-slate-900">{d.name?.split(' ')[0] ?? `Pro ${i + 1}`}</span>
-                <span className={`text-[10px] font-medium ${SLOT_LABELS[i]?.className ?? 'text-slate-400'}`}>{SLOT_LABELS[i]?.text ?? 'today'}</span>
-              </button>
-            ))}
+                  <span className="text-[11px] font-semibold text-slate-900">{d.name?.split(' ')[0] ?? `Pro ${i + 1}`}</span>
+                  {/* Uses real data where available instead of a fake slot
+                      label: area, distance (when geolocation resolves), and a
+                      plain "available" affordance. The demo roster has no
+                      schedule field, so time stays generic rather than fake. */}
+                  <span className="text-[10px] text-slate-500">{d.area ?? d.zip ?? ''}</span>
+                  <span className="text-[9px] font-medium text-cta-600">
+                    {typeof milesByDetailer[d.id] === 'number'
+                      ? `${milesByDetailer[d.id].toFixed(1)} mi`
+                      : 'nearby'}
+                  </span>
+                  <span className="text-[9px] text-slate-400">available</span>
+                </button>
+              ))}
+            </div>
           </div>
 
-          {/* Only the active detailer's card, not all three at once — the
-              horizontal-scroll row read as everyone "sharing" the same
-              strip. AnimatePresence + a key per detailer id gives a quick
-              spring pop-in every time activeIdx changes. */}
+          {/* Single active detailer's review card — follows the selected
+              chip above (tap or swipe). Swapping via AnimatePresence gives a
+              quick in when the selection changes. */}
           <div className="pointer-events-auto mx-3 mb-3">
             <AnimatePresence mode="popLayout" initial={false}>
               {closeDetailers[activeIdx] && (
-                <motion.div
-                  key={closeDetailers[activeIdx].id}
-                  initial={reduce ? false : { opacity: 0, scale: 0.85, y: 12 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={reduce ? undefined : { opacity: 0, scale: 0.9 }}
-                  transition={{ type: 'spring', stiffness: 420, damping: 24 }}
-                  className="rounded-2xl border border-brand-300 bg-white p-3 text-left shadow-md"
-                >
-                  <p className="text-sm font-semibold text-slate-900">{closeDetailers[activeIdx].name}</p>
-                  <p className="mt-1 flex items-center gap-1 text-xs text-slate-600">
-                    <Stars rating={closeDetailers[activeIdx].rating ?? 5} className="h-3.5 w-3.5" />
-                    {closeDetailers[activeIdx].rating?.toFixed(1) ?? '5.0'} · {closeDetailers[activeIdx].reviews ?? 0} reviews
-                  </p>
-                  <div className="mt-2.5 flex flex-col gap-2 border-t border-slate-100 pt-2.5">
-                    {reviewsFor(closeDetailers[activeIdx].id).map((r, ri) => (
-                      <div key={ri} className="flex items-start gap-2">
-                        {/* Review photo only if the review actually has one —
-                            no photo exists in demo/real review data today, so
-                            this never renders yet, but it will the moment a
-                            real photo shows up instead of needing a rewrite. */}
-                        {r.photo && (
-                          <img src={r.photo} alt="" className="h-8 w-8 shrink-0 rounded-lg object-cover" />
-                        )}
-                        <p className="text-xs text-slate-600">
-                          <span className="font-semibold text-slate-800">{r.name}</span>{' '}
-                          <span className="text-amber-500">{'★'.repeat(r.rating)}</span>{' '}
-                          {r.text}
+                <>
+                  {/* Bio card — separate from reviews, so the pro's own story
+                      gets its own space instead of being bundled into the
+                      review card. Swaps with the active detailer. */}
+                  <motion.div
+                    key={`bio-${closeDetailers[activeIdx].id}`}
+                    initial={reduce ? false : { opacity: 0, scale: 0.85, y: 12 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={reduce ? undefined : { opacity: 0, scale: 0.9 }}
+                    transition={{ type: 'spring', stiffness: 420, damping: 24 }}
+                    className="rounded-2xl border border-brand-300 bg-white p-3 text-left shadow-md"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-100 text-sm font-bold text-brand-700">
+                        {closeDetailers[activeIdx].name?.[0] ?? 'P'}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-slate-900">{closeDetailers[activeIdx].name}</p>
+                        <p className="flex items-center gap-1 text-xs text-slate-600">
+                          <Stars rating={closeDetailers[activeIdx].rating ?? 5} className="h-3.5 w-3.5" />
+                          {closeDetailers[activeIdx].rating?.toFixed(1) ?? '5.0'} · {closeDetailers[activeIdx].reviews ?? 0} reviews
                         </p>
                       </div>
-                    ))}
-                  </div>
-                </motion.div>
+                    </div>
+                    {closeDetailers[activeIdx].bio && (
+                      <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-slate-500">
+                        {closeDetailers[activeIdx].bio}
+                      </p>
+                    )}
+                  </motion.div>
+
+                  {/* Review card — the actual reviews, separated from the bio. */}
+                  <motion.div
+                    key={`rev-${closeDetailers[activeIdx].id}`}
+                    initial={reduce ? false : { opacity: 0, scale: 0.9, y: 10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={reduce ? undefined : { opacity: 0, scale: 0.95 }}
+                    transition={{ type: 'spring', stiffness: 420, damping: 24 }}
+                    className="rounded-2xl border border-slate-200 bg-white p-3 text-left shadow-md"
+                  >
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">What people say</p>
+                    <div className="mt-1.5 flex flex-col gap-1.5">
+                      {reviewsFor(closeDetailers[activeIdx].id).map((r, ri) => (
+                        // Review photo only if it actually has one (the demo
+                        // pool has none yet, so this never renders today, but
+                        // it will the moment a real photo field shows up).
+                        <div key={ri} className="flex items-start gap-2">
+                          {r.photo && (
+                            <img src={r.photo} alt="" className="h-7 w-7 shrink-0 rounded-lg object-cover" />
+                          )}
+                          <p className="text-xs text-slate-600">
+                            <span className="font-semibold text-slate-800">{r.name}</span>{' '}
+                            <span className="text-amber-500">{'★'.repeat(r.rating)}</span>{' '}
+                            {r.text}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                </>
               )}
             </AnimatePresence>
+          </div>
+
+          {/* H3 — service chips: the active detailer's offered services. Fills
+              the space between the review card and the sheet with something
+              useful (what they actually do) instead of dead air. Horizontal
+              scroll when there are many. */}
+          <div className="pointer-events-auto mx-3 mb-3">
+            <ServiceChips detailer={closeDetailers[activeIdx]} />
           </div>
         </div>
       )}
