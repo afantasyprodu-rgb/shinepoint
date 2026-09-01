@@ -144,7 +144,7 @@ export default function ColdStart() {
               <button
                 key={d.id}
                 onClick={() => setActiveIdx(i)}
-                className={`flex min-w-[64px] flex-col items-center gap-1 rounded-xl px-2 py-2 transition-colors ${i === activeIdx ? 'bg-brand-50 ring-1 ring-brand-200' : ''}`}
+                className={`relative flex min-w-[64px] flex-col items-center gap-1 rounded-xl px-2 py-2 transition-colors ${i === activeIdx ? 'bg-brand-50 ring-1 ring-brand-200' : ''}`}
               >
                 <span className="relative flex h-10 w-10 items-center justify-center">
                   <span className={`flex h-10 w-10 items-center justify-center rounded-full border-2 bg-slate-100 ${i === activeIdx ? 'border-brand-500' : 'border-slate-200'}`}>
@@ -157,6 +157,16 @@ export default function ColdStart() {
                 </span>
                 <span className="text-[11px] font-semibold text-slate-900">{d.name?.split(' ')[0] ?? `Pro ${i + 1}`}</span>
                 <span className={`text-[10px] font-medium ${SLOT_LABELS[i]?.className ?? 'text-slate-400'}`}>{SLOT_LABELS[i]?.text ?? 'today'}</span>
+                {/* Golden underline glow + sparkles under the active
+                    detailer's avatar — decorative "top pick" accent,
+                    amber-400 to read gold rather than yellow. */}
+                {i === activeIdx && (
+                  <>
+                    <span aria-hidden="true" className="pointer-events-none absolute -bottom-1 left-1/2 h-2 w-8 -translate-x-1/2 rounded-full bg-amber-400/70 blur-sm" />
+                    <SparklesIcon aria-hidden="true" className="pointer-events-none absolute -bottom-2 -left-1 h-2.5 w-2.5 text-amber-400" />
+                    <SparklesIcon aria-hidden="true" className="pointer-events-none absolute -bottom-2 -right-1 h-2 w-2 text-amber-300" />
+                  </>
+                )}
               </button>
             ))}
           </div>
