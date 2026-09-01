@@ -64,7 +64,9 @@ export default function ColdStart() {
         <p className="text-sm text-slate-500">No nearby detailers — check back soon.</p>
         <div className="flex w-full max-w-xs flex-col gap-2">
           <Link to="/login" className="btn btn-cta press-spring w-full">Sign in</Link>
-          <Link to="/signup/detailer" className="rounded-full border border-slate-200 py-2.5 text-center text-sm font-semibold text-slate-700">Join as detailer</Link>
+          {/* Same soft-embossed dual-shadow surface as the main flow's pills
+              — this fallback had been left on the old flat bordered style. */}
+          <Link to="/signup/detailer" className="press-spring rounded-full bg-[#f5edf3] py-2.5 text-center text-sm font-semibold text-slate-700 shadow-[4px_4px_9px_rgba(15,23,42,0.12),-4px_-4px_9px_rgba(255,255,255,0.9)]">Join as detailer</Link>
         </div>
       </div>
     )
