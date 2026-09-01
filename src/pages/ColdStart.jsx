@@ -136,12 +136,7 @@ export default function ColdStart() {
           {revealed && <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-slate-200" aria-hidden="true" />}
           <h1 className="font-display text-xl font-bold text-slate-950">See who's nearby</h1>
           <p className="mt-1 text-sm text-slate-600">Browse vetted detailers live before you sign in.</p>
-          {revealed ? (
-            <div className="mt-4 flex gap-2">
-              <Link to="/login" className="flex-1 rounded-full border border-slate-200 py-2.5 text-center text-sm font-semibold text-slate-700">Sign in</Link>
-              <Link to="/signup/detailer" className="flex-1 rounded-full border border-slate-200 py-2.5 text-center text-sm font-semibold text-slate-700">Join as detailer</Link>
-            </div>
-          ) : (
+          {!revealed && (
             <button
               type="button"
               onClick={() => setRevealed(true)}
@@ -150,6 +145,14 @@ export default function ColdStart() {
               Explore detailers
             </button>
           )}
+          {/* Solid neumorphic surface (.btn-outline), not just a bordered
+              transparent pill — the latter sat directly on the pink glow +
+              bubbles with nothing behind the text, unreadable except right
+              over the plain white part of the sheet. */}
+          <div className="mt-3 flex gap-2">
+            <Link to="/login" className="btn btn-outline press-spring flex-1 py-2.5 text-sm">Sign in</Link>
+            <Link to="/signup/detailer" className="btn btn-outline press-spring flex-1 py-2.5 text-sm">Join as detailer</Link>
+          </div>
         </div>
       </motion.div>
     </div>
