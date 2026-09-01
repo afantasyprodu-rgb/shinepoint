@@ -5,6 +5,7 @@ import DetailerMap from '../components/DetailerMap'
 import { useStore } from '../context/StoreContext'
 import { Stars } from '../components/ui/bits'
 import HeroBubbles from '../components/ui/HeroBubbles'
+import { UserIcon, ArrowRightIcon } from '../components/icons'
 
 // Map-first cold start: the full DetailerMap (already proven to render, size
 // itself, and show pins) sits behind the UI. An avatar strip + auto-scrolling
@@ -38,6 +39,17 @@ export default function ColdStart() {
     return src.filter((d) => d.status === 'available').slice(0, 3)
   }, [detailers, demoDetailers])
 
+  // Illustrative arrival slots for the avatar strip — matches the mockup's
+  // "now / 12:30 / 3pm" pattern. There's no real schedule/queue field to
+  // draw this from (and this screen only ever shows demo data anyway, per
+  // the decision to keep it demo-only pre-launch), so it's a fixed,
+  // decorative sequence keyed by position, not per-detailer data.
+  const SLOT_LABELS = [
+    { text: 'now', className: 'text-cta-600' },
+    { text: '12:30', className: 'text-slate-500' },
+    { text: '3pm', className: 'text-slate-400' },
+  ]
+
   useEffect(() => {
     if (!revealed || closeDetailers.length <= 1) return
     const id = setInterval(() => setActiveIdx((i) => (i + 1) % closeDetailers.length), 2800)
@@ -64,14 +76,24 @@ export default function ColdStart() {
           re-fires every time activeIdx changes, whether from the 2.8s
           auto-scroll or a tap. */}
       <div className="absolute inset-0 z-0">
-        <DetailerMap detailers={detailers.length > 0 ? detailers : demoDetailers} focus={revealed ? closeDetailers[activeIdx]?.pin : null} />
+        {/* focusOpensPopup=false: the real map screen's dark detail popup
+            isn't part of this design — it was covering the avatar strip
+            and story cards entirely. The zoom-to-pin still happens, just
+            without the popup on top of everything. */}
+        <DetailerMap detailers={detailers.length > 0 ? detailers : demoDetailers} focus={revealed ? closeDetailers[activeIdx]?.pin : null} focusOpensPopup={false} />
       </div>
 
       {revealed && (
-        <div className="pointer-events-none absolute inset-0 z-10 flex flex-col justify-end">
+        // pb-44: the sheet below is a separate absolutely-positioned sibling
+        // (needed for the full-screen<->bottom-sheet layout animation), so
+        // this justify-end column has no natural way to know its height and
+        // was placing the story cards row directly underneath it — visually
+        // hidden behind the sheet's opaque background. Reserves roughly the
+        // sheet's real rendered height (~174px) so the cards stack above it.
+        <div className="pointer-events-none absolute inset-0 z-10 flex flex-col justify-end pb-44">
           <div className="pointer-events-auto absolute left-1/2 top-4 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 shadow-md">
             <span className="h-2 w-2 rounded-full bg-cta-600" aria-hidden="true" />
-            {closeDetailers.length} nearby pros
+            {closeDetailers.length} detailers nearby
           </div>
 
           <div className="pointer-events-auto mx-3 mb-2 flex gap-2 overflow-x-auto rounded-2xl bg-white/92 p-2 backdrop-blur-md">
@@ -81,11 +103,17 @@ export default function ColdStart() {
                 onClick={() => setActiveIdx(i)}
                 className={`flex min-w-[64px] flex-col items-center gap-1 rounded-xl px-2 py-2 transition-colors ${i === activeIdx ? 'bg-brand-50 ring-1 ring-brand-200' : ''}`}
               >
-                <span className={`flex h-10 w-10 items-center justify-center rounded-full border-2 bg-white text-sm ${i === activeIdx ? 'border-brand-500' : 'border-slate-200'}`}>
-                  {d.name?.[0] ?? '•'}
+                <span className="relative flex h-10 w-10 items-center justify-center">
+                  <span className={`flex h-10 w-10 items-center justify-center rounded-full border-2 bg-slate-100 ${i === activeIdx ? 'border-brand-500' : 'border-slate-200'}`}>
+                    <UserIcon className="h-5 w-5 text-slate-400" />
+                  </span>
+                  <span
+                    className={`absolute -right-0.5 -bottom-0.5 h-3 w-3 rounded-full border-2 border-white ${d.status === 'available' ? 'bg-cta-500' : 'bg-slate-300'}`}
+                    aria-hidden="true"
+                  />
                 </span>
                 <span className="text-[11px] font-semibold text-slate-900">{d.name?.split(' ')[0] ?? `Pro ${i + 1}`}</span>
-                <span className="text-[10px] text-cta-600">★ {d.rating?.toFixed(1) ?? '5.0'}</span>
+                <span className={`text-[10px] font-medium ${SLOT_LABELS[i]?.className ?? 'text-slate-400'}`}>{SLOT_LABELS[i]?.text ?? 'today'}</span>
               </button>
             ))}
           </div>
@@ -140,18 +168,20 @@ export default function ColdStart() {
             <button
               type="button"
               onClick={() => setRevealed(true)}
-              className="btn btn-cta press-spring mt-4 flex w-full items-center justify-center gap-2"
+              className="btn btn-outline press-spring mt-4 flex w-full items-center justify-center gap-1.5 text-brand-700 dark:text-brand-300"
             >
-              Explore detailers
+              Explore detailers <ArrowRightIcon className="h-4 w-4" />
             </button>
           )}
-          {/* Solid neumorphic surface (.btn-outline), not just a bordered
-              transparent pill — the latter sat directly on the pink glow +
-              bubbles with nothing behind the text, unreadable except right
-              over the plain white part of the sheet. */}
+          {/* Solid white pill (not transparent, not the app's dark
+              neumorphic .btn-outline) — a filled white background is what
+              actually gives these legible contrast against the pink glow +
+              bubbles behind them; the app's own dark surface read as too
+              heavy for a secondary action sitting right under the primary
+              pink CTA above. */}
           <div className="mt-3 flex gap-2">
-            <Link to="/login" className="btn btn-outline press-spring flex-1 py-2.5 text-sm">Sign in</Link>
-            <Link to="/signup/detailer" className="btn btn-outline press-spring flex-1 py-2.5 text-sm">Join as detailer</Link>
+            <Link to="/login" className="press-spring flex-1 rounded-full border border-slate-200 bg-white py-2.5 text-center text-sm font-semibold text-slate-700 shadow-sm">Sign in</Link>
+            <Link to="/signup/detailer" className="press-spring flex-1 rounded-full border border-slate-200 bg-white py-2.5 text-center text-sm font-semibold text-slate-700 shadow-sm">Join as detailer</Link>
           </div>
         </div>
       </motion.div>

@@ -381,7 +381,7 @@ function renderMarkers(map, markersRef, radarRef, detailers, navigate) {
   })
 }
 
-export default function DetailerMap({ detailers, focus }) {
+export default function DetailerMap({ detailers, focus, focusOpensPopup = true }) {
   const containerRef = useRef(null)
   const mapRef = useRef(null)
   const tileRef = useRef(null)
@@ -483,6 +483,7 @@ export default function DetailerMap({ detailers, focus }) {
     if (!focus || !mapRef.current) return
     const map = mapRef.current
     function openFocusPopup() {
+      if (!focusOpensPopup) return
       markersRef.current.forEach((m) => {
         const base = m._basePin
         if (base && Math.abs(base.lat - focus.lat) < 1e-6 && Math.abs(base.lng - focus.lng) < 1e-6) {
@@ -493,7 +494,7 @@ export default function DetailerMap({ detailers, focus }) {
     map.once('moveend', openFocusPopup)
     map.flyTo([focus.lat, focus.lng], 15, { duration: 1.1 })
     return () => map.off('moveend', openFocusPopup)
-  }, [focus])
+  }, [focus, focusOpensPopup])
 
   function locateMe() {
     if (!navigator.geolocation) {
