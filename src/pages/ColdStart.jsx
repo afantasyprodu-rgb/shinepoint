@@ -86,7 +86,10 @@ export default function ColdStart() {
           zoom-and-open-popup behavior the real map screen uses) and
           re-fires every time activeIdx changes, whether from the 2.8s
           auto-scroll or a tap. */}
-      <div className="absolute inset-0 z-0">
+      {/* Blurred once revealed — this map is a real (or demo) roster, pre-
+          login, so it stays a soft backdrop rather than a legible map
+          someone could read street-level detail off of without signing in. */}
+      <div className={`absolute inset-0 z-0 transition-[filter] duration-500 ${revealed ? 'blur-sm' : ''}`}>
         {/* focusOpensPopup=false: the real map screen's dark detail popup
             isn't part of this design — it was covering the avatar strip
             and story cards entirely. The zoom-to-pin still happens, just
@@ -213,7 +216,18 @@ export default function ColdStart() {
               heavy for a secondary action sitting right under the primary
               pink CTA above. */}
           <div className="mt-3 flex gap-2">
-            <Link to="/login" className="press-spring flex-1 rounded-full bg-[#f5edf3] py-2.5 text-center text-sm font-semibold text-slate-700 shadow-[4px_4px_9px_rgba(15,23,42,0.12),-4px_-4px_9px_rgba(255,255,255,0.9)]">Sign in</Link>
+            {/* Pre-reveal: "Sign in" for a returning user landing straight on
+                the branded intro. Once revealed (they've tapped Explore and
+                are looking at real pins/cards), the more likely next step
+                for someone who was just browsing is starting a NEW account,
+                not logging into an existing one — so this becomes "Create
+                an account" -> /signup instead. */}
+            <Link
+              to={revealed ? '/signup' : '/login'}
+              className="press-spring flex-1 rounded-full bg-[#f5edf3] py-2.5 text-center text-sm font-semibold text-slate-700 shadow-[4px_4px_9px_rgba(15,23,42,0.12),-4px_-4px_9px_rgba(255,255,255,0.9)]"
+            >
+              {revealed ? 'Create an account' : 'Sign in'}
+            </Link>
             <Link to="/signup/detailer" className="press-spring flex-1 rounded-full bg-[#f5edf3] py-2.5 text-center text-sm font-semibold text-slate-700 shadow-[4px_4px_9px_rgba(15,23,42,0.12),-4px_-4px_9px_rgba(255,255,255,0.9)]">Join as detailer</Link>
           </div>
         </div>
