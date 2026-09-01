@@ -8,6 +8,7 @@ import HeroBubbles from '../components/ui/HeroBubbles'
 import { UserIcon, ArrowRightIcon, SparklesIcon } from '../components/icons'
 import ThemeToggle from '../components/ThemeToggle'
 import LanguageToggle from '../components/LanguageToggle'
+import { milesBetween } from '../lib/fuzzyPin'
 
 // Map-first cold start: the full DetailerMap (already proven to render, size
 // itself, and show pins) sits behind the UI. An avatar strip + auto-scrolling
@@ -26,6 +27,21 @@ export default function ColdStart() {
   const [activeIdx, setActiveIdx] = useState(0)
   const [demoDetailers, setDemoDetailers] = useState([])
   const [revealed, setRevealed] = useState(false)
+  const [userLocation, setUserLocation] = useState(null)
+
+  // Requested on "Explore detailers" rather than on mount — a permission
+  // prompt firing the instant this screen opens, before anyone has done
+  // anything, reads as a cold-open ambush. Silent on denial/timeout, same
+  // soft-skip contract as everywhere else in this app that touches
+  // geolocation: falls back to array order instead of real distance.
+  function requestLocation() {
+    if (!navigator.geolocation) return
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => setUserLocation({ lat: coords.latitude, lng: coords.longitude }),
+      () => {},
+      { enableHighAccuracy: false, timeout: 8000 }
+    )
+  }
 
   useEffect(() => {
     if (detailers.length > 0 || demoDetailers.length > 0) return
@@ -38,8 +54,19 @@ export default function ColdStart() {
 
   const closeDetailers = useMemo(() => {
     const src = detailers.length > 0 ? detailers : demoDetailers
-    return src.filter((d) => d.status === 'available').slice(0, 3)
-  }, [detailers, demoDetailers])
+    const available = src.filter((d) => d.status === 'available')
+    // With a real fix, sort by actual distance and take the genuinely
+    // closest three instead of whatever happened to be first in the array.
+    // Without one (denied/unsupported/still pending), same array-order
+    // slice as before.
+    if (!userLocation) return available.slice(0, 3)
+    return available
+      .filter((d) => d.pin)
+      .map((d) => ({ d, miles: milesBetween(userLocation, d.pin) }))
+      .sort((a, b) => a.miles - b.miles)
+      .slice(0, 3)
+      .map(({ d }) => d)
+  }, [detailers, demoDetailers, userLocation])
 
   // Illustrative arrival slots for the avatar strip — matches the mockup's
   // "now / 12:30 / 3pm" pattern. There's no real schedule/queue field to
@@ -170,15 +197,20 @@ export default function ColdStart() {
         // user can press, matching the brand mockup.
         style={{ background: '#f5edf3', boxShadow: '0 -8px 24px rgba(0,0,0,0.08), 6px 6px 18px rgba(15,23,42,0.12), -6px -6px 18px rgba(255,255,255,0.9)' }}
       >
-        {/* Same ambient brand-pink glow + soap-bubble field as the auth
-            card's hero (AuthCard.jsx) — this sheet is the other main
-            first-impression surface (cold start, pre-login), so it gets
-            the same warmth instead of sitting on flat white. */}
-        <div aria-hidden="true" className={`pointer-events-none absolute left-1/2 -translate-x-1/2 rounded-full bg-brand-200/50 blur-3xl dark:bg-brand-800/20 ${revealed ? '-top-16 h-56 w-56' : 'top-1/4 h-72 w-72'}`} />
-        {!reduce && (
-          <div aria-hidden="true" className="pointer-events-none absolute inset-0">
-            <HeroBubbles seed={7} bubbleCount={revealed ? 14 : 22} />
-          </div>
+        {/* Ambient brand-pink glow + soap-bubble field, same as the auth
+            card's hero — only on the pre-reveal intro. Once the map is
+            showing (revealed), the pink glow/bubbles competed visually
+            with the actual map content sitting right above this sheet, so
+            they're dropped for that state instead of layering on top. */}
+        {!revealed && (
+          <>
+            <div aria-hidden="true" className="pointer-events-none absolute left-1/2 top-1/4 h-72 w-72 -translate-x-1/2 rounded-full bg-brand-200/50 blur-3xl dark:bg-brand-800/20" />
+            {!reduce && (
+              <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+                <HeroBubbles seed={7} bubbleCount={22} />
+              </div>
+            )}
+          </>
         )}
         <div className="relative w-full max-w-xs">
           {revealed && <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-slate-200" aria-hidden="true" />}
@@ -204,7 +236,7 @@ export default function ColdStart() {
           {!revealed && (
             <button
               type="button"
-              onClick={() => setRevealed(true)}
+              onClick={() => { setRevealed(true); requestLocation() }}
               className="press-spring mt-5 flex w-full items-center justify-center gap-1.5 rounded-2xl bg-[#f5edf3] py-3 text-sm font-bold text-brand-700 shadow-[6px_6px_14px_rgba(15,23,42,0.18),-6px_-6px_14px_rgba(255,255,255,0.9)]"
               style={{ color: '#de0067' }}
             >
