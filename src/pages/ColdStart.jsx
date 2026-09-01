@@ -194,8 +194,10 @@ export default function ColdStart() {
         }`}
         // G1+G4 — Studio Wash: rose-tinted neumorphic surface (#f1eff3) with a
         // soft-embossed dual shadow, so the sheet reads as a moulded slab the
-        // user can press, matching the brand mockup.
-        style={{ background: '#f5edf3', boxShadow: '0 -8px 24px rgba(0,0,0,0.08), 6px 6px 18px rgba(15,23,42,0.12), -6px -6px 18px rgba(255,255,255,0.9)' }}
+        // user can press, matching the brand mockup. Once revealed, the sheet
+        // sits directly under the map/cards — plain white reads cleaner there
+        // than the pink tint, which is kept for the pre-reveal intro only.
+        style={{ background: revealed ? '#ffffff' : '#f5edf3', boxShadow: '0 -8px 24px rgba(0,0,0,0.08), 6px 6px 18px rgba(15,23,42,0.12), -6px -6px 18px rgba(255,255,255,0.9)' }}
       >
         {/* Ambient brand-pink glow + soap-bubble field, same as the auth
             card's hero — only on the pre-reveal intro. Once the map is
@@ -258,11 +260,11 @@ export default function ColdStart() {
                 an account" -> /signup instead. */}
             <Link
               to={revealed ? '/signup' : '/login'}
-              className="press-spring flex-1 rounded-full bg-[#f5edf3] py-2.5 text-center text-sm font-semibold text-slate-700 shadow-[4px_4px_9px_rgba(15,23,42,0.12),-4px_-4px_9px_rgba(255,255,255,0.9)]"
+              className={`press-spring flex-1 rounded-full py-2.5 text-center text-sm font-semibold text-slate-700 shadow-[4px_4px_9px_rgba(15,23,42,0.12),-4px_-4px_9px_rgba(255,255,255,0.9)] ${revealed ? 'bg-white' : 'bg-[#f5edf3]'}`}
             >
               {revealed ? 'Create an account' : 'Sign in'}
             </Link>
-            <Link to="/signup/detailer" className="press-spring flex-1 rounded-full bg-[#f5edf3] py-2.5 text-center text-sm font-semibold text-slate-700 shadow-[4px_4px_9px_rgba(15,23,42,0.12),-4px_-4px_9px_rgba(255,255,255,0.9)]">Join as detailer</Link>
+            <Link to="/signup/detailer" className={`press-spring flex-1 rounded-full py-2.5 text-center text-sm font-semibold text-slate-700 shadow-[4px_4px_9px_rgba(15,23,42,0.12),-4px_-4px_9px_rgba(255,255,255,0.9)] ${revealed ? 'bg-white' : 'bg-[#f5edf3]'}`}>Join as detailer</Link>
           </div>
         </div>
       </motion.div>
