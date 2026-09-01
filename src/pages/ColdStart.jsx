@@ -21,6 +21,28 @@ const JOIN_SPARKLES = [
   { top: 'calc(100% + 6px)', left: '20%', size: 'h-2 w-2', delay: 0.3, repeatDelay: 2.8 },
 ]
 
+// This screen is demo-only (see the two-stage-reveal note above), and
+// neither the demo dataset nor the real reviews_of_detailers table stores a
+// photo per review — so there's never a real photo to show here today.
+// Picking from a small generic pool (not fabricating anything detailer- or
+// reviewer-specific) and keeping `photo: null` on every entry so the photo
+// thumbnail renders the moment a real photo field exists, instead of
+// needing this screen touched again.
+const REVIEW_SNIPPET_POOL = [
+  { name: 'Dana M.', rating: 5, text: 'Showed up on time, car looked brand new after.', photo: null },
+  { name: 'Chris P.', rating: 5, text: 'Super thorough on the interior, worth every penny.', photo: null },
+  { name: 'Sam T.', rating: 4, text: 'Good work, a little later than the window.', photo: null },
+  { name: 'Priya K.', rating: 5, text: 'Best detail I have had in LA, booking again.', photo: null },
+  { name: 'Jordan L.', rating: 5, text: 'Wheels and trim looked like new, very careful.', photo: null },
+  { name: 'Alex R.', rating: 4, text: 'Solid wash, seats could have used more time.', photo: null },
+]
+
+function reviewsFor(detailerId) {
+  const seed = String(detailerId ?? '').split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0)
+  const start = seed % REVIEW_SNIPPET_POOL.length
+  return [REVIEW_SNIPPET_POOL[start], REVIEW_SNIPPET_POOL[(start + 1) % REVIEW_SNIPPET_POOL.length]]
+}
+
 // Map-first cold start: the full DetailerMap (already proven to render, size
 // itself, and show pins) sits behind the UI. An avatar strip + auto-scrolling
 // review cards + a bottom sheet float over it. "Nearby pros" are the available
@@ -197,6 +219,24 @@ export default function ColdStart() {
                     <Stars rating={closeDetailers[activeIdx].rating ?? 5} className="h-3.5 w-3.5" />
                     {closeDetailers[activeIdx].rating?.toFixed(1) ?? '5.0'} · {closeDetailers[activeIdx].reviews ?? 0} reviews
                   </p>
+                  <div className="mt-2.5 flex flex-col gap-2 border-t border-slate-100 pt-2.5">
+                    {reviewsFor(closeDetailers[activeIdx].id).map((r, ri) => (
+                      <div key={ri} className="flex items-start gap-2">
+                        {/* Review photo only if the review actually has one —
+                            no photo exists in demo/real review data today, so
+                            this never renders yet, but it will the moment a
+                            real photo shows up instead of needing a rewrite. */}
+                        {r.photo && (
+                          <img src={r.photo} alt="" className="h-8 w-8 shrink-0 rounded-lg object-cover" />
+                        )}
+                        <p className="text-xs text-slate-600">
+                          <span className="font-semibold text-slate-800">{r.name}</span>{' '}
+                          <span className="text-amber-500">{'★'.repeat(r.rating)}</span>{' '}
+                          {r.text}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
