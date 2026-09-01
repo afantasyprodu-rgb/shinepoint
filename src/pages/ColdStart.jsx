@@ -144,7 +144,7 @@ export default function ColdStart() {
               <button
                 key={d.id}
                 onClick={() => setActiveIdx(i)}
-                className={`relative flex min-w-[64px] flex-col items-center gap-1 rounded-xl px-2 py-2 transition-colors ${i === activeIdx ? 'bg-brand-50 ring-1 ring-brand-200' : ''}`}
+                className={`flex min-w-[64px] flex-col items-center gap-1 rounded-xl px-2 py-2 transition-colors ${i === activeIdx ? 'bg-brand-50 ring-1 ring-brand-200' : ''}`}
               >
                 <span className="relative flex h-10 w-10 items-center justify-center">
                   <span className={`flex h-10 w-10 items-center justify-center rounded-full border-2 bg-slate-100 ${i === activeIdx ? 'border-brand-500' : 'border-slate-200'}`}>
@@ -157,16 +157,6 @@ export default function ColdStart() {
                 </span>
                 <span className="text-[11px] font-semibold text-slate-900">{d.name?.split(' ')[0] ?? `Pro ${i + 1}`}</span>
                 <span className={`text-[10px] font-medium ${SLOT_LABELS[i]?.className ?? 'text-slate-400'}`}>{SLOT_LABELS[i]?.text ?? 'today'}</span>
-                {/* Golden underline glow + sparkles under the active
-                    detailer's avatar — decorative "top pick" accent,
-                    amber-400 to read gold rather than yellow. */}
-                {i === activeIdx && (
-                  <>
-                    <span aria-hidden="true" className="pointer-events-none absolute -bottom-1 left-1/2 h-2 w-8 -translate-x-1/2 rounded-full bg-amber-400/70 blur-sm" />
-                    <SparklesIcon aria-hidden="true" className="pointer-events-none absolute -bottom-2 -left-1 h-2.5 w-2.5 text-amber-400" />
-                    <SparklesIcon aria-hidden="true" className="pointer-events-none absolute -bottom-2 -right-1 h-2 w-2 text-amber-300" />
-                  </>
-                )}
               </button>
             ))}
           </div>
@@ -274,7 +264,16 @@ export default function ColdStart() {
             >
               {revealed ? 'Create an account' : 'Sign in'}
             </Link>
-            <Link to="/signup/detailer" className={`press-spring flex-1 rounded-full py-2.5 text-center text-sm font-semibold text-slate-700 shadow-[4px_4px_9px_rgba(15,23,42,0.12),-4px_-4px_9px_rgba(255,255,255,0.9)] ${revealed ? 'bg-white' : 'bg-[#f5edf3]'}`}>Join as detailer</Link>
+            <div className="relative flex-1">
+              {/* Outer golden ring glow + sparkles around "Join as detailer"
+                  — decorative accent to draw the detailer-side eye, amber-400
+                  to read gold rather than yellow. */}
+              <div aria-hidden="true" className="pointer-events-none absolute -inset-1 rounded-full bg-amber-400/60 blur-md" />
+              <SparklesIcon aria-hidden="true" className="pointer-events-none absolute -top-2 -left-1.5 h-3 w-3 text-amber-400" />
+              <SparklesIcon aria-hidden="true" className="pointer-events-none absolute -bottom-2 -right-1.5 h-2.5 w-2.5 text-amber-300" />
+              <SparklesIcon aria-hidden="true" className="pointer-events-none absolute -top-1.5 right-1/4 h-2 w-2 text-amber-400" />
+              <Link to="/signup/detailer" className={`press-spring relative z-10 block w-full rounded-full py-2.5 text-center text-sm font-semibold text-slate-700 shadow-[4px_4px_9px_rgba(15,23,42,0.12),-4px_-4px_9px_rgba(255,255,255,0.9)] ${revealed ? 'bg-white' : 'bg-[#f5edf3]'}`}>Join as detailer</Link>
+            </div>
           </div>
         </div>
       </motion.div>
