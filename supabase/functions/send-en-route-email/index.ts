@@ -87,8 +87,8 @@ Deno.serve(async (req) => {
 
     const result = await sendEmail({ to: customer.email, subject, html })
 
-    // Non-fatal by the same contract as the email above — a Twilio hiccup
-    // must never surface as a failure of the underlying status change.
+    // Non-fatal by the same contract as the email above — an SMS-provider
+    // hiccup must never surface as a failure of the underlying status change.
     let smsResult: unknown
     if (customer.sms_opt_in && customer.phone) {
       try {
@@ -97,7 +97,6 @@ Deno.serve(async (req) => {
           body: enRouteSms({
             customerName: customer.full_name ?? 'there',
             detailerName: detailer?.full_name ?? 'Your detailer',
-            etaMinutes: isFiniteNumber(etaMinutes) ? etaMinutes : undefined,
             trackingUrl,
           }),
         })

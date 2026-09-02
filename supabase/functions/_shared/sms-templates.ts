@@ -23,17 +23,17 @@ const OPT_OUT = 'Reply STOP to opt out.'
 export interface EnRouteSmsData {
   customerName: string
   detailerName: string
-  etaMinutes?: number
   trackingUrl: string
 }
 
 // Doubles as the "here's how to track them" message — the only place a
 // customer gets the tracking link by text, since the map itself needs no
-// separate notice once they have this link.
+// separate notice once they have this link. Deliberately never states an
+// ETA — the tracking link is the source of truth for "how far are they",
+// so the text body doesn't promise a number that can go stale in transit.
 export function enRouteSms(data: EnRouteSmsData): string {
-  const { customerName, detailerName, etaMinutes, trackingUrl } = data
-  const eta = etaMinutes ? `about ${etaMinutes} min` : 'on the way now'
-  return `ShinePoint: ${detailerName} is ${eta}, ${customerName.split(' ')[0]}! Track them live: ${trackingUrl} ${OPT_OUT}`
+  const { customerName, detailerName, trackingUrl } = data
+  return `ShinePoint: ${detailerName} is on the way, ${customerName.split(' ')[0]}! Track them live: ${trackingUrl} ${OPT_OUT}`
 }
 
 export interface AppointmentReminderSmsData {
