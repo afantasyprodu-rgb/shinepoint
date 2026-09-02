@@ -13,7 +13,7 @@ import { captureException } from '../_shared/sentry.ts'
 import { isUuid, isFiniteNumber } from '../_shared/validate.ts'
 import { withinRateLimit, tooManyRequests } from '../_shared/rateLimit.ts'
 import { sendEmail } from '../_shared/resend.ts'
-import { sendSms } from '../_shared/twilio.ts'
+import { sendSms } from '../_shared/sentdm.ts'
 import { enRouteEmail } from '../_shared/email-templates.ts'
 import { enRouteSms } from '../_shared/sms-templates.ts'
 

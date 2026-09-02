@@ -22,7 +22,7 @@ import { createClient } from 'npm:@supabase/supabase-js@^2'
 import { json } from '../_shared/cors.ts'
 import { captureException } from '../_shared/sentry.ts'
 import { sendEmail } from '../_shared/resend.ts'
-import { sendSms } from '../_shared/twilio.ts'
+import { sendSms } from '../_shared/sentdm.ts'
 import { reminderEmail } from '../_shared/email-templates.ts'
 import { appointmentReminderSms } from '../_shared/sms-templates.ts'
 
