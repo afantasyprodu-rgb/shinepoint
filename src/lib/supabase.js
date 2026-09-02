@@ -36,6 +36,15 @@ export async function invokeFn(name, body = {}) {
       } catch {
         // Not JSON (or already consumed) — fall back to the generic message.
       }
+    } else {
+      // No Response to read a body from at all — the request never made it
+      // to the function (offline, DNS/CORS failure, dropped connection).
+      // error.message here is the raw underlying fetch error (e.g. Safari's
+      // "TypeError: Load failed"), which leaks the Supabase project's
+      // internal hostname straight into the UI. Every caller's catch block
+      // does `e.message || <fallback>` and a non-empty raw message always
+      // wins, so this has to be normalized here, the one shared place.
+      message = 'Network error — check your connection and try again.'
     }
     throw new Error(message)
   }
