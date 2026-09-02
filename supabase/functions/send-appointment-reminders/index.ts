@@ -1,8 +1,9 @@
 // Scheduled job (not user-invoked): finds paid, upcoming bookings whose
 // scheduled_time is within the next few hours (REMINDER_WINDOW_HOURS) and
-// sends a same-day reminder — email unconditionally (no opt-in required,
-// matching every other booking email), SMS only if the customer has opted
-// in and has a phone on file. reminder_sent_at is stamped immediately after
+// sends a same-day reminder — SMS if the customer has opted in and has a
+// phone on file, email otherwise. Never both: same rule as
+// send-en-route-email, so an SMS-opted-in customer isn't double-notified.
+// reminder_sent_at is stamped immediately after
 // processing a booking (success or failure) so a flaky send can't cause a
 // retry storm on the next cron tick — same idempotency role transferred_at
 // plays in release-payouts.
@@ -70,21 +71,9 @@ Deno.serve(async (req) => {
     const service = (b as any).services?.service_name ?? 'Detail service'
 
     try {
-      if (customer?.email) {
-        const { subject, html } = reminderEmail({
-          customerName: customer.full_name ?? 'there',
-          detailerName: detailer?.full_name ?? 'Your detailer',
-          service,
-          scheduledTime: b.scheduled_time,
-          bookingId: b.id,
-          bookingUrl: `${Deno.env.get('APP_ORIGIN') ?? 'https://shinepoint.app'}/bookings/${b.id}`,
-        })
-        await sendEmail({ to: customer.email, subject, html })
-      } else {
-        skipped++
-      }
+      const wantsSms = Boolean(customer?.sms_opt_in && customer?.phone)
 
-      if (customer?.sms_opt_in && customer?.phone) {
+      if (wantsSms) {
         await sendSms({
           to: customer.phone,
           body: appointmentReminderSms({
@@ -94,8 +83,21 @@ Deno.serve(async (req) => {
             scheduledTime: b.scheduled_time,
           }),
         })
+        sent++
+      } else if (customer?.email) {
+        const { subject, html } = reminderEmail({
+          customerName: customer.full_name ?? 'there',
+          detailerName: detailer?.full_name ?? 'Your detailer',
+          service,
+          scheduledTime: b.scheduled_time,
+          bookingId: b.id,
+          bookingUrl: `${Deno.env.get('APP_ORIGIN') ?? 'https://shinepoint.app'}/bookings/${b.id}`,
+        })
+        await sendEmail({ to: customer.email, subject, html })
+        sent++
+      } else {
+        skipped++
       }
-      sent++
     } catch (e) {
       console.error('send-appointment-reminders failed for', b.id, (e as Error).message)
       await captureException(e, 'send-appointment-reminders')
