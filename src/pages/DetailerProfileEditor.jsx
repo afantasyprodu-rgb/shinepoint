@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import AppShell from '../components/AppShell'
@@ -100,6 +100,18 @@ export default function DetailerProfileEditor() {
   const [activeTab, setActiveTab] = useState('profile')
   const [saved, setSaved] = useState(false)
   const [busy, setBusy] = useState(false)
+  const tabsRef = useRef([])
+  const [tabPosition, setTabPosition] = useState({ x: 0, width: 0 })
+
+  useEffect(() => {
+    const activeIdx = ['profile', 'services', 'schedule', 'account'].indexOf(activeTab)
+    const btn = tabsRef.current[activeIdx]
+    const container = btn?.parentElement
+    if (!btn || !container) return
+    const btnRect = btn.getBoundingClientRect()
+    const containerRect = container.getBoundingClientRect()
+    setTabPosition({ x: btnRect.left - containerRect.left, width: btnRect.width })
+  }, [activeTab])
 
   function toggleDay(day) {
     setDays((ds) => (ds.includes(day) ? ds.filter((x) => x !== day) : [...ds, day]))
@@ -195,11 +207,35 @@ export default function DetailerProfileEditor() {
       <AnimatedPage className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
         <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">{t('yourProfile')}</h1>
 
-        <div className="mt-4 flex gap-1 overflow-x-auto rounded-full bg-brand-50 p-1 dark:bg-white/5" role="tablist">
-          <button type="button" role="tab" aria-selected={activeTab === 'profile'} onClick={() => setActiveTab('profile')} className={`flex-1 whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${activeTab === 'profile' ? 'bg-white text-brand-700 shadow-sm dark:bg-white/10 dark:text-brand-200' : 'text-slate-500 dark:text-slate-400'}`}>Profile</button>
-          <button type="button" role="tab" aria-selected={activeTab === 'services'} onClick={() => setActiveTab('services')} className={`flex-1 whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${activeTab === 'services' ? 'bg-white text-brand-700 shadow-sm dark:bg-white/10 dark:text-brand-200' : 'text-slate-500 dark:text-slate-400'}`}>Services</button>
-          <button type="button" role="tab" aria-selected={activeTab === 'schedule'} onClick={() => setActiveTab('schedule')} className={`flex-1 whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${activeTab === 'schedule' ? 'bg-white text-brand-700 shadow-sm dark:bg-white/10 dark:text-brand-200' : 'text-slate-500 dark:text-slate-400'}`}>Schedule</button>
-          <button type="button" role="tab" aria-selected={activeTab === 'account'} onClick={() => setActiveTab('account')} className={`flex-1 whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${activeTab === 'account' ? 'bg-white text-brand-700 shadow-sm dark:bg-white/10 dark:text-brand-200' : 'text-slate-500 dark:text-slate-400'}`}>Account</button>
+        <div className="relative mt-6 flex gap-1 rounded-full bg-brand-50 p-1 dark:bg-white/5" role="tablist">
+          {/* Animated background pill */}
+          <motion.div
+            className="absolute inset-y-1 left-0 rounded-full bg-white shadow-md dark:bg-white/10"
+            animate={{ x: tabPosition.x, width: tabPosition.width }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+          />
+          {[
+            { id: 'profile', label: 'Profile' },
+            { id: 'services', label: 'Services' },
+            { id: 'schedule', label: 'Schedule' },
+            { id: 'account', label: 'Account' },
+          ].map((tab, idx) => (
+            <button
+              key={tab.id}
+              ref={(el) => { tabsRef.current[idx] = el }}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`relative z-10 flex-1 whitespace-nowrap rounded-full px-4 py-2.5 text-base font-semibold transition-colors ${
+                activeTab === tab.id
+                  ? 'text-brand-700 dark:text-brand-200'
+                  : 'text-slate-500 dark:text-slate-400'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
         <form onSubmit={save} className="mt-4 space-y-4">

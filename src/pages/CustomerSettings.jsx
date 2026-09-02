@@ -86,56 +86,62 @@ const ALL_MODELS = Object.values(CAR_MODELS).flat()
 
 const VEHICLE_TYPES = ['Sedan', 'SUV', 'Truck', 'Van', 'Coupe', 'EV']
 
-// "Your garage" — the paint accent is sampled from the customer's car photo
-// (on-device in production); the swatches are the manual override. Only these
-// personal surfaces read --accent — never the app chrome.
-function GarageCard({ make, model, type, t }) {
-  const { accent, setAccent } = usePaint()
-  const current = PAINTS.find((p) => p.hex.toLowerCase() === accent.toLowerCase())
-
+// Shared visual for "here's your car" — a photo-filled card with a bottom
+// gradient for text legibility, falling back to the flat paint-accent
+// gradient when there's no photo yet. Used for the primary garage card and,
+// once a photo lands, for each extra vehicle below it — same treatment
+// everywhere a car photo shows up.
+function VehiclePhotoCard({ make, model, type, photo, subtitle, badge, onImageClick, t }) {
   const title = [make, model].filter(Boolean).join(' ') || type || t('yourVehicle')
-  const hasVehicle = Boolean(make || model || type)
-
   return (
-    <div className="card mt-4">
-      <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">{t('yourGarage')}</h2>
-      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-        {t('garageBlurb')}
-      </p>
-
-      <div className="paint-surface mt-4 rounded-2xl p-5">
+    <div
+      onClick={onImageClick}
+      role={onImageClick ? 'button' : undefined}
+      tabIndex={onImageClick ? 0 : undefined}
+      onKeyDown={onImageClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') onImageClick() } : undefined}
+      className={`relative overflow-hidden rounded-2xl p-5 text-white ${photo ? 'bg-slate-900' : 'paint-surface'} ${onImageClick ? 'cursor-pointer' : ''}`}
+      style={photo ? { backgroundImage: `url(${photo})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
+    >
+      {photo && (
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" aria-hidden="true" />
+      )}
+      <div className="relative">
         <p className="font-display text-lg font-bold">{title}</p>
-        <p className="mt-0.5 text-sm text-white/85">
-          {hasVehicle ? current?.name ?? t('customPaint') : t('addVehicleHint')}
-        </p>
-        {hasVehicle && (
+        {subtitle && <p className="mt-0.5 text-sm text-white/85">{subtitle}</p>}
+        {badge && (
           <span className="mt-3 inline-block rounded-full border border-white/35 bg-white/20 px-3 py-1 text-xs font-semibold">
-            {t('accentSampled')}
+            {badge}
           </span>
         )}
       </div>
+    </div>
+  )
+}
 
-      <p className="mt-4 mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-        {t('tryAnotherPaint')}
-      </p>
-      <div className="flex flex-wrap gap-3">
-        {PAINTS.map((p) => {
-          const selected = p.hex.toLowerCase() === accent.toLowerCase()
-          return (
-            <button
-              key={p.hex}
-              type="button"
-              onClick={() => setAccent(p.hex)}
-              aria-label={`Paint: ${p.name}`}
-              aria-pressed={selected}
-              className={`press-spring h-10 w-10 cursor-pointer rounded-full border-[3px] border-white shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:border-white/20 ${
-                selected ? 'paint-accent-ring' : ''
-              }`}
-              style={{ background: p.hex }}
-            />
-          )
-        })}
-      </div>
+// Manual accent-color picker — lives on the Profile tab, decorative only
+// (this card and the onboarding screen). It does not change booking screens
+// or the live arrival tracker — that marker uses the detailer's own vehicle
+// emoji, not the customer's car.
+function ColorSwatches() {
+  const { accent, setAccent } = usePaint()
+  return (
+    <div className="flex flex-wrap gap-3">
+      {PAINTS.map((p) => {
+        const selected = p.hex.toLowerCase() === accent.toLowerCase()
+        return (
+          <button
+            key={p.hex}
+            type="button"
+            onClick={() => setAccent(p.hex)}
+            aria-label={`Paint: ${p.name}`}
+            aria-pressed={selected}
+            className={`press-spring h-10 w-10 cursor-pointer rounded-full border-[3px] border-white shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:border-white/20 ${
+              selected ? 'paint-accent-ring' : ''
+            }`}
+            style={{ background: p.hex }}
+          />
+        )
+      })}
     </div>
   )
 }
@@ -163,19 +169,40 @@ export default function CustomerSettings() {
   const [busy, setBusy] = useState(false)
 
   const [activeTab, setActiveTab] = useState('profile')
+  const tabsRef = useRef([])
+  const [tabPosition, setTabPosition] = useState({ x: 0, width: 0 })
+
   const knownZip = zip.length === 5 && zip in CA_ZIP_CENTROIDS
   const nearest = zip.length === 5 && !knownZip ? closestDetailer(zip, detailers) : null
   const tabs = [
     { id: 'profile', label: t('profile') },
-    { id: 'vehicles', label: t('primaryVehicle') },
+    { id: 'vehicles', label: t('yourGarage') },
     { id: 'address', label: t('homeAddress') },
     { id: 'account', label: t('account') },
   ]
+
+  useEffect(() => {
+    const activeIdx = tabs.findIndex(t => t.id === activeTab)
+    const btn = tabsRef.current[activeIdx]
+    const container = btn?.parentElement
+    if (!btn || !container) return
+    const btnRect = btn.getBoundingClientRect()
+    const containerRect = container.getBoundingClientRect()
+    setTabPosition({ x: btnRect.left - containerRect.left, width: btnRect.width })
+  }, [activeTab, tabs])
 
   // Persist photo immediately so the avatar updates everywhere without a save.
   async function changePhoto(url) {
     setPhoto(url)
     await updateCustomer({ photo: url })
+  }
+
+  // Tapping a vehicle's big photo scrolls down to that vehicle's own photo
+  // control (moved to the bottom of the card) instead of doing nothing.
+  const primaryPhotoUploadRef = useRef(null)
+  const otherVehiclePhotoRefs = useRef({})
+  function scrollToPhotoUpload(node) {
+    node?.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }
 
   function addVehicle() {
@@ -278,9 +305,29 @@ export default function CustomerSettings() {
           </div>
         </div>
 
-        <div className="flex gap-1 overflow-x-auto rounded-full bg-brand-50 p-1 dark:bg-white/5" role="tablist">
-          {tabs.map((tab) => (
-            <button key={tab.id} type="button" role="tab" aria-selected={activeTab === tab.id} onClick={() => setActiveTab(tab.id)} className={`flex-1 whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${activeTab === tab.id ? 'bg-white text-brand-700 shadow-sm dark:bg-white/10 dark:text-brand-200' : 'text-slate-500 dark:text-slate-400'}`}>{tab.label}</button>
+        <div className="relative mt-6 flex gap-1 rounded-full bg-brand-50 p-1 dark:bg-white/5" role="tablist">
+          {/* Animated background pill */}
+          <motion.div
+            className="absolute inset-y-1 left-0 rounded-full bg-white shadow-md dark:bg-white/10"
+            animate={{ x: tabPosition.x, width: tabPosition.width }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+          />
+          {tabs.map((tab, idx) => (
+            <button
+              key={tab.id}
+              ref={(el) => { tabsRef.current[idx] = el }}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`relative z-10 flex-1 whitespace-nowrap rounded-full px-4 py-2.5 text-base font-semibold transition-colors ${
+                activeTab === tab.id
+                  ? 'text-brand-700 dark:text-brand-200'
+                  : 'text-slate-500 dark:text-slate-400'
+              }`}
+            >
+              {tab.label}
+            </button>
           ))}
         </div>
 
@@ -332,13 +379,29 @@ export default function CustomerSettings() {
             </p>
           </div>
           )}
+          {activeTab === 'profile' && (
+          <div className="card space-y-3">
+            <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">{t('tryAnotherPaint')}</h2>
+            <ColorSwatches />
+          </div>
+          )}
           {activeTab === 'vehicles' && (
           <div className="space-y-4">
-          <GarageCard make={vehMake} model={vehModel} type={vehType} t={t} />
           <div className="card space-y-3">
-            <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">{t('primaryVehicle')}</h2>
+            <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">{t('yourGarage')}</h2>
             <p className="-mt-1 text-sm text-slate-500 dark:text-slate-400">{t('primaryVehicleBlurb')}</p>
-            <div className="grid grid-cols-2 gap-2">
+
+            <VehiclePhotoCard
+              make={vehMake}
+              model={vehModel}
+              type={vehType}
+              photo={vehPhoto}
+              subtitle={[vehType, vehYear].filter(Boolean).join(' · ') || t('addVehicleHint')}
+              onImageClick={() => scrollToPhotoUpload(primaryPhotoUploadRef.current)}
+              t={t}
+            />
+
+            <div className="grid grid-cols-2 gap-2 border-t border-slate-200 pt-3 dark:border-slate-700">
               <Combobox
                 value={vehMake}
                 onChange={setVehMake}
@@ -379,8 +442,7 @@ export default function CustomerSettings() {
               aria-label="Vehicle year"
               className="input"
             />
-            <div className="flex flex-col items-center gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
-              <p className="text-xs font-medium text-slate-600 dark:text-slate-400">Vehicle Photo (optional)</p>
+            <div ref={primaryPhotoUploadRef} className="flex justify-center border-t border-slate-200 pt-3 dark:border-slate-700">
               <CarPhotoUpload
                 photo={vehPhoto}
                 paintHex={accent}
@@ -405,60 +467,77 @@ export default function CustomerSettings() {
             </div>
 
             {vehicles.map((v) => (
-              <div key={v.id} className="flex gap-3 rounded-2xl bg-brand-50/60 p-3 dark:bg-white/5">
-                <CarPhotoUpload
-                  photo={v.photo}
-                  onFile={(file) => { uploadImage(file, 'vehicles'); scanExtraVehicle(v.id, file) }}
-                  onChange={(url) => patchVehicle(v.id, { photo: url })}
-                />
-                <div className="min-w-0 flex-1 space-y-2">
-                  {scanningVehicleId === v.id && (
-                    <p className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
-                      <span className="h-3 w-3 animate-spin rounded-full border-2 border-brand-400 border-t-transparent" />
-                      {t('scanning')}
-                    </p>
-                  )}
-                  {vehicleScanError[v.id] && (
-                    <p role="alert" className="text-xs text-red-600 dark:text-red-400">{vehicleScanError[v.id]}</p>
-                  )}
-                  <Combobox
-                    value={v.make}
-                    onChange={(val) => patchVehicle(v.id, { make: val })}
-                    options={CAR_MAKES}
-                    placeholder="Make"
-                    inputClassName="input h-10"
+              <div key={v.id} className="space-y-3 rounded-2xl bg-brand-50/60 p-3 dark:bg-white/5">
+                {v.photo && (
+                  <VehiclePhotoCard
+                    make={v.make}
+                    model={v.model}
+                    type={v.type}
+                    photo={v.photo}
+                    onImageClick={() => scrollToPhotoUpload(otherVehiclePhotoRefs.current[v.id])}
+                    t={t}
                   />
-                  <Combobox
-                    value={v.model}
-                    onChange={(val) => patchVehicle(v.id, { model: val })}
-                    options={CAR_MODELS[v.make] ?? ALL_MODELS}
-                    placeholder="Model"
-                    inputClassName="input h-10"
-                  />
-                  <div className="flex flex-wrap gap-1.5">
-                    {VEHICLE_TYPES.map((vt) => (
-                      <button
-                        key={vt} type="button"
-                        onClick={() => patchVehicle(v.id, { type: v.type === vt ? '' : vt })}
-                        className={`cursor-pointer rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                          v.type === vt
-                            ? 'bg-brand-600 text-white shadow-sm'
-                            : 'bg-white text-slate-600 hover:bg-brand-100 dark:bg-white/10 dark:text-slate-400 dark:hover:bg-white/15'
-                        }`}
-                      >
-                        {vt}
-                      </button>
-                    ))}
+                )}
+                <div className="flex gap-3">
+                  <div className="min-w-0 flex-1 space-y-2">
+                    {scanningVehicleId === v.id && (
+                      <p className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+                        <span className="h-3 w-3 animate-spin rounded-full border-2 border-brand-400 border-t-transparent" />
+                        {t('scanning')}
+                      </p>
+                    )}
+                    {vehicleScanError[v.id] && (
+                      <p role="alert" className="text-xs text-red-600 dark:text-red-400">{vehicleScanError[v.id]}</p>
+                    )}
+                    <Combobox
+                      value={v.make}
+                      onChange={(val) => patchVehicle(v.id, { make: val })}
+                      options={CAR_MAKES}
+                      placeholder="Make"
+                      inputClassName="input h-10"
+                    />
+                    <Combobox
+                      value={v.model}
+                      onChange={(val) => patchVehicle(v.id, { model: val })}
+                      options={CAR_MODELS[v.make] ?? ALL_MODELS}
+                      placeholder="Model"
+                      inputClassName="input h-10"
+                    />
+                    <div className="flex flex-wrap gap-1.5">
+                      {VEHICLE_TYPES.map((vt) => (
+                        <button
+                          key={vt} type="button"
+                          onClick={() => patchVehicle(v.id, { type: v.type === vt ? '' : vt })}
+                          className={`cursor-pointer rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                            v.type === vt
+                              ? 'bg-brand-600 text-white shadow-sm'
+                              : 'bg-white text-slate-600 hover:bg-brand-100 dark:bg-white/10 dark:text-slate-400 dark:hover:bg-white/15'
+                          }`}
+                        >
+                          {vt}
+                        </button>
+                      ))}
+                    </div>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => removeVehicle(v.id)}
+                    aria-label={t('removeVehicle')}
+                    className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center self-start rounded-lg text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:text-slate-500 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+                  >
+                    <TrashIcon className="h-4 w-4" />
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => removeVehicle(v.id)}
-                  aria-label={t('removeVehicle')}
-                  className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center self-start rounded-lg text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:text-slate-500 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+                <div
+                  ref={(el) => { otherVehiclePhotoRefs.current[v.id] = el }}
+                  className="flex justify-center border-t border-brand-100 pt-3 dark:border-white/10"
                 >
-                  <TrashIcon className="h-4 w-4" />
-                </button>
+                  <CarPhotoUpload
+                    photo={v.photo}
+                    onFile={(file) => { uploadImage(file, 'vehicles'); scanExtraVehicle(v.id, file) }}
+                    onChange={(url) => patchVehicle(v.id, { photo: url })}
+                  />
+                </div>
               </div>
             ))}
 
@@ -506,7 +585,6 @@ export default function CustomerSettings() {
               )}
             </div>
             <HomeMiniMap zip={zip} address={address} />
-            <p className="text-[11px] text-slate-400 dark:text-slate-500">OpenStreetMap via CARTO Voyager — same open-source stack as the discovery map.</p>
           </div>
           </div>
           )}

@@ -145,7 +145,10 @@ function popupHtml(d) {
 // PIXEL_MIN_DIST so nothing is ever fully hidden underneath something else.
 // Recomputed on zoom (pixel distances change with zoom; panning doesn't, so
 // zoomend alone is enough).
-const CLUSTER_PIXEL_DIST = 60
+// Pins are 24px icons anchored at center (see pinIcon below), so their
+// edges touch once centers are within 24px of each other — pill only at
+// that point, not earlier just because pins are "nearby".
+const CLUSTER_PIXEL_DIST = 24
 const PIXEL_MIN_DIST = 26
 
 // Union-find over pixel points within `threshold` of each other,

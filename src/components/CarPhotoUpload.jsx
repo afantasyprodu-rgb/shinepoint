@@ -27,7 +27,7 @@ export default function CarPhotoUpload({ photo, onFile, onChange, paintHex }) {
         )}
         <span
           className={`absolute inset-0 flex items-center justify-center bg-black/45 text-white transition-opacity ${
-            photo ? 'opacity-0 group-hover:opacity-100' : 'opacity-0'
+            photo ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'
           }`}
         >
           <CameraIcon className="h-5 w-5" />
@@ -48,7 +48,7 @@ export default function CarPhotoUpload({ photo, onFile, onChange, paintHex }) {
           <XIcon className="h-3 w-3" />
         </button>
       )}
-      <input ref={inputRef} type="file" accept="image/*" onChange={handlePick} className="sr-only" />
+      <input ref={inputRef} type="file" accept="image/*" capture="environment" onChange={handlePick} className="sr-only" />
       {error && <p role="alert" className="mt-1 max-w-16 text-[10px] leading-tight text-red-600 dark:text-red-400">{error}</p>}
     </div>
   )
