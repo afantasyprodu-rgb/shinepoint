@@ -6,7 +6,7 @@ import { AnimatedPage } from '../components/ui/Motion'
 import Combobox from '../components/ui/Combobox'
 import AddressAutocomplete from '../components/ui/AddressAutocomplete'
 import CarPhotoUpload from '../components/CarPhotoUpload'
-import { CarIcon, MapPinIcon, SparklesIcon } from '../components/icons'
+import { CarIcon, MapPinIcon, SparklesIcon, CheckIcon } from '../components/icons'
 import { useStore } from '../context/StoreContext'
 import { usePaint, PAINTS } from '../context/PaintContext'
 import { CA_ZIP_CENTROIDS, closestDetailer } from '../lib/fuzzyPin'
@@ -108,11 +108,15 @@ export default function CustomerOnboarding() {
       return
     }
     setBusy(false)
-    if (step === 0) { setDir(1); setStep(1) } else { done() }
+    if (step === 0) { setDir(1); setStep(1) }
+    else if (step === 1) { setDir(1); setStep(2) }
+    else { done() }
   }
 
   function skip() {
-    if (step === 0) { setDir(1); setStep(1) } else { done() }
+    if (step === 0) { setDir(1); setStep(1) }
+    else if (step === 1) { setDir(1); setStep(2) }
+    else { done() }
   }
 
   const knownZip = zip.length === 5 && zip in CA_ZIP_CENTROIDS
@@ -129,7 +133,7 @@ export default function CustomerOnboarding() {
         <div className="card">
           {/* Step dots */}
           <div className="mb-6 flex items-center justify-center gap-1.5">
-            {[0, 1].map((i) => (
+            {[0, 1, 2].map((i) => (
               <span
                 key={i}
                 className={`h-1.5 rounded-full transition-all duration-300 ${
@@ -272,7 +276,7 @@ export default function CustomerOnboarding() {
                   </button>
                 </div>
               </motion.div>
-            ) : (
+            ) : step === 1 ? (
               <motion.div
                 key="address"
                 custom={dir}
@@ -332,7 +336,7 @@ export default function CustomerOnboarding() {
                   <button type="button" onClick={advance} disabled={busy} className="btn btn-cta w-full">
                     {busy
                       ? <span className="inline-flex items-center gap-2"><Spinner />{t('saving')}</span>
-                      : t('saveAndOpenMap')}
+                      : t('continue')}
                   </button>
                   <button
                     type="button" onClick={skip}
@@ -341,6 +345,64 @@ export default function CustomerOnboarding() {
                     {t('skipForNow')}
                   </button>
                 </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="finish"
+                custom={dir}
+                variants={variants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.26, ease }}
+                className="flex flex-col gap-5"
+              >
+                <div className="flex flex-col items-center gap-2.5 text-center">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-full bg-cta-100 text-cta-700 dark:bg-cta-500/15 dark:text-cta-400">
+                    <CheckIcon className="h-6 w-6" />
+                  </span>
+                  <h2 className="font-display text-3xl font-bold leading-tight text-slate-900 dark:text-slate-100">
+                    {t('finishHeadline1')}<br />{t('finishHeadline2')}
+                  </h2>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/5">
+                  <p className="label">{t('finishGarageLabel')}</p>
+                  {(make || model || year) ? (
+                    <p className="mt-1.5 text-lg font-bold text-slate-900 dark:text-slate-100">
+                      {[year, make, model].filter(Boolean).join(' ')}
+                    </p>
+                  ) : (
+                    <p className="mt-1.5 text-sm text-slate-400 dark:text-slate-500">{t('finishNoVehicle')}</p>
+                  )}
+                  {zip.length === 5 ? (
+                    <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
+                      {knownZip
+                        ? t('finishZipLine', { zip, count: detailers.filter((d) => d.status === 'available').length })
+                        : t('finishZipLineOutside', { zip })}
+                    </p>
+                  ) : (
+                    <p className="mt-0.5 text-sm text-slate-400 dark:text-slate-500">{t('finishNoZip')}</p>
+                  )}
+
+                  {vehiclePhoto ? (
+                    <img
+                      src={vehiclePhoto}
+                      alt=""
+                      className="mt-4 h-24 w-full rounded-xl object-cover"
+                    />
+                  ) : (
+                    <div className="mt-4 flex h-24 items-center justify-center rounded-xl border border-dashed border-slate-200 dark:border-white/15">
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                        {t('finishPhotoPlaceholder')}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <button type="button" onClick={done} className="btn btn-cta w-full">
+                  {t('finishCta')}
+                </button>
               </motion.div>
             )}
           </AnimatePresence>
