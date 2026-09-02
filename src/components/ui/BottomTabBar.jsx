@@ -32,6 +32,9 @@ export default function BottomTabBar({ items, hidden = false }) {
   // happened somewhere in the bar" via normal bubbling, no capture needed.
   const onPointerDown = () => {
     setPressed(true)
+    // Fire the centre ripple from the droplet's middle (module-scoped so it
+    // survives the route's AppShell remount that the tab press triggers).
+    rippleAt = performance.now()
   }
   const onPointerUp = () => setPressed(false)
   const onPointerCancel = () => setPressed(false)
@@ -165,13 +168,29 @@ let lastSlotW = 0
 const scaleX = motionValue(1)
 const scaleY = motionValue(1)
 const rotate = motionValue(0)
-let followerSpring = 0
-// Velocity of followerSpring itself — a real damped spring needs this as
-// separate state (this WAS missing, see below), not just the position.
-let followerVel = 0
+// Second-order spring follower on raw velocity (the comparison's `spring`
+// squash, k240/c32/m1) — a critically-damped-ish spring chasing dropX's
+// instantaneous velocity, so the squash itself has inertia instead of
+// tracking velocity instantly.
+let springV = 0
 let framePrev = 0
 let prevDropX = 0
 let loopStarted = false
+
+// Centre ripple — on press the droplet's OWN silhouette ripples in a ring that
+// rolls from its round body out to the point, then settles, like a drop hitting
+// water. Driven from the module squash loop (same remount-survival reason as
+// everything else up here). borderRadius holds the live teardrop radii only
+// DURING the ripple; at rest it's '' so the CSS idle morph (nx-tab-drop-idle)
+// owns border-radius again and the droplet keeps its wobble instead of freezing.
+const borderRadius = motionValue('')
+let rippleAt = -1
+// Adjacent-tab hops use the quick tween below (no spring, no inertia) — a
+// deliberate "scoot", not the full elastic travel a far jump gets. The
+// squash still reacts to real velocity either way, but that velocity is
+// dampened for a hop so the droplet doesn't stretch/lean like it just
+// crossed the whole bar.
+let travelIsAdjacent = false
 
 function startSquashLoop() {
   if (loopStarted) return
@@ -183,30 +202,37 @@ function startSquashLoop() {
     framePrev = now
     // Live velocity of the travelling droplet, computed by hand — Motion's
     // own motionValue.getVelocity() caches the last delta it saw and never
-    // decays once the driving animate() stops calling .set() on dropX, so
-    // the squash got stuck permanently deformed after a spring settled
-    // instead of relaxing back to identity. Diffing the value ourselves
-    // each frame guarantees exactly 0 the instant dropX stops moving.
+    // decays once the driving animate() stops calling .set() on dropX.
     const x = dropX.get()
     const vel = dt > 0 ? (x - prevDropX) / dt : 0
     prevDropX = x
-    // Spring the follower toward it (k 240, c 32, m 1) — stays behind the
-    // motion like goo, no dead reset on remount. The damping term (c) has
-    // to act on the follower's OWN velocity (followerVel), not its
-    // position (followerSpring) — damping against position isn't a real
-    // spring at all, and integrating that directly into followerSpring
-    // every frame (with no separate velocity state) was numerically
-    // unstable: it overshot harder each frame instead of settling, until
-    // it pinned at the `s` cap below and just flipped sign frame to frame
-    // forever. That's what read as the droplet staying permanently
-    // squashed/twitchy instead of resting back to its round shape.
-    const a = 240 * (vel - followerSpring) - 32 * followerVel
-    followerVel += a * dt
-    followerSpring += followerVel * dt
-    const s = Math.min(Math.abs(followerSpring) / 1000, 1.4)
+    // Spring follower (k240/c32/m1) chasing the raw velocity — the squash
+    // has its own inertia instead of tracking dropX's velocity instantly.
+    // Adjacent hops feed in a dampened velocity so the scoot stays small.
+    const velIn = travelIsAdjacent ? vel * 0.32 : vel
+    const sqK = 240, sqC = 32, sqM = 1
+    const a = (sqK * (velIn - springV) - sqC * springV) / sqM
+    springV += a * dt
+    const s = Math.min(Math.abs(springV) / 1000, 1.4)
     scaleX.set(1 + 0.72 * s)
     scaleY.set(1 - 0.48 * s)
-    rotate.set((Math.sign(followerSpring) || 1) * 16 * s * -1)
+    rotate.set((Math.sign(springV) || 1) * 16 * s * -1)
+
+    // Centre ripple — a ring of pinch/swell that rolls from the droplet's round
+    // body out toward the point over ~0.9s, then settles back to the teardrop.
+    if (rippleAt >= 0) {
+      const el = (now - rippleAt) / 1000
+      if (el < 0.9) {
+        const phase = Math.PI * (el / 0.9)
+        const ring = Math.sin(phase) * Math.exp(-el * 3.2)
+        const swell = 1 + 0.55 * ring
+        borderRadius.set(`${Math.round(swell * 50)}% ${Math.round(swell * 50)}% ${Math.round(swell * 50)}% 4px`)
+      } else {
+        rippleAt = -1
+        borderRadius.set('')
+      }
+    }
+
     requestAnimationFrame(step)
   }
   requestAnimationFrame(step)
@@ -260,11 +286,11 @@ function WaterDroplet({ activeIndex, count, activeIcon: ActiveIcon, pressed }) {
     const dist = Math.abs(targetX - dropX.get())
     const far = dist > slotW_ * 1.45
     travelControls?.stop()
-    // Mirror the comparison exactly: on each jump reset the squash follower
-    // to 0 so the deformation starts from identity, like the app-pane's
-    // `springV = 0` in setActive. Divergence: comparison resets every click,
-    // whereas an un-reset follower would carry momentum between jumps.
-    followerSpring = 0
+    // Reset the squash spring so each jump's deformation starts from
+    // identity (same as the comparison's setActive reset), instead of
+    // carrying momentum between jumps.
+    springV = 0
+    travelIsAdjacent = !reduce && !far
     travelControls = animate(dropX, targetX, reduce
       ? { type: 'spring', stiffness: 900, damping: 60 }
       : far
@@ -311,13 +337,13 @@ function WaterDroplet({ activeIndex, count, activeIcon: ActiveIcon, pressed }) {
                     upright, and it breathes with the wobble. Because it's a
                     child of the translating wrapper, it genuinely moves WITH
                     the droplet instead of sitting in its own tab. */}
-                <div className="nx-tab-drop nx-tab-drop-idle h-11 w-11 -rotate-45">
+                <motion.div className="nx-tab-drop nx-tab-drop-idle h-11 w-11 -rotate-45" style={{ borderRadius }}>
                   {ActiveIcon && (
                     <span className="nx-tab-drop-icon">
                       <ActiveIcon className="h-5 w-5" />
                     </span>
                   )}
-                </div>
+                </motion.div>
               </motion.div>
             </motion.div>
           </div>

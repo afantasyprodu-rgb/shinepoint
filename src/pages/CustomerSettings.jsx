@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import L from 'leaflet'
@@ -174,12 +174,12 @@ export default function CustomerSettings() {
 
   const knownZip = zip.length === 5 && zip in CA_ZIP_CENTROIDS
   const nearest = zip.length === 5 && !knownZip ? closestDetailer(zip, detailers) : null
-  const tabs = [
+  const tabs = useMemo(() => [
     { id: 'profile', label: t('profile') },
     { id: 'vehicles', label: t('yourGarage') },
     { id: 'address', label: t('homeAddress') },
     { id: 'account', label: t('account') },
-  ]
+  ], [t])
 
   useEffect(() => {
     const activeIdx = tabs.findIndex(t => t.id === activeTab)
