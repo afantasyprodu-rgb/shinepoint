@@ -1,16 +1,17 @@
-// Sends the "your detailer is on the way" email when a job transitions to
-// en_route. This is the PRIMARY notice for the customer — they may not have
-// the app installed and might not be watching the booking page, so the
-// in-app tracker (EnRouteTracker.jsx) can't be relied on alone. Invoked
-// from the client (DetailerJob's "On my way" gate, real bookings only),
-// same trigger shape as send-receipt-email for job completion.
+// Notifies the customer when a job transitions to en_route — by SMS if
+// they've opted into texts, by email otherwise. Never both: a customer who
+// opted into SMS gets the text (with the tracking link) and nothing more;
+// email is the fallback for everyone else, since they may not have the app
+// installed and might not be watching the booking page (the in-app tracker,
+// EnRouteTracker.jsx, is a secondary best-effort view either way). Invoked
+// from the client (DetailerJob's "On my way" gate, real bookings only).
 //
 // Deploy: supabase functions deploy send-en-route-email
 // Secrets: RESEND_API_KEY (optional — send is skipped, not fatal, if unset).
 import { createClient } from 'npm:@supabase/supabase-js@^2'
 import { corsHeaders, json } from '../_shared/cors.ts'
 import { captureException } from '../_shared/sentry.ts'
-import { isUuid, isFiniteNumber } from '../_shared/validate.ts'
+import { isUuid } from '../_shared/validate.ts'
 import { withinRateLimit, tooManyRequests } from '../_shared/rateLimit.ts'
 import { sendEmail } from '../_shared/resend.ts'
 import { sendSms } from '../_shared/sentdm.ts'
@@ -33,7 +34,7 @@ Deno.serve(async (req) => {
     } = await userClient.auth.getUser()
     if (userErr || !user) return json({ error: 'Not authenticated' }, 401)
 
-    const { bookingId, etaMinutes } = await req.json().catch(() => ({}))
+    const { bookingId } = await req.json().catch(() => ({}))
     if (!isUuid(bookingId)) return json({ error: 'bookingId required' }, 400)
 
     const admin = createClient(
@@ -59,7 +60,6 @@ Deno.serve(async (req) => {
 
     const customer = (booking as any).customer_profiles?.users
     const detailer = (booking as any).detailer_profiles?.users
-    if (!customer?.email) return json({ error: 'No customer email on file' }, 422)
 
     const origin = Deno.env.get('APP_ORIGIN') ?? 'https://shinepoint.app'
     const bookingUrl = `${origin}/bookings/${booking.id}`
@@ -71,26 +71,18 @@ Deno.serve(async (req) => {
     // authenticated inbox context and links to the fuller in-app view.
     const trackingUrl = `${origin}/track/${booking.id}`
 
-    const { subject, html } = enRouteEmail({
-      customerName: customer.full_name ?? 'there',
-      detailerName: detailer?.full_name ?? 'Your detailer',
-      bookingId: booking.id,
-      etaMinutes: isFiniteNumber(etaMinutes) ? etaMinutes : undefined,
-      bookingUrl,
-    })
-
     // One send per trip in practice — capped so a stuck retry loop can't
-    // spam the customer's inbox.
+    // spam the customer.
     if (!(await withinRateLimit(admin, `enroute:${user.id}`, 10, '1 hour'))) {
       return tooManyRequests(3600)
     }
 
-    const result = await sendEmail({ to: customer.email, subject, html })
+    // SMS if they opted in, email otherwise — never both. A customer who
+    // asked for texts doesn't need the same notice twice.
+    const wantsSms = Boolean(customer.sms_opt_in && customer.phone)
 
-    // Non-fatal by the same contract as the email above — an SMS-provider
-    // hiccup must never surface as a failure of the underlying status change.
-    let smsResult: unknown
-    if (customer.sms_opt_in && customer.phone) {
+    if (wantsSms) {
+      let smsResult: unknown
       try {
         smsResult = await sendSms({
           to: customer.phone,
@@ -102,10 +94,22 @@ Deno.serve(async (req) => {
         })
       } catch (e) {
         console.error('send-en-route-email: sms failed:', (e as Error).message)
+        await captureException(e, 'send-en-route-email:sms')
       }
+      return json({ ok: true, sms: smsResult })
     }
 
-    return json({ ok: true, ...result, sms: smsResult })
+    if (!customer?.email) return json({ error: 'No customer email on file' }, 422)
+
+    const { subject, html } = enRouteEmail({
+      customerName: customer.full_name ?? 'there',
+      detailerName: detailer?.full_name ?? 'Your detailer',
+      bookingId: booking.id,
+      bookingUrl,
+    })
+    const result = await sendEmail({ to: customer.email, subject, html })
+
+    return json({ ok: true, ...result })
   } catch (e) {
     console.error('send-en-route-email:', e)
     await captureException(e, 'send-en-route-email')

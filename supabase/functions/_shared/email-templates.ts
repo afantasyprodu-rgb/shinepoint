@@ -251,31 +251,29 @@ export interface EnRouteData {
   customerName: string
   detailerName: string
   bookingId: string
-  etaMinutes?: number
   bookingUrl?: string
 }
 
-// Sent the moment a detailer taps "On my way" (status -> en_route). This is
-// the PRIMARY notice a customer gets that their detailer is heading over —
-// the in-app tracker (EnRouteTracker.jsx) is a secondary, best-effort view
-// for whoever happens to have the booking page open, not something a
-// customer is expected to be watching. Works for anyone with an inbox, no
-// app install required — the link just opens the normal web booking page.
+// Sent the moment a detailer taps "On my way" (status -> en_route) — but
+// only to customers who did NOT opt into SMS (see send-en-route-email:
+// SMS-opted-in customers get the text instead, not both). The in-app
+// tracker (EnRouteTracker.jsx) is a secondary, best-effort view for whoever
+// happens to have the booking page open, not something a customer is
+// expected to be watching. Works for anyone with an inbox, no app install
+// required — the link just opens the normal web booking page. Deliberately
+// never states an ETA — same reasoning as enRouteSms: the tracking link is
+// the source of truth, not a number that can go stale in transit.
 export function enRouteEmail(data: EnRouteData): { subject: string; html: string } {
   const {
-    customerName, detailerName, bookingId, etaMinutes,
+    customerName, detailerName, bookingId,
     bookingUrl = 'https://shinepoint.app/bookings',
   } = data
-
-  const etaLine = etaMinutes
-    ? `Estimated arrival in about <strong>${etaMinutes} min</strong>.`
-    : `They're on the way now.`
 
   const body = `
     <p style="margin:0 0 4px; font-size:13px; font-weight:600; color:${BRAND_700}; text-transform:uppercase; letter-spacing:0.05em;">On the way</p>
     <h1 style="margin:0 0 8px; font-size:24px; font-weight:700; color:${SLATE_900};">${esc(detailerName)} is heading your way, ${esc(customerName.split(' ')[0])}!</h1>
     <p style="margin:0 0 20px; font-size:15px; line-height:1.5; color:${SLATE_600};">
-      ${etaLine} You can follow along or message them anytime from the booking page.
+      They're on the way now. You can follow along or message them anytime from the booking page.
     </p>
     ${button('Track this booking', bookingUrl)}
     <p style="margin:20px 0 0; font-size:12px; line-height:1.5; color:${SLATE_400};">
@@ -284,7 +282,7 @@ export function enRouteEmail(data: EnRouteData): { subject: string; html: string
 
   return {
     subject: `${detailerName} is on the way`,
-    html: emailShell(`${detailerName} is on the way — ${etaLine.replace(/<\/?strong>/g, '')}`, body),
+    html: emailShell(`${detailerName} is on the way now`, body),
   }
 }
 
