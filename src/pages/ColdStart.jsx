@@ -325,72 +325,75 @@ export default function ColdStart() {
               chip above (tap or swipe). Swapping via AnimatePresence gives a
               quick in when the selection changes. */}
           <div className="pointer-events-auto mx-3 mb-3">
+            {/* Two direct AnimatePresence children (not one Fragment wrapping
+                both) — AnimatePresence clones each direct child to attach an
+                exit-tracking ref, and a Fragment can't take a ref (was
+                logging "Invalid prop `ref` supplied to React.Fragment"). */}
             <AnimatePresence mode="popLayout" initial={false}>
               {closeDetailers[activeIdx] && (
-                <>
-                  {/* Bio card — separate from reviews, so the pro's own story
-                      gets its own space instead of being bundled into the
-                      review card. Swaps with the active detailer. */}
-                  <motion.div
-                    key={`bio-${closeDetailers[activeIdx].id}`}
-                    initial={reduce ? false : { opacity: 0, scale: 0.85, y: 12 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={reduce ? undefined : { opacity: 0, scale: 0.9 }}
-                    transition={{ type: 'spring', stiffness: 420, damping: 24 }}
-                    className="rounded-2xl border border-brand-300 bg-white p-3 text-left shadow-md"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-100 text-sm font-bold text-brand-700">
-                        {closeDetailers[activeIdx].name?.[0] ?? 'P'}
-                      </span>
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold text-slate-900">{closeDetailers[activeIdx].name}</p>
-                        <p className="flex items-center gap-1 text-xs text-slate-600">
-                          <Stars rating={closeDetailers[activeIdx].rating ?? 5} className="h-3.5 w-3.5" />
-                          {closeDetailers[activeIdx].rating?.toFixed(1) ?? '5.0'} · {closeDetailers[activeIdx].reviews ?? 0} reviews
+                // Bio card — separate from reviews, so the pro's own story
+                // gets its own space instead of being bundled into the
+                // review card. Swaps with the active detailer.
+                <motion.div
+                  key={`bio-${closeDetailers[activeIdx].id}`}
+                  initial={reduce ? false : { opacity: 0, scale: 0.85, y: 12 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={reduce ? undefined : { opacity: 0, scale: 0.9 }}
+                  transition={{ type: 'spring', stiffness: 420, damping: 24 }}
+                  className="rounded-2xl border border-brand-300 bg-white p-3 text-left shadow-md"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-100 text-sm font-bold text-brand-700">
+                      {closeDetailers[activeIdx].name?.[0] ?? 'P'}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-slate-900">{closeDetailers[activeIdx].name}</p>
+                      <p className="flex items-center gap-1 text-xs text-slate-600">
+                        <Stars rating={closeDetailers[activeIdx].rating ?? 5} className="h-3.5 w-3.5" />
+                        {closeDetailers[activeIdx].rating?.toFixed(1) ?? '5.0'} · {closeDetailers[activeIdx].reviews ?? 0} reviews
+                      </p>
+                    </div>
+                  </div>
+                  {closeDetailers[activeIdx].bio && (
+                    <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-slate-500">
+                      {closeDetailers[activeIdx].bio}
+                    </p>
+                  )}
+                </motion.div>
+              )}
+              {closeDetailers[activeIdx] && (
+                // Review card — the actual reviews, separated from the bio.
+                <motion.div
+                  key={`rev-${closeDetailers[activeIdx].id}`}
+                  initial={reduce ? false : { opacity: 0, scale: 0.9, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={reduce ? undefined : { opacity: 0, scale: 0.95 }}
+                  transition={{ type: 'spring', stiffness: 420, damping: 24 }}
+                  className="rounded-2xl border border-slate-200 bg-white p-3 text-left shadow-md"
+                >
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">What people say</p>
+                  <div className="mt-1.5 flex flex-col gap-1.5">
+                    {reviewsFor(closeDetailers[activeIdx].id).map((r, ri) => (
+                      <div key={ri} className="flex items-start gap-2">
+                        {r.photo ? (
+                          <img src={r.photo} alt="" className="h-7 w-7 shrink-0 rounded-lg object-cover" />
+                        ) : (
+                          <span
+                            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br text-white ${REVIEW_PHOTO_SHADES[(ri + closeDetailers[activeIdx].id.length) % REVIEW_PHOTO_SHADES.length]}`}
+                            aria-hidden="true"
+                          >
+                            <CameraIcon className="h-3.5 w-3.5 opacity-80" />
+                          </span>
+                        )}
+                        <p className="text-xs text-slate-600">
+                          <span className="font-semibold text-slate-800">{r.name}</span>{' '}
+                          <span className="text-amber-500">{'★'.repeat(r.rating)}</span>{' '}
+                          {r.text}
                         </p>
                       </div>
-                    </div>
-                    {closeDetailers[activeIdx].bio && (
-                      <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-slate-500">
-                        {closeDetailers[activeIdx].bio}
-                      </p>
-                    )}
-                  </motion.div>
-
-                  {/* Review card — the actual reviews, separated from the bio. */}
-                  <motion.div
-                    key={`rev-${closeDetailers[activeIdx].id}`}
-                    initial={reduce ? false : { opacity: 0, scale: 0.9, y: 10 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={reduce ? undefined : { opacity: 0, scale: 0.95 }}
-                    transition={{ type: 'spring', stiffness: 420, damping: 24 }}
-                    className="rounded-2xl border border-slate-200 bg-white p-3 text-left shadow-md"
-                  >
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">What people say</p>
-                    <div className="mt-1.5 flex flex-col gap-1.5">
-                      {reviewsFor(closeDetailers[activeIdx].id).map((r, ri) => (
-                        <div key={ri} className="flex items-start gap-2">
-                          {r.photo ? (
-                            <img src={r.photo} alt="" className="h-7 w-7 shrink-0 rounded-lg object-cover" />
-                          ) : (
-                            <span
-                              className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br text-white ${REVIEW_PHOTO_SHADES[(ri + closeDetailers[activeIdx].id.length) % REVIEW_PHOTO_SHADES.length]}`}
-                              aria-hidden="true"
-                            >
-                              <CameraIcon className="h-3.5 w-3.5 opacity-80" />
-                            </span>
-                          )}
-                          <p className="text-xs text-slate-600">
-                            <span className="font-semibold text-slate-800">{r.name}</span>{' '}
-                            <span className="text-amber-500">{'★'.repeat(r.rating)}</span>{' '}
-                            {r.text}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </motion.div>
-                </>
+                    ))}
+                  </div>
+                </motion.div>
               )}
             </AnimatePresence>
           </div>

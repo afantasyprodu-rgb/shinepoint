@@ -258,9 +258,16 @@ function renderMarkers(map, markersRef, radarRef, detailers, navigate) {
     radarRef.current = null
   }
 
-  const withPin = detailers.filter((d) => d.pin)
+  const withPin = detailers.filter((d) => d.pin && Number.isFinite(d.pin.lat) && Number.isFinite(d.pin.lng))
   if (!withPin.length) return
   const zoom = map.getZoom()
+  // Leaflet leaves zoom/view undefined if the container had zero size when
+  // the map was created (mounting behind the pre-reveal full-screen sheet,
+  // before layout/paint settles) — project()/unproject() then produce NaN
+  // pixel coords and L.marker throws "Invalid LatLng object: (NaN, NaN)".
+  // The ResizeObserver below re-fires this once the container has a real
+  // size, so bailing here just skips the doomed intermediate render.
+  if (!Number.isFinite(zoom)) return
   const points = withPin.map((d) => map.project([d.pin.lat, d.pin.lng], zoom))
   const groups = clusterIndices(points, CLUSTER_PIXEL_DIST)
 
@@ -417,6 +424,18 @@ export default function DetailerMap({ detailers, focus, focusOpensPopup = true }
     mapRef.current = map
     const onZoomEnd = () => renderMarkers(mapRef.current, markersRef, radarRef, detailersRef.current, navigate)
     map.on('zoomend', onZoomEnd)
+    // Container can be zero-size at the instant this effect runs (mounting
+    // behind the pre-reveal full-screen sheet), leaving Leaflet's view
+    // undefined until it actually gets laid out. invalidateSize + a marker
+    // rebuild once a real size shows up self-heals that instead of leaving
+    // the map permanently blank/NaN.
+    const resizeObserver = new ResizeObserver(() => {
+      const m = mapRef.current
+      if (!m) return
+      m.invalidateSize()
+      renderMarkers(m, markersRef, radarRef, detailersRef.current, navigate)
+    })
+    resizeObserver.observe(containerRef.current)
     // Snapshot for the cleanup below: markersRef.current is reassigned
     // elsewhere, and reading the ref at cleanup time would clear whatever
     // Map is current THEN — not the one this effect created.
@@ -447,6 +466,7 @@ export default function DetailerMap({ detailers, focus, focusOpensPopup = true }
 
     return () => {
       map.off('zoomend', onZoomEnd)
+      resizeObserver.disconnect()
       map.remove()
       mapRef.current = null
       markers.clear()
@@ -480,7 +500,7 @@ export default function DetailerMap({ detailers, focus, focusOpensPopup = true }
   // Opening it synchronously here would target a marker that's about to be
   // torn down and rebuilt for the new zoom.
   useEffect(() => {
-    if (!focus || !mapRef.current) return
+    if (!focus || !Number.isFinite(focus.lat) || !Number.isFinite(focus.lng) || !mapRef.current) return
     const map = mapRef.current
     function openFocusPopup() {
       if (!focusOpensPopup) return
