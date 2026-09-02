@@ -5,7 +5,7 @@ import DetailerMap from '../components/DetailerMap'
 import { useStore } from '../context/StoreContext'
 import { Stars } from '../components/ui/bits'
 import HeroBubbles from '../components/ui/HeroBubbles'
-import { UserIcon, ArrowRightIcon, SparklesIcon } from '../components/icons'
+import { UserIcon, ArrowRightIcon, SparklesIcon, CameraIcon } from '../components/icons'
 import ThemeToggle from '../components/ThemeToggle'
 import LanguageToggle from '../components/LanguageToggle'
 import { milesBetween } from '../lib/fuzzyPin'
@@ -23,11 +23,22 @@ const JOIN_SPARKLES = [
 
 // This screen is demo-only (see the two-stage-reveal note above), and
 // neither the demo dataset nor the real reviews_of_detailers table stores a
-// photo per review — so there's never a real photo to show here today.
-// Picking from a small generic pool (not fabricating anything detailer- or
-// reviewer-specific) and keeping `photo: null` on every entry so the photo
-// thumbnail renders the moment a real photo field exists, instead of
-// needing this screen touched again.
+// photo per review — so there's never a real uploaded photo to show here.
+// `photo: null` on every entry means the thumbnail below falls back to the
+// same labeled-gradient-tile convention EvidencePhotos.jsx already uses
+// elsewhere in the app for "no real photo available" — a colored tile with
+// a camera glyph, not a fabricated picture claiming to be a real one. Swap
+// in a `photo: url` here (or wire a real photo field) and the <img> path
+// takes over automatically.
+const REVIEW_PHOTO_SHADES = [
+  'from-rose-300 to-rose-500',
+  'from-amber-300 to-amber-500',
+  'from-sky-300 to-sky-500',
+  'from-slate-300 to-slate-500',
+  'from-emerald-300 to-emerald-500',
+  'from-indigo-300 to-indigo-500',
+]
+
 const REVIEW_SNIPPET_POOL = [
   { name: 'Dana M.', rating: 5, text: 'Showed up on time, car looked brand new after.', photo: null },
   { name: 'Chris P.', rating: 5, text: 'Super thorough on the interior, worth every penny.', photo: null },
@@ -35,12 +46,15 @@ const REVIEW_SNIPPET_POOL = [
   { name: 'Priya K.', rating: 5, text: 'Best detail I have had in LA, booking again.', photo: null },
   { name: 'Jordan L.', rating: 5, text: 'Wheels and trim looked like new, very careful.', photo: null },
   { name: 'Alex R.', rating: 4, text: 'Solid wash, seats could have used more time.', photo: null },
+  { name: 'Morgan B.', rating: 5, text: 'Engine bay detail was spotless, very impressed.', photo: null },
+  { name: 'Taylor S.', rating: 5, text: 'Ceramic coat looks amazing, water beads right off.', photo: null },
+  { name: 'Riley N.', rating: 4, text: 'Friendly crew, pet hair finally all gone.', photo: null },
 ]
 
 function reviewsFor(detailerId) {
   const seed = String(detailerId ?? '').split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0)
   const start = seed % REVIEW_SNIPPET_POOL.length
-  return [REVIEW_SNIPPET_POOL[start], REVIEW_SNIPPET_POOL[(start + 1) % REVIEW_SNIPPET_POOL.length]]
+  return [0, 1, 2].map((offset) => REVIEW_SNIPPET_POOL[(start + offset) % REVIEW_SNIPPET_POOL.length])
 }
 
 // H3 — service chips for a detailer. Shows the services a pro offers as a
@@ -356,12 +370,16 @@ export default function ColdStart() {
                     <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">What people say</p>
                     <div className="mt-1.5 flex flex-col gap-1.5">
                       {reviewsFor(closeDetailers[activeIdx].id).map((r, ri) => (
-                        // Review photo only if it actually has one (the demo
-                        // pool has none yet, so this never renders today, but
-                        // it will the moment a real photo field shows up).
                         <div key={ri} className="flex items-start gap-2">
-                          {r.photo && (
+                          {r.photo ? (
                             <img src={r.photo} alt="" className="h-7 w-7 shrink-0 rounded-lg object-cover" />
+                          ) : (
+                            <span
+                              className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br text-white ${REVIEW_PHOTO_SHADES[(ri + closeDetailers[activeIdx].id.length) % REVIEW_PHOTO_SHADES.length]}`}
+                              aria-hidden="true"
+                            >
+                              <CameraIcon className="h-3.5 w-3.5 opacity-80" />
+                            </span>
                           )}
                           <p className="text-xs text-slate-600">
                             <span className="font-semibold text-slate-800">{r.name}</span>{' '}
