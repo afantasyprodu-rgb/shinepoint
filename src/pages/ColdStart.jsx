@@ -103,6 +103,7 @@ export default function ColdStart() {
   // the rotation comes back if they stop engaging.
   const [autoScroll, setAutoScroll] = useState(true)
   const carouselRef = useRef(null)
+
   // True while we're smooth-scrolling the carousel programmatically (the
   // auto-advance). `handleCarouselScroll` ignores scroll-position changes
   // during that window so a mid-scroll frame doesn't pick the wrong card and
@@ -305,6 +306,10 @@ export default function ColdStart() {
                     />
                   </span>
                   <span className="text-[11px] font-semibold text-slate-900">{d.name?.split(' ')[0] ?? `Pro ${i + 1}`}</span>
+                  <span className="flex items-center gap-0.5">
+                    <Stars rating={d.rating ?? 5} className="h-3 w-3" />
+                    <span className="text-[9px] font-medium text-slate-600">{(d.rating ?? 5).toFixed(1)}</span>
+                  </span>
                   {/* Uses real data where available instead of a fake slot
                       label: area, distance (when geolocation resolves), and a
                       plain "available" affordance. The demo roster has no
