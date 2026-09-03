@@ -8,6 +8,56 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="manifest" href="/manifest.json" />
     <title>Business Information — ShinePoint</title>
+    <!-- Structured data for search/AI answer engines (not shown to users) —
+         lets an AI assistant or AI Overview answer "mobile detailer near
+         me" with ShinePoint's name, contact, and service directly, instead
+         of only linking to the page. Keep NAP (name/address/phone) in sync
+         with footerContact in strings.js and /business-info — mismatched
+         contact info across these was exactly what tripped Twilio's
+         verification earlier, and the same consistency matters here. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "LocalBusiness",
+        "additionalType": "https://schema.org/AutomotiveBusiness",
+        "name": "ShinePoint",
+        "legalName": "Richard David Rodriguez Padilla, DBA ShinePoint",
+        "url": "https://shinepoint.app",
+        "logo": "https://shinepoint.app/favicon.svg",
+        "description": "LA's vetted mobile car detailers, booked in minutes. Photo-proofed jobs, insured options, detailing at your door.",
+        "email": "shinepoint.support@gmail.com",
+        "telephone": "+12135347417",
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "734 W Colden Ave",
+          "addressLocality": "Los Angeles",
+          "addressRegion": "CA",
+          "postalCode": "90044",
+          "addressCountry": "US"
+        },
+        "areaServed": {
+          "@type": "City",
+          "name": "Los Angeles"
+        },
+        "sameAs": ["https://shinepoint.app/business-info"],
+        "hasOfferCatalog": {
+          "@type": "OfferCatalog",
+          "name": "Mobile Detailing Services",
+          "itemListElement": [
+            {
+              "@type": "Offer",
+              "itemOffered": {
+                "@type": "Service",
+                "name": "Mobile Car Detailing",
+                "description": "On-demand mobile car detailing at the customer's home, office, or curb, performed by independent vetted detailers.",
+                "areaServed": "Los Angeles, CA",
+                "provider": { "@type": "LocalBusiness", "name": "ShinePoint" }
+              }
+            }
+          ]
+        }
+      }
+    </script>
     <script>
       // Seed the theme before first paint so dark mode never flashes white.
       // Default is light regardless of OS preference — dark is opt-in only.

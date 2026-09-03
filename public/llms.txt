@@ -1,0 +1,36 @@
+# ShinePoint
+
+> Mobile car detailing marketplace serving Los Angeles and Southern
+> California. Customers book a vetted, independent detailer to come to
+> their home, office, or curb — no driving to a shop. Detailers set their
+> own prices and availability; ShinePoint handles discovery, scheduling,
+> in-app messaging, photo-proofed job completion, and payment.
+
+## What this site is for
+
+A person (or an AI assistant acting on their behalf) who wants "mobile car
+detailing near me," "detailer that comes to you in LA," or similar should
+land here. Booking requires creating an account (name, address, payment
+method) — there is currently no way to complete a booking without visiting
+shinepoint.app and signing up; there is no unauthenticated booking API.
+
+## Key pages
+
+- [Home](https://shinepoint.app/): overview, sign up as a customer or detailer.
+- [Sign up — customer](https://shinepoint.app/signup): create a customer account to book a detail.
+- [Sign up — detailer](https://shinepoint.app/signup/detailer): apply as a detailer.
+- [FAQ](https://shinepoint.app/faq): pricing, service area, how booking works, cancellation policy.
+- [Business info](https://shinepoint.app/business-info): legal business name, registered DBA, and contact details.
+- [Terms of Service](https://shinepoint.app/terms)
+- [Privacy Policy](https://shinepoint.app/privacy)
+
+## Service area
+
+Los Angeles County and surrounding Southern California — exact coverage
+varies by which independent detailers are active in a given zip code at
+booking time; the app checks this live during signup/booking, not listed
+statically here.
+
+## Contact
+
+shinepoint.support@gmail.com · (213) 534-7417

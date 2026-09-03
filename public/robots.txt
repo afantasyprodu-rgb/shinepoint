@@ -1,0 +1,21 @@
+# ShinePoint — mobile car detailing, Los Angeles / Southern California.
+# Public marketing pages are open to every crawler, including AI assistants
+# and answer engines (OpenAI, Anthropic, Perplexity, Google, Common Crawl) —
+# being findable when someone asks an AI "mobile detailer near me" is the
+# point. Only actual private app routes are excluded.
+User-agent: *
+Allow: /
+Disallow: /bookings
+Disallow: /track/
+Disallow: /settings
+Disallow: /admin
+Disallow: /detailer
+Disallow: /home
+Disallow: /book/
+Disallow: /rewards
+Disallow: /onboarding
+Disallow: /welcome
+Disallow: /mfa-
+Disallow: /feedback
+
+Sitemap: https://shinepoint.app/sitemap.xml
