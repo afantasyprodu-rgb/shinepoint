@@ -57,6 +57,7 @@ export function StatusPill({ status, acceptsWhenBusy }) {
     in_progress: 'bg-brand-100 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300',
     complete: 'bg-cta-700/10 text-cta-700 dark:text-cta-500',
     cancelled: 'bg-slate-200 text-slate-600 dark:bg-white/10 dark:text-slate-400',
+    reschedule_offered: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
     disputed: 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300',
     open: 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300',
     under_review: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',

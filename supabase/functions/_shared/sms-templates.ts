@@ -36,6 +36,20 @@ export function enRouteSms(data: EnRouteSmsData): string {
   return `ShinePoint: ${detailerName} is on the way, ${customerName.split(' ')[0]}! Track them live: ${trackingUrl} ${OPT_OUT}`
 }
 
+export interface RescheduleOfferSmsData {
+  customerName: string
+  detailerName: string
+  respondUrl: string
+}
+
+// Companion to rescheduleOfferEmail — one link to the same response page,
+// same reasoning as enRouteSms: the page is the source of truth, the text
+// is just how they hear about it.
+export function rescheduleOfferSms(data: RescheduleOfferSmsData): string {
+  const { customerName, detailerName, respondUrl } = data
+  return `ShinePoint: ${detailerName} can't make your booking at the original time and suggested a new one, ${customerName.split(' ')[0]}. Respond within 24h: ${respondUrl} ${OPT_OUT}`
+}
+
 export interface AppointmentReminderSmsData {
   customerName: string
   detailerName: string

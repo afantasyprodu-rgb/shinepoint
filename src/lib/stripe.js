@@ -60,4 +60,23 @@ export const resolveDisputeWithRefund = (disputeId, resolution, refundAmount = 0
 // never a plain status patch — if the customer already paid, only the
 // edge function (service-role Stripe key) can actually refund them. See
 // decline-booking/index.ts for why the client can't do this itself.
-export const declineBookingWithRefund = (bookingId) => invokeFn('decline-booking', { bookingId })
+// suggestedTime is optional: pass it to offer a reschedule instead of an
+// immediate refund (073); omit it for the original instant-refund path.
+export const declineBookingWithRefund = (bookingId, suggestedTime, reason) =>
+  invokeFn('decline-booking', { bookingId, suggestedTime, reason })
+
+// Detailer confirming the time a customer countered with on a reschedule
+// offer — see confirm-reschedule-pick/index.ts for why this isn't automatic.
+export const confirmReschedulePick = (bookingId) =>
+  invokeFn('confirm-reschedule-pick', { bookingId })
+
+// Public, token-gated — no Supabase auth, works for guest and logged-in
+// customers alike. action omitted (or 'view') just reads the offer back.
+export const respondToReschedule = (token, action, pickedTime) =>
+  invokeFn('respond-to-reschedule', { token, action, pickedTime })
+
+// Logged-in-only: resolves a booking id to its active reschedule-offer
+// token, so the in-app banner can send the customer to the same
+// /reschedule/:token page a guest reaches by email/SMS.
+export const getRescheduleToken = (bookingId) =>
+  invokeFn('get-reschedule-token', { bookingId })

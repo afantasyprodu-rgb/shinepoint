@@ -299,6 +299,55 @@ export interface ReminderData {
 // scheduled_time — same day, not the day before) — the only email in this
 // file that isn't triggered by a status change. Same shell/button pattern
 // as the rest, just a different trigger.
+export interface RescheduleOfferData {
+  customerName: string
+  detailerName: string
+  service: string
+  originalTime: string // ISO
+  suggestedTime: string // ISO
+  respondUrl: string
+  deadline: string // ISO
+}
+
+// Sent by decline-booking when a detailer declines WITH a suggested
+// alternative time (see 073) — the one email in this file whose primary
+// action isn't "view the booking" but "make a decision": accept, pick a
+// different time, or take an immediate refund. All three live on the
+// respondUrl page, not as separate raw links in this email — a link that
+// mutates state (accepting, refunding) shouldn't be a bare GET a mail
+// scanner or prefetcher could trigger; the page requires an actual click.
+export function rescheduleOfferEmail(data: RescheduleOfferData): { subject: string; html: string } {
+  const { customerName, detailerName, service, originalTime, suggestedTime, respondUrl, deadline } = data
+
+  const body = `
+    <p style="margin:0 0 4px; font-size:13px; font-weight:600; color:#b45309; text-transform:uppercase; letter-spacing:0.05em;">Change to your booking</p>
+    <h1 style="margin:0 0 8px; font-size:24px; font-weight:700; color:${SLATE_900};">${esc(detailerName)} can't make it at the original time</h1>
+    <p style="margin:0 0 20px; font-size:15px; line-height:1.5; color:${SLATE_600};">
+      Something came up and ${esc(detailerName)} can't take your ${esc(service)} on ${esc(formatDateTime(originalTime))}. They'd still like to work with you — take a look at their suggestion.
+    </p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:${BRAND_50}; border-radius:12px; margin-bottom:20px;">
+      <tr>
+        <td style="padding:16px 18px;">
+          <p style="margin:0 0 2px; font-size:11.5px; font-weight:700; color:${BRAND_700}; text-transform:uppercase; letter-spacing:0.05em;">Suggested instead</p>
+          <p style="margin:0; font-size:16px; font-weight:700; color:${SLATE_900};">${esc(formatDateTime(suggestedTime))}</p>
+        </td>
+      </tr>
+    </table>
+    ${button('Review & respond', respondUrl)}
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:22px; background-color:#fef3c7; border-radius:10px;">
+      <tr>
+        <td style="padding:14px 16px; font-size:13px; color:#92400e;">
+          <strong>Respond by ${esc(formatDateTime(deadline))}.</strong> If we don't hear back, you'll be automatically refunded in full — no further action needed.
+        </td>
+      </tr>
+    </table>`
+
+  return {
+    subject: `${detailerName} suggested a new time for your detail`,
+    html: emailShell(`${detailerName} can't make the original time — review their suggestion`, body),
+  }
+}
+
 export function reminderEmail(data: ReminderData): { subject: string; html: string } {
   const {
     customerName, detailerName, service, scheduledTime, bookingId,

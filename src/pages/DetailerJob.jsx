@@ -23,6 +23,7 @@ import { useStore } from '../context/StoreContext'
 import { MAP_APPS, openInMaps } from '../lib/navigation'
 import { useT } from '../i18n/useT'
 import { sendReceiptEmail, sendEnRouteEmail } from '../lib/email'
+import { confirmReschedulePick } from '../lib/stripe'
 import { startTracking, stopTracking } from '../lib/tracking'
 import { playSfx } from '../lib/sfx'
 import { detailerPayoutEstimate } from '../lib/fees'
@@ -41,6 +42,8 @@ export default function DetailerJob() {
   const [stepsExpanded, setStepsExpanded] = useState(false)
   const [disputeResponse, setDisputeResponse] = useState('')
   const [respondingToDispute, setRespondingToDispute] = useState(false)
+  const [confirmingPick, setConfirmingPick] = useState(false)
+  const [confirmPickError, setConfirmPickError] = useState('')
   const b = getBooking(id)
   const t = useT('detailerJob')
   const addonNames = b?.detailerId
@@ -394,6 +397,66 @@ export default function DetailerJob() {
             </div>
           </div>
         </div>
+
+        {b.status === 'reschedule_offered' && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="card mt-3 border-amber-200 !p-5 dark:border-amber-500/30"
+          >
+            {b.rescheduleOfferStatus === 'countered' && b.rescheduleCustomerPick ? (
+              <>
+                <h2 className="font-display text-base font-bold text-slate-900 dark:text-slate-100">{t('customerCounteredTitle')}</h2>
+                <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                  {t('customerCounteredBody', {
+                    time: new Date(b.rescheduleCustomerPick).toLocaleString(undefined, {
+                      weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+                    }),
+                  })}
+                </p>
+                {confirmPickError && <p className="mt-2 text-sm text-red-600">{confirmPickError}</p>}
+                <button
+                  onClick={async () => {
+                    setConfirmPickError('')
+                    setConfirmingPick(true)
+                    try {
+                      if (isDemo) {
+                        patchBooking(b.id, {
+                          status: 'accepted', scheduledTime: b.rescheduleCustomerPick,
+                          rescheduleSuggestedTime: undefined, rescheduleOfferStatus: undefined,
+                          rescheduleOfferExpiresAt: undefined, rescheduleCustomerPick: undefined,
+                        })
+                      } else {
+                        await confirmReschedulePick(b.id)
+                      }
+                    } catch (err) {
+                      setConfirmPickError(err.message ?? String(err))
+                    } finally {
+                      setConfirmingPick(false)
+                    }
+                  }}
+                  disabled={confirmingPick}
+                  className="btn btn-cta mt-3 h-11 text-sm disabled:opacity-50"
+                >
+                  {confirmingPick ? t('confirmingPick') : t('confirmPick')}
+                </button>
+              </>
+            ) : (
+              <>
+                <h2 className="font-display text-base font-bold text-slate-900 dark:text-slate-100">{t('waitingOnCustomerTitle')}</h2>
+                <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                  {t('waitingOnCustomerBody', {
+                    time: b.rescheduleSuggestedTime
+                      ? new Date(b.rescheduleSuggestedTime).toLocaleString(undefined, {
+                          weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+                        })
+                      : '',
+                  })}
+                </p>
+              </>
+            )}
+          </motion.div>
+        )}
 
         {b.status === 'disputed' && b.dispute && (
           <motion.div

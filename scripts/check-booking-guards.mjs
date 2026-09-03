@@ -41,6 +41,10 @@ const REQUIRED_UPDATE_COLS = [
   'payout_requires_approval',
   'payout_approved_at',
   'payout_approved_by',
+  'reschedule_suggested_time',
+  'reschedule_offer_status',
+  'reschedule_offer_expires_at',
+  'reschedule_customer_pick',
 ]
 
 // Fields the INSERT guard must strip from client inserts.

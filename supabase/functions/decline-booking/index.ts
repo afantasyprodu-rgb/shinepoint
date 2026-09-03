@@ -1,23 +1,38 @@
-// Detailer declines a 'pending' request. The client had no way to move
-// money — a plain status update to 'cancelled' left the customer's card
-// charged and the platform holding funds for a job that will never happen.
-// If the booking was already paid, this issues a REAL, full Stripe refund
-// FIRST, then records the outcome — same ordering as resolve-dispute, for
-// the same reason: never mark money moved before it actually did.
+// Detailer declines a 'pending' request — two paths:
+//
+//   - WITH a suggestedTime: creates a reschedule offer instead of refunding
+//     immediately. The booking moves to 'reschedule_offered', a one-time
+//     response token is minted, and the customer is notified (SMS if
+//     opted in, email otherwise — same rule as every other notification in
+//     this codebase) with a link to respond: accept, pick a different
+//     time, or take an immediate refund. No response within 24h
+//     auto-refunds (see expire-reschedule-offers).
+//   - WITHOUT a suggestedTime: the original behavior, unchanged — an
+//     immediate, full Stripe refund with no reschedule offer. The client
+//     had no way to move money — a plain status update to 'cancelled' left
+//     the customer's card charged and the platform holding funds for a job
+//     that will never happen.
 //
 // Deploy: supabase functions deploy decline-booking
-// Secrets: STRIPE_SECRET_KEY (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY are
-// injected automatically).
+// Secrets: STRIPE_SECRET_KEY, RESEND_API_KEY, SENTDM_API_KEY (SUPABASE_URL /
+// SUPABASE_SERVICE_ROLE_KEY are injected automatically).
 import Stripe from 'npm:stripe@^18'
 import { createClient } from 'npm:@supabase/supabase-js@^2'
 import { corsHeaders, json } from '../_shared/cors.ts'
 import { captureException } from '../_shared/sentry.ts'
-import { isUuid } from '../_shared/validate.ts'
+import { isUuid, cleanText } from '../_shared/validate.ts'
 import { withinRateLimit, tooManyRequests } from '../_shared/rateLimit.ts'
+import { refundBooking } from '../_shared/refund.ts'
+import { sendEmail } from '../_shared/resend.ts'
+import { sendSms } from '../_shared/sentdm.ts'
+import { rescheduleOfferEmail } from '../_shared/email-templates.ts'
+import { rescheduleOfferSms } from '../_shared/sms-templates.ts'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
   apiVersion: '2026-05-27.dahlia' as Stripe.LatestApiVersion,
 })
+
+const OFFER_WINDOW_HOURS = 24
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
@@ -32,23 +47,34 @@ Deno.serve(async (req) => {
     const { data: { user }, error: userErr } = await userClient.auth.getUser()
     if (userErr || !user) return json({ error: 'Not authenticated' }, 401)
 
-    const { bookingId } = await req.json().catch(() => ({}))
+    const body = await req.json().catch(() => ({}))
+    const { bookingId } = body
     if (!isUuid(bookingId)) return json({ error: 'Missing or malformed bookingId' }, 400)
+
+    const suggestedTime = typeof body.suggestedTime === 'string' ? body.suggestedTime : null
+    if (suggestedTime && Number.isNaN(Date.parse(suggestedTime))) {
+      return json({ error: 'suggestedTime is not a valid date' }, 400)
+    }
+    const reason = cleanText(body.reason, 200)
 
     const admin = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    // Refunds move platform money — cap how often any one account can fire
-    // this, same discipline as every other money endpoint.
+    // Refunds move platform money, offers cost a send — cap both the same way.
     if (!(await withinRateLimit(admin, `decline:${user.id}`, 20, '1 hour'))) {
       return tooManyRequests(3600)
     }
 
     const { data: booking, error: bErr } = await admin
       .from('bookings')
-      .select('id, status, total_price, paid_at, stripe_payment_intent, refunded_amount, detailer_id, detailer_profiles!bookings_detailer_id_fkey(user_id)')
+      .select(
+        `id, status, total_price, paid_at, stripe_payment_intent, refunded_amount, detailer_id, scheduled_time,
+         detailer_profiles!bookings_detailer_id_fkey(user_id, users!inner(full_name)),
+         customer_profiles!inner(users!inner(email, phone, sms_opt_in, full_name)),
+         services(service_name)`
+      )
       .eq('id', bookingId)
       .single()
     if (bErr || !booking) return json({ error: 'Booking not found' }, 404)
@@ -59,45 +85,74 @@ Deno.serve(async (req) => {
       return json({ error: 'Only a pending request can be declined.' }, 409)
     }
 
-    let refundId: string | null = null
-    const alreadyRefunded = Number(booking.refunded_amount ?? 0)
-    const refundable = Number(booking.total_price ?? 0) - alreadyRefunded
-
-    if (booking.paid_at && booking.stripe_payment_intent && refundable > 0.001) {
-      const refund = await stripe.refunds.create({
-        payment_intent: booking.stripe_payment_intent,
-        amount: Math.round(refundable * 100),
-        metadata: { booking_id: booking.id, reason: 'detailer_declined' },
-      }, {
-        idempotencyKey: `refund-${booking.id}`,
-      })
-      refundId = refund.id
+    if (!suggestedTime) {
+      const { refundId, refunded } = await refundBooking(admin, stripe, booking, 'detailer')
+      return json({ ok: true, offered: false, refundId, refunded })
     }
+
+    const expiresAt = new Date(Date.now() + OFFER_WINDOW_HOURS * 3600_000).toISOString()
 
     const { error: updateErr } = await admin
       .from('bookings')
       .update({
-        status: 'cancelled',
-        cancelled_by: 'detailer',
-        // Nothing was performed — zero out what would otherwise still look
-        // payable, same accounting resolve-dispute does for a full refund.
-        // release-payouts only ever pays 'complete' bookings, so this was
-        // never actually at risk of paying out, but a declined job showing
-        // a nonzero payout in reporting is still a lie worth not telling.
-        platform_cut: 0,
-        detailer_payout: 0,
-        ...(refundId ? { refunded_amount: Number(booking.total_price ?? 0), stripe_refund_id: refundId } : {}),
+        status: 'reschedule_offered',
+        decline_reason: reason,
+        reschedule_suggested_time: suggestedTime,
+        reschedule_offer_status: 'offered',
+        reschedule_offer_expires_at: expiresAt,
       })
       .eq('id', bookingId)
+    if (updateErr) return json({ error: updateErr.message }, 500)
 
-    if (updateErr) {
-      // The refund already went out; surface loudly rather than silently
-      // leaving the record and the money out of step.
-      console.error('decline-booking: refund succeeded but update failed', refundId, updateErr.message)
-      return json({ error: `Refund issued (${refundId}) but recording it failed: ${updateErr.message}` }, 500)
+    const { data: tokenRow, error: tokenErr } = await admin
+      .from('reschedule_tokens')
+      .insert({ booking_id: bookingId, expires_at: expiresAt })
+      .select('token')
+      .single()
+    if (tokenErr || !tokenRow) {
+      console.error('decline-booking: failed to mint reschedule token', tokenErr?.message)
+      await captureException(new Error(tokenErr?.message ?? 'no token row'), 'decline-booking:token')
+      return json({ ok: true, offered: true, notified: false })
     }
 
-    return json({ ok: true, refundId, refunded: refundId ? refundable : 0 })
+    const customer = (booking as any).customer_profiles?.users
+    const detailer = (booking as any).detailer_profiles?.users
+    const service = (booking as any).services?.service_name ?? 'Detail service'
+    const origin = Deno.env.get('APP_ORIGIN') ?? 'https://shinepoint.app'
+    const respondUrl = `${origin}/reschedule/${tokenRow.token}`
+
+    const wantsSms = Boolean(customer?.sms_opt_in && customer?.phone)
+    let notified = false
+    try {
+      if (wantsSms) {
+        await sendSms({
+          to: customer.phone,
+          body: rescheduleOfferSms({
+            customerName: customer.full_name ?? 'there',
+            detailerName: detailer?.full_name ?? 'Your detailer',
+            respondUrl,
+          }),
+        })
+        notified = true
+      } else if (customer?.email) {
+        const { subject, html } = rescheduleOfferEmail({
+          customerName: customer.full_name ?? 'there',
+          detailerName: detailer?.full_name ?? 'Your detailer',
+          service,
+          originalTime: booking.scheduled_time,
+          suggestedTime,
+          respondUrl,
+          deadline: expiresAt,
+        })
+        await sendEmail({ to: customer.email, subject, html })
+        notified = true
+      }
+    } catch (e) {
+      console.error('decline-booking: notification failed:', (e as Error).message)
+      await captureException(e, 'decline-booking:notify')
+    }
+
+    return json({ ok: true, offered: true, notified })
   } catch (e) {
     console.error('decline-booking:', e)
     await captureException(e, 'decline-booking')

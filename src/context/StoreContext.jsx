@@ -872,15 +872,36 @@ export function StoreProvider({ children }) {
       // refund. The edge function checks payment status and issues a real
       // Stripe refund first when there is one; only then is the row
       // updated (see decline-booking/index.ts).
-      async declineBooking(id) {
+      // suggestedTime is optional — pass it to offer a reschedule instead
+      // of an immediate refund (073).
+      async declineBooking(id, suggestedTime, reason) {
         if (!isDemo) {
-          await declineBookingWithRefund(id)
+          const result = await declineBookingWithRefund(id, suggestedTime, reason)
           setRealBookings((bs) =>
-            bs.map((b) => (b.id === id ? { ...b, status: 'cancelled', cancelledBy: 'detailer' } : b))
+            bs.map((b) =>
+              b.id === id
+                ? result.offered
+                  ? { ...b, status: 'reschedule_offered', declineReason: reason ?? null }
+                  : { ...b, status: 'cancelled', cancelledBy: 'detailer' }
+                : b
+            )
           )
-          return
+          return result
+        }
+        // Demo store: patchBooking spreads any keys, no schema needed —
+        // the reschedule-offer fields below aren't real columns here, just
+        // enough for the demo UI to render the same states.
+        if (suggestedTime) {
+          patchBooking(id, {
+            status: 'reschedule_offered',
+            declineReason: reason ?? null,
+            rescheduleSuggestedTime: suggestedTime,
+            rescheduleOfferExpiresAt: new Date(Date.now() + 24 * 3600_000).toISOString(),
+          })
+          return { ok: true, offered: true }
         }
         patchBooking(id, { status: 'cancelled', cancelledBy: 'detailer' })
+        return { ok: true, offered: false }
       },
 
       sendMessage(bookingId, from, text) {

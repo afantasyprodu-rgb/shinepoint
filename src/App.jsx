@@ -48,6 +48,7 @@ const Legal = lazy(() => import('./pages/Legal').then((m) => ({ default: m.Terms
 // wrappers so each route gets its own chunk reference.
 const PrivacyLazy = lazy(() => import('./pages/Legal').then((m) => ({ default: m.Privacy })))
 const PublicTracking = lazy(() => import('./pages/PublicTracking'))
+const ManageReschedule = lazy(() => import('./pages/ManageReschedule'))
 const Faq = lazy(() => import('./pages/Faq'))
 
 function PageFallback() {
@@ -118,6 +119,7 @@ export default function App() {
             deliberately outside ProtectedRoute; the booking id in the URL
             is the capability. */}
         <Route path="/track/:id" element={safe(<PublicTracking />)} />
+        <Route path="/reschedule/:token" element={safe(<ManageReschedule />)} />
         {/* Post-signup profile setup — any signed-in role, no role gate. */}
         <Route path="/welcome" element={<ProtectedRoute><ErrorBoundary><ProfileSetup /></ErrorBoundary></ProtectedRoute>} />
         {/* Optional 2FA enrollment prompt right after signup. */}

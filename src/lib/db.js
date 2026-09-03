@@ -146,6 +146,13 @@ function normalizeCustomerBooking(row) {
     tipPaidAt: row.tip_paid_at ?? null,
     refundedAmount: Number(row.refunded_amount ?? 0),
     dispute: normalizeDispute(row),
+    // A detailer's decline-with-suggestion (073). declineReason/rescheduleXxx
+    // are only ever non-null while status === 'reschedule_offered'.
+    declineReason: row.decline_reason ?? undefined,
+    rescheduleSuggestedTime: row.reschedule_suggested_time ?? undefined,
+    rescheduleOfferStatus: row.reschedule_offer_status ?? undefined,
+    rescheduleOfferExpiresAt: row.reschedule_offer_expires_at ?? undefined,
+    rescheduleCustomerPick: row.reschedule_customer_pick ?? undefined,
     ...mapBookingPhotos(row),
     // Forecast snapshot taken at booking time (see buildDraft in
     // BookingWizard.jsx) — bookings made before this was wired up have no
@@ -199,6 +206,11 @@ function normalizeDetailerBooking(row) {
     tipPaidAt: row.tip_paid_at ?? null,
     refundedAmount: Number(row.refunded_amount ?? 0),
     dispute: normalizeDispute(row),
+    declineReason: row.decline_reason ?? undefined,
+    rescheduleSuggestedTime: row.reschedule_suggested_time ?? undefined,
+    rescheduleOfferStatus: row.reschedule_offer_status ?? undefined,
+    rescheduleOfferExpiresAt: row.reschedule_offer_expires_at ?? undefined,
+    rescheduleCustomerPick: row.reschedule_customer_pick ?? undefined,
     ...mapBookingPhotos(row),
     // Forecast snapshot taken at booking time (see buildDraft in
     // BookingWizard.jsx) — bookings made before this was wired up have no
@@ -695,6 +707,8 @@ export async function fetchBookingsForCustomer(customerProfileId) {
       vehicle_type, vehicle_make, vehicle_model,
       damage_report_submitted, damage_report_acknowledged,
       cancelled_by, invoice, tip_paid_at, refunded_amount, paid_at,
+      decline_reason, reschedule_suggested_time, reschedule_offer_status,
+      reschedule_offer_expires_at, reschedule_customer_pick,
       services(service_name),
       detailer_profiles!bookings_detailer_id_fkey(
         id,
@@ -725,6 +739,8 @@ export async function fetchBookingsForDetailer(detailerProfileId) {
       damage_report_submitted, damage_report_acknowledged,
       cancelled_by, invoice, tip_paid_at, refunded_amount, paid_at,
       platform_cut, detailer_payout, payout_hold_until, transferred_at,
+      decline_reason, reschedule_suggested_time, reschedule_offer_status,
+      reschedule_offer_expires_at, reschedule_customer_pick,
       services(service_name),
       customer_profiles!bookings_customer_id_fkey(
         id,

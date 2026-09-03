@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import AppShell from '../components/AppShell'
 import AvailabilityToggle from '../components/AvailabilityToggle'
+import Modal from '../components/ui/Modal'
 import { AnimatedPage, FadeIn } from '../components/ui/Motion'
 import { Avatar, CountUp, ProgressBar, StatusPill } from '../components/ui/bits'
 import { useAuth } from '../context/AuthContext'
@@ -146,12 +147,14 @@ export default function DetailerDashboard() {
   const [decliningId, setDecliningId] = useState(null)
   const [declineError, setDeclineError] = useState('')
   const [expandedIncomingId, setExpandedIncomingId] = useState(null)
+  const [declineModalBooking, setDeclineModalBooking] = useState(null)
 
-  async function handleDecline(id) {
+  async function handleDecline(id, suggestedTime, reason) {
     setDeclineError('')
     setDecliningId(id)
     try {
-      await declineBooking(id)
+      await declineBooking(id, suggestedTime, reason)
+      setDeclineModalBooking(null)
     } catch (err) {
       setDeclineError(err.message ?? String(err))
     } finally {
@@ -417,7 +420,7 @@ export default function DetailerDashboard() {
                       {t('accept')}
                     </button>
                     <button
-                      onClick={(e) => { e.stopPropagation(); handleDecline(b.id)}}
+                      onClick={(e) => { e.stopPropagation(); setDeclineModalBooking(b) }}
                       disabled={decliningId === b.id}
                       className="btn btn-outline h-11 flex-1 text-sm disabled:opacity-50"
                     >
@@ -532,6 +535,118 @@ export default function DetailerDashboard() {
           </div>
         )}
       </AnimatedPage>
+      <DeclineModal
+        booking={declineModalBooking}
+        onClose={() => setDeclineModalBooking(null)}
+        onDecline={handleDecline}
+        declining={decliningId === declineModalBooking?.id}
+        t={t}
+      />
     </AppShell>
+  )
+}
+
+// Decline flow: suggest a new time (keeps the job) or refund immediately.
+// Defaults to suggesting — that's the retention-friendly path, and the
+// customer always still gets an explicit refund option on their end
+// regardless of which one the detailer picks here.
+function DeclineModal({ booking, onClose, onDecline, declining, t }) {
+  const [suggest, setSuggest] = useState(true)
+  const [time, setTime] = useState('')
+  const [reason, setReason] = useState('')
+
+  useEffect(() => {
+    if (booking) {
+      setSuggest(true)
+      setTime('')
+      setReason('')
+    }
+  }, [booking])
+
+  if (!booking) return null
+
+  const minDateTime = new Date(Date.now() + 3600_000).toISOString().slice(0, 16)
+
+  async function submit() {
+    if (suggest) {
+      if (!time) return
+      await onDecline(booking.id, new Date(time).toISOString(), reason || undefined)
+    } else {
+      await onDecline(booking.id, undefined, reason || undefined)
+    }
+  }
+
+  return (
+    <Modal open={Boolean(booking)} onClose={onClose} labelledBy="decline-modal-title">
+      <div className="p-5">
+        <h2 id="decline-modal-title" className="font-display text-lg font-bold text-slate-900 dark:text-slate-100">
+          {t('declineModalTitle')}
+        </h2>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{t('declineModalBlurb')}</p>
+
+        <label className="mt-4 block text-xs font-semibold text-slate-500 dark:text-slate-400">
+          {t('declineReasonLabel')}
+        </label>
+        <input
+          type="text"
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          placeholder={t('declineReasonPlaceholder')}
+          maxLength={200}
+          className="input mt-1.5 w-full"
+        />
+
+        <div className="mt-4 flex items-center justify-between gap-3 rounded-xl bg-cta-50 p-3 dark:bg-cta-500/10">
+          <div>
+            <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{t('declineSuggestToggle')}</p>
+            <p className="text-xs text-cta-700 dark:text-cta-400">{t('declineSuggestHint')}</p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={suggest}
+            onClick={() => setSuggest((s) => !s)}
+            className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${suggest ? 'bg-cta-600' : 'bg-slate-300 dark:bg-white/20'}`}
+          >
+            <span
+              className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${suggest ? 'translate-x-[22px]' : 'translate-x-0.5'}`}
+            />
+          </button>
+        </div>
+
+        {suggest && (
+          <div className="mt-4">
+            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400">{t('declineTimeLabel')}</label>
+            <input
+              type="datetime-local"
+              value={time}
+              min={minDateTime}
+              onChange={(e) => setTime(e.target.value)}
+              className="input mt-1.5 w-full"
+            />
+          </div>
+        )}
+
+        {suggest && (
+          <p className="mt-3 rounded-xl bg-brand-50 p-3 text-xs text-brand-700 dark:bg-brand-500/10 dark:text-brand-300">
+            {t('declineTimeoutNote')}
+          </p>
+        )}
+
+        <div className="mt-5 flex gap-2">
+          <button type="button" onClick={onClose} className="btn btn-outline h-11 flex-1 text-sm">
+            {t('declineCancel')}
+          </button>
+          <button
+            type="button"
+            onClick={submit}
+            disabled={declining || (suggest && !time)}
+            className={`btn h-11 flex-1 text-sm disabled:opacity-50 ${suggest ? 'btn-brand' : 'btn-outline'}`}
+          >
+            {declining ? t('declining') : suggest ? t('declineSendOffer') : t('declineRefundNow')}
+          </button>
+        </div>
+      </div>
+    </Modal>
   )
 }

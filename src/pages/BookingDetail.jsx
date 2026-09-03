@@ -25,7 +25,7 @@ import {
 import { useStore } from '../context/StoreContext'
 import { useLanguage } from '../context/LanguageContext'
 import { useT } from '../i18n/useT'
-import { startIdentityVerification, stripePromise, isStripeConfigured, createPaymentIntent } from '../lib/stripe'
+import { startIdentityVerification, stripePromise, isStripeConfigured, createPaymentIntent, getRescheduleToken } from '../lib/stripe'
 import { playSfx } from '../lib/sfx'
 
 // Half the tick hit-target (.job-progress-tick is 2.75rem) — insetting every
@@ -82,6 +82,8 @@ export default function BookingDetail() {
   const [customTip, setCustomTip] = useState('')
   const [selectedTip, setSelectedTip] = useState(null)
   const [thankYouAmount, setThankYouAmount] = useState(null)
+  const [rescheduleToken, setRescheduleToken] = useState(null)
+  const [rescheduleTokenError, setRescheduleTokenError] = useState('')
   // Tip charge is a real Stripe call (charge-tip edge function) and can fail
   // — card declined, no saved card, network. The UI used to fire-and-forget
   // submitReview and show the thank-you overlay unconditionally, so a
@@ -136,6 +138,20 @@ export default function BookingDetail() {
     const t = setTimeout(() => setHighlightTimeline(false), 1400)
     return () => clearTimeout(t)
   }, [highlightTimeline])
+
+  const bookingStatus = getBooking(id)?.status
+  useEffect(() => {
+    if (isDemo || bookingStatus !== 'reschedule_offered') {
+      setRescheduleToken(null)
+      return
+    }
+    let cancelled = false
+    setRescheduleTokenError('')
+    getRescheduleToken(id)
+      .then((data) => { if (!cancelled) setRescheduleToken(data.token) })
+      .catch((err) => { if (!cancelled) setRescheduleTokenError(err.message ?? String(err)) })
+    return () => { cancelled = true }
+  }, [id, isDemo, bookingStatus])
 
   const b = getBooking(id)
   const d = b && getDetailer(b.detailerId)
@@ -219,6 +235,52 @@ const shownStage = openStage ?? stageIdx
               {b.weather.rainy ? t('weatherBadgeRain') : t('weatherBadgeClear')}
               {b.weather.tempF != null && <span className="tabular-nums">· {b.weather.tempF}°</span>}
             </p>
+          )}
+
+          {b.status === 'reschedule_offered' && (
+            <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-500/30 dark:bg-amber-500/10">
+              <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                {detailerName} suggested a new time
+              </p>
+              <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
+                {b.rescheduleSuggestedTime && new Date(b.rescheduleSuggestedTime).toLocaleString(undefined, {
+                  weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+                })}
+                {' — accept it, pick another time, or take a refund.'}
+              </p>
+              {isDemo ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    onClick={() => patchBooking(b.id, {
+                      status: 'accepted', scheduledTime: b.rescheduleSuggestedTime,
+                      rescheduleSuggestedTime: undefined, rescheduleOfferStatus: undefined,
+                      rescheduleOfferExpiresAt: undefined,
+                    })}
+                    className="btn btn-cta h-9 px-4 text-xs"
+                  >
+                    Accept new time
+                  </button>
+                  <button
+                    onClick={() => patchBooking(b.id, {
+                      status: 'cancelled', cancelledBy: 'customer',
+                      rescheduleSuggestedTime: undefined, rescheduleOfferStatus: undefined,
+                      rescheduleOfferExpiresAt: undefined,
+                    })}
+                    className="btn btn-outline h-9 px-4 text-xs"
+                  >
+                    Refund me
+                  </button>
+                </div>
+              ) : rescheduleTokenError ? (
+                <p className="mt-2 text-xs text-red-600">{rescheduleTokenError}</p>
+              ) : rescheduleToken ? (
+                <Link to={`/reschedule/${rescheduleToken}`} className="btn btn-brand mt-3 inline-flex h-9 px-4 text-xs">
+                  Review &amp; respond
+                </Link>
+              ) : (
+                <div className="mt-3 h-9 w-32 animate-pulse rounded-full bg-amber-200/60 dark:bg-amber-500/20" />
+              )}
+            </div>
           )}
 
           {unpaid && (
