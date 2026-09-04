@@ -38,6 +38,7 @@ const AdminPeople = lazy(() => import('./pages/admin/AdminPeople'))
 const AdminOps = lazy(() => import('./pages/admin/AdminOps'))
 const AdminFinance = lazy(() => import('./pages/admin/AdminFinance'))
 const AdminAnalytics = lazy(() => import('./pages/admin/AdminAnalytics'))
+const AdminVisionCompare = lazy(() => import('./pages/admin/AdminVisionCompare'))
 const ProfileSetup = lazy(() => import('./pages/ProfileSetup'))
 const MfaSetup = lazy(() => import('./pages/MfaSetup'))
 const MfaChallenge = lazy(() => import('./pages/MfaChallenge'))
@@ -156,6 +157,7 @@ export default function App() {
         <Route path="/admin/ops" element={guard('admin', <AdminOps />)} />
         <Route path="/admin/finance" element={guard('admin', <AdminFinance />)} />
         <Route path="/admin/analytics" element={guard('admin', <AdminAnalytics />)} />
+        <Route path="/admin/vision-compare" element={guard('admin', <AdminVisionCompare />)} />
       </Routes>
       </Suspense>
     </TransitionOverlay>

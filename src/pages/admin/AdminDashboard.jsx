@@ -105,6 +105,21 @@ export default function AdminDashboard() {
             </div>
           </FadeIn>
         </div>
+
+        <FadeIn delay={0.3}>
+          <Link
+            to="/admin/vision-compare"
+            className="card card-hover mt-4 flex items-center justify-between !p-5 text-left"
+          >
+            <div>
+              <p className="font-semibold text-slate-900 dark:text-slate-100">Vision provider comparison</p>
+              <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                Test OpenRouter vs. Anthropic side by side on a real vehicle or flyer photo
+              </p>
+            </div>
+            <ArrowRightIcon className="h-4 w-4 shrink-0 text-slate-400" />
+          </Link>
+        </FadeIn>
       </AnimatedPage>
     </AdminShell>
   )

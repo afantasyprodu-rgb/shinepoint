@@ -95,42 +95,49 @@ async function callOpenRouter(apiKey: string, model: string, opts: VisionCallOpt
   return result?.choices?.[0]?.message?.content ?? ''
 }
 
+export type VisionProviderName = 'openrouter' | 'deepseek' | 'anthropic'
+
+// One provider, called directly — used by both callVisionWithFallback
+// (tries these in order) and compare-vision-providers (calls two of them
+// in parallel to show side by side). Throws 'NOT_CONFIGURED' if that
+// provider's key isn't set, so callers can tell "not configured" apart
+// from "configured but the call failed".
+export async function callSpecificProvider(provider: VisionProviderName, opts: VisionCallOptions): Promise<string> {
+  if (provider === 'openrouter') {
+    const key = Deno.env.get('OPENROUTER_API_KEY')
+    if (!key) throw new Error('NOT_CONFIGURED')
+    return callOpenRouter(key, 'google/gemma-4-31b-it:free', opts)
+  }
+  if (provider === 'deepseek') {
+    const key = Deno.env.get('DEEPSEEK_API_KEY')
+    if (!key) throw new Error('NOT_CONFIGURED')
+    return callAnthropicShaped('https://api.deepseek.com/anthropic', key, 'deepseek-v4-flash-vision-exp', opts)
+  }
+  const key = Deno.env.get('ANTHROPIC_API_KEY')
+  if (!key) throw new Error('NOT_CONFIGURED')
+  return callAnthropicShaped('https://api.anthropic.com', key, 'claude-haiku-4-5-20251001', opts)
+}
+
 // Tries OpenRouter, then DeepSeek, then Anthropic — whichever are
 // configured — returning the first success. Throws only if every
 // configured provider failed, with each provider's own error folded in so
 // the failure says why, not just "something broke".
 export async function callVisionWithFallback(opts: VisionCallOptions): Promise<string> {
-  const openrouterKey = Deno.env.get('OPENROUTER_API_KEY')
-  const deepseekKey = Deno.env.get('DEEPSEEK_API_KEY')
-  const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY')
-
-  const attempts: Array<{ name: string; run: () => Promise<string> }> = []
-  if (openrouterKey) {
-    attempts.push({ name: 'openrouter', run: () => callOpenRouter(openrouterKey, 'google/gemma-4-31b-it:free', opts) })
-  }
-  if (deepseekKey) {
-    attempts.push({
-      name: 'deepseek',
-      run: () => callAnthropicShaped('https://api.deepseek.com/anthropic', deepseekKey, 'deepseek-v4-flash-vision-exp', opts),
-    })
-  }
-  if (anthropicKey) {
-    attempts.push({
-      name: 'anthropic',
-      run: () => callAnthropicShaped('https://api.anthropic.com', anthropicKey, 'claude-haiku-4-5-20251001', opts),
-    })
-  }
-  if (attempts.length === 0) {
-    throw new Error('NOT_CONFIGURED')
-  }
+  const order: VisionProviderName[] = ['openrouter', 'deepseek', 'anthropic']
+  const configured = order.filter((p) => {
+    if (p === 'openrouter') return Boolean(Deno.env.get('OPENROUTER_API_KEY'))
+    if (p === 'deepseek') return Boolean(Deno.env.get('DEEPSEEK_API_KEY'))
+    return Boolean(Deno.env.get('ANTHROPIC_API_KEY'))
+  })
+  if (configured.length === 0) throw new Error('NOT_CONFIGURED')
 
   const errors: string[] = []
-  for (const attempt of attempts) {
+  for (const provider of configured) {
     try {
-      return await attempt.run()
+      return await callSpecificProvider(provider, opts)
     } catch (e) {
-      console.error(`callVisionWithFallback: ${attempt.name} failed:`, (e as Error).message)
-      errors.push(`${attempt.name}: ${(e as Error).message}`)
+      console.error(`callVisionWithFallback: ${provider} failed:`, (e as Error).message)
+      errors.push(`${provider}: ${(e as Error).message}`)
     }
   }
   throw new Error(`All vision providers failed — ${errors.join(' | ')}`)

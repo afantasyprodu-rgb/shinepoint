@@ -981,6 +981,25 @@ export async function extractVehiclePhoto(file) {
   })
 }
 
+// Admin-only debug tool (AdminVisionCompare.jsx): runs the same photo
+// through OpenRouter and Anthropic in parallel via compare-vision-providers
+// and returns both raw results side by side — never falls back, unlike the
+// real extract-* functions, since the point here is seeing both, not
+// picking one.
+export async function compareVisionProviders(file, kind) {
+  const base64 = await new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result).split(',')[1] ?? '')
+    reader.onerror = () => reject(new Error('Could not read that image.'))
+    reader.readAsDataURL(file)
+  })
+  return invokeFn('compare-vision-providers', {
+    imageBase64: base64,
+    mediaType: file.type,
+    kind,
+  })
+}
+
 export async function saveDetailerOnboarding(userId, {
   bio,
   zip,
