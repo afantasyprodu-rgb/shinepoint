@@ -67,12 +67,19 @@ const FLYER_PROMPT =
   'any priced services, return [].'
 
 function parseJsonLoose(text: string): unknown {
+  // Models sometimes wrap the answer in a ```json fence despite being told
+  // not to — strip that before anything else.
+  const stripped = text.replace(/^```[a-z]*\n?/i, '').replace(/```\s*$/, '').trim()
   try {
-    return JSON.parse(text)
+    return JSON.parse(stripped)
   } catch {
-    const obj = text.match(/\{[\s\S]*\}/)
-    const arr = text.match(/\[[\s\S]*\]/)
-    const match = obj ?? arr
+    // Which bracket to look for depends on which one the answer actually
+    // starts with — trying "{...}" unconditionally on an array response
+    // matches the first object INSIDE the array (a { from array[0] to the
+    // LAST } in the whole string), not the array itself, producing
+    // malformed JSON. Match on the type the response actually opens with.
+    const re = stripped.startsWith('[') ? /\[[\s\S]*\]/ : /\{[\s\S]*\}/
+    const match = stripped.match(re)
     if (!match) return null
     try {
       return JSON.parse(match[0])
