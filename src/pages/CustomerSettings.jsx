@@ -241,9 +241,9 @@ export default function CustomerSettings() {
     }
   }
 
-  // Stored/sent in E.164 (+1XXXXXXXXXX) — what Twilio requires. A bare
-  // 10-digit US number typed in is normalized; anything already starting
-  // with + is trusted as-is.
+  // Stored/sent in E.164 (+1XXXXXXXXXX) — what our messaging provider
+  // (Sent) requires. A bare 10-digit US number typed in is normalized;
+  // anything already starting with + is trusted as-is.
   function normalizePhone(raw) {
     const digits = raw.replace(/\D/g, '')
     if (raw.trim().startsWith('+')) return `+${digits}`
