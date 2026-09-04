@@ -4,13 +4,14 @@ import { AnimatedPage } from '../../components/ui/Motion'
 import { AlertTriangleIcon, CheckIcon, ClockIcon } from '../../components/icons'
 import { compareVisionProviders } from '../../lib/db'
 
-// Admin-only debug tool — runs a real photo through both OpenRouter
-// (google/gemma-4-31b-it:free) and Anthropic (Claude Haiku) in parallel via
-// compare-vision-providers, and shows both results side by side. Two
-// panels: the client-side prompt (vehicle photo, from onboarding) and the
-// detailer-side prompt (price flyer) — same prompts production actually
-// uses, not stand-ins. Never wired into the real app flow; this exists
-// purely to eyeball provider quality/speed against each other.
+// Admin-only debug tool — runs a real photo through all three vision
+// providers (OpenRouter/gemma, DeepSeek, Anthropic/Haiku) in parallel via
+// compare-vision-providers, and shows all three results side by side with
+// timing and an estimated per-call cost. Two panels: the client-side
+// prompt (vehicle photo, from onboarding) and the detailer-side prompt
+// (price flyer) — same prompts production actually uses, not stand-ins.
+// Never wired into the real app flow; this exists purely to eyeball
+// provider quality/speed/cost against each other.
 export default function AdminVisionCompare() {
   return (
     <AdminShell>
@@ -19,8 +20,9 @@ export default function AdminVisionCompare() {
           Vision provider comparison
         </h1>
         <p className="mt-1 max-w-xl text-sm text-slate-500 dark:text-slate-400">
-          Upload a real photo and see OpenRouter and Anthropic's actual answers side by side, using
-          the exact same prompts the real app sends.
+          Upload a real photo and see OpenRouter, DeepSeek, and Anthropic's actual answers side by
+          side — with timing and an estimated cost per call — using the exact same prompts the
+          real app sends.
         </p>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-2">
@@ -84,15 +86,17 @@ function ComparePanel({ kind, title, subtitle }) {
       )}
 
       {loading && (
-        <div className="mt-4 grid grid-cols-2 gap-3">
+        <div className="mt-4 grid grid-cols-3 gap-3">
+          <div className="h-40 animate-pulse rounded-xl bg-brand-100 dark:bg-brand-500/15" />
           <div className="h-40 animate-pulse rounded-xl bg-brand-100 dark:bg-brand-500/15" />
           <div className="h-40 animate-pulse rounded-xl bg-brand-100 dark:bg-brand-500/15" />
         </div>
       )}
 
       {result && (
-        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <ProviderResult label="OpenRouter" sub="google/gemma-4-31b-it:free" data={result.openrouter} />
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <ProviderResult label="OpenRouter" sub="google/gemma-4-31b-it" data={result.openrouter} />
+          <ProviderResult label="DeepSeek" sub="deepseek-v4-flash-vision-exp" data={result.deepseek} />
           <ProviderResult label="Anthropic" sub="claude-haiku-4-5" data={result.anthropic} />
         </div>
       )}
@@ -109,8 +113,11 @@ function ProviderResult({ label, sub, data }) {
           <p className="text-[11px] text-slate-400">{sub}</p>
         </div>
         {data.ok ? (
-          <span className="flex items-center gap-1 text-[11px] font-semibold text-cta-700 dark:text-cta-400">
-            <CheckIcon className="h-3.5 w-3.5" /> {data.ms}ms
+          <span className="flex flex-col items-end gap-0.5 text-[11px] font-semibold text-cta-700 dark:text-cta-400">
+            <span className="flex items-center gap-1"><CheckIcon className="h-3.5 w-3.5" /> {data.ms}ms</span>
+            <span className="font-mono font-normal text-slate-400 dark:text-slate-500">
+              {data.costUsd == null ? '—' : `$${data.costUsd.toFixed(5)}`}
+            </span>
           </span>
         ) : (
           <span className="flex items-center gap-1 text-[11px] font-semibold text-red-600">

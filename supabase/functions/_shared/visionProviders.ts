@@ -28,12 +28,29 @@ export interface VisionCallOptions {
   maxTokens?: number
 }
 
+// Per-provider list pricing, USD per MILLION tokens, {prompt, completion} —
+// used only to estimate the cost of one call from its own reported token
+// usage (compare-vision-providers' costUsd). Not billing-accurate (no cache
+// discounts, no image-specific line items some providers charge separately),
+// just enough to compare providers against each other. Update if a
+// provider's price changes.
+export const PROVIDER_PRICING: Record<VisionProviderName, { prompt: number; completion: number }> = {
+  openrouter: { prompt: 0.09, completion: 0.34 }, // google/gemma-4-31b-it (paid)
+  deepseek: { prompt: 0.28, completion: 0.42 }, // deepseek-v4-flash-vision-exp, cache-miss rate
+  anthropic: { prompt: 1.0, completion: 5.0 }, // claude-haiku-4-5
+}
+
+export interface VisionUsage {
+  promptTokens: number | null
+  completionTokens: number | null
+}
+
 async function callAnthropicShaped(
   baseUrl: string,
   apiKey: string,
   model: string,
   opts: VisionCallOptions
-): Promise<string> {
+): Promise<{ text: string; usage: VisionUsage }> {
   const res = await fetch(`${baseUrl}/v1/messages`, {
     method: 'POST',
     headers: {
@@ -64,10 +81,20 @@ async function callAnthropicShaped(
   // extended `thinking` block first, so the actual answer is a later
   // {type: "text"} block, not the first one.
   const textBlock = (result?.content ?? []).find((c: any) => c?.type === 'text')
-  return textBlock?.text ?? ''
+  return {
+    text: textBlock?.text ?? '',
+    usage: {
+      promptTokens: Number.isFinite(result?.usage?.input_tokens) ? result.usage.input_tokens : null,
+      completionTokens: Number.isFinite(result?.usage?.output_tokens) ? result.usage.output_tokens : null,
+    },
+  }
 }
 
-async function callOpenRouter(apiKey: string, model: string, opts: VisionCallOptions): Promise<string> {
+async function callOpenRouter(
+  apiKey: string,
+  model: string,
+  opts: VisionCallOptions
+): Promise<{ text: string; usage: VisionUsage }> {
   const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -95,17 +122,27 @@ async function callOpenRouter(apiKey: string, model: string, opts: VisionCallOpt
     throw new Error(`OpenRouter error ${res.status}: ${body.slice(0, 500)}`)
   }
   const result = await res.json()
-  return result?.choices?.[0]?.message?.content ?? ''
+  return {
+    text: result?.choices?.[0]?.message?.content ?? '',
+    usage: {
+      promptTokens: Number.isFinite(result?.usage?.prompt_tokens) ? result.usage.prompt_tokens : null,
+      completionTokens: Number.isFinite(result?.usage?.completion_tokens) ? result.usage.completion_tokens : null,
+    },
+  }
 }
 
 export type VisionProviderName = 'openrouter' | 'deepseek' | 'anthropic'
 
 // One provider, called directly — used by both callVisionWithFallback
-// (tries these in order) and compare-vision-providers (calls two of them
-// in parallel to show side by side). Throws 'NOT_CONFIGURED' if that
+// (tries these in order) and compare-vision-providers (calls all three in
+// parallel to show side by side). Throws 'NOT_CONFIGURED' if that
 // provider's key isn't set, so callers can tell "not configured" apart
-// from "configured but the call failed".
-export async function callSpecificProvider(provider: VisionProviderName, opts: VisionCallOptions): Promise<string> {
+// from "configured but the call failed". Returns token usage alongside the
+// answer text so callers can estimate cost (see PROVIDER_PRICING).
+export async function callSpecificProviderWithUsage(
+  provider: VisionProviderName,
+  opts: VisionCallOptions
+): Promise<{ text: string; usage: VisionUsage }> {
   if (provider === 'openrouter') {
     const key = Deno.env.get('OPENROUTER_API_KEY')
     if (!key) throw new Error('NOT_CONFIGURED')
@@ -119,6 +156,13 @@ export async function callSpecificProvider(provider: VisionProviderName, opts: V
   const key = Deno.env.get('ANTHROPIC_API_KEY')
   if (!key) throw new Error('NOT_CONFIGURED')
   return callAnthropicShaped('https://api.anthropic.com', key, 'claude-haiku-4-5-20251001', opts)
+}
+
+// Text-only convenience wrapper for callers (extract-vehicle-photo,
+// extract-flyer-prices) that don't care about usage/cost.
+export async function callSpecificProvider(provider: VisionProviderName, opts: VisionCallOptions): Promise<string> {
+  const { text } = await callSpecificProviderWithUsage(provider, opts)
+  return text
 }
 
 // Tries OpenRouter, then DeepSeek, then Anthropic — whichever are
@@ -144,4 +188,13 @@ export async function callVisionWithFallback(opts: VisionCallOptions): Promise<s
     }
   }
   throw new Error(`All vision providers failed — ${errors.join(' | ')}`)
+}
+
+// Estimated USD cost of one call from its token usage and that provider's
+// list price. Null if the provider didn't report usage (some do on error
+// responses only) — the caller shows "—" rather than a misleading $0.
+export function estimateCostUsd(provider: VisionProviderName, usage: VisionUsage): number | null {
+  if (usage.promptTokens == null || usage.completionTokens == null) return null
+  const price = PROVIDER_PRICING[provider]
+  return (usage.promptTokens / 1_000_000) * price.prompt + (usage.completionTokens / 1_000_000) * price.completion
 }

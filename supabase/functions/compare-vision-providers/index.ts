@@ -1,23 +1,26 @@
-// Dev/admin tool: runs the SAME photo through two vision providers in
-// parallel — OpenRouter (google/gemma-4-31b-it) and Anthropic (Claude
-// Haiku) — and returns both raw answers side by side, so a real side-by-
-// side comparison can be seen in one shot instead of swapping which
-// provider is configured and re-testing. Not part of the fallback chain
-// (_shared/visionProviders.ts's callVisionWithFallback) — this always
-// calls both, regardless of order, and never falls back.
+// Dev/admin tool: runs the SAME photo through all three vision providers in
+// parallel — OpenRouter (google/gemma-4-31b-it), DeepSeek
+// (deepseek-v4-flash-vision-exp), and Anthropic (Claude Haiku) — and
+// returns all three raw answers side by side, along with each call's token
+// usage and an estimated USD cost (from _shared/visionProviders.ts's
+// PROVIDER_PRICING), so quality and price can be compared in one shot
+// instead of swapping which provider is configured and re-testing. Not
+// part of the fallback chain (_shared/visionProviders.ts's
+// callVisionWithFallback) — this always calls all three, regardless of
+// order, and never falls back.
 //
 // `kind` picks which of the two real prompts (vehicle-photo or flyer) to
 // run, matching extract-vehicle-photo / extract-flyer-prices exactly, so
 // the comparison reflects the actual production prompts, not a stand-in.
 //
 // Deploy: supabase functions deploy compare-vision-providers
-// Secrets: OPENROUTER_API_KEY and ANTHROPIC_API_KEY (either can be
-// missing — that provider's slot just reports "not configured").
+// Secrets: OPENROUTER_API_KEY, DEEPSEEK_API_KEY, ANTHROPIC_API_KEY (any can
+// be missing — that provider's slot just reports "not configured").
 import { createClient } from 'npm:@supabase/supabase-js@^2'
 import { corsHeaders, json } from '../_shared/cors.ts'
 import { captureException } from '../_shared/sentry.ts'
 import { withinRateLimit, tooManyRequests } from '../_shared/rateLimit.ts'
-import { callSpecificProvider, type VisionProviderName } from '../_shared/visionProviders.ts'
+import { callSpecificProviderWithUsage, estimateCostUsd, type VisionProviderName } from '../_shared/visionProviders.ts'
 
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024
 const ALLOWED_MEDIA_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic'])
@@ -92,13 +95,15 @@ function parseJsonLoose(text: string): unknown {
 async function runOne(provider: VisionProviderName, imageBase64: string, mediaType: string, prompt: string, maxTokens: number) {
   const started = Date.now()
   try {
-    const text = await callSpecificProvider(provider, { imageBase64, mediaType, prompt, maxTokens })
+    const { text, usage } = await callSpecificProviderWithUsage(provider, { imageBase64, mediaType, prompt, maxTokens })
     return {
       provider,
       ok: true,
       ms: Date.now() - started,
       raw: text,
       parsed: parseJsonLoose(text),
+      usage,
+      costUsd: estimateCostUsd(provider, usage),
     }
   } catch (e) {
     const message = (e as Error).message
@@ -156,12 +161,13 @@ Deno.serve(async (req) => {
     const prompt = kind === 'vehicle' ? VEHICLE_PROMPT : FLYER_PROMPT
     const maxTokens = kind === 'vehicle' ? 2048 : 4096
 
-    const [openrouter, anthropic] = await Promise.all([
+    const [openrouter, deepseek, anthropic] = await Promise.all([
       runOne('openrouter', imageBase64, mediaType, prompt, maxTokens),
+      runOne('deepseek', imageBase64, mediaType, prompt, maxTokens),
       runOne('anthropic', imageBase64, mediaType, prompt, maxTokens),
     ])
 
-    return json({ kind, openrouter, anthropic })
+    return json({ kind, openrouter, deepseek, anthropic })
   } catch (e) {
     console.error('compare-vision-providers:', e)
     await captureException(e, 'compare-vision-providers')
