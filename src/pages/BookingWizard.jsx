@@ -416,6 +416,7 @@ export default function BookingWizard() {
   const [showSmsPrompt, setShowSmsPrompt] = useState(false)
   const [showSmsConfirmed, setShowSmsConfirmed] = useState(false)
 const [smsPhone, setSmsPhone] = useState('')
+const [smsConsent, setSmsConsent] = useState(false)
 const [smsBusy, setSmsBusy] = useState(false)
 const [smsError, setSmsError] = useState(null)
   const [bookingId, setBookingId] = useState(null)
@@ -1258,9 +1259,19 @@ const [smsError, setSmsError] = useState(null)
               onChange={(e) => setSmsPhone(e.target.value)}
               className="input" placeholder="(555) 555-5555" autoFocus
             />
-            {/* Same carrier-required disclaimer as CustomerSettings — frequency,
-                rates, HELP/STOP, Terms/Privacy, right next to the opt-in. */}
-            <p className="mt-2 text-center text-xs text-slate-400 dark:text-slate-500">
+            {/* Explicit, distinct-to-SMS, unchecked-by-default checkbox —
+                carrier/10DLC review wants an affirmative opt-in gesture, not
+                just "typed a number and clicked a button". Same disclaimer
+                text as CustomerSettings, right next to the checkbox. */}
+            <label className="mt-3 flex cursor-pointer items-start gap-2.5 text-left text-sm text-slate-600 dark:text-slate-400">
+              <input
+                type="checkbox" checked={smsConsent}
+                onChange={(e) => setSmsConsent(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-brand-600"
+              />
+              {t('smsPromptConsentLabel')}
+            </label>
+            <p className="mt-2 pl-[1.625rem] text-left text-xs text-slate-400 dark:text-slate-500">
               {t('smsDisclaimer')}{' '}
               <Link to="/terms" className="underline hover:text-slate-600 dark:hover:text-slate-300">{t('smsDisclaimerTerms')}</Link>
               {' · '}
@@ -1270,7 +1281,7 @@ const [smsError, setSmsError] = useState(null)
           <div className="mt-5 flex flex-col gap-2">
             <button
               type="button"
-              disabled={smsBusy || smsPhone.replace(/\D/g, '').length < 10}
+              disabled={smsBusy || !smsConsent || smsPhone.replace(/\D/g, '').length < 10}
               onClick={async () => {
                 setSmsBusy(true)
                 setSmsError(null)
@@ -1299,7 +1310,7 @@ const [smsError, setSmsError] = useState(null)
             )}
             <button
               type="button"
-              onClick={() => setShowSmsPrompt(false)}
+              onClick={() => { setShowSmsPrompt(false); setSmsConsent(false) }}
               className="cursor-pointer text-sm text-slate-500 underline-offset-2 hover:underline dark:text-slate-400"
             >
               {t('smsPromptSkip')}
