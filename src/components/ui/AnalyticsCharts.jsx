@@ -7,6 +7,31 @@
 
 const money = (n) => `$${Math.round(n).toLocaleString()}`
 
+// Two-option pill switch for a chart's view — e.g. "3-period comparison" vs
+// "full trend". Shared by Admin/Detailer Analytics so both charts get the
+// same navigation control instead of two bespoke ones.
+export function NxChartViewToggle({ options, value, onChange }) {
+  return (
+    <div className="inline-flex rounded-full bg-slate-900/5 p-0.5 text-xs font-semibold dark:bg-white/5">
+      {options.map((opt) => (
+        <button
+          key={opt.value}
+          type="button"
+          onClick={() => onChange(opt.value)}
+          aria-pressed={value === opt.value}
+          className={`rounded-full px-3 py-1 transition-colors duration-150 ${
+            value === opt.value
+              ? 'bg-white text-slate-900 shadow-sm dark:bg-white/15 dark:text-white'
+              : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+          }`}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 // Dual-series line + area chart with a light grid, matching the "Users over
 // time" panel from the design reference.
 export function NxLineChart({
@@ -30,6 +55,7 @@ export function NxLineChart({
   const toArea = (pts) => `M${pts[0][0]},${H - padB} L${pts.map((p) => p.join(',')).join(' L')} L${pts[pts.length - 1][0]},${H - padB} Z`
 
   const curPts = toPts(current)
+  const hasComparison = comparison.length > 0
   const cmpPts = toPts(comparison)
   const gridLines = [0, 0.5, 1]
 
@@ -39,9 +65,11 @@ export function NxLineChart({
         <span className="flex items-center gap-1.5 text-slate-700 dark:text-slate-200">
           <span className="h-1.5 w-4 rounded-full" style={{ background: 'var(--color-cta-500)' }} /> {currentLabel}
         </span>
-        <span className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
-          <span className="h-1.5 w-4 rounded-full" style={{ background: 'var(--color-brand-400)' }} /> {comparisonLabel}
-        </span>
+        {hasComparison && (
+          <span className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
+            <span className="h-1.5 w-4 rounded-full" style={{ background: 'var(--color-brand-400)' }} /> {comparisonLabel}
+          </span>
+        )}
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label={`Line chart comparing ${currentLabel} and ${comparisonLabel} across ${labels.join(', ')}`}>
         <defs>
@@ -62,7 +90,9 @@ export function NxLineChart({
           />
         ))}
         <path d={toArea(curPts)} fill="url(#nx-line-fill)" />
-        <polyline points={toLine(cmpPts)} fill="none" stroke="var(--color-brand-400)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        {hasComparison && (
+          <polyline points={toLine(cmpPts)} fill="none" stroke="var(--color-brand-400)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        )}
         <polyline points={toLine(curPts)} fill="none" stroke="var(--color-cta-500)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
         {curPts.map(([x, py], i) => (
           <circle key={i} cx={x} cy={py} r="3" fill="var(--color-cta-500)" />

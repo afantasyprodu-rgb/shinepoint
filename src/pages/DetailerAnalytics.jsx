@@ -1,13 +1,20 @@
+import { useState } from 'react'
 import AppShell from '../components/AppShell'
 import { AnimatedPage, FadeIn } from '../components/ui/Motion'
 import { CountUp } from '../components/ui/bits'
-import { NxLineChart, NxDonut } from '../components/ui/AnalyticsCharts'
+import { NxLineChart, NxDonut, NxChartViewToggle } from '../components/ui/AnalyticsCharts'
 import { useStore } from '../context/StoreContext'
 import { TrendingUpIcon, PieChartIcon, LightbulbIcon, TrophyIcon, ClockIcon } from '../components/icons'
 import { detailerPayoutEstimate } from '../lib/fees'
 import { useT } from '../i18n/useT'
 
 const ME = 'det-1'
+// weeklyNet is a fixed 6-entry array (this week back to 5 weeks ago) — real
+// "N wks ago" labels for the full-trend view, since the array carries no
+// date metadata of its own.
+function last6WeekLabels(t) {
+  return Array.from({ length: 6 }, (_, i) => (i === 5 ? t('thisWeekShort') : t('weeksAgoShort', { n: 5 - i })))
+}
 // Demo-only six-week net-earnings trend, split into two three-week windows
 // so it reads as a period-over-period chart — see weeklyNetFor for the real
 // equivalent computed from actual completed jobs.
@@ -61,11 +68,13 @@ export default function DetailerAnalytics() {
   const meId = isDemo ? ME : detailerProfile?.id
   const complete = bookings.filter((b) => b.detailerId === meId && b.status === 'complete')
   const t = useT('detailerAnalytics')
+  const [netView, setNetView] = useState('compare')
 
   const weeklyNet = isDemo ? DEMO_WEEKLY : weeklyNetFor(complete)
   const currentWeeks = weeklyNet.slice(3, 6)
   const comparisonWeeks = weeklyNet.slice(0, 3)
   const weekDelta = weeklyNet[4] > 0 ? ((weeklyNet[5] - weeklyNet[4]) / weeklyNet[4]) * 100 : 0
+  const weekLabels = last6WeekLabels(t)
 
   const byService = {}
   complete.forEach((b) => {
@@ -120,6 +129,7 @@ export default function DetailerAnalytics() {
         <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">{t('title')}</h1>
 
         <div className="mt-6">
+          <p className="nx-kicker mb-2">{t('sectionOverview')}</p>
           <div className="grid gap-3 sm:grid-cols-2">
             <FadeIn>
               <div className="nx-card">
@@ -152,18 +162,42 @@ export default function DetailerAnalytics() {
           {/* sm:grid-cols-2 — the page shell is already width-capped
               (max-w-3xl), so side-by-side kicks in earlier than the admin
               analytics page's lg: breakpoint. */}
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <p className="nx-kicker mb-2 mt-6">{t('sectionTrends')}</p>
+          <div className="grid gap-3 sm:grid-cols-2">
             <FadeIn delay={0.1}>
               <div className="nx-card h-full">
-                <p className="mb-1 text-sm font-semibold text-slate-900 dark:text-white">{t('netEarningsByWeek')}</p>
-                <p className="nx-sub mb-4 text-xs">{t('last3Weeks')}</p>
-                <NxLineChart
-                  labels={[t('week1'), t('week2'), t('week3')]}
-                  current={currentWeeks}
-                  comparison={comparisonWeeks}
-                  currentLabel={t('recent3wk')}
-                  comparisonLabel={t('prior3wk')}
-                />
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white">{t('netEarningsByWeek')}</p>
+                    <p className="nx-sub text-xs">{netView === 'compare' ? t('last3Weeks') : t('sixWeekTrend')}</p>
+                  </div>
+                  <NxChartViewToggle
+                    options={[
+                      { value: 'compare', label: t('viewCompare') },
+                      { value: 'trend', label: t('viewTrend') },
+                    ]}
+                    value={netView}
+                    onChange={setNetView}
+                  />
+                </div>
+                <div className="mt-4">
+                  {netView === 'compare' ? (
+                    <NxLineChart
+                      labels={[t('week1'), t('week2'), t('week3')]}
+                      current={currentWeeks}
+                      comparison={comparisonWeeks}
+                      currentLabel={t('recent3wk')}
+                      comparisonLabel={t('prior3wk')}
+                    />
+                  ) : (
+                    <NxLineChart
+                      labels={weekLabels}
+                      current={weeklyNet}
+                      comparison={[]}
+                      currentLabel={t('sixWeekTrend')}
+                    />
+                  )}
+                </div>
               </div>
             </FadeIn>
 
@@ -179,8 +213,9 @@ export default function DetailerAnalytics() {
             </FadeIn>
           </div>
 
+          <p className="nx-kicker mb-2 mt-6">{t('sectionPerformance')}</p>
           <FadeIn delay={0.2}>
-            <div className="nx-card mt-3">
+            <div className="nx-card">
               <p className="mb-1 text-sm font-semibold text-slate-900 dark:text-white">{t('servicePerformance')}</p>
               <p className="nx-sub mb-4 text-xs">{t('takeHomeBlurb')}</p>
               {services.length > 0 ? (

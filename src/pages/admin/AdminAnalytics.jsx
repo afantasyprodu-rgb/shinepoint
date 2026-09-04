@@ -1,12 +1,24 @@
+import { useState } from 'react'
 import AdminShell from '../../components/AdminShell'
 import { AnimatedPage, FadeIn } from '../../components/ui/Motion'
 import { CountUp } from '../../components/ui/bits'
-import { NxLineChart, NxDonut } from '../../components/ui/AnalyticsCharts'
+import { NxLineChart, NxDonut, NxChartViewToggle } from '../../components/ui/AnalyticsCharts'
 import { useStore } from '../../context/StoreContext'
 import { TrendingUpIcon, PieChartIcon } from '../../components/icons'
 import { useT } from '../../i18n/useT'
 
 const SEGMENT_COLORS = ['var(--color-cta-500)', 'var(--color-brand-400)', 'var(--color-accent-teal)']
+
+// f.monthly is a fixed 6-entry array (this month back to 5 months ago,
+// see StoreContext's initial [0,0,0,0,0,0]) — real calendar month
+// abbreviations for it, not placeholder labels, since the array itself
+// has no date metadata attached.
+function last6MonthLabels() {
+  const now = new Date()
+  return Array.from({ length: 6 }, (_, i) =>
+    new Date(now.getFullYear(), now.getMonth() - (5 - i), 1).toLocaleString('en-US', { month: 'short' })
+  )
+}
 
 // Analytics — same neumorphism as the rest of the claymorphism admin
 // section, following the light/dark toggle like every other admin page.
@@ -17,10 +29,12 @@ export default function AdminAnalytics() {
   const { admin, bookings, isDemo } = useStore()
   const f = admin.finance
   const t = useT('adminAnalytics')
+  const [revenueView, setRevenueView] = useState('quarter')
 
   const revenueDelta = f.monthly[4] ? ((f.month - f.monthly[4]) / f.monthly[4]) * 100 : 0
   const currentQuarter = f.monthly.slice(3, 6)
   const comparisonQuarter = f.monthly.slice(0, 3)
+  const monthLabels = last6MonthLabels()
 
   const byService = {}
   bookings.forEach((b) => {
@@ -37,6 +51,7 @@ export default function AdminAnalytics() {
         <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">{t('title')}</h1>
 
         <div className="mt-6">
+          <p className="nx-kicker mb-2">{t('sectionOverview')}</p>
           <div className="grid gap-3 sm:grid-cols-2">
             <FadeIn>
               <div className="nx-card">
@@ -74,18 +89,44 @@ export default function AdminAnalytics() {
               paired cards — a wide desktop viewport (sidebar + full-width main)
               left these two stacked full-width forever otherwise, wasting the
               same horizontal space the rest of the admin section already uses. */}
-          <div className="mt-3 grid gap-3 lg:grid-cols-2">
+          <p className="nx-kicker mb-2 mt-6">{t('sectionTrends')}</p>
+          <div className="grid gap-3 lg:grid-cols-2">
             <FadeIn delay={0.1}>
               <div className="nx-card h-full">
-                <p className="mb-1 text-sm font-semibold text-slate-900 dark:text-white">{t('revenueByQuarter')}</p>
-                <p className="nx-sub mb-4 text-xs">{t('quarterLabels')}</p>
-                <NxLineChart
-                  labels={[t('month1'), t('month2'), t('month3')]}
-                  current={currentQuarter}
-                  comparison={comparisonQuarter}
-                  currentLabel={t('aprJun')}
-                  comparisonLabel={t('janMar')}
-                />
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white">{t('revenueByQuarter')}</p>
+                    <p className="nx-sub text-xs">
+                      {revenueView === 'quarter' ? t('quarterLabels') : t('sixMonthTrend')}
+                    </p>
+                  </div>
+                  <NxChartViewToggle
+                    options={[
+                      { value: 'quarter', label: t('viewCompare') },
+                      { value: 'trend', label: t('viewTrend') },
+                    ]}
+                    value={revenueView}
+                    onChange={setRevenueView}
+                  />
+                </div>
+                <div className="mt-4">
+                  {revenueView === 'quarter' ? (
+                    <NxLineChart
+                      labels={[t('month1'), t('month2'), t('month3')]}
+                      current={currentQuarter}
+                      comparison={comparisonQuarter}
+                      currentLabel={t('aprJun')}
+                      comparisonLabel={t('janMar')}
+                    />
+                  ) : (
+                    <NxLineChart
+                      labels={monthLabels}
+                      current={f.monthly}
+                      comparison={[]}
+                      currentLabel={t('sixMonthTrend')}
+                    />
+                  )}
+                </div>
               </div>
             </FadeIn>
 
