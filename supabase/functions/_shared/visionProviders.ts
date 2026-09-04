@@ -14,13 +14,25 @@
 //      OpenRouter's OpenAI-shaped Chat Completions API. Tried first simply
 //      because it was the one added to fix DeepSeek being down — no
 //      structural reason it has to be first.
-//   2. DEEPSEEK_API_KEY — deepseek-v4-flash-vision-exp via DeepSeek's
-//      Anthropic-compatible endpoint.
-//   3. ANTHROPIC_API_KEY — claude-haiku-4-5-20251001, Anthropic's own API.
-// DeepSeek and Anthropic speak the identical Messages-API shape (DeepSeek's
-// /anthropic endpoint mirrors it exactly); OpenRouter speaks a different,
-// OpenAI-shaped envelope entirely — two request builders below, one per
-// shape, both normalized to "return the raw answer text" for the caller.
+//   2. DEEPSEEK_API_KEY — deepseek-v4-flash-vision-exp via DeepSeek's own
+//      Anthropic-compatible endpoint (api.deepseek.com/anthropic).
+//   3. OPENROUTER_API_KEY (again) — the SAME deepseek-v4-flash-vision-exp
+//      model, but routed through OpenRouter instead of DeepSeek's own
+//      billing. This is the actual fix for the outage that started this
+//      whole file: DeepSeek's own account ran out of balance (402
+//      Insufficient Balance) with no recourse, but OpenRouter bills its
+//      own balance for the same model — so if OPENROUTER_API_KEY is
+//      configured, DeepSeek vision survives a DeepSeek-account outage
+//      without needing a DeepSeek key at all. Priced per OpenRouter's
+//      time-of-day discount schedule; PROVIDER_PRICING uses the weekday
+//      peak rate ($0.44/$1.32 per million) as a conservative estimate.
+//   4. ANTHROPIC_API_KEY — claude-haiku-4-5-20251001, Anthropic's own API.
+// DeepSeek(direct) and Anthropic speak the identical Messages-API shape
+// (DeepSeek's /anthropic endpoint mirrors it exactly); OpenRouter speaks a
+// different, OpenAI-shaped envelope entirely — two request builders below,
+// one per shape, both normalized to "return the raw answer text" for the
+// caller. deepseek-openrouter reuses the same callOpenRouter builder as
+// openrouter, just with a different model id and the same key.
 export interface VisionCallOptions {
   imageBase64: string
   mediaType: string
@@ -36,7 +48,8 @@ export interface VisionCallOptions {
 // provider's price changes.
 export const PROVIDER_PRICING: Record<VisionProviderName, { prompt: number; completion: number }> = {
   openrouter: { prompt: 0.09, completion: 0.34 }, // google/gemma-4-31b-it (paid)
-  deepseek: { prompt: 0.28, completion: 0.42 }, // deepseek-v4-flash-vision-exp, cache-miss rate
+  deepseek: { prompt: 0.28, completion: 0.42 }, // deepseek-v4-flash-vision-exp, direct API, cache-miss rate
+  'deepseek-openrouter': { prompt: 0.44, completion: 1.32 }, // same model, via OpenRouter, weekday peak rate (off-peak is half this)
   anthropic: { prompt: 1.0, completion: 5.0 }, // claude-haiku-4-5
 }
 
@@ -131,7 +144,7 @@ async function callOpenRouter(
   }
 }
 
-export type VisionProviderName = 'openrouter' | 'deepseek' | 'anthropic'
+export type VisionProviderName = 'openrouter' | 'deepseek' | 'deepseek-openrouter' | 'anthropic'
 
 // One provider, called directly — used by both callVisionWithFallback
 // (tries these in order) and compare-vision-providers (calls all three in
@@ -153,6 +166,11 @@ export async function callSpecificProviderWithUsage(
     if (!key) throw new Error('NOT_CONFIGURED')
     return callAnthropicShaped('https://api.deepseek.com/anthropic', key, 'deepseek-v4-flash-vision-exp', opts)
   }
+  if (provider === 'deepseek-openrouter') {
+    const key = Deno.env.get('OPENROUTER_API_KEY')
+    if (!key) throw new Error('NOT_CONFIGURED')
+    return callOpenRouter(key, 'deepseek/deepseek-v4-flash-vision-exp', opts)
+  }
   const key = Deno.env.get('ANTHROPIC_API_KEY')
   if (!key) throw new Error('NOT_CONFIGURED')
   return callAnthropicShaped('https://api.anthropic.com', key, 'claude-haiku-4-5-20251001', opts)
@@ -165,14 +183,14 @@ export async function callSpecificProvider(provider: VisionProviderName, opts: V
   return text
 }
 
-// Tries OpenRouter, then DeepSeek, then Anthropic — whichever are
-// configured — returning the first success. Throws only if every
-// configured provider failed, with each provider's own error folded in so
-// the failure says why, not just "something broke".
+// Tries OpenRouter, then DeepSeek (direct), then DeepSeek-via-OpenRouter,
+// then Anthropic — whichever are configured — returning the first success.
+// Throws only if every configured provider failed, with each provider's
+// own error folded in so the failure says why, not just "something broke".
 export async function callVisionWithFallback(opts: VisionCallOptions): Promise<string> {
-  const order: VisionProviderName[] = ['openrouter', 'deepseek', 'anthropic']
+  const order: VisionProviderName[] = ['openrouter', 'deepseek', 'deepseek-openrouter', 'anthropic']
   const configured = order.filter((p) => {
-    if (p === 'openrouter') return Boolean(Deno.env.get('OPENROUTER_API_KEY'))
+    if (p === 'openrouter' || p === 'deepseek-openrouter') return Boolean(Deno.env.get('OPENROUTER_API_KEY'))
     if (p === 'deepseek') return Boolean(Deno.env.get('DEEPSEEK_API_KEY'))
     return Boolean(Deno.env.get('ANTHROPIC_API_KEY'))
   })

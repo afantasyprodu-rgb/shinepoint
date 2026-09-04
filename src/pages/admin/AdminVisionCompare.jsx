@@ -4,9 +4,10 @@ import { AnimatedPage } from '../../components/ui/Motion'
 import { AlertTriangleIcon, CheckIcon, ClockIcon } from '../../components/icons'
 import { compareVisionProviders } from '../../lib/db'
 
-// Admin-only debug tool — runs a real photo through all three vision
-// providers (OpenRouter/gemma, DeepSeek, Anthropic/Haiku) in parallel via
-// compare-vision-providers, and shows all three results side by side with
+// Admin-only debug tool — runs a real photo through all four vision
+// provider slots (OpenRouter/gemma, DeepSeek direct, DeepSeek routed
+// through OpenRouter, Anthropic/Haiku) in parallel via
+// compare-vision-providers, and shows all four results side by side with
 // timing and an estimated per-call cost. Two panels: the client-side
 // prompt (vehicle photo, from onboarding) and the detailer-side prompt
 // (price flyer) — same prompts production actually uses, not stand-ins.
@@ -19,10 +20,10 @@ export default function AdminVisionCompare() {
         <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">
           Vision provider comparison
         </h1>
-        <p className="mt-1 max-w-xl text-sm text-slate-500 dark:text-slate-400">
-          Upload a real photo and see OpenRouter, DeepSeek, and Anthropic's actual answers side by
-          side — with timing and an estimated cost per call — using the exact same prompts the
-          real app sends.
+        <p className="mt-1 max-w-2xl text-sm text-slate-500 dark:text-slate-400">
+          Upload a real photo and see OpenRouter, DeepSeek (direct API and via OpenRouter), and
+          Anthropic's actual answers side by side — with timing and an estimated cost per call —
+          using the exact same prompts the real app sends.
         </p>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-2">
@@ -86,7 +87,8 @@ function ComparePanel({ kind, title, subtitle }) {
       )}
 
       {loading && (
-        <div className="mt-4 grid grid-cols-3 gap-3">
+        <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <div className="h-40 animate-pulse rounded-xl bg-brand-100 dark:bg-brand-500/15" />
           <div className="h-40 animate-pulse rounded-xl bg-brand-100 dark:bg-brand-500/15" />
           <div className="h-40 animate-pulse rounded-xl bg-brand-100 dark:bg-brand-500/15" />
           <div className="h-40 animate-pulse rounded-xl bg-brand-100 dark:bg-brand-500/15" />
@@ -94,9 +96,10 @@ function ComparePanel({ kind, title, subtitle }) {
       )}
 
       {result && (
-        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <ProviderResult label="OpenRouter" sub="google/gemma-4-31b-it" data={result.openrouter} />
-          <ProviderResult label="DeepSeek" sub="deepseek-v4-flash-vision-exp" data={result.deepseek} />
+          <ProviderResult label="DeepSeek" sub="deepseek-v4-flash-vision-exp (direct)" data={result.deepseek} />
+          <ProviderResult label="DeepSeek via OpenRouter" sub="deepseek-v4-flash-vision-exp" data={result.deepseekOpenrouter} />
           <ProviderResult label="Anthropic" sub="claude-haiku-4-5" data={result.anthropic} />
         </div>
       )}

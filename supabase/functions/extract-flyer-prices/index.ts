@@ -4,9 +4,10 @@
 // a one-shot extraction, not something that needs to persist.
 //
 // Vision call goes through _shared/visionProviders.ts, which tries
-// OpenRouter, then DeepSeek, then Anthropic — see that file's
-// header for why (a single-provider setup went down in production and
-// took the sibling vehicle-photo function out with it).
+// OpenRouter, then DeepSeek direct, then DeepSeek via OpenRouter, then
+// Anthropic — see that file's header for why (a single-provider setup
+// went down in production and took the sibling vehicle-photo function out
+// with it).
 //
 // Deploy: supabase functions deploy extract-flyer-prices
 // Secrets: at least one of OPENROUTER_API_KEY, DEEPSEEK_API_KEY,

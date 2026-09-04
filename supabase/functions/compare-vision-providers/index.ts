@@ -1,13 +1,15 @@
-// Dev/admin tool: runs the SAME photo through all three vision providers in
-// parallel — OpenRouter (google/gemma-4-31b-it), DeepSeek
-// (deepseek-v4-flash-vision-exp), and Anthropic (Claude Haiku) — and
-// returns all three raw answers side by side, along with each call's token
-// usage and an estimated USD cost (from _shared/visionProviders.ts's
-// PROVIDER_PRICING), so quality and price can be compared in one shot
-// instead of swapping which provider is configured and re-testing. Not
-// part of the fallback chain (_shared/visionProviders.ts's
-// callVisionWithFallback) — this always calls all three, regardless of
-// order, and never falls back.
+// Dev/admin tool: runs the SAME photo through all four vision provider
+// slots in parallel — OpenRouter/gemma (google/gemma-4-31b-it), DeepSeek
+// direct (deepseek-v4-flash-vision-exp via DeepSeek's own API), DeepSeek
+// via OpenRouter (the identical model, routed through OpenRouter's billing
+// instead — survives a DeepSeek-account outage), and Anthropic (Claude
+// Haiku) — and returns all four raw answers side by side, along with each
+// call's token usage and an estimated USD cost (from
+// _shared/visionProviders.ts's PROVIDER_PRICING), so quality and price can
+// be compared in one shot instead of swapping which provider is configured
+// and re-testing. Not part of the fallback chain
+// (_shared/visionProviders.ts's callVisionWithFallback) — this always
+// calls all four, regardless of order, and never falls back.
 //
 // `kind` picks which of the two real prompts (vehicle-photo or flyer) to
 // run, matching extract-vehicle-photo / extract-flyer-prices exactly, so
@@ -15,7 +17,8 @@
 //
 // Deploy: supabase functions deploy compare-vision-providers
 // Secrets: OPENROUTER_API_KEY, DEEPSEEK_API_KEY, ANTHROPIC_API_KEY (any can
-// be missing — that provider's slot just reports "not configured").
+// be missing — that slot just reports "not configured"; OPENROUTER_API_KEY
+// alone covers both the openrouter and deepseek-openrouter slots).
 import { createClient } from 'npm:@supabase/supabase-js@^2'
 import { corsHeaders, json } from '../_shared/cors.ts'
 import { captureException } from '../_shared/sentry.ts'
@@ -135,8 +138,8 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    // Admin-only — this fans out to two paid-capable providers per call,
-    // deliberately not something every account should be able to trigger.
+    // Admin-only — this fans out to four paid-capable provider calls per
+    // request, deliberately not something every account should be able to trigger.
     const { data: me } = await admin.from('users').select('role').eq('id', user.id).single()
     if (me?.role !== 'admin') return json({ error: 'Admin only' }, 403)
 
@@ -161,13 +164,14 @@ Deno.serve(async (req) => {
     const prompt = kind === 'vehicle' ? VEHICLE_PROMPT : FLYER_PROMPT
     const maxTokens = kind === 'vehicle' ? 2048 : 4096
 
-    const [openrouter, deepseek, anthropic] = await Promise.all([
+    const [openrouter, deepseek, deepseekOpenrouter, anthropic] = await Promise.all([
       runOne('openrouter', imageBase64, mediaType, prompt, maxTokens),
       runOne('deepseek', imageBase64, mediaType, prompt, maxTokens),
+      runOne('deepseek-openrouter', imageBase64, mediaType, prompt, maxTokens),
       runOne('anthropic', imageBase64, mediaType, prompt, maxTokens),
     ])
 
-    return json({ kind, openrouter, deepseek, anthropic })
+    return json({ kind, openrouter, deepseek, deepseekOpenrouter, anthropic })
   } catch (e) {
     console.error('compare-vision-providers:', e)
     await captureException(e, 'compare-vision-providers')
