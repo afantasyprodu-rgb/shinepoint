@@ -37,7 +37,10 @@ export default function AdminFinance() {
           </button>
         </div>
 
-        <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <p className="mt-6 mb-2 text-xs font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+          {t('sectionOverview')}
+        </p>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {stats.map(({ label, value, prefix }, i) => (
             <FadeIn key={label} delay={i * 0.07}>
               <div className="card !p-4">
@@ -50,8 +53,11 @@ export default function AdminFinance() {
           ))}
         </div>
 
+        <p className="mt-6 mb-2 text-xs font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+          {t('sectionRevenue')}
+        </p>
         <FadeIn delay={0.2}>
-          <div className="card mt-6">
+          <div className="card">
             <h2 className="mb-4 font-display text-lg font-semibold text-slate-900 dark:text-slate-100">
               {t('monthlyRevenue')}
             </h2>
@@ -59,7 +65,10 @@ export default function AdminFinance() {
           </div>
         </FadeIn>
 
-        <div className="mt-6 grid gap-4 lg:grid-cols-2">
+        <p className="mt-6 mb-2 text-xs font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+          {t('sectionCompliance')}
+        </p>
+        <div className="grid gap-4 lg:grid-cols-2">
           <FadeIn delay={0.25}>
             <div className="card !p-5">
               <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">{t('refundsIssued')}</h2>

@@ -696,6 +696,9 @@ export const STRINGS = {
     },
     adminFinance: {
       finance: 'Finance',
+      sectionOverview: 'Overview',
+      sectionRevenue: 'Revenue',
+      sectionCompliance: 'Compliance',
       notWiredNotice: 'Financial reporting isn’t connected to real payment data yet — these numbers are sample figures, not your actual revenue.',
       exportCsv: 'Export CSV',
       today: 'Today',
@@ -2296,6 +2299,9 @@ export const STRINGS = {
     },
     adminFinance: {
       finance: 'Finanzas',
+      sectionOverview: 'Resumen',
+      sectionRevenue: 'Ingresos',
+      sectionCompliance: 'Cumplimiento',
       notWiredNotice: 'Los informes financieros aún no están conectados a datos de pago reales — estas cifras son de muestra, no tus ingresos reales.',
       exportCsv: 'Exportar CSV',
       today: 'Hoy',
