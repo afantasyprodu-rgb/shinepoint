@@ -1511,6 +1511,19 @@ export async function deleteOwnAccount(reason) {
   await invokeFn('delete-own-account', { reason })
 }
 
+// Fires the "double opt-in" confirmation text right after a customer
+// checks the SMS consent box. Reads phone/opt-in state server-side off
+// the caller's own row — this call carries no payload, it's just a
+// trigger. Failures are logged, not surfaced: a missed confirmation text
+// shouldn't block the settings save or booking flow that triggered it.
+export async function sendSmsOptInConfirmation() {
+  try {
+    await invokeFn('send-sms-optin-confirmation')
+  } catch (e) {
+    console.error('sendSmsOptInConfirmation:', e.message)
+  }
+}
+
 // Admin-only history of self-service hard deletes (migration 012-style RLS:
 // admins can read; the account row itself no longer exists to look up).
 export async function fetchAccountDeletionFeedback() {

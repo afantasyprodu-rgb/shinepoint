@@ -21,6 +21,7 @@ import {
   uploadProfileImage,
   updateUserName,
   updateUserContactInfo,
+  sendSmsOptInConfirmation,
   updateCustomerProfile,
   updateDetailerProfile,
   saveServices,
@@ -537,7 +538,14 @@ export function StoreProvider({ children }) {
         if (!profile?.id) return
         if (patch.name != null) await updateUserName(profile.id, patch.name)
         if (patch.phone !== undefined || patch.smsOptIn !== undefined) {
+          // Capture the pre-patch state before the write — this is the one
+          // place both CustomerSettings and BookingWizard's post-booking
+          // prompt funnel through, so it's the one place that needs to fire
+          // the opt-in confirmation text, on the false→true transition only
+          // (never on every settings save once already opted in).
+          const justOptedIn = !profile?.sms_opt_in && patch.smsOptIn === true
           await updateUserContactInfo(profile.id, { phone: patch.phone, smsOptIn: patch.smsOptIn })
+          if (justOptedIn) sendSmsOptInConfirmation()
         }
         const cols = {}
         if (patch.address != null) cols.default_address = patch.address

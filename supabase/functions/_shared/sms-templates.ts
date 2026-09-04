@@ -63,3 +63,12 @@ export function appointmentReminderSms(data: AppointmentReminderSmsData): string
   const { customerName, detailerName, service, scheduledTime } = data
   return `ShinePoint reminder: your ${service} with ${detailerName} is today at ${formatShortDateTime(scheduledTime)}, ${customerName.split(' ')[0]}. ${OPT_OUT}`
 }
+
+// Sent once, immediately after a customer checks the SMS opt-in box (either
+// in CustomerSettings or the post-booking prompt) — the "double opt-in"
+// confirmation carriers expect to see land on the number that was just
+// entered. Text is the exact string declared in the 10DLC campaign's
+// Opt-in Message field; keep the two in sync if either changes.
+export function optInConfirmationSms(): string {
+  return "ShinePoint: You're opted in to appointment reminders and tracking links. Msg freq varies, up to 2/booking. Msg & data rates may apply. Reply STOP to cancel, HELP for help."
+}
