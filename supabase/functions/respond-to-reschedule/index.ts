@@ -117,9 +117,10 @@ Deno.serve(async (req) => {
       // notify_booking_change only fires on a status change; this update
       // doesn't change status (stays 'reschedule_offered'), so the
       // detailer's "customer countered" notice is inserted directly here.
-      if (detailer?.user_id) {
+      const detailerUserId = (booking as any).detailer_profiles?.user_id
+      if (detailerUserId) {
         await admin.from('notifications').insert({
-          user_id: (booking as any).detailer_profiles.user_id,
+          user_id: detailerUserId,
           kind: 'booking',
           title: 'Customer picked a different time',
           body: 'Review and confirm their pick on the job.',
