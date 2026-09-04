@@ -6,11 +6,14 @@
 // out vehicle-photo scanning in production with no fallback.
 //
 // Providers, in try order:
-//   1. OPENROUTER_API_KEY — google/gemma-4-31b-it:free, a real (not
-//      placeholder) free 30.7B multimodal model from Google DeepMind, via
-//      OpenRouter's OpenAI-shaped Chat Completions API. Free, so it can't
-//      run out of balance the way a metered key can — tried first for
-//      exactly that reason.
+//   1. OPENROUTER_API_KEY — google/gemma-4-31b-it (paid, not the :free
+//      variant — that one is shared/queued across every OpenRouter user
+//      and returned 429 "temporarily rate-limited upstream" under real
+//      load; the paid tier is $0.09/$0.34 per million tokens, a fraction
+//      of a cent per photo), Google DeepMind's 30.7B multimodal model, via
+//      OpenRouter's OpenAI-shaped Chat Completions API. Tried first simply
+//      because it was the one added to fix DeepSeek being down — no
+//      structural reason it has to be first.
 //   2. DEEPSEEK_API_KEY — deepseek-v4-flash-vision-exp via DeepSeek's
 //      Anthropic-compatible endpoint.
 //   3. ANTHROPIC_API_KEY — claude-haiku-4-5-20251001, Anthropic's own API.
@@ -106,7 +109,7 @@ export async function callSpecificProvider(provider: VisionProviderName, opts: V
   if (provider === 'openrouter') {
     const key = Deno.env.get('OPENROUTER_API_KEY')
     if (!key) throw new Error('NOT_CONFIGURED')
-    return callOpenRouter(key, 'google/gemma-4-31b-it:free', opts)
+    return callOpenRouter(key, 'google/gemma-4-31b-it', opts)
   }
   if (provider === 'deepseek') {
     const key = Deno.env.get('DEEPSEEK_API_KEY')

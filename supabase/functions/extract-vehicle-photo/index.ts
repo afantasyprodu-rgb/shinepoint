@@ -6,7 +6,7 @@
 // stores the photo — this function only looks at it once.
 //
 // Vision call goes through _shared/visionProviders.ts, which tries
-// OpenRouter (free), then DeepSeek, then Anthropic — see that file's
+// OpenRouter, then DeepSeek, then Anthropic — see that file's
 // header for why (a single-provider setup went down in production and
 // took this feature out with it).
 //

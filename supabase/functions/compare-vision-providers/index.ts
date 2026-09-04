@@ -1,5 +1,5 @@
 // Dev/admin tool: runs the SAME photo through two vision providers in
-// parallel — OpenRouter (google/gemma-4-31b-it:free) and Anthropic (Claude
+// parallel — OpenRouter (google/gemma-4-31b-it) and Anthropic (Claude
 // Haiku) — and returns both raw answers side by side, so a real side-by-
 // side comparison can be seen in one shot instead of swapping which
 // provider is configured and re-testing. Not part of the fallback chain

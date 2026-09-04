@@ -4,7 +4,7 @@
 // a one-shot extraction, not something that needs to persist.
 //
 // Vision call goes through _shared/visionProviders.ts, which tries
-// OpenRouter (free), then DeepSeek, then Anthropic — see that file's
+// OpenRouter, then DeepSeek, then Anthropic — see that file's
 // header for why (a single-provider setup went down in production and
 // took the sibling vehicle-photo function out with it).
 //
