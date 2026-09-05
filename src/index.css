@@ -1303,8 +1303,13 @@
     droplet rather than a circle. Border-radius doesn't trigger layout, and
     the element's transform is left untouched so BottomTabBar's velocity
     physics can own it without fighting this.
-    HEAVY preset: much larger radius swings + shorter periods so the blob
-    never looks settled — reads as viscous mercury / slime. */
+    Previously a "HEAVY" preset with much larger radius swings + shorter
+    periods, tuned to never look settled ("viscous mercury / slime"). Users
+    on both the customer and detailer nav consistently read that as the bar
+    glitching/twitching at rest — it's the same always-on animation on every
+    role's bar, running whether or not you navigate, which matched every
+    report. Toned way down: a barely-there surface ripple instead of a
+    constant morph. */
 @keyframes nx-drop-idle {
   0%,
   100% {
@@ -1312,20 +1317,20 @@
     transform: scale(1, 1);
   }
   15% {
-    border-radius: 62% 38% 54% 4px;
-    transform: scale(1.04, 0.96);
+    border-radius: 53% 47% 51% 4px;
+    transform: scale(1.008, 0.992);
   }
   35% {
-    border-radius: 40% 60% 42% 4px;
-    transform: scale(0.96, 1.06);
+    border-radius: 48% 52% 49% 4px;
+    transform: scale(0.992, 1.008);
   }
   55% {
-    border-radius: 58% 42% 62% 4px;
-    transform: scale(1.03, 0.97);
+    border-radius: 52% 48% 53% 4px;
+    transform: scale(1.006, 0.994);
   }
   75% {
-    border-radius: 44% 56% 48% 4px;
-    transform: scale(0.98, 1.03);
+    border-radius: 49% 51% 48% 4px;
+    transform: scale(0.996, 1.004);
   }
 }
 /* The slow vertical drift is lifted from the parallel implementation this
@@ -1334,27 +1339,29 @@
     Deliberately a different period from the shape morph (2.1s vs 3.4s) so the
     two never sync into an obvious loop. Runs on the wrapper, not the droplet
     itself, so it can't collide with the -rotate-45 the shape element needs.
-    HEAVY: doubled float amplitude + added micro-scale pulse. */
+    Was doubled-amplitude + a micro-scale pulse ("HEAVY") — dialed back
+    alongside nx-drop-idle above for the same reason: it read as the bar
+    glitching, not floating. */
 @keyframes nx-drop-float {
   0%,
   100% {
     transform: translateY(0) scale(1);
   }
   25% {
-    transform: translateY(-1px) scale(1.01);
+    transform: translateY(-0.5px) scale(1.003);
   }
   50% {
-    transform: translateY(-5.5px) scale(0.99);
+    transform: translateY(-1.5px) scale(0.997);
   }
   75% {
-    transform: translateY(-1.5px) scale(1.005);
+    transform: translateY(-0.5px) scale(1.0015);
   }
 }
 .nx-tab-drop-idle {
-  animation: nx-drop-idle 7.5s ease-in-out infinite;
+  animation: nx-drop-idle 9s ease-in-out infinite;
 }
 .nx-tab-drop-float {
-  animation: nx-drop-float 5.8s ease-in-out infinite;
+  animation: nx-drop-float 7.5s ease-in-out infinite;
 }
 
 /* Active-icon warp — the glyph rides INSIDE the droplet and squishes and
@@ -1368,21 +1375,21 @@
     transform: scale(1, 1);
   }
   15% {
-    transform: scale(1.04, 0.96);
+    transform: scale(1.008, 0.992);
   }
   35% {
-    transform: scale(0.96, 1.06);
+    transform: scale(0.992, 1.008);
   }
   55% {
-    transform: scale(1.03, 0.97);
+    transform: scale(1.006, 0.994);
   }
   75% {
-    transform: scale(0.98, 1.03);
+    transform: scale(0.996, 1.004);
   }
 }
 .nx-icon-warp {
   display: inline-flex;
-  animation: nx-icon-warp 7.5s ease-in-out infinite;
+  animation: nx-icon-warp 9s ease-in-out infinite;
 }
 /* Icon mounted inside the droplet. The droplet shape is rotated -45deg, so
    counter-rotate here to keep the glyph upright. top: 34% places it in the
@@ -1402,7 +1409,7 @@
 }
 .nx-tab-drop-icon svg {
   color: #fff;
-  animation: nx-icon-warp 7.5s ease-in-out infinite;
+  animation: nx-icon-warp 9s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) {
   .nx-tab-drop-idle,
