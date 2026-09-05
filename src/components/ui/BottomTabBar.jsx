@@ -35,6 +35,11 @@ export default function BottomTabBar({ items, hidden = false }) {
     // Fire the centre ripple from the droplet's middle (module-scoped so it
     // survives the route's AppShell remount that the tab press triggers).
     rippleAt = performance.now()
+    // The squash loop idles itself out after the bar sits still for a beat
+    // (see startSquashLoop) — a press after that point needs to explicitly
+    // wake it back up, or rippleAt above would just sit there with nothing
+    // ever reading it.
+    startSquashLoop()
   }
   const onPointerUp = () => setPressed(false)
   const onPointerCancel = () => setPressed(false)
@@ -231,6 +236,22 @@ function startSquashLoop() {
         rippleAt = -1
         borderRadius.set('')
       }
+    }
+
+    // Idle out instead of running forever: with no ripple and the squash
+    // spring settled near identity, there's nothing left to animate — this
+    // loop was previously unconditional, meaning every screen of the app
+    // paid a requestAnimationFrame callback's cost for the entire session
+    // even while the bar sat perfectly still. startSquashLoop() below is
+    // called again wherever motion can resume (a new nav target, a press),
+    // so idling here never leaves the droplet stuck mid-animation.
+    if (Math.abs(springV) < 1 && Math.abs(vel) < 1 && rippleAt < 0) {
+      scaleX.set(1)
+      scaleY.set(1)
+      rotate.set(0)
+      springV = 0
+      loopStarted = false
+      return
     }
 
     requestAnimationFrame(step)
