@@ -16,6 +16,14 @@ const detailerRows = [
     insurance: 'insured',
     bio: 'Ten years detailing daily drivers and show cars. Ceramic certified, obsessive about trim.',
     travelMiles: 12,
+    // One additional location (074) — a real showcase of "auto-pick
+    // nearest, override if needed" in the demo, not just a feature only
+    // visible after a real detailer adds one. Chosen zip (Downtown LA) is
+    // far enough from the primary (Echo Park) that both are ever plausibly
+    // "nearest" depending on the demo customer's own zip.
+    locations: [
+      { id: 'det-1-loc-downtown', label: 'Downtown LA', zip: '90013', pin: fuzzyPinForZip('90013', 'det-1-loc-downtown'), travelMiles: 10, chargePerMile: 2 },
+    ],
     completedJobs: 412,
     probationRemaining: 0,
     acceptsRewards: true,
