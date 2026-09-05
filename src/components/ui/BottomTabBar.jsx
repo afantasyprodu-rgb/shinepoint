@@ -224,13 +224,29 @@ function startSquashLoop() {
     const x = dropX.get()
     const vel = dt > 0 ? (x - prevDropX) / dt : 0
     prevDropX = x
-    // Spring follower (k240/c32/m1) chasing the raw velocity — the squash
-    // has its own inertia instead of tracking dropX's velocity instantly.
-    // Adjacent hops feed in a dampened velocity so the scoot stays small.
+    // Spring follower chasing the raw velocity — the squash has its own
+    // inertia instead of tracking dropX's velocity instantly. Adjacent hops
+    // feed in a dampened velocity so the scoot stays small.
+    //
+    // This is a 1-state linear filter (dV/dt = k*velIn - (k+c)*V), not a full
+    // 2nd-order spring — springV chases velIn with time constant 1/(k+c).
+    // It was previously integrated with explicit Euler (`springV += a * dt`),
+    // which is only stable when dt < 2/(k+c). At k=240/c=32 that's ~7.4ms,
+    // half of a 60Hz frame's ~16.7ms — so on every real display this was
+    // guaranteed to diverge, not settle: springV flipped sign and grew
+    // exponentially every single frame (verified — it hit 1e195 within a
+    // couple hundred ms) until the `s` cap below clamped it, leaving the
+    // droplet permanently stuck at max squash, alternating tilt direction
+    // every frame — the "jitters left and right in place" that never
+    // resolved because there was never a real decay to reach identity from.
+    // Swapped for the filter's exact closed-form update, which is
+    // unconditionally stable for any dt: it can only ease toward velIn and
+    // decay, never overshoot into a blow-up.
     const velIn = travelIsAdjacent ? vel * 0.32 : vel
-    const sqK = 240, sqC = 32, sqM = 1
-    const a = (sqK * (velIn - springV) - sqC * springV) / sqM
-    springV += a * dt
+    const sqK = 240, sqC = 32
+    const rate = sqK + sqC
+    const target = (sqK / rate) * velIn
+    springV = target + (springV - target) * Math.exp(-rate * dt)
     const s = Math.min(Math.abs(springV) / 1000, 1.4)
     scaleX.set(1 + 0.72 * s)
     scaleY.set(1 - 0.48 * s)
