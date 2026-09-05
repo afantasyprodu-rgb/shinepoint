@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
     // Load booking + verify the caller owns it (customer side).
     const { data: booking, error: bErr } = await admin
       .from('bookings')
-      .select('id, total_price, paid_at, stripe_payment_intent, customer_id, detailer_id, service_id, addon_service_ids, is_loyalty_redemption, promo_code, booking_zip, vehicle_type, customer_profiles!bookings_customer_id_fkey(user_id)')
+      .select('id, total_price, paid_at, stripe_payment_intent, customer_id, detailer_id, service_id, addon_service_ids, is_loyalty_redemption, promo_code, booking_zip, vehicle_type, detailer_location_id, customer_profiles!bookings_customer_id_fkey(user_id)')
       .eq('id', bookingId)
       .single()
     if (bErr || !booking) return json({ error: 'Booking not found' }, 404)
@@ -125,17 +125,36 @@ Deno.serve(async (req) => {
       .select('zip_code, pin_lat, pin_lng, free_travel_miles, charge_per_extra_mile, vehicle_upcharge_suv, vehicle_upcharge_truck, vehicle_upcharge_van')
       .eq('id', booking.detailer_id)
       .single()
+    // If the customer's booking was against one of the detailer's
+    // additional locations (074) rather than the primary, that location's
+    // own pin/zip/travel-fee terms are the real origin — never the
+    // primary's, and never re-derived from "whichever is nearest now"
+    // (the detailer's locations could have changed since booking).
+    let locationGeo: { zip_code: string; pin_lat: number | null; pin_lng: number | null; free_travel_miles: number | null; charge_per_extra_mile: number | null } | null = null
+    if (booking.detailer_location_id) {
+      const { data } = await admin
+        .from('detailer_locations')
+        .select('zip_code, pin_lat, pin_lng, free_travel_miles, charge_per_extra_mile')
+        .eq('id', booking.detailer_location_id)
+        .eq('detailer_id', booking.detailer_id)
+        .maybeSingle()
+      locationGeo = data
+    }
     let mileageFee = 0
     if (detailerGeo) {
+      const geo = locationGeo ?? detailerGeo
       const origin =
-        detailerGeo.pin_lat != null && detailerGeo.pin_lng != null
-          ? { lat: Number(detailerGeo.pin_lat), lng: Number(detailerGeo.pin_lng) }
-          : approxCentroidForZip(detailerGeo.zip_code)
+        geo.pin_lat != null && geo.pin_lng != null
+          ? { lat: Number(geo.pin_lat), lng: Number(geo.pin_lng) }
+          : approxCentroidForZip(geo.zip_code)
       const destination = approxCentroidForZip(booking.booking_zip)
       if (origin && destination) {
         const distanceMiles = milesBetween(origin, destination)
-        const freeMiles = Number(detailerGeo.free_travel_miles ?? 10)
-        const perMile = Number(detailerGeo.charge_per_extra_mile ?? 0)
+        // Additional locations may leave their own travel-fee terms unset,
+        // meaning "inherit the primary's" — same fallback the client-side
+        // estimate and normalizeDetailer() use, never a bare default here.
+        const freeMiles = Number(geo.free_travel_miles ?? detailerGeo.free_travel_miles ?? 10)
+        const perMile = Number(geo.charge_per_extra_mile ?? detailerGeo.charge_per_extra_mile ?? 0)
         const extraMiles = Math.max(0, Math.ceil(distanceMiles - freeMiles))
         mileageFee = Number((extraMiles * perMile).toFixed(2))
       }

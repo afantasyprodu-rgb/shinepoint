@@ -45,6 +45,7 @@ const REQUIRED_UPDATE_COLS = [
   'reschedule_offer_status',
   'reschedule_offer_expires_at',
   'reschedule_customer_pick',
+  'detailer_location_id',
 ]
 
 // Fields the INSERT guard must strip from client inserts.

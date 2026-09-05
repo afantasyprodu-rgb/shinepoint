@@ -73,7 +73,7 @@ function PayoutManagement() {
 }
 
 export default function DetailerProfileEditor() {
-  const { myDetailer, setAvailability, uploadImage, updateDetailerMe, updateMyServices } = useStore()
+  const { myDetailer, setAvailability, uploadImage, updateDetailerMe, updateMyServices, addLocation, deleteLocation } = useStore()
   const me = myDetailer ?? {}
   const tiltRef = useTiltShadow()
   const t = useT('detailerProfileEditor')
@@ -100,6 +100,15 @@ export default function DetailerProfileEditor() {
   const [activeTab, setActiveTab] = useState('profile')
   const [saved, setSaved] = useState(false)
   const [busy, setBusy] = useState(false)
+  // Additional service locations (074) — saved immediately on add/remove,
+  // not batched into the form's own save() — same "acts right away"
+  // pattern as scanExtraVehicle in CustomerSettings, since add/delete here
+  // are their own atomic actions, not part of the schedule/upcharge fields
+  // below.
+  const [newLocLabel, setNewLocLabel] = useState('')
+  const [newLocZip, setNewLocZip] = useState('')
+  const [locationBusy, setLocationBusy] = useState(false)
+  const [locationError, setLocationError] = useState('')
   const tabsRef = useRef([])
   const [tabPosition, setTabPosition] = useState({ x: 0, width: 0 })
 
@@ -465,6 +474,85 @@ export default function DetailerProfileEditor() {
               />
               {t('acceptRewardBookings')}
             </label>
+          </div>
+
+          {/* Additional service locations (074) — the account's own zip
+              above (freeTravelRadius etc.) is the implicit primary; these
+              are extra pins a multi-location business can add. Booking
+              auto-picks whichever is nearest the customer, with a
+              customer-side override. */}
+          <div className="card">
+            <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t('locationsLabel')}</h2>
+            <p className="mb-3 mt-1 text-xs text-slate-400 dark:text-slate-500">{t('locationsHint')}</p>
+
+            {(me.locations ?? []).length > 0 && (
+              <ul className="mb-3 space-y-2">
+                {me.locations.map((loc) => (
+                  <li key={loc.id} className="flex items-center justify-between gap-3 rounded-xl bg-brand-50 px-3 py-2 text-sm dark:bg-white/5">
+                    <div>
+                      <p className="font-medium text-slate-900 dark:text-slate-100">{loc.label}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">{loc.zip}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        setLocationBusy(true)
+                        try { await deleteLocation(loc.id) } finally { setLocationBusy(false) }
+                      }}
+                      disabled={locationBusy}
+                      className="cursor-pointer text-xs font-semibold text-red-600 hover:underline dark:text-red-400"
+                    >
+                      {t('removeLocation')}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {locationError && (
+              <p role="alert" className="mb-3 text-sm text-red-600 dark:text-red-400">{locationError}</p>
+            )}
+
+            <div className="flex flex-wrap items-end gap-2">
+              <div>
+                <label htmlFor="new-loc-label" className="label">{t('locationLabelField')}</label>
+                <input
+                  id="new-loc-label" type="text" value={newLocLabel}
+                  onChange={(e) => setNewLocLabel(e.target.value)}
+                  placeholder={t('locationLabelPlaceholder')}
+                  className="input h-10 w-40"
+                />
+              </div>
+              <div>
+                <label htmlFor="new-loc-zip" className="label">{t('locationZipField')}</label>
+                <input
+                  id="new-loc-zip" type="text" inputMode="numeric" value={newLocZip}
+                  onChange={(e) => setNewLocZip(e.target.value)}
+                  placeholder="90001"
+                  className="input h-10 w-28"
+                />
+              </div>
+              <button
+                type="button"
+                disabled={locationBusy || !newLocLabel.trim() || newLocZip.replace(/\D/g, '').length < 5}
+                onClick={async () => {
+                  setLocationError('')
+                  setLocationBusy(true)
+                  try {
+                    await addLocation({ label: newLocLabel.trim(), zip: newLocZip.trim() })
+                    setNewLocLabel('')
+                    setNewLocZip('')
+                  } catch (e) {
+                    setLocationError(e?.message || t('locationAddFailed'))
+                  } finally {
+                    setLocationBusy(false)
+                  }
+                }}
+                className="btn btn-outline h-10 text-sm"
+              >
+                {t('addLocation')}
+              </button>
+            </div>
           </div>
 
           {/* Vehicle-size upcharges — optional, applied automatically at

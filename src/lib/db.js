@@ -81,6 +81,22 @@ function normalizeDetailer(row) {
         packageIncludes: s.package_includes ?? [],
       })),
     pin,
+    // ADDITIONAL locations only (074) — the account's own zip/pin above is
+    // the implicit "primary" and never appears in this array; see
+    // allLocationsFor() in fuzzyPin.js for the one place that reunites
+    // "primary + additional" into a single list for the nearest-location
+    // picker (BookingWizard) and the detailer's own management UI. Demo's
+    // seeded detailer starts with none, same empty-array shape.
+    locations: (row.detailer_locations ?? [])
+      .filter((l) => l.is_active)
+      .map((l) => ({
+        id: l.id,
+        label: l.label,
+        zip: l.zip_code ?? '',
+        pin: l.pin_lat && l.pin_lng ? { lat: l.pin_lat, lng: l.pin_lng } : fuzzyPinForZip(String(l.zip_code ?? ''), l.id),
+        travelMiles: l.free_travel_miles ?? row.free_travel_miles ?? 10,
+        chargePerMile: Number(l.charge_per_extra_mile ?? row.charge_per_extra_mile ?? 0),
+      })),
     _real: true,
   }
 }
@@ -304,7 +320,8 @@ export async function fetchDetailers() {
         profile_photo_url, gallery_urls,
         probation_jobs_remaining, service_days, free_travel_miles, booking_buffer_min, charge_per_extra_mile, vehicle_emoji,
         vehicle_upcharge_suv, vehicle_upcharge_truck, vehicle_upcharge_van, blackout_hours,
-        services(id, service_name, description, price, vehicle_types, is_active, is_addon, is_featured, is_package, package_includes)
+        services(id, service_name, description, price, vehicle_types, is_active, is_addon, is_featured, is_package, package_includes),
+        detailer_locations(id, label, zip_code, pin_lat, pin_lng, free_travel_miles, charge_per_extra_mile, max_travel_miles, is_active)
       `),
     fetchDetailerNames(),
   ])
@@ -622,6 +639,44 @@ export async function updateDetailerProfile(userId, patch) {
   }
 }
 
+// Add/edit/remove one of the caller's additional service locations (074) —
+// RLS keys every write to detailer_locations.detailer_id owning the
+// caller's own detailer_profiles row, same as updateDetailerProfile.
+export async function addDetailerLocation(detailerId, { label, zip, freeTravelMiles, chargePerMile, maxTravelMiles }) {
+  const { data, error } = await supabase
+    .from('detailer_locations')
+    .insert({
+      detailer_id: detailerId,
+      label,
+      zip_code: zip,
+      free_travel_miles: freeTravelMiles ?? null,
+      charge_per_extra_mile: chargePerMile ?? null,
+      max_travel_miles: maxTravelMiles ?? null,
+    })
+    .select('id, label, zip_code, pin_lat, pin_lng, free_travel_miles, charge_per_extra_mile, max_travel_miles, is_active')
+    .single()
+  if (error) { console.error('addDetailerLocation:', error.message); throw error }
+  return data
+}
+
+export async function updateDetailerLocation(locationId, patch) {
+  const cols = {}
+  if (patch.label !== undefined) cols.label = patch.label
+  if (patch.zip !== undefined) cols.zip_code = patch.zip
+  if (patch.freeTravelMiles !== undefined) cols.free_travel_miles = patch.freeTravelMiles
+  if (patch.chargePerMile !== undefined) cols.charge_per_extra_mile = patch.chargePerMile
+  if (patch.maxTravelMiles !== undefined) cols.max_travel_miles = patch.maxTravelMiles
+  if (patch.isActive !== undefined) cols.is_active = patch.isActive
+  if (!Object.keys(cols).length) return
+  const { error } = await supabase.from('detailer_locations').update(cols).eq('id', locationId)
+  if (error) { console.error('updateDetailerLocation:', error.message); throw error }
+}
+
+export async function deleteDetailerLocation(locationId) {
+  const { error } = await supabase.from('detailer_locations').delete().eq('id', locationId)
+  if (error) { console.error('deleteDetailerLocation:', error.message); throw error }
+}
+
 // Replace the caller's service list wholesale (delete + insert), so the editor
 // is idempotent. `services` is
 // [{ name, price, desc, isAddon, isBestValue, isPackage, packageIncludes }].
@@ -780,6 +835,7 @@ export async function createBookingInDB({
   vehicleModel,
   promoCode,
   weather,
+  detailerLocationId,
 }) {
   const { data, error } = await supabase
     .from('bookings')
@@ -787,6 +843,11 @@ export async function createBookingInDB({
       customer_id: customerProfileId,
       detailer_id: detailerProfileId,
       service_id: serviceId,
+      // Which of the detailer's locations (null = primary) the distance/
+      // travel-fee estimate the customer saw was computed against (074) —
+      // guard_bookings_insert validates this belongs to detailerProfileId
+      // and guard_bookings_update makes it immutable after.
+      detailer_location_id: detailerLocationId ?? null,
       // Any other services selected alongside the primary one — see 053.
       // Priced server-side from scratch in create-payment-intent, never
       // trusted from totalPrice here.

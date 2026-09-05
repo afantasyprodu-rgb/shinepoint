@@ -191,6 +191,33 @@ export function milesBetweenZips(zipA, zipB) {
   return milesBetween(a, b)
 }
 
+// Reunites a detailer's implicit "primary" location (its own top-level
+// pin/zip/travelMiles/chargePerMile) with any additional ones from
+// d.locations (074) into one list, primary always first with id: null —
+// the one shape both BookingWizard's nearest-location picker and the
+// detailer's own location-management UI iterate over, so "primary" never
+// needs a separate code path from "additional".
+export function allLocationsFor(d) {
+  return [
+    { id: null, label: d.name, zip: d.zip, pin: d.pin, travelMiles: d.travelMiles, chargePerMile: d.chargePerMile },
+    ...(d.locations ?? []),
+  ]
+}
+
+// Whichever of a detailer's locations (primary or additional) is nearest a
+// given { lat, lng } origin — the "auto-pick nearest, override if needed"
+// behavior a customer's booking distance/travel-fee is based on. Returns
+// null if the origin or every location's pin is missing.
+export function nearestLocationFor(d, origin) {
+  if (!origin) return null
+  const candidates = allLocationsFor(d).filter((l) => l.pin)
+  if (!candidates.length) return null
+  return candidates.reduce((best, l) => {
+    const dist = milesBetween(origin, l.pin)
+    return !best || dist < best.distanceMiles ? { ...l, distanceMiles: dist } : best
+  }, null)
+}
+
 // The detailer whose pin is nearest a given zip (by any means — exact or
 // approximate centroid), or null if the zip can't be placed at all or no
 // detailer has a resolvable pin. Used to greet an out-of-table zip with a

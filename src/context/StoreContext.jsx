@@ -22,6 +22,9 @@ import {
   updateUserName,
   updateUserContactInfo,
   sendSmsOptInConfirmation,
+  addDetailerLocation,
+  updateDetailerLocation,
+  deleteDetailerLocation,
   updateCustomerProfile,
   updateDetailerProfile,
   saveServices,
@@ -617,6 +620,49 @@ export function StoreProvider({ children }) {
         fetchDetailers().then(setRealDetailers)
       },
 
+      // Add/edit/remove one of the logged-in detailer's additional service
+      // locations (074) — the account's own zip/pin (the "primary" location)
+      // still lives on detailer_profiles and isn't managed through these.
+      // Demo mutates a locally-generated id on the seeded det-1 record;
+      // real persists to detailer_locations then refetches so
+      // getDetailer/myDetailer see it immediately, same as updateMyServices.
+      async addLocation(loc) {
+        if (isDemo) {
+          const newLoc = { id: `demo-loc-${Date.now()}`, label: loc.label, zip: loc.zip, pin: null, travelMiles: loc.freeTravelMiles ?? 10, chargePerMile: loc.chargePerMile ?? 0 }
+          setDemoDetailers((ds) =>
+            ds.map((d) => (d.id === 'det-1' ? { ...d, locations: [...(d.locations ?? []), newLoc] } : d))
+          )
+          return
+        }
+        if (!profile?.id) return
+        await addDetailerLocation(profile.id, loc)
+        fetchDetailers().then(setRealDetailers)
+      },
+      async updateLocation(locationId, patch) {
+        if (isDemo) {
+          setDemoDetailers((ds) =>
+            ds.map((d) => (d.id === 'det-1'
+              ? { ...d, locations: (d.locations ?? []).map((l) => (l.id === locationId ? { ...l, ...patch } : l)) }
+              : d))
+          )
+          return
+        }
+        await updateDetailerLocation(locationId, patch)
+        fetchDetailers().then(setRealDetailers)
+      },
+      async deleteLocation(locationId) {
+        if (isDemo) {
+          setDemoDetailers((ds) =>
+            ds.map((d) => (d.id === 'det-1'
+              ? { ...d, locations: (d.locations ?? []).filter((l) => l.id !== locationId) }
+              : d))
+          )
+          return
+        }
+        await deleteDetailerLocation(locationId)
+        fetchDetailers().then(setRealDetailers)
+      },
+
       // Submit before/after photos for a booking. `kind` is 'before' | 'after',
       // `items` is [{ area, photo(base64), file }]. Demo keeps base64 in state;
       // real uploads each File to Storage + the photos table, then reflects the
@@ -841,6 +887,7 @@ export function StoreProvider({ children }) {
             vehicleModel: draft.vehicleModel,
             promoCode: draft.promoCode,
             weather: draft.weather,
+            detailerLocationId: draft.detailerLocationId,
           })
           const refreshed = await fetchBookingsForCustomer(customerProfile.id)
           setRealBookings(refreshed)

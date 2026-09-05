@@ -12,7 +12,7 @@ import { useStore } from '../context/StoreContext'
 import { useTheme } from '../context/ThemeContext'
 import { stripePromise, isStripeConfigured, createPaymentIntent } from '../lib/stripe'
 import { checkPromoCode, fetchDetailerBusyTimes } from '../lib/db'
-import { approxCentroidForZip, milesBetween } from '../lib/fuzzyPin'
+import { approxCentroidForZip, milesBetween, allLocationsFor, nearestLocationFor } from '../lib/fuzzyPin'
 import { playSfx } from '../lib/sfx'
 import { useT } from '../i18n/useT'
 
@@ -417,6 +417,11 @@ export default function BookingWizard() {
   const [showSmsConfirmed, setShowSmsConfirmed] = useState(false)
 const [smsPhone, setSmsPhone] = useState('')
 const [smsConsent, setSmsConsent] = useState(false)
+  // null = follow the auto-picked nearest location; a location id (or the
+  // literal string 'primary' for the id:null primary, since useState can't
+  // otherwise tell "no override" apart from "explicitly chose the primary")
+  // once the customer overrides the pick (074).
+  const [locationOverride, setLocationOverride] = useState(null)
 const [smsBusy, setSmsBusy] = useState(false)
 const [smsError, setSmsError] = useState(null)
   const [bookingId, setBookingId] = useState(null)
@@ -524,11 +529,25 @@ const [smsError, setSmsError] = useState(null)
   // store finishes loading — this hook used to sit past `if (!d) return null`,
   // so its hook count changed between renders the moment the detailer data
   // arrived (rules-of-hooks violation; latent crash).
+  // "Auto-pick nearest location, override if needed" (074): every detailer
+  // has at least the primary location (allLocationsFor always includes it),
+  // so bookingLocation is never null once `d` and the customer's zip are
+  // both known — it's either the nearest one to the customer, or whichever
+  // the customer explicitly picked instead.
+  const origin = useMemo(() => (customer.zip ? approxCentroidForZip(customer.zip) : null), [customer.zip])
+  const allLocations = useMemo(() => (d ? allLocationsFor(d) : []), [d])
+  const nearestLocation = useMemo(() => (d ? nearestLocationFor(d, origin) : null), [d, origin])
+  const bookingLocation = useMemo(() => {
+    if (locationOverride != null) {
+      return allLocations.find((l) => (l.id ?? 'primary') === locationOverride) ?? nearestLocation
+    }
+    return nearestLocation ?? allLocations[0] ?? null
+  }, [locationOverride, allLocations, nearestLocation])
+
   const distanceMiles = useMemo(() => {
-    if (!d?.pin || !customer.zip) return null
-    const origin = approxCentroidForZip(customer.zip)
-    return origin ? milesBetween(origin, d.pin) : null
-  }, [d?.pin, customer.zip])
+    if (!bookingLocation?.pin || !origin) return null
+    return milesBetween(origin, bookingLocation.pin)
+  }, [bookingLocation, origin])
 
   if (!d) return null
   const uninsured = d.insurance === 'none'
@@ -548,8 +567,9 @@ const [smsError, setSmsError] = useState(null)
   // already brought the service price down, same order create-payment-intent
   // enforces server-side (the real charge; this is the pre-payment estimate
   // shown to the customer so they aren't surprised at checkout).
-  const chargePerMile = d.chargePerMile ?? (isDemo ? 2 : 0)
-  const extraMiles = distanceMiles != null ? Math.max(0, Math.ceil(distanceMiles - d.travelMiles)) : 0
+  const chargePerMile = bookingLocation?.chargePerMile ?? (isDemo ? 2 : 0)
+  const freeTravelMiles = bookingLocation?.travelMiles ?? d.travelMiles
+  const extraMiles = distanceMiles != null ? Math.max(0, Math.ceil(distanceMiles - freeTravelMiles)) : 0
   const mileageFee = extraMiles > 0 ? Number((extraMiles * chargePerMile).toFixed(2)) : 0
   // Vehicle-size upcharge — automatic, based on the vehicle already selected
   // above (defaults to the customer's own saved car, no separate step for
@@ -607,6 +627,7 @@ const [smsError, setSmsError] = useState(null)
       promoCode: promoApplied?.code,
       address: customer.address,
       zip: customer.zip,
+      detailerLocationId: bookingLocation?.id ?? undefined,
       scheduledTime: `${date.key}T${parseTime(time)}`,
       weather: date.rainy
         ? { ok: false, summary: 'Rain forecast', acknowledged: true, rainy: true, tempF: date.tempF ?? null }
@@ -694,9 +715,37 @@ const [smsError, setSmsError] = useState(null)
               </h1>
               <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{t('bookingWith', { name: d.name })}</p>
 
+              {/* Locations beyond the primary (074) — auto-picked to whichever
+                  is nearest the customer's zip, with a plain <select> to
+                  override. Hidden entirely for the common case (no
+                  additional locations) rather than showing a picker with
+                  nothing to pick. */}
+              {allLocations.length > 1 && bookingLocation && (
+                <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                  <span>
+                    {t('bookingFromLocation', {
+                      label: bookingLocation.label,
+                      miles: distanceMiles != null ? distanceMiles.toFixed(1) : '—',
+                    })}
+                  </span>
+                  <select
+                    value={bookingLocation.id ?? 'primary'}
+                    onChange={(e) => setLocationOverride(e.target.value)}
+                    className="input h-8 w-auto py-0 text-xs"
+                    aria-label={t('changeLocationLabel')}
+                  >
+                    {allLocations.map((l) => (
+                      <option key={l.id ?? 'primary'} value={l.id ?? 'primary'}>
+                        {l.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               {mileageFee > 0 && (
                 <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">
-                  {t('mileageWarning', { name: d.name, miles: d.travelMiles, fee: mileageFee.toFixed(2) })}
+                  {t('mileageWarning', { name: d.name, miles: freeTravelMiles, fee: mileageFee.toFixed(2) })}
                 </p>
               )}
 
