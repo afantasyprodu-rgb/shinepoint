@@ -11,6 +11,8 @@
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
     "check:guards": "node scripts/check-booking-guards.mjs",
+    "smoke:agent-api": "node scripts/smoke-agent-api.mjs",
+    "mcp": "node scripts/run-mcp.mjs",
     "cap:sync": "npm run build && cap sync",
     "cap:android": "cap open android",
     "cap:ios": "cap open ios"
@@ -23,6 +25,7 @@
     "@capacitor/push-notifications": "^8.1.2",
     "@capacitor/splash-screen": "^8.0.1",
     "@capacitor/status-bar": "^8.0.2",
+    "@sentdm/sentdm": "^0.34.0",
     "@sentry/react": "^10.70.0",
     "@stripe/react-stripe-js": "^3.10.0",
     "@stripe/stripe-js": "^5.10.0",

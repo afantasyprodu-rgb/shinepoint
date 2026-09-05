@@ -2,17 +2,17 @@
 
 The payment code is already written and wired into the app:
 
-- `supabase/functions/create-payment-intent` — charges the platform's own Stripe balance (not a destination charge), computes `platform_cut`/`detailer_payout`, returns `clientSecret`
-- `supabase/functions/connect-onboarding` — creates the detailer's Stripe Connect account (manual payout schedule) + onboarding link
-- `supabase/functions/identity-verification` — creates a Stripe Identity VerificationSession, for the detailer onboarding "Identity" step or a customer verifying to file a 2nd+ dispute (`043_repeat_dispute_identity_gate.sql`)
-- `supabase/functions/release-payouts` — **scheduled job**, not user-invoked: transfers a completed booking's `detailer_payout` to the detailer's connected account once its 48-hour hold has passed with no dispute, and — for a detailer still on probation (fewer than 5 completed jobs) — once an admin has approved that specific payout (see `041_probation_payout_approval.sql`)
-- `supabase/functions/get-balance` — the logged-in detailer's live Stripe balance (available vs pending)
-- `supabase/functions/request-payout` — withdraws a detailer-chosen amount from their available balance to their bank
-- `supabase/functions/detailer-dashboard-link` — a secondary "manage in Stripe" link into their Express dashboard
-- `supabase/functions/stripe-webhook` — marks bookings paid, syncs detailer payout-readiness, records ID verification outcome, freezes payout on a real chargeback, and sends the booking-confirmation email
-- `supabase/functions/send-receipt-email` — sends the payment receipt when a detailer marks a job complete (see `docs/email-templates/README.md`)
-- `supabase/functions/charge-tip` — a post-job tip as its own PaymentIntent, reusing the card saved at booking time
-- `supabase/functions/resolve-dispute` — admin dispute resolution: issues the real Stripe refund (and, on a proven-false repeat dispute, the $1.50 false-dispute fee) before recording the outcome
+- `supabase/functions/create-payment-intent` â€” charges the platform's own Stripe balance (not a destination charge), computes `platform_cut`/`detailer_payout`, returns `clientSecret`
+- `supabase/functions/connect-onboarding` â€” creates the detailer's Stripe Connect account (manual payout schedule) + onboarding link
+- `supabase/functions/identity-verification` â€” creates a Stripe Identity VerificationSession, for the detailer onboarding "Identity" step or a customer verifying to file a 2nd+ dispute (`043_repeat_dispute_identity_gate.sql`)
+- `supabase/functions/release-payouts` â€” **scheduled job**, not user-invoked: transfers a completed booking's `detailer_payout` to the detailer's connected account once its 48-hour hold has passed with no dispute, and â€” for a detailer still on probation (fewer than 5 completed jobs) â€” once an admin has approved that specific payout (see `041_probation_payout_approval.sql`)
+- `supabase/functions/get-balance` â€” the logged-in detailer's live Stripe balance (available vs pending)
+- `supabase/functions/request-payout` â€” withdraws a detailer-chosen amount from their available balance to their bank
+- `supabase/functions/detailer-dashboard-link` â€” a secondary "manage in Stripe" link into their Express dashboard
+- `supabase/functions/stripe-webhook` â€” marks bookings paid, syncs detailer payout-readiness, records ID verification outcome, freezes payout on a real chargeback, and sends the booking-confirmation email
+- `supabase/functions/send-receipt-email` â€” sends the payment receipt when a detailer marks a job complete (see `docs/email-templates/README.md`)
+- `supabase/functions/charge-tip` â€” a post-job tip as its own PaymentIntent, reusing the card saved at booking time
+- `supabase/functions/resolve-dispute` â€” admin dispute resolution: issues the real Stripe refund (and, on a proven-false repeat dispute, the $1.50 false-dispute fee) before recording the outcome
 
 What's left is **deploying** them and **configuring Stripe**. Do this once.
 
@@ -21,8 +21,8 @@ What's left is **deploying** them and **configuring Stripe**. Do this once.
 ## 0. Prerequisites
 
 - A Stripe account (start in **test mode**).
-- Stripe **Connect** enabled (Dashboard → Connect → Get started). Express dashboards are used, with each account's payout schedule set to manual.
-- Stripe **Identity** enabled (Dashboard → Identity → Get started) — no separate API key, just needs to be turned on for the account.
+- Stripe **Connect** enabled (Dashboard â†’ Connect â†’ Get started). Express dashboards are used, with each account's payout schedule set to manual.
+- Stripe **Identity** enabled (Dashboard â†’ Identity â†’ Get started) â€” no separate API key, just needs to be turned on for the account.
 - The Supabase CLI:
   ```bash
   npm i -g supabase
@@ -37,25 +37,25 @@ What's left is **deploying** them and **configuring Stripe**. Do this once.
 
 ## 1. Set function secrets
 
-Get your keys from Stripe → Developers → API keys.
+Get your keys from Stripe â†’ Developers â†’ API keys.
 
 ```bash
 supabase secrets set STRIPE_SECRET_KEY=sk_test_xxx
-# PLATFORM_FEE_PERCENT is optional — omit it to use the tiered schedule in
+# PLATFORM_FEE_PERCENT is optional â€” omit it to use the tiered schedule in
 # supabase/functions/_shared/fees.ts (15% down to 7% as price goes up); set
 # it only to force a single flat rate everywhere instead.
 supabase secrets set CRON_SECRET=$(openssl rand -hex 24)
 supabase secrets set RESEND_API_KEY=re_your_key_here
 supabase secrets set RESEND_FROM="ShinePoint <notifications@yourdomain.com>"
 # STRIPE_WEBHOOK_SECRET and STRIPE_CONNECT_WEBHOOK_SECRET are set in step 4
-# (you need the two endpoints first — see step 3 for why there are two).
+# (you need the two endpoints first â€” see step 3 for why there are two).
 ```
 
-`CRON_SECRET` is a random string only you and the scheduler in step 5 know — it's how `release-payouts` verifies a request without a logged-in user (nobody's signed in when a cron job fires).
+`CRON_SECRET` is a random string only you and the scheduler in step 5 know â€” it's how `release-payouts` verifies a request without a logged-in user (nobody's signed in when a cron job fires).
 
-`RESEND_API_KEY`/`RESEND_FROM` are optional — the booking-confirmation and receipt emails skip themselves (log a warning, don't throw) if `RESEND_API_KEY` is unset, so payments and job completion work fine without them. Set them when you're ready for real email; see `docs/email-templates/README.md`.
+`RESEND_API_KEY`/`RESEND_FROM` are optional â€” the booking-confirmation and receipt emails skip themselves (log a warning, don't throw) if `RESEND_API_KEY` is unset, so payments and job completion work fine without them. Set them when you're ready for real email; see `docs/email-templates/README.md`.
 
-> `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` are injected automatically — do **not** set them yourself.
+> `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` are injected automatically â€” do **not** set them yourself.
 
 ---
 
@@ -65,7 +65,7 @@ supabase secrets set RESEND_FROM="ShinePoint <notifications@yourdomain.com>"
 supabase db push
 ```
 
-This applies (among earlier ones) `014_stripe_identity.sql`, `015_featured_service.sql`, and `016_payout_holds.sql` — the last one adds `bookings.payout_hold_until` / `transferred_at` / `stripe_transfer_id` and the trigger that starts a 48-hour hold every time a booking becomes `'complete'`. `041_probation_payout_approval.sql` adds the probation gate on top: while a detailer has fewer than 5 completed jobs, their payouts additionally sit in the admin **Ops → Payouts** tab until approved, regardless of how long the 48h clock has run.
+This applies (among earlier ones) `014_stripe_identity.sql`, `015_featured_service.sql`, and `016_payout_holds.sql` â€” the last one adds `bookings.payout_hold_until` / `transferred_at` / `stripe_transfer_id` and the trigger that starts a 48-hour hold every time a booking becomes `'complete'`. `041_probation_payout_approval.sql` adds the probation gate on top: while a detailer has fewer than 5 completed jobs, their payouts additionally sit in the admin **Ops â†’ Payouts** tab until approved, regardless of how long the 48h clock has run.
 
 `config.toml` already sets `verify_jwt = false` for the webhook and the release job (neither can/should require a Supabase user JWT), so a plain deploy is enough for everything:
 
@@ -87,34 +87,34 @@ supabase functions deploy send-receipt-email
 
 ---
 
-## 3. Register the webhook in Stripe — TWO endpoints, same URL
+## 3. Register the webhook in Stripe â€” TWO endpoints, same URL
 
 `account.updated` for a detailer's connected account is a **Connect-scoped**
-event — Stripe never delivers it to a regular "Your account" endpoint, only
+event â€” Stripe never delivers it to a regular "Your account" endpoint, only
 to one explicitly listening on connected accounts. Every other event this
 function handles (`payment_intent.*`, `charge.dispute.created`,
 `identity.verification_session.*`) happens on the *platform's own* account
 (create-payment-intent charges the platform balance directly, not a
 destination charge), so those need the regular endpoint. Stripe signs each
 endpoint with its own secret, and `stripe-webhook` checks both
-(`STRIPE_WEBHOOK_SECRET` then `STRIPE_CONNECT_WEBHOOK_SECRET`) — so this is
+(`STRIPE_WEBHOOK_SECRET` then `STRIPE_CONNECT_WEBHOOK_SECRET`) â€” so this is
 two endpoint registrations pointing at the same URL, not one.
 
-**Endpoint A — platform events:**
-1. Stripe Dashboard → Developers → **Webhooks** → **Add endpoint**.
+**Endpoint A â€” platform events:**
+1. Stripe Dashboard â†’ Developers â†’ **Webhooks** â†’ **Add endpoint**.
 2. Endpoint URL: `https://ggcfwwpmclypcexiprro.supabase.co/functions/v1/stripe-webhook`
 3. Listen to events on **your account** (not connected accounts).
 4. Select events: `payment_intent.succeeded`, `payment_intent.payment_failed`, `charge.dispute.created`, `identity.verification_session.verified`, `identity.verification_session.requires_input`
-5. Create, then copy the **Signing secret** (`whsec_...`) → this is `STRIPE_WEBHOOK_SECRET`.
+5. Create, then copy the **Signing secret** (`whsec_...`) â†’ this is `STRIPE_WEBHOOK_SECRET`.
 
-**Endpoint B — connected-account events:**
+**Endpoint B â€” connected-account events:**
 1. Add another endpoint, same URL.
 2. This time choose **Listen to events on Connected accounts**.
 3. Select events: `account.updated`
-4. Create, then copy its **Signing secret** → this is `STRIPE_CONNECT_WEBHOOK_SECRET`.
+4. Create, then copy its **Signing secret** â†’ this is `STRIPE_CONNECT_WEBHOOK_SECRET`.
 
 If a detailer completes Connect onboarding but `stripe_charges_enabled`
-never flips to true (so they can never be paid — `create-payment-intent`
+never flips to true (so they can never be paid â€” `create-payment-intent`
 hard-blocks bookings for them until it does), endpoint B is missing or its
 secret is wrong. Check `supabase functions logs stripe-webhook` for
 `Bad signature` around the time they finished onboarding.
@@ -133,7 +133,7 @@ supabase functions deploy stripe-webhook
 
 ## 5. Schedule the payout release job
 
-`release-payouts` needs to run periodically (hourly is plenty) so held payouts actually get transferred once their 48-hour hold clears. Supabase projects have `pg_cron` + `pg_net` available — from the SQL editor:
+`release-payouts` needs to run periodically (hourly is plenty) so held payouts actually get transferred once their 48-hour hold clears. Supabase projects have `pg_cron` + `pg_net` available â€” from the SQL editor:
 
 ```sql
 create extension if not exists pg_cron;
@@ -151,25 +151,29 @@ select cron.schedule(
 );
 ```
 
-(Or use Supabase's dashboard **Database → Cron Jobs** UI if you'd rather not hand-write the SQL — same idea, a scheduled HTTP POST to the function URL with that header.)
+(Or use Supabase's dashboard **Database â†’ Cron Jobs** UI if you'd rather not hand-write the SQL â€” same idea, a scheduled HTTP POST to the function URL with that header.)
 
 ---
 
 ## 6. Smoke test (test mode)
 
-1. **Detailer payout setup:** sign in as a real detailer → Dashboard → "Set up payouts" → finish Stripe onboarding with test data. The `account.updated` webhook flips `detailer_profiles.stripe_charges_enabled` to true.
-2. **ID verification:** onboarding wizard → Identity step → "Upload ID & take selfie" → complete Stripe's test-mode document flow. Confirm `detailer_profiles.identity_status` flips to `verified` (or `failed` for a rejection test case) once the webhook fires.
-3. **Customer booking + payment:** sign in as a real customer → book that detailer → at payment, use card `4242 4242 4242 4242`, any future expiry, any CVC. Confirm the booking gets `paid_at`/`stripe_payment_intent`/`platform_cut`/`detailer_payout`, and that Stripe Dashboard → Payments shows the charge landing on **your platform's** balance (not the connected account — that's the point of the new setup). If `RESEND_API_KEY` is set, confirm the booking-confirmation email arrives.
-4. **Mark the job complete** (customer/detailer flow through the booking lifecycle to `'complete'`). Confirm `payout_hold_until` gets set (now + 48h) via the trigger, and — if `RESEND_API_KEY` is set — that the receipt email arrives.
-5. **Force the hold to clear** for testing — either wait 48h, or in the SQL editor: `update bookings set payout_hold_until = now() where id = '<booking id>';` — then invoke `release-payouts` manually (`curl -X POST .../release-payouts -H "x-cron-secret: ..."`, or just wait for the next scheduled run). Confirm `transferred_at`/`stripe_transfer_id` get set, and Stripe → Connect → the detailer's account shows the transfer.
-6. **Balance + withdraw:** sign in as that detailer → Earnings page → confirm "Available to withdraw" reflects the transferred amount (via `get-balance`), then withdraw a partial amount and confirm a `Payout` appears in Stripe's test-mode dashboard for the connected account.
-7. **Dispute holds it:** file a dispute on a booking before its hold clears (status → `'disputed'`) and confirm `release-payouts` does *not* transfer it (it's excluded from the query since it's no longer `'complete'`). Resolving the dispute in the detailer's favor sets it back to `'complete'`, which restarts a fresh 48-hour hold via the same trigger.
-8. **Probation gate:** complete a job for a brand-new detailer (`is_probation = true`) and confirm it shows up under admin **Ops → Payouts**, and that `release-payouts` skips it even after forcing `payout_hold_until` into the past. Click "Approve payout" and confirm it then releases on the next `release-payouts` run. Complete 5 total jobs for that detailer and confirm `detailer_profiles.is_probation` flips to `false` (check via SQL editor — `probation_jobs_remaining` should read 0) and that job 6's payout releases without needing approval.
+1. **Detailer payout setup:** sign in as a real detailer â†’ Dashboard â†’ "Set up payouts" â†’ finish Stripe onboarding with test data. The `account.updated` webhook flips `detailer_profiles.stripe_charges_enabled` to true.
+2. **ID verification:** onboarding wizard â†’ Identity step â†’ "Upload ID & take selfie" â†’ complete Stripe's test-mode document flow. Confirm `detailer_profiles.identity_status` flips to `verified` (or `failed` for a rejection test case) once the webhook fires.
+3. **Customer booking + payment:** sign in as a real customer â†’ book that detailer â†’ at payment, use card `4242 4242 4242 4242`, any future expiry, any CVC. Confirm the booking gets `paid_at`/`stripe_payment_intent`/`platform_cut`/`detailer_payout`, and that Stripe Dashboard â†’ Payments shows the charge landing on **your platform's** balance (not the connected account â€” that's the point of the new setup). If `RESEND_API_KEY` is set, confirm the booking-confirmation email arrives.
+4. **Mark the job complete** (customer/detailer flow through the booking lifecycle to `'complete'`). Confirm `payout_hold_until` gets set (now + 48h) via the trigger, and â€” if `RESEND_API_KEY` is set â€” that the receipt email arrives.
+5. **Force the hold to clear** for testing â€” either wait 48h, or in the SQL editor: `update bookings set payout_hold_until = now() where id = '<booking id>';` â€” then invoke `release-payouts` manually (`curl -X POST .../release-payouts -H "x-cron-secret: ..."`, or just wait for the next scheduled run). Confirm `transferred_at`/`stripe_transfer_id` get set, and Stripe â†’ Connect â†’ the detailer's account shows the transfer.
+6. **Balance + withdraw:** sign in as that detailer â†’ Earnings page â†’ confirm "Available to withdraw" reflects the transferred amount (via `get-balance`), then withdraw a partial amount and confirm a `Payout` appears in Stripe's test-mode dashboard for the connected account.
+7. **Dispute holds it:** file a dispute on a booking before its hold clears (status â†’ `'disputed'`) and confirm `release-payouts` does *not* transfer it (it's excluded from the query since it's no longer `'complete'`). Resolving the dispute in the detailer's favor sets it back to `'complete'`, which restarts a fresh 48-hour hold via the same trigger.
+8. **Probation gate:** complete a job for a brand-new detailer (`is_probation = true`) and confirm it shows up under admin **Ops â†’ Payouts**, and that `release-payouts` skips it even after forcing `payout_hold_until` into the past. Click "Approve payout" and confirm it then releases on the next `release-payouts` run. Complete 5 total jobs for that detailer and confirm `detailer_profiles.is_probation` flips to `false` (check via SQL editor â€” `probation_jobs_remaining` should read 0) and that job 6's payout releases without needing approval.
 
 ---
 
 ## Notes / future hardening
 
-- **Fee:** tiered, taken on `total_price` (the service price, net of any promo discount) — see `supabase/functions/_shared/fees.ts` for the schedule (15% under $100, stepping down to 7% at $1,000+). `PLATFORM_FEE_PERCENT` overrides it with a flat rate everywhere, if set. Tips are charged separately (`charge-tip`) and are 100% the detailer's — no platform fee.
-- **Real Stripe disputes (chargebacks):** wired since 040 — `charge.dispute.created` (endpoint A, above) pushes `payout_hold_until` a year out on the linked booking so `release-payouts` can't transfer money mid-chargeback. This is separate from the in-app dispute flow (`fileDispute` → booking status `'disputed'`), which is the normal path for a customer/detailer complaint and gates the payout hold the same way.
-- **Go live:** swap test keys for live keys, re-run steps 1–5 with the live webhook endpoint and a live `CRON_SECRET`, and complete Stripe's live-mode Connect activation.
+- **Fee:** tiered, taken on `total_price` (the service price, net of any promo discount) â€” see `supabase/functions/_shared/fees.ts` for the schedule (15% under $100, stepping down to 7% at $1,000+). `PLATFORM_FEE_PERCENT` overrides it with a flat rate everywhere, if set. Tips are charged separately (`charge-tip`) and are 100% the detailer's â€” no platform fee.
+- **Real Stripe disputes (chargebacks):** wired since 040 â€” `charge.dispute.created` (endpoint A, above) pushes `payout_hold_until` a year out on the linked booking so `release-payouts` can't transfer money mid-chargeback. This is separate from the in-app dispute flow (`fileDispute` â†’ booking status `'disputed'`), which is the normal path for a customer/detailer complaint and gates the payout hold the same way.
+- **Go live:** swap test keys for live keys, re-run steps 1â€“5 with the live webhook endpoint and a live `CRON_SECRET`, and complete Stripe's live-mode Connect activation.
+
+## Agent Booking API
+
+Machine-facing agent endpoints live in `supabase/functions/agent-v1`. See `docs/agent-api.md`. Deploy with `supabase functions deploy agent-v1` and set `AGENT_API_KEY_HASH` (or `AGENT_API_KEY` for local smoke).

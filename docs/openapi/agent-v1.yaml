@@ -1,0 +1,118 @@
+openapi: 3.0.3
+info:
+  title: ShinePoint Agent Booking API
+  version: 1.0.0
+  description: Machine-facing booking API for external AI agents. See docs/agent-mcp.md for the MCP stdio wrapper.
+servers:
+  - url: https://{projectRef}.supabase.co/functions/v1/agent-v1
+    variables:
+      projectRef:
+        default: YOUR-PROJECT-REF
+security:
+  - AgentApiKey: []
+  - BearerAuth: []
+paths:
+  /health:
+    get:
+      security: []
+      summary: Liveness
+      responses:
+        '200':
+          description: OK
+  /search:
+    post:
+      summary: Search detailers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [zip]
+              properties:
+                zip: { type: string }
+                date: { type: string, format: date }
+                vehicle_type: { type: string }
+                max_miles: { type: number }
+                limit: { type: integer }
+      responses:
+        '200':
+          description: Detailer list
+        '401':
+          description: Unauthorized
+  /quote:
+    post:
+      summary: Price a job
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [detailer_id, service_id, booking_zip]
+              properties:
+                detailer_id: { type: string, format: uuid }
+                service_id: { type: string, format: uuid }
+                addon_service_ids:
+                  type: array
+                  items: { type: string, format: uuid }
+                booking_zip: { type: string }
+                vehicle_type: { type: string }
+                promo_code: { type: string, nullable: true }
+      responses:
+        '200':
+          description: Quote
+        '401':
+          description: Unauthorized
+  /bookings:
+    post:
+      summary: Create booking pending human payment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [detailer_id, service_id, scheduled_time, address, zip]
+              properties:
+                customer_id: { type: string, format: uuid }
+                customer_email: { type: string, format: email }
+                detailer_id: { type: string, format: uuid }
+                service_id: { type: string, format: uuid }
+                addon_service_ids:
+                  type: array
+                  items: { type: string, format: uuid }
+                scheduled_time: { type: string, format: date-time }
+                address: { type: string }
+                zip: { type: string }
+                vehicle_type: { type: string }
+                vehicle_make: { type: string }
+                vehicle_model: { type: string }
+                promo_code: { type: string, nullable: true }
+      responses:
+        '200':
+          description: Pending booking with payment details
+        '401':
+          description: Unauthorized
+  /bookings/{id}:
+    get:
+      summary: Booking status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Status
+        '404':
+          description: Not found
+components:
+  securitySchemes:
+    AgentApiKey:
+      type: apiKey
+      in: header
+      name: X-Agent-Api-Key
+    BearerAuth:
+      type: http
+      scheme: bearer

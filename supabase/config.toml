@@ -31,14 +31,14 @@ verify_jwt = false
 verify_jwt = false
 
 # `supabase config push` treats this file as the FULL source of truth for
-# every section it touches — anything left unset gets reset to the CLI's
+# every section it touches â€” anything left unset gets reset to the CLI's
 # blank defaults, not "leave remote alone". These values restore what was
 # already live (captured from the push diff after an earlier push clobbered
 # them) so they don't silently reset again on the next push.
 [auth]
 # detailing-marketplace.vercel.app stopped resolving once shinepoint.app was
 # connected as the project's custom domain (Vercel dropped the short alias
-# from the project's domain list) — shinepoint.app is the real live URL now.
+# from the project's domain list) â€” shinepoint.app is the real live URL now.
 site_url = "https://shinepoint.app/"
 additional_redirect_urls = ["https://shinepoint.app/auth/callback", "https://detailing-marketplace.vercel.app/auth/callback", "http://localhost:5180/auth/callback"]
 
@@ -46,7 +46,7 @@ additional_redirect_urls = ["https://shinepoint.app/auth/callback", "https://det
 enroll_enabled = true
 verify_enabled = true
 
-# Phone OTP is the one paid endpoint that is NOT an edge function — the client
+# Phone OTP is the one paid endpoint that is NOT an edge function â€” the client
 # calls signInWithOtp() straight against GoTrue, so the app-level limiter in
 # _shared/rateLimit.ts can't see it. These are GoTrue's own limits and are the
 # only thing standing between an unauthenticated public form and a per-SMS
@@ -67,7 +67,7 @@ max_frequency = "1m0s"
 otp_length = 8
 
 # Supabase's built-in "Magic Link" template only renders {{ .ConfirmationURL
-# }} (a clickable link) by default — but AuthCard.jsx's email flow always
+# }} (a clickable link) by default â€” but AuthCard.jsx's email flow always
 # expects the user to type a code into OtpBoxInput, never follows a link.
 # Override with a template that surfaces {{ .Token }} instead, or users get
 # an email with nothing they can actually use.
@@ -76,7 +76,7 @@ subject = "Your ShinePoint login code"
 content_path = "./supabase/templates/magic_link.html"
 
 # Brand-new signups (shouldCreateUser: true) send this "confirmation"
-# template instead of magic_link — a separate GoTrue email type, same
+# template instead of magic_link â€” a separate GoTrue email type, same
 # ConfirmationURL-only default problem, same fix.
 [auth.email.template.confirmation]
 subject = "Your ShinePoint signup code"
@@ -87,7 +87,7 @@ enabled = false
 
 # Custom SMTP so email OTP/signup mail sends from shinepoint.app instead of
 # Supabase's default 2-emails/hour dev sender. Secret pulled from the
-# SUPABASE_AUTH_SMTP_PASS env var at `supabase config push` time — never
+# SUPABASE_AUTH_SMTP_PASS env var at `supabase config push` time â€” never
 # committed here.
 [auth.email.smtp]
 enabled = true
@@ -98,7 +98,7 @@ pass = "env(SUPABASE_AUTH_SMTP_PASS)"
 admin_email = "noreply@shinepoint.app"
 sender_name = "ShinePoint"
 
-# Phone OTP dropped: Twilio's A2P 10DLC campaign was rejected — carriers
+# Phone OTP dropped: Twilio's A2P 10DLC campaign was rejected â€” carriers
 # reject SMS consent as a required condition for using the service, which
 # an OTP-gated login flow structurally is. Google + email OTP cover signin.
 [auth.sms]
@@ -112,7 +112,7 @@ enabled = false
 verify_jwt = true
 
 # Gateway JWT check is not enough on its own (any visitor's anon key
-# passes) — send-push also authenticates + authorizes + rate-limits inside
+# passes) â€” send-push also authenticates + authorizes + rate-limits inside
 # the function. This entry documents the deployment expectation and keeps
 # `config push` from resetting it.
 [functions.send-push]
@@ -132,3 +132,7 @@ verify_jwt = false
 
 [functions.extract-flyer-prices]
 verify_jwt = true
+
+# Agent booking API uses API-key auth inside the function (not a user JWT).
+[functions.agent-v1]
+verify_jwt = false
