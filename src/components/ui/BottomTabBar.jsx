@@ -162,6 +162,19 @@ let dropX = motionValue(0)
 let travelControls = null
 let hasTraveled = false
 let lastSlotW = 0
+// The last x the travel effect actually dispatched animate() toward. A
+// remount (every navigation, see above) first positions the droplet from
+// lastSlotW, then this component's OWN ResizeObserver measures the real
+// width a moment later — if that real measurement lands even a fraction of
+// a pixel off from the estimate, targetX below changes just enough to
+// re-fire the effect, which used to unconditionally stop the in-flight
+// animation, snap the squash spring back to identity, and restart — a
+// visible double-trigger twitch on essentially every navigation, not
+// something limited to rapid tapping. Skipping a re-fire that lands within
+// a pixel of where the droplet is already headed removes that path
+// entirely while still tracking genuine target changes (an actual tab
+// switch) exactly as before.
+let lastTargetX = null
 
 // Squash follower at module scope too. useVelocity/useSpring/useTransform are
 // hooks that rebuild on every remount; if we left them component-scoped, the
@@ -299,8 +312,13 @@ function WaterDroplet({ activeIndex, count, activeIcon: ActiveIcon, pressed }) {
       // just place it.
       dropX.set(targetX)
       hasTraveled = true
+      lastTargetX = targetX
       return
     }
+    // A sub-pixel-different target from a remeasurement of the SAME active
+    // tab isn't a real new destination — see lastTargetX's comment above.
+    if (lastTargetX != null && Math.abs(targetX - lastTargetX) < 1) return
+    lastTargetX = targetX
     // Adjacent = snappy, no spring; far jump = springy with inertia.
     // stiffness 500 keeps it fast enough to match the mockup's continuously-
     // running spring while leaving a readable window of high velocity.
