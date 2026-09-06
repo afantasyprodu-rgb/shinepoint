@@ -1,12 +1,17 @@
 ﻿# Drew — ShinePoint mascot
 
-Minimal Dew: brand-pink eyes-only droplet (black oval eyes, no sclera/pupil/glint).
+Minimal Dew: brand-pink eyes-only droplet (tall solid black ovals, no sclera/pupil/glint). Tip-up orientation.
 
-## Files
-- `drew-hero.png` / `drew-hero-locked.png` — locked hero render (matches bottom-nav droplet recipe)
-- `drew-css.html` — CSS rebuild of the same look (`.nx-tab-drop` + `.drew-eyes`)
-- `nav-droplet.svg` — droplet shape without eyes (nav / icon base)
+## Web-served (`public/drew/`)
+- `drew-hero.png` — locked hero / concierge avatar (use this face)
+- `nav-droplet.svg` — droplet body without eyes (reference only)
+- `drew.css` — rebuildable CSS source (`.nx-tab-drop` + `.drew-eyes`)
 
-Web-served copies live at `/drew/drew-hero.png` and `/drew/nav-droplet.svg` (public/).
+## Source (`assets/drew/`)
+Same locked still + CSS HTML + README.
 
-Blink GIF not finished yet — leave a note for Drew bot to add later.
+## Wiring
+- Concierge chat bubble on Landing uses `/drew/drew-hero.png` (`src/components/ConciergeChat.jsx`).
+- Do **not** put eyes on live bottom-nav `WaterDroplet` / `.nx-tab-drop` — that bubble still carries tab icons.
+
+Blink GIF not ready for this locked eye style — skip for now.
