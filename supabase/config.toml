@@ -24,6 +24,9 @@ verify_jwt = true
 [functions.send-receipt-email]
 verify_jwt = true
 
+[functions.detailer-helper]
+verify_jwt = true
+
 [functions.release-payouts]
 verify_jwt = false
 

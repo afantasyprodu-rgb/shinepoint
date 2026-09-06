@@ -11,6 +11,7 @@ import { BellIcon, ClipboardCheckIcon, TrendingUpIcon, UsersIcon, PieChartIcon, 
 import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
 import BottomTabBar from './ui/BottomTabBar'
+import DrewLauncher from './DrewLauncher'
 import { useT } from '../i18n/useT'
 
 // Where a notification should send the user when tapped. Customer booking
@@ -276,6 +277,7 @@ export default function AppShell({ role, children, collapsibleBottomNav = false,
               </span>
             )}
             {!locked && !isDemo && <SyncPendingBadge className="hidden sm:inline-flex" />}
+            {!locked && role === 'detailer' && <DrewLauncher />}
             <ThemeToggle />
             {!locked && <SfxToggle />}
             <LanguageToggle />
