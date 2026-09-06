@@ -4,7 +4,7 @@ import { captureException } from '../_shared/sentry.ts'
 import { isUuid, isOneOf, cleanText } from '../_shared/validate.ts'
 import { withinRateLimit, tooManyRequests } from '../_shared/rateLimit.ts'
 import { approxCentroidForZip, milesBetween } from '../_shared/geo.ts'
-import { requireAgentAuth, agentCorsHeaders, agentJson } from '../_shared/agentAuth.ts'
+import { requireAgentAuth, agentKeyId, agentCorsHeaders, agentJson } from '../_shared/agentAuth.ts'
 import { computeQuote } from '../_shared/agentPricing.ts'
 
 import Stripe from 'npm:stripe@^18'
@@ -291,7 +291,15 @@ async function resolveCustomerId(
   }
   const email = cleanText(body.customer_email, 320)
   if (!email) return { error: 'customer_id or customer_email required' }
-  const { data: users } = await admin.from('users').select('id').ilike('email', email).limit(1)
+  // ilike's pattern is the raw input verbatim — an unescaped % or _ in
+  // customer_email turns "find this exact address" into a wildcard match
+  // against the whole users table (limit(1), no order_by, so it's whichever
+  // row Postgres returns first), letting any caller with an agent API key
+  // attach a booking to an arbitrary customer account just by passing
+  // customer_email: "%". Escaping the wildcard/escape characters keeps the
+  // case-insensitive match while making it exact.
+  const escapedEmail = email.replace(/[%_\\]/g, (c) => '\\' + c)
+  const { data: users } = await admin.from('users').select('id').ilike('email', escapedEmail).limit(1)
   const userId = users?.[0]?.id
   if (!userId) return { error: 'No ShinePoint user with that email' }
   const { data: profile } = await admin
@@ -303,7 +311,7 @@ async function resolveCustomerId(
   return { id: profile.id }
 }
 
-async function handleCreateBooking(admin: SupabaseClient, body: Record<string, unknown>) {
+async function handleCreateBooking(admin: SupabaseClient, body: Record<string, unknown>, req: Request) {
   const detailerId = body.detailer_id
   const serviceId = body.service_id
   const scheduledTime = cleanText(body.scheduled_time, 64)
@@ -390,7 +398,7 @@ async function handleCreateBooking(admin: SupabaseClient, body: Record<string, u
     }, 409)
   }
 
-  if (!(await withinRateLimit(admin, 'agent-pi:' + (body.agent_id ?? 'default'), 60, '1 hour'))) {
+  if (!(await withinRateLimit(admin, 'agent-pi:' + (await agentKeyId(req)), 60, '1 hour'))) {
     return tooManyRequests(3600)
   }
 
@@ -480,7 +488,7 @@ Deno.serve(async (req) => {
 
     if (req.method === 'POST' && (path === '/bookings' || path === '/v1/bookings')) {
       const body = await req.json().catch(() => ({}))
-      return await handleCreateBooking(admin, body as Record<string, unknown>)
+      return await handleCreateBooking(admin, body as Record<string, unknown>, req)
     }
 
     const bookingMatch = path.match(/^\/(?:v1\/)?bookings\/([0-9a-f-]{36})$/i)

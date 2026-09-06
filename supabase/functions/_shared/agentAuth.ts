@@ -35,6 +35,18 @@ function configuredHashes(): string[] {
     .filter((h) => /^[0-9a-f]{64}$/.test(h))
 }
 
+/**
+ * Identifies the authenticated caller for rate-limit buckets. Derived from
+ * the presented key itself (never client-supplied input like a body
+ * field) so a caller can't reset its own quota by sending a different
+ * `agent_id` on every request — the key is the only thing here an attacker
+ * can't freely choose per request.
+ */
+export async function agentKeyId(req: Request): Promise<string> {
+  const key = extractApiKey(req) ?? ''
+  return (await sha256Hex(key)).slice(0, 16)
+}
+
 /** Returns null when auth succeeds; otherwise an HTTP Response to return. */
 export async function requireAgentAuth(req: Request): Promise<Response | null> {
   const hashes = configuredHashes()
