@@ -83,7 +83,7 @@ function createServer(): McpServer {
 
   server.tool(
     'search_detailers',
-    'Search available ShinePoint detailers near a ZIP code. Returns detailers, services, and distance estimates.',
+    'Search available ShinePoint detailers near a ZIP code. Returns detailers, services, and distance estimates, sorted nearest-first. Present a short list of the top few (e.g. 3-5) to the person and let THEM pick which detailer to book — do not auto-select the closest/first result and book it on their behalf.',
     {
       zip: z.string().describe('Customer ZIP code (required)'),
       date: z
@@ -159,7 +159,7 @@ function createServer(): McpServer {
 
   server.tool(
     'create_booking',
-    'Create a pending ShinePoint booking and return Stripe payment.client_secret / payment.checkout_url for a HUMAN to complete. Agents must NEVER mark the booking paid — payment confirmation is webhook-only.',
+    'Create a pending ShinePoint booking and return Stripe payment.client_secret / payment.checkout_url for a HUMAN to complete. Only call this for the detailer the person actually chose from search_detailers\' shortlist — never the first/closest result by default. Agents must NEVER mark the booking paid — payment confirmation is webhook-only.',
     {
       detailer_id: z.string().uuid().describe('Detailer profile UUID'),
       service_id: z.string().uuid().describe('Primary service UUID'),

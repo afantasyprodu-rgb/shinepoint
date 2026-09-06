@@ -3,6 +3,17 @@
 Machine-facing HTTP API for external AI agents: search, quote, create booking pending human payment, get status.
 Real Supabase path only (no demo store fallback). MCP wrapper: see docs/agent-mcp.md.
 
+## Usage policy — humans stay in the loop
+
+Two decisions in this flow belong to the person, not the agent:
+
+1. **Which detailer.** `/search` returns results sorted nearest-first —
+   present a short list (top 3-5 by distance/rating) and let the person pick
+   one. Do not auto-book the first or closest result.
+2. **Payment.** As documented under `POST /bookings` below, agents never
+   mark a booking paid — the human completes checkout via `client_secret`
+   or `checkout_url`.
+
 ## Base URL
 
 https://<PROJECT_REF>.supabase.co/functions/v1/agent-v1
@@ -23,6 +34,7 @@ Unauthenticated liveness.
 
 ### POST /search
 JSON body: zip (required), date, vehicle_type, max_miles, limit.
+Results are sorted nearest-first; present a short list to the person and let them choose — see Usage policy above.
 
 ### POST /quote
 JSON body: detailer_id, service_id, addon_service_ids, booking_zip, vehicle_type, promo_code.

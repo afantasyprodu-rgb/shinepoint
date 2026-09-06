@@ -22,6 +22,12 @@ paths:
   /search:
     post:
       summary: Search detailers
+      description: >-
+        Returns detailers sorted nearest-first. Callers should present a
+        short list of the top few results (e.g. 3-5, by distance/rating) to
+        the person and let them choose which detailer to book — never
+        auto-select the first/closest result and proceed straight to
+        /bookings.
       requestBody:
         required: true
         content:
