@@ -105,7 +105,8 @@ async function handleSearch(admin: SupabaseClient, body: Record<string, unknown>
       service_days, blackout_hours, accepts_bookings_when_busy, accepts_reward_bookings,
       vehicle_upcharge_suv, vehicle_upcharge_truck, vehicle_upcharge_van,
       stripe_charges_enabled,
-      services(id, service_name, description, price, vehicle_types, is_active, is_addon, is_featured, is_package)
+      services(id, service_name, description, price, vehicle_types, is_active, is_addon, is_featured, is_package),
+      detailer_locations(id, label, zip_code, pin_lat, pin_lng, free_travel_miles, charge_per_extra_mile, is_active)
     `).in('status', ['available', 'busy']),
     admin.from('detailer_directory').select('id, full_name'),
   ])
@@ -152,6 +153,31 @@ async function handleSearch(admin: SupabaseClient, body: Record<string, unknown>
       busy_times = (busy ?? []).map((b: { scheduled_time: string }) => b.scheduled_time)
     }
 
+    // Additional service locations (074) — /quote and /bookings auto-pick
+    // whichever of these is nearest booking_zip unless detailer_location_id
+    // overrides it. Surfaced here (with each one's own distance from the
+    // search zip) so a caller can see and choose a specific one; the
+    // top-level distance_miles/sort above still reflect the PRIMARY
+    // location only — a detailer served only by a secondary location
+    // close to `zip` may rank lower here than it would if all its
+    // locations were considered, a known limitation for now.
+    const locations = ((row.detailer_locations as Array<Record<string, unknown>>) ?? [])
+      .filter((l) => l.is_active)
+      .map((l) => {
+        const lPin =
+          l.pin_lat != null && l.pin_lng != null
+            ? { lat: Number(l.pin_lat), lng: Number(l.pin_lng) }
+            : approxCentroidForZip(l.zip_code as string | null)
+        return {
+          id: l.id,
+          label: l.label,
+          zip: l.zip_code,
+          distance_miles: dest && lPin ? Number(milesBetween(lPin, dest).toFixed(2)) : null,
+          free_travel_miles: l.free_travel_miles ?? row.free_travel_miles ?? 10,
+          charge_per_extra_mile: Number(l.charge_per_extra_mile ?? row.charge_per_extra_mile ?? 0),
+        }
+      })
+
     results.push({
       id: row.id,
       name: nameMap.get(row.user_id) ?? 'Detailer',
@@ -171,6 +197,7 @@ async function handleSearch(admin: SupabaseClient, body: Record<string, unknown>
       bio: row.bio ?? '',
       services,
       busy_times,
+      locations,
       vehicle_upcharges: {
         SUV: row.vehicle_upcharge_suv != null ? Number(row.vehicle_upcharge_suv) : null,
         Truck: row.vehicle_upcharge_truck != null ? Number(row.vehicle_upcharge_truck) : null,
@@ -208,6 +235,10 @@ async function handleQuote(admin: SupabaseClient, body: Record<string, unknown>)
     return agentJson({ error: 'vehicle_type invalid' }, 400)
   }
   const promoCode = cleanText(body.promo_code, 64)
+  const detailerLocationId = body.detailer_location_id
+  if (detailerLocationId != null && !isUuid(detailerLocationId)) {
+    return agentJson({ error: 'detailer_location_id must be a uuid' }, 400)
+  }
 
   const priced = await computeQuote(admin, {
     detailerId,
@@ -216,6 +247,7 @@ async function handleQuote(admin: SupabaseClient, body: Record<string, unknown>)
     bookingZip,
     vehicleType: vehicleType as string | null,
     promoCode,
+    detailerLocationId: (detailerLocationId as string | null) ?? null,
   })
   if (!priced.ok) return agentJson({ error: priced.error }, priced.status)
 
@@ -231,11 +263,14 @@ async function handleQuote(admin: SupabaseClient, body: Record<string, unknown>)
     platform_fee_percent: q.platformFeePct,
     detailer_payout_estimate: q.detailerPayout,
     distance_miles: q.distanceMiles,
+    detailer_location_id: q.locationId,
+    location_label: q.locationLabel,
     services: q.services,
     notes: [
       'Loyalty rewards and referral credits are not applied on the agent API v1 quote.',
       'Final charge is recomputed server-side when the booking payment intent is created.',
       'Agents must not mark bookings paid; the human completes payment via client_secret or checkout_url.',
+      'Mileage is priced from the nearest of the detailer\'s locations to booking_zip unless detailer_location_id overrides it.',
     ],
   })
 }
@@ -247,7 +282,7 @@ async function handleGetBooking(admin: SupabaseClient, bookingId: string) {
     .select(`
       id, status, total_price, mileage_fee, vehicle_upcharge_fee, promo_discount,
       paid_at, scheduled_time, booking_address, booking_zip, vehicle_type,
-      vehicle_make, vehicle_model, detailer_id, customer_id, service_id,
+      vehicle_make, vehicle_model, detailer_id, detailer_location_id, customer_id, service_id,
       addon_service_ids, created_at, cancelled_by, stripe_payment_intent
     `)
     .eq('id', bookingId)
@@ -270,6 +305,7 @@ async function handleGetBooking(admin: SupabaseClient, bookingId: string) {
     vehicle_make: booking.vehicle_make,
     vehicle_model: booking.vehicle_model,
     detailer_id: booking.detailer_id,
+    detailer_location_id: booking.detailer_location_id,
     customer_id: booking.customer_id,
     service_id: booking.service_id,
     addon_service_ids: booking.addon_service_ids ?? [],
@@ -333,6 +369,10 @@ async function handleCreateBooking(admin: SupabaseClient, body: Record<string, u
   const vehicleMake = cleanText(body.vehicle_make, 80)
   const vehicleModel = cleanText(body.vehicle_model, 80)
   const promoCode = cleanText(body.promo_code, 64)
+  const detailerLocationId = body.detailer_location_id
+  if (detailerLocationId != null && !isUuid(detailerLocationId)) {
+    return agentJson({ error: 'detailer_location_id must be a uuid' }, 400)
+  }
 
   const customer = await resolveCustomerId(admin, body)
   if (customer.error || !customer.id) return agentJson({ error: customer.error }, 400)
@@ -356,6 +396,7 @@ async function handleCreateBooking(admin: SupabaseClient, body: Record<string, u
     bookingZip: zip,
     vehicleType: vehicleType as string | null,
     promoCode,
+    detailerLocationId: (detailerLocationId as string | null) ?? null,
   })
   if (!priced.ok) return agentJson({ error: priced.error }, priced.status)
   const q = priced.quote
@@ -368,6 +409,11 @@ async function handleCreateBooking(admin: SupabaseClient, body: Record<string, u
     .insert({
       customer_id: customer.id,
       detailer_id: detailerId,
+      // The RESOLVED location (q.locationId), not the raw request field —
+      // when the caller didn't pass one, computeQuote already auto-picked
+      // the nearest to zip, and this column is guarded + immutable after
+      // insert (see CLAUDE.md), so it has to be right the first time.
+      detailer_location_id: q.locationId,
       service_id: serviceId,
       addon_service_ids: addonServiceIds,
       scheduled_time: scheduledTime,
@@ -440,6 +486,8 @@ async function handleCreateBooking(admin: SupabaseClient, body: Record<string, u
     mileage_fee: q.mileageFee,
     vehicle_upcharge_fee: q.vehicleUpchargeFee,
     platform_fee_percent: q.platformFeePct,
+    detailer_location_id: q.locationId,
+    location_label: q.locationLabel,
     payment: {
       client_secret: intent.client_secret,
       payment_intent_id: intent.id,

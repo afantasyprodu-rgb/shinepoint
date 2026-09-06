@@ -49,6 +49,11 @@ paths:
   /quote:
     post:
       summary: Price a job
+      description: >-
+        Mileage is priced from whichever of the detailer's locations is
+        nearest booking_zip, unless detailer_location_id overrides it (see
+        a /search result's `locations` array). An id that doesn't belong to
+        this detailer returns 400, never a silent fallback.
       requestBody:
         required: true
         content:
@@ -65,6 +70,7 @@ paths:
                 booking_zip: { type: string }
                 vehicle_type: { type: string }
                 promo_code: { type: string, nullable: true }
+                detailer_location_id: { type: string, format: uuid, nullable: true }
       responses:
         '200':
           description: Quote
@@ -95,6 +101,7 @@ paths:
                 vehicle_make: { type: string }
                 vehicle_model: { type: string }
                 promo_code: { type: string, nullable: true }
+                detailer_location_id: { type: string, format: uuid, nullable: true }
       responses:
         '200':
           description: Pending booking with payment details

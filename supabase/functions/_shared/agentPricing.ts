@@ -18,6 +18,11 @@ export type QuoteInput = {
   bookingZip: string
   vehicleType?: string | null
   promoCode?: string | null
+  // Which of the detailer's locations (074) to price mileage from. Omit to
+  // auto-pick the nearest to bookingZip, mirroring BookingWizard's
+  // nearestLocationFor() — agent-v1 has no client to do that picking
+  // itself. Pass a specific detailer_locations.id to override.
+  detailerLocationId?: string | null
 }
 
 export type QuoteResult = {
@@ -33,8 +38,22 @@ export type QuoteResult = {
   detailerPayout: number
   platformCut: number
   distanceMiles: number | null
+  // null means the detailer's primary location (no detailer_locations row).
+  locationId: string | null
+  locationLabel: string
   services: { id: string; name: string; price: number; isAddon: boolean }[]
 }
+
+type LocationCandidate = {
+  id: string | null
+  label: string
+  zip_code: string | null
+  pin_lat: number | null
+  pin_lng: number | null
+  free_travel_miles: number | null
+  charge_per_extra_mile: number | null
+}
+
 export async function computeQuote(
   admin: SupabaseClient,
   input: QuoteInput,
@@ -99,17 +118,68 @@ export async function computeQuote(
     return { ok: false, error: 'Detailer not found', status: 404 }
   }
 
+  // A detailer can register additional service locations (074) beyond their
+  // primary zip/pin — create-payment-intent already prices real bookings
+  // from whichever one the booking's detailer_location_id points at.
+  // agent-v1 has no client to run BookingWizard's nearest-location pick, so
+  // that same "auto-pick nearest, let the caller override" behavior has to
+  // happen server-side here instead.
+  const { data: extraLocations } = await admin
+    .from('detailer_locations')
+    .select('id, label, zip_code, pin_lat, pin_lng, free_travel_miles, charge_per_extra_mile')
+    .eq('detailer_id', input.detailerId)
+    .eq('is_active', true)
+
+  const candidates: LocationCandidate[] = [
+    {
+      id: null,
+      label: 'Primary',
+      zip_code: detailerGeo.zip_code,
+      pin_lat: detailerGeo.pin_lat,
+      pin_lng: detailerGeo.pin_lng,
+      free_travel_miles: detailerGeo.free_travel_miles,
+      charge_per_extra_mile: detailerGeo.charge_per_extra_mile,
+    },
+    ...((extraLocations ?? []) as LocationCandidate[]),
+  ]
+
+  let location: LocationCandidate
+  if (input.detailerLocationId != null) {
+    const match = candidates.find((c) => c.id === input.detailerLocationId)
+    if (!match) {
+      return { ok: false, error: 'detailer_location_id not found for this detailer', status: 400 }
+    }
+    location = match
+  } else {
+    const destinationForPick = approxCentroidForZip(input.bookingZip)
+    let best: { candidate: LocationCandidate; dist: number } | null = null
+    if (destinationForPick) {
+      for (const c of candidates) {
+        const pin =
+          c.pin_lat != null && c.pin_lng != null
+            ? { lat: Number(c.pin_lat), lng: Number(c.pin_lng) }
+            : approxCentroidForZip(c.zip_code)
+        if (!pin) continue
+        const dist = milesBetween(pin, destinationForPick)
+        if (!best || dist < best.dist) best = { candidate: c, dist }
+      }
+    }
+    location = best?.candidate ?? candidates[0]
+  }
+
   let mileageFee = 0
   let distanceMiles: number | null = null
   const origin =
-    detailerGeo.pin_lat != null && detailerGeo.pin_lng != null
-      ? { lat: Number(detailerGeo.pin_lat), lng: Number(detailerGeo.pin_lng) }
-      : approxCentroidForZip(detailerGeo.zip_code)
+    location.pin_lat != null && location.pin_lng != null
+      ? { lat: Number(location.pin_lat), lng: Number(location.pin_lng) }
+      : approxCentroidForZip(location.zip_code)
   const destination = approxCentroidForZip(input.bookingZip)
   if (origin && destination) {
     distanceMiles = Number(milesBetween(origin, destination).toFixed(2))
-    const freeMiles = Number(detailerGeo.free_travel_miles ?? 10)
-    const perMile = Number(detailerGeo.charge_per_extra_mile ?? 0)
+    // An additional location can leave its own travel terms unset, meaning
+    // "inherit the primary's" — same fallback create-payment-intent uses.
+    const freeMiles = Number(location.free_travel_miles ?? detailerGeo.free_travel_miles ?? 10)
+    const perMile = Number(location.charge_per_extra_mile ?? detailerGeo.charge_per_extra_mile ?? 0)
     const extraMiles = Math.max(0, Math.ceil(distanceMiles - freeMiles))
     mileageFee = Number((extraMiles * perMile).toFixed(2))
   }
@@ -142,6 +212,8 @@ export async function computeQuote(
       detailerPayout,
       platformCut,
       distanceMiles,
+      locationId: location.id,
+      locationLabel: location.label,
       services: bookedServices.map((s) => ({
         id: s.id,
         name: s.service_name,

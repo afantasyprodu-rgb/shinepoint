@@ -122,7 +122,7 @@ function createServer(): McpServer {
 
   server.tool(
     'get_quote',
-    'Get a price quote for a detailer + service (and optional add-ons) at a booking ZIP. Loyalty/referral credits are out of scope for v1.',
+    'Get a price quote for a detailer + service (and optional add-ons) at a booking ZIP. Mileage is auto-priced from whichever of the detailer\'s locations (see search_detailers\' locations array) is nearest booking_zip, unless detailer_location_id overrides it. Loyalty/referral credits are out of scope for v1.',
     {
       detailer_id: z.string().uuid().describe('Detailer profile UUID'),
       service_id: z.string().uuid().describe('Primary service UUID'),
@@ -137,6 +137,14 @@ function createServer(): McpServer {
         .nullable()
         .optional()
         .describe('Optional promo code'),
+      detailer_location_id: z
+        .string()
+        .uuid()
+        .nullable()
+        .optional()
+        .describe(
+          'Optional: price against a specific one of the detailer\'s locations (from a search_detailers result\'s locations array) instead of auto-picking the nearest to booking_zip.',
+        ),
     },
     async (args) => {
       try {
@@ -150,6 +158,9 @@ function createServer(): McpServer {
         }
         if (args.vehicle_type !== undefined) body.vehicle_type = args.vehicle_type
         if (args.promo_code !== undefined) body.promo_code = args.promo_code
+        if (args.detailer_location_id !== undefined) {
+          body.detailer_location_id = args.detailer_location_id
+        }
         return textResult(await client.quote(body))
       } catch (err) {
         return formatError(err)
@@ -190,6 +201,14 @@ function createServer(): McpServer {
         .nullable()
         .optional()
         .describe('Optional promo code'),
+      detailer_location_id: z
+        .string()
+        .uuid()
+        .nullable()
+        .optional()
+        .describe(
+          'Optional: book against a specific one of the detailer\'s locations instead of auto-picking the nearest to zip. The resolved location is stored on the booking and cannot change afterward.',
+        ),
     },
     async (args) => {
       try {
@@ -223,6 +242,9 @@ function createServer(): McpServer {
           body.vehicle_model = args.vehicle_model
         }
         if (args.promo_code !== undefined) body.promo_code = args.promo_code
+        if (args.detailer_location_id !== undefined) {
+          body.detailer_location_id = args.detailer_location_id
+        }
 
         const result = await client.createBooking(body)
         // Remind the model: payment is human-owned

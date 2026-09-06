@@ -35,17 +35,29 @@ Unauthenticated liveness.
 ### POST /search
 JSON body: zip (required), date, vehicle_type, max_miles, limit.
 Results are sorted nearest-first; present a short list to the person and let them choose — see Usage policy above.
+Each result includes a `locations` array of the detailer's additional service locations (074), each with its own `distance_miles` from `zip` — the top-level `distance_miles`/sort still reflect the detailer's primary location only (see Multi-location pricing below).
 
 ### POST /quote
-JSON body: detailer_id, service_id, addon_service_ids, booking_zip, vehicle_type, promo_code.
+JSON body: detailer_id, service_id, addon_service_ids, booking_zip, vehicle_type, promo_code, detailer_location_id (optional).
 Uses shared fee tiers from _shared/fees.ts (same as src/lib/fees.js display schedule).
 Loyalty and referral credits are out of scope for v1.
+Response includes `detailer_location_id` and `location_label` for whichever location mileage was priced from — see Multi-location pricing below.
 
 ### POST /bookings
 Creates a pending booking and returns payment.client_secret plus payment.checkout_url.
 Humans finish checkout; agents do not mark bookings as paid.
 Body: customer_id or customer_email, detailer_id, service_id, scheduled_time, address, zip.
-Optional: addon_service_ids, vehicle_type, vehicle_make, vehicle_model, promo_code.
+Optional: addon_service_ids, vehicle_type, vehicle_make, vehicle_model, promo_code, detailer_location_id.
+The resolved `detailer_location_id` (auto-picked or the one you passed) is stored on the booking and returned in the response — it's immutable after this point.
+
+## Multi-location pricing
+
+A detailer can register additional service locations beyond their primary
+zip (the `detailer_locations` table). `/quote` and `/bookings` auto-pick
+whichever of a detailer's locations is nearest `booking_zip`/`zip` for
+mileage pricing — pass `detailer_location_id` (from a `/search` result's
+`locations` array) to book a specific one instead. An id that doesn't
+belong to the given `detailer_id` returns a 400, never a silent fallback.
 
 ### GET /bookings/:id
 Returns status including paid boolean after confirmed success.
