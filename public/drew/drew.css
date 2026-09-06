@@ -44,10 +44,10 @@
     transform: rotate(-135deg);
     pointer-events: none;
   }
-  /* Simple black ovals only — no sclera, no pupil, no glint */
+  /* Simple black rounded rectangles — no sclera, no pupil, no glint */
   .eye {
     width: 40px;
     height: 88px;
     background: #0a0a0a;
-    border-radius: 50%;
+    border-radius: 14px;
   }

@@ -1,6 +1,6 @@
 ﻿# Drew — ShinePoint mascot
 
-Minimal Dew: brand-pink eyes-only droplet (tall solid black ovals, no sclera/pupil/glint). Tip-up orientation.
+Minimal Dew: brand-pink eyes-only droplet (rounded-rectangle solid black eyes, no sclera/pupil/glint). Tip-up orientation.
 
 ## Web-served (`public/drew/`)
 - `drew-hero.png` — locked hero / concierge avatar (use this face)
