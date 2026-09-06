@@ -3,14 +3,20 @@ import { useLocation, useParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { invokeFn } from '../lib/supabase'
 import { actionsForPath, altActionsForPath } from '../lib/detailerHelperActions'
+import DrewBlob from './ui/DrewBlob'
 
 /**
- * Drew, in-app: a top-bar mascot icon that expands into a centered,
- * backdrop-blurred command panel of fixed quick actions (no free-text
- * field -- see supabase/functions/detailer-helper's header comment for why
- * that's a deliberate security choice, not just a UX one). The action set
- * adapts to whatever detailer page is currently open; tapping Drew again
- * while open swaps in an alternate set instead of closing the panel.
+ * Drew, in-app: a top-bar mascot that flies into a centered, backdrop-
+ * blurred command panel of fixed quick actions (no free-text field -- see
+ * supabase/functions/detailer-helper's header comment for why that's a
+ * deliberate security choice, not just a UX one). The action set adapts to
+ * whatever detailer page is currently open; tapping Drew again while open
+ * swaps in an alternate set instead of closing the panel.
+ *
+ * Drew himself is the live morphing blob (DrewBlob/.nx-tab-drop), not a
+ * static image -- the top-bar button and the panel's centered avatar share
+ * one Framer layoutId, so opening/closing genuinely flies the same blob
+ * between the two spots instead of cross-fading two separate images.
  */
 export default function DrewLauncher() {
   const location = useLocation()
@@ -23,14 +29,14 @@ export default function DrewLauncher() {
 
   const actions = (showAlt ? altActionsForPath : actionsForPath)(location.pathname)
 
-  function handleLauncherClick() {
-    if (!open) {
-      setOpen(true)
-      setShowAlt(false)
-      setReply(null)
-      setError(null)
-      return
-    }
+  function openPanel() {
+    setOpen(true)
+    setShowAlt(false)
+    setReply(null)
+    setError(null)
+  }
+
+  function cycleOrReset() {
     // Already open with no answer showing yet -> cycle to the alt option set.
     if (!reply && !busy) {
       setShowAlt((v) => !v)
@@ -67,15 +73,17 @@ export default function DrewLauncher() {
 
   return (
     <>
-      <motion.button
-        layoutId="drew-avatar"
-        type="button"
-        onClick={handleLauncherClick}
-        aria-label="Ask Drew"
-        className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full ring-1 ring-brand-200 transition hover:scale-105 dark:ring-white/15"
-      >
-        <img src="/drew/drew-hero.png" alt="" className="h-8 w-8 object-contain" width={32} height={32} />
-      </motion.button>
+      {!open && (
+        <motion.button
+          layoutId="drew-blob"
+          type="button"
+          onClick={openPanel}
+          aria-label="Ask Drew"
+          className="shrink-0"
+        >
+          <DrewBlob size={36} />
+        </motion.button>
+      )}
 
       <AnimatePresence>
         {open && (
@@ -88,21 +96,22 @@ export default function DrewLauncher() {
               className="absolute inset-0 bg-slate-900/30 backdrop-blur-md dark:bg-black/50"
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
+              initial={{ opacity: 0, scale: 0.92 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
+              exit={{ opacity: 0, scale: 0.92 }}
               transition={{ type: 'spring', stiffness: 320, damping: 26 }}
               className="relative w-full max-w-sm rounded-3xl border border-black/5 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-slate-950"
             >
               <div className="flex items-center gap-3">
-                <motion.img
-                  layoutId="drew-avatar-img"
-                  src="/drew/drew-hero.png"
-                  alt="Drew"
-                  className="h-12 w-12 object-contain"
-                  width={48}
-                  height={48}
-                />
+                <motion.button
+                  layoutId="drew-blob"
+                  type="button"
+                  onClick={cycleOrReset}
+                  aria-label="More options"
+                  className="shrink-0"
+                >
+                  <DrewBlob size={56} />
+                </motion.button>
                 <div className="min-w-0 flex-1">
                   <p className="font-display text-sm font-semibold text-slate-900 dark:text-white">Drew</p>
                   <p className="text-xs text-slate-500 dark:text-slate-400">Here to help with this page</p>

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import DrewBlob from './ui/DrewBlob'
 
 const CONCIERGE_URL = () => {
   const base = (import.meta.env.VITE_SUPABASE_URL || '').replace(/\/$/, '')
@@ -72,13 +73,7 @@ export default function ConciergeChat() {
       {open && (
         <div className="pointer-events-auto flex h-[min(70vh,520px)] w-[min(92vw,360px)] flex-col overflow-hidden rounded-3xl border border-black/5 bg-white shadow-2xl dark:border-white/10 dark:bg-slate-950">
           <header className="flex items-center gap-3 border-b border-black/5 bg-gradient-to-br from-brand-500/15 to-brand-700/10 px-4 py-3 dark:border-white/10">
-            <img
-              src="/drew/drew-hero.png"
-              alt=""
-              className="h-11 w-11 shrink-0 object-contain"
-              width={44}
-              height={44}
-            />
+            <DrewBlob size={44} className="shrink-0" />
             <div className="min-w-0 flex-1">
               <p className="font-display text-sm font-semibold text-slate-900 dark:text-white">Drew</p>
               <p className="truncate text-xs text-slate-500 dark:text-slate-400">ShinePoint concierge</p>
@@ -99,15 +94,7 @@ export default function ConciergeChat() {
                 key={`${i}-${m.role}`}
                 className={`flex gap-2 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
-                {m.role === 'assistant' && (
-                  <img
-                    src="/drew/drew-hero.png"
-                    alt=""
-                    className="mt-0.5 h-7 w-7 shrink-0 object-contain"
-                    width={28}
-                    height={28}
-                  />
-                )}
+                {m.role === 'assistant' && <DrewBlob size={28} className="mt-0.5 shrink-0" />}
                 <div
                   className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm leading-snug ${
                     m.role === 'user'
@@ -151,16 +138,10 @@ export default function ConciergeChat() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="pointer-events-auto flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-xl ring-1 ring-black/5 transition hover:scale-105 dark:bg-slate-900 dark:ring-white/10"
+        className="pointer-events-auto flex h-16 w-16 items-center justify-center rounded-full transition hover:scale-105"
         aria-label={open ? 'Close Drew chat' : 'Chat with Drew'}
       >
-        <img
-          src="/drew/drew-hero.png"
-          alt="Drew"
-          className="h-12 w-12 object-contain"
-          width={48}
-          height={48}
-        />
+        <DrewBlob size={48} />
       </button>
     </div>
   )
