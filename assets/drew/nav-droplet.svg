@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fb9ecb"/>
+      <stop offset="100%" stop-color="#e09bc0"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="20%" y1="10%" x2="70%" y2="80%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.35"/>
+      <stop offset="45%" stop-color="#ffffff" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="22" stdDeviation="16" flood-color="#e09bc0" flood-opacity="0.55"/>
+      <feDropShadow dx="0" dy="8" stdDeviation="5" flood-color="#000000" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+  <rect width="100%" height="100%" fill="#ffffff"/>
+  <g filter="url(#shadow)" transform="translate(256,248) rotate(-45)">
+    <path d="M 0.0 -160.0 L 0.0 -160.0 A 160.0 160.0 0 0 1 160.0 0.0 L 160.0 0.0 A 160.0 160.0 0 0 1 0.0 160.0 L -131.0 160.0 A 29 29 0 0 1 -160.0 131.0 L -160.0 0.0 A 160.0 160.0 0 0 1 0.0 -160.0 Z" fill="url(#g)"/>
+    <path d="M 0.0 -160.0 L 0.0 -160.0 A 160.0 160.0 0 0 1 160.0 0.0 L 160.0 0.0 A 160.0 160.0 0 0 1 0.0 160.0 L -131.0 160.0 A 29 29 0 0 1 -160.0 131.0 L -160.0 0.0 A 160.0 160.0 0 0 1 0.0 -160.0 Z" fill="url(#sheen)"/>
+  </g>
+</svg>

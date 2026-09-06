@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Drew — CSS rebuild</title>
+<style>
+  :root {
+    --color-brand-500: #fb9ecb;
+    --color-brand-700: #e09bc0;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: #ffffff;
+    display: grid;
+    place-items: center;
+  }
+  .stage {
+    width: min(92vw, 420px);
+    height: min(92vw, 420px);
+    display: grid;
+    place-items: center;
+  }
+
+  /* Exact app recipe from src/index.css .nx-tab-drop */
+  .nx-tab-drop {
+    position: relative;
+    width: 220px;
+    height: 220px;
+    border-radius: 50% 50% 50% 4px;
+    background: linear-gradient(135deg in oklch, var(--color-brand-500), var(--color-brand-700));
+    box-shadow:
+      0 28px 48px -10px color-mix(in srgb, var(--color-brand-700) 68%, transparent),
+      0 10px 18px -4px rgba(0, 0, 0, 0.18),
+      inset 6px 6px 12px rgba(255, 255, 255, 0.28),
+      inset -6px -8px 14px rgba(255, 255, 255, 0.12);
+    /* tip-up */
+    transform: rotate(135deg);
+  }
+
+  .drew-eyes {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 28px;
+    padding-bottom: 8%;
+    transform: rotate(-135deg);
+    pointer-events: none;
+  }
+  /* Simple black ovals only — no sclera, no pupil, no glint */
+  .eye {
+    width: 40px;
+    height: 88px;
+    background: #0a0a0a;
+    border-radius: 50%;
+  }
+</style>
+</head>
+<body>
+  <div class="stage" aria-label="Drew CSS rebuild">
+    <div class="nx-tab-drop" role="img" aria-label="Drew">
+      <div class="drew-eyes">
+        <span class="eye"></span>
+        <span class="eye"></span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
