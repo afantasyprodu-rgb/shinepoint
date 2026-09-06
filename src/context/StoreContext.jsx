@@ -607,16 +607,25 @@ export function StoreProvider({ children }) {
       },
 
       // Replace the logged-in detailer's service list. `services` is
-      // [{ id?, name, price, desc }]. Demo edits the seeded record in place.
-      async updateMyServices(services) {
+      // [{ id?, name, price, desc }]. locationId (075): null (default)
+      // targets the primary's list, unchanged from before this param
+      // existed; a detailer_locations id scopes the replace to just that
+      // location (an empty array "resets" it to inheriting the primary's,
+      // per allLocationsFor's fallback in fuzzyPin.js). Demo edits the
+      // seeded record (or the matching location within it) in place.
+      async updateMyServices(services, locationId = null) {
         if (isDemo) {
           setDemoDetailers((ds) =>
-            ds.map((d) => (d.id === 'det-1' ? { ...d, services } : d))
+            ds.map((d) => {
+              if (d.id !== 'det-1') return d
+              if (locationId == null) return { ...d, services }
+              return { ...d, locations: (d.locations ?? []).map((l) => (l.id === locationId ? { ...l, services } : l)) }
+            })
           )
           return
         }
         if (!profile?.id) return
-        await saveServices(profile.id, services)
+        await saveServices(profile.id, services, locationId)
         fetchDetailers().then(setRealDetailers)
       },
 
@@ -628,15 +637,19 @@ export function StoreProvider({ children }) {
       // getDetailer/myDetailer see it immediately, same as updateMyServices.
       async addLocation(loc) {
         if (isDemo) {
-          const newLoc = { id: `demo-loc-${Date.now()}`, label: loc.label, zip: loc.zip, pin: null, travelMiles: loc.freeTravelMiles ?? 10, chargePerMile: loc.chargePerMile ?? 0 }
+          // services: [] (075) — a fresh location has none of its own, so
+          // it inherits the primary's list per allLocationsFor's fallback,
+          // same "same as primary by default" behavior as real mode.
+          const newLoc = { id: `demo-loc-${Date.now()}`, label: loc.label, zip: loc.zip, pin: null, travelMiles: loc.freeTravelMiles ?? 10, chargePerMile: loc.chargePerMile ?? 0, services: [] }
           setDemoDetailers((ds) =>
             ds.map((d) => (d.id === 'det-1' ? { ...d, locations: [...(d.locations ?? []), newLoc] } : d))
           )
-          return
+          return newLoc
         }
         if (!profile?.id) return
-        await addDetailerLocation(profile.id, loc)
+        const created = await addDetailerLocation(profile.id, loc)
         fetchDetailers().then(setRealDetailers)
+        return created
       },
       async updateLocation(locationId, patch) {
         if (isDemo) {

@@ -58,28 +58,12 @@ function normalizeDetailer(row) {
     // Shown as the moving marker on EnRouteTracker's live map once this
     // detailer is en route to a job (057).
     vehicleEmoji: row.vehicle_emoji || '🚗',
-    services: (row.services ?? [])
-      .filter((s) => s.is_active)
-      .map((s) => ({
-        id: s.id,
-        name: s.service_name,
-        price: Number(s.price),
-        desc: s.description ?? '',
-        // Add-on: bookable alongside anything else rather than on its own
-        // "pick one" list. isBestValue reuses the long-unused is_featured
-        // column as the badge a detailer puts on their recommended service.
-        isAddon: Boolean(s.is_addon),
-        isBestValue: Boolean(s.is_featured),
-        // Package/template (e.g. "Full Detail"): a bundle the customer books
-        // as one line item at its own price. is_package/package_includes were
-        // unused columns from 002 — reused here rather than a new migration.
-        // package_includes holds the *names* of the detailer's own services
-        // that are bundled in, chosen from their existing list (not free
-        // text) so the "included in" hint on individual services can match
-        // against it exactly.
-        isPackage: Boolean(s.is_package),
-        packageIncludes: s.package_includes ?? [],
-      })),
+    // Per-location services (075): row.services already carries EVERY
+    // service of this detailer, both the primary's (detailer_location_id
+    // null) and every additional location's own — one query, no extra
+    // round trip. mapService below is shared so the primary's list and
+    // each location's list (built below) use the exact same shape.
+    services: mapServices(row.services, null),
     pin,
     // ADDITIONAL locations only (074) — the account's own zip/pin above is
     // the implicit "primary" and never appears in this array; see
@@ -96,9 +80,42 @@ function normalizeDetailer(row) {
         pin: l.pin_lat && l.pin_lng ? { lat: l.pin_lat, lng: l.pin_lng } : fuzzyPinForZip(String(l.zip_code ?? ''), l.id),
         travelMiles: l.free_travel_miles ?? row.free_travel_miles ?? 10,
         chargePerMile: Number(l.charge_per_extra_mile ?? row.charge_per_extra_mile ?? 0),
+        // This location's OWN services only, possibly empty — the
+        // "inherit primary's when empty" fallback (075) is applied once,
+        // uniformly for real AND demo detailers, by allLocationsFor() in
+        // fuzzyPin.js (demo objects bypass normalizeDetailer entirely, so
+        // the fallback can't live only here).
+        services: mapServices(row.services, l.id),
       })),
     _real: true,
   }
+}
+
+// Shared by normalizeDetailer's primary services list and each location's
+// own (074/075) — locationId null selects the primary's rows.
+function mapServices(rawServices, locationId) {
+  return (rawServices ?? [])
+    .filter((s) => s.is_active && (s.detailer_location_id ?? null) === locationId)
+    .map((s) => ({
+      id: s.id,
+      name: s.service_name,
+      price: Number(s.price),
+      desc: s.description ?? '',
+      // Add-on: bookable alongside anything else rather than on its own
+      // "pick one" list. isBestValue reuses the long-unused is_featured
+      // column as the badge a detailer puts on their recommended service.
+      isAddon: Boolean(s.is_addon),
+      isBestValue: Boolean(s.is_featured),
+      // Package/template (e.g. "Full Detail"): a bundle the customer books
+      // as one line item at its own price. is_package/package_includes were
+      // unused columns from 002 — reused here rather than a new migration.
+      // package_includes holds the *names* of the detailer's own services
+      // that are bundled in, chosen from their existing list (not free
+      // text) so the "included in" hint on individual services can match
+      // against it exactly.
+      isPackage: Boolean(s.is_package),
+      packageIncludes: s.package_includes ?? [],
+    }))
 }
 
 // Most-recent dispute row for this booking, shaped for either party — the
@@ -320,7 +337,7 @@ export async function fetchDetailers() {
         profile_photo_url, gallery_urls,
         probation_jobs_remaining, service_days, free_travel_miles, booking_buffer_min, charge_per_extra_mile, vehicle_emoji,
         vehicle_upcharge_suv, vehicle_upcharge_truck, vehicle_upcharge_van, blackout_hours,
-        services(id, service_name, description, price, vehicle_types, is_active, is_addon, is_featured, is_package, package_includes),
+        services(id, service_name, description, price, vehicle_types, is_active, is_addon, is_featured, is_package, package_includes, detailer_location_id),
         detailer_locations(id, label, zip_code, pin_lat, pin_lng, free_travel_miles, charge_per_extra_mile, max_travel_miles, is_active)
       `),
     fetchDetailerNames(),
@@ -680,7 +697,13 @@ export async function deleteDetailerLocation(locationId) {
 // Replace the caller's service list wholesale (delete + insert), so the editor
 // is idempotent. `services` is
 // [{ name, price, desc, isAddon, isBestValue, isPackage, packageIncludes }].
-export async function saveServices(userId, services) {
+// locationId (075): null (default) saves the PRIMARY's services, unchanged
+// from before this param existed. A detailer_locations id scopes the save
+// to just that location, leaving every other location's (and the
+// primary's) services untouched — passing [] deactivates that location's
+// own rows with nothing to replace them, which is exactly "reset to same
+// as primary" (see normalizeDetailer's inherit-when-empty fallback).
+export async function saveServices(userId, services, locationId = null) {
   const { data: prof, error: profErr } = await supabase
     .from('detailer_profiles').select('id').eq('user_id', userId).single()
   if (profErr) { console.error('saveServices lookup:', profErr.message); throw profErr }
@@ -690,16 +713,18 @@ export async function saveServices(userId, services) {
   // booking (bookings.service_id) can't be hard-deleted (FK violation), and
   // hard-deleting the rest for no reason would just be inconsistent. is_active
   // is already what normalizeDetailer filters the live services list on.
-  const { error: delErr } = await supabase
-    .from('services')
-    .update({ is_active: false })
-    .eq('detailer_id', detailerId)
+  // Scoped to locationId (075) — .eq() never matches a null column, so the
+  // primary case needs .is() instead.
+  let clearQuery = supabase.from('services').update({ is_active: false }).eq('detailer_id', detailerId)
+  clearQuery = locationId == null ? clearQuery.is('detailer_location_id', null) : clearQuery.eq('detailer_location_id', locationId)
+  const { error: delErr } = await clearQuery
   if (delErr) { console.error('saveServices clear:', delErr.message); throw delErr }
 
   const rows = services
     .filter((s) => s.name?.trim())
     .map((s) => ({
       detailer_id: detailerId,
+      detailer_location_id: locationId,
       service_name: s.name.trim(),
       price: Number(s.price) || 0,
       description: s.desc ?? '',

@@ -432,13 +432,43 @@ const [smsError, setSmsError] = useState(null)
   const [promoChecking, setPromoChecking] = useState(false)
   const promoDiscount = promoApplied?.discount ?? 0
 
+  // Distance/mileage estimate. Lives ABOVE the early return: hooks must run
+  // unconditionally on every render, and `d` really is undefined while the
+  // store finishes loading — this hook used to sit past `if (!d) return null`,
+  // so its hook count changed between renders the moment the detailer data
+  // arrived (rules-of-hooks violation; latent crash).
+  // "Auto-pick nearest location, override if needed" (074): every detailer
+  // has at least the primary location (allLocationsFor always includes it),
+  // so bookingLocation is never null once `d` and the customer's zip are
+  // both known — it's either the nearest one to the customer, or whichever
+  // the customer explicitly picked instead. Computed ahead of
+  // selectedServices below (075) since the service list shown/priced now
+  // depends on which location was resolved.
+  const origin = useMemo(() => (customer.zip ? approxCentroidForZip(customer.zip) : null), [customer.zip])
+  const allLocations = useMemo(() => (d ? allLocationsFor(d) : []), [d])
+  const nearestLocation = useMemo(() => (d ? nearestLocationFor(d, origin) : null), [d, origin])
+  const bookingLocation = useMemo(() => {
+    if (locationOverride != null) {
+      return allLocations.find((l) => (l.id ?? 'primary') === locationOverride) ?? nearestLocation
+    }
+    return nearestLocation ?? allLocations[0] ?? null
+  }, [locationOverride, allLocations, nearestLocation])
+
+  const distanceMiles = useMemo(() => {
+    if (!bookingLocation?.pin || !origin) return null
+    return milesBetween(origin, bookingLocation.pin)
+  }, [bookingLocation, origin])
+
   // A booking can carry any combination of the detailer's services — main
   // services and add-ons alike. The primary (for serviceId/downstream
   // display) is the first non-addon pick, falling back to whatever was
-  // picked if the customer selected add-ons only.
+  // picked if the customer selected add-ons only. Reads bookingLocation's
+  // OWN (or inherited) list (075), not the detailer-wide d.services — a
+  // customer booking a specific location only sees/pays for what that
+  // location actually offers.
   const selectedServices = useMemo(
-    () => (d?.services ?? []).filter((s) => selectedServiceIds.includes(s.id)),
-    [d?.services, selectedServiceIds]
+    () => (bookingLocation?.services ?? []).filter((s) => selectedServiceIds.includes(s.id)),
+    [bookingLocation?.services, selectedServiceIds]
   )
   const primaryService = selectedServices.find((s) => !s.isAddon) || selectedServices[0] || null
   const addonServices = selectedServices.filter((s) => s.id !== primaryService?.id)
@@ -523,31 +553,6 @@ const [smsError, setSmsError] = useState(null)
   useEffect(() => {
     if (step === 4 && !isDemo && !customer.smsOptIn) setShowSmsPrompt(true)
   }, [step, isDemo, customer.smsOptIn])
-
-  // Distance/mileage estimate. Lives ABOVE the early return: hooks must run
-  // unconditionally on every render, and `d` really is undefined while the
-  // store finishes loading — this hook used to sit past `if (!d) return null`,
-  // so its hook count changed between renders the moment the detailer data
-  // arrived (rules-of-hooks violation; latent crash).
-  // "Auto-pick nearest location, override if needed" (074): every detailer
-  // has at least the primary location (allLocationsFor always includes it),
-  // so bookingLocation is never null once `d` and the customer's zip are
-  // both known — it's either the nearest one to the customer, or whichever
-  // the customer explicitly picked instead.
-  const origin = useMemo(() => (customer.zip ? approxCentroidForZip(customer.zip) : null), [customer.zip])
-  const allLocations = useMemo(() => (d ? allLocationsFor(d) : []), [d])
-  const nearestLocation = useMemo(() => (d ? nearestLocationFor(d, origin) : null), [d, origin])
-  const bookingLocation = useMemo(() => {
-    if (locationOverride != null) {
-      return allLocations.find((l) => (l.id ?? 'primary') === locationOverride) ?? nearestLocation
-    }
-    return nearestLocation ?? allLocations[0] ?? null
-  }, [locationOverride, allLocations, nearestLocation])
-
-  const distanceMiles = useMemo(() => {
-    if (!bookingLocation?.pin || !origin) return null
-    return milesBetween(origin, bookingLocation.pin)
-  }, [bookingLocation, origin])
 
   if (!d) return null
   const uninsured = d.insurance === 'none'
@@ -749,9 +754,9 @@ const [smsError, setSmsError] = useState(null)
                 </p>
               )}
 
-              {d.services.some((s) => s.isPackage) && (
+              {bookingLocation.services.some((s) => s.isPackage) && (
                 <div className="mt-5 space-y-3" role="group" aria-label={t('packagesHeading')}>
-                  {d.services.filter((s) => s.isPackage).map((s) => (
+                  {bookingLocation.services.filter((s) => s.isPackage).map((s) => (
                     <PackageCard
                       key={s.id}
                       service={s}
@@ -765,7 +770,7 @@ const [smsError, setSmsError] = useState(null)
               )}
 
               <div className="mt-5 space-y-3" role="group" aria-label="Services">
-                {d.services.filter((s) => !s.isAddon && !s.isPackage).map((s) => {
+                {bookingLocation.services.filter((s) => !s.isAddon && !s.isPackage).map((s) => {
                   const checked = selectedServiceIds.includes(s.id)
                   return (
                     <motion.button
@@ -796,17 +801,17 @@ const [smsError, setSmsError] = useState(null)
                 })}
               </div>
 
-              {d.services.some((s) => s.isAddon) && (
+              {bookingLocation.services.some((s) => s.isAddon) && (
                 <>
                   <h2 className="mt-6 text-sm font-semibold text-slate-700 dark:text-slate-300">{t('addOnsHeading')}</h2>
                   <div className="mt-2 space-y-3" role="group" aria-label={t('addOnsHeading')}>
-                    {d.services.filter((s) => s.isAddon).map((s) => {
+                    {bookingLocation.services.filter((s) => s.isAddon).map((s) => {
                       const checked = selectedServiceIds.includes(s.id)
                       // Nudge against double-paying: if this service is already
                       // bundled into a package, say so — informational only,
                       // still selectable on its own (a customer may genuinely
                       // just want the one thing).
-                      const includedInPackages = d.services.filter(
+                      const includedInPackages = bookingLocation.services.filter(
                         (p) => p.isPackage && p.packageIncludes.includes(s.name)
                       )
                       return (

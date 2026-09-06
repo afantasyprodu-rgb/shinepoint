@@ -20,9 +20,19 @@ const detailerRows = [
     // nearest, override if needed" in the demo, not just a feature only
     // visible after a real detailer adds one. Chosen zip (Downtown LA) is
     // far enough from the primary (Echo Park) that both are ever plausibly
-    // "nearest" depending on the demo customer's own zip.
+    // "nearest" depending on the demo customer's own zip. Its own,
+    // different services (075) — a mobile-only express menu, since a
+    // downtown storefront can't do the full-detail jobs the home garage
+    // handles — demonstrates "different services" isn't just theoretical.
     locations: [
-      { id: 'det-1-loc-downtown', label: 'Downtown LA', zip: '90013', pin: fuzzyPinForZip('90013', 'det-1-loc-downtown'), travelMiles: 10, chargePerMile: 2 },
+      {
+        id: 'det-1-loc-downtown', label: 'Downtown LA', zip: '90013',
+        pin: fuzzyPinForZip('90013', 'det-1-loc-downtown'), travelMiles: 10, chargePerMile: 2,
+        services: [
+          { id: 's1-dt', name: 'Express Exterior Wash', price: 35, desc: 'Quick hand wash + tire shine, no interior' },
+          { id: 's2-dt', name: 'Interior Refresh', price: 60, desc: 'Vacuum + wipe-down, no steam cleaning' },
+        ],
+      },
     ],
     completedJobs: 412,
     probationRemaining: 0,

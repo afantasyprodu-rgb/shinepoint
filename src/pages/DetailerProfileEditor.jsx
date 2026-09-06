@@ -7,6 +7,9 @@ import ChangePassword from '../components/ChangePassword'
 import AvatarUpload from '../components/AvatarUpload'
 import { GalleryGrid } from './ProfileSetup'
 import { AnimatedPage } from '../components/ui/Motion'
+import Drawer from '../components/ui/Drawer'
+import LocationServicesEditor from '../components/LocationServicesEditor'
+import { allLocationsFor } from '../lib/fuzzyPin'
 import { CheckIcon, TrashIcon, PlusIcon, LightbulbIcon, ArrowRightIcon, CreditCardIcon, InfoIcon } from '../components/icons'
 import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
@@ -109,6 +112,15 @@ export default function DetailerProfileEditor() {
   const [newLocZip, setNewLocZip] = useState('')
   const [locationBusy, setLocationBusy] = useState(false)
   const [locationError, setLocationError] = useState('')
+  // Per-location services (075): 'same' (default) skips the editor entirely
+  // — inheriting the primary's list is just never having any of its own,
+  // see fuzzyPin.js's allLocationsFor. 'different' opens the drawer right
+  // after the location is created (its real id is the FK the saved rows
+  // need). editingLocationId also doubles as "which EXISTING location's
+  // services are open for editing" from the list below.
+  const [newLocServiceMode, setNewLocServiceMode] = useState('same')
+  const [editingLocationId, setEditingLocationId] = useState(null)
+  const [servicesSaving, setServicesSaving] = useState(false)
   const tabsRef = useRef([])
   const [tabPosition, setTabPosition] = useState({ x: 0, width: 0 })
 
@@ -493,17 +505,26 @@ export default function DetailerProfileEditor() {
                       <p className="font-medium text-slate-900 dark:text-slate-100">{loc.label}</p>
                       <p className="text-xs text-slate-500 dark:text-slate-400">{loc.zip}</p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        setLocationBusy(true)
-                        try { await deleteLocation(loc.id) } finally { setLocationBusy(false) }
-                      }}
-                      disabled={locationBusy}
-                      className="cursor-pointer text-xs font-semibold text-red-600 hover:underline dark:text-red-400"
-                    >
-                      {t('removeLocation')}
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setEditingLocationId(loc.id)}
+                        className="cursor-pointer text-xs font-semibold text-brand-700 hover:underline dark:text-brand-300"
+                      >
+                        {t('editServices')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          setLocationBusy(true)
+                          try { await deleteLocation(loc.id) } finally { setLocationBusy(false) }
+                        }}
+                        disabled={locationBusy}
+                        className="cursor-pointer text-xs font-semibold text-red-600 hover:underline dark:text-red-400"
+                      >
+                        {t('removeLocation')}
+                      </button>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -532,28 +553,121 @@ export default function DetailerProfileEditor() {
                   className="input h-10 w-28"
                 />
               </div>
+            </div>
+
+            {/* Same-as-primary vs. different services (075) — "same" is
+                just never creating any location-scoped rows, so it needs
+                no follow-up step; "different" opens the editor right after
+                the location exists, since saved rows need its real id. */}
+            <div className="mt-3 flex gap-2">
               <button
                 type="button"
-                disabled={locationBusy || !newLocLabel.trim() || newLocZip.replace(/\D/g, '').length < 5}
-                onClick={async () => {
-                  setLocationError('')
-                  setLocationBusy(true)
-                  try {
-                    await addLocation({ label: newLocLabel.trim(), zip: newLocZip.trim() })
-                    setNewLocLabel('')
-                    setNewLocZip('')
-                  } catch (e) {
-                    setLocationError(e?.message || t('locationAddFailed'))
-                  } finally {
-                    setLocationBusy(false)
-                  }
-                }}
-                className="btn btn-outline h-10 text-sm"
+                onClick={() => setNewLocServiceMode('same')}
+                className={`flex-1 rounded-xl border px-3 py-2 text-xs font-semibold ${
+                  newLocServiceMode === 'same'
+                    ? 'border-brand-600 bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-300'
+                    : 'border-slate-200 text-slate-500 dark:border-white/10 dark:text-slate-400'
+                }`}
               >
-                {t('addLocation')}
+                {t('sameAsPrimary')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setNewLocServiceMode('different')}
+                className={`flex-1 rounded-xl border px-3 py-2 text-xs font-semibold ${
+                  newLocServiceMode === 'different'
+                    ? 'border-brand-600 bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-300'
+                    : 'border-slate-200 text-slate-500 dark:border-white/10 dark:text-slate-400'
+                }`}
+              >
+                {t('differentServices')}
               </button>
             </div>
+
+            <button
+              type="button"
+              disabled={locationBusy || !newLocLabel.trim() || newLocZip.replace(/\D/g, '').length < 5}
+              onClick={async () => {
+                setLocationError('')
+                setLocationBusy(true)
+                try {
+                  const created = await addLocation({ label: newLocLabel.trim(), zip: newLocZip.trim() })
+                  setNewLocLabel('')
+                  setNewLocZip('')
+                  if (newLocServiceMode === 'different' && created?.id) {
+                    setEditingLocationId(created.id)
+                  }
+                  setNewLocServiceMode('same')
+                } catch (e) {
+                  setLocationError(e?.message || t('locationAddFailed'))
+                } finally {
+                  setLocationBusy(false)
+                }
+              }}
+              className="btn btn-outline mt-3 h-10 w-full text-sm"
+            >
+              {t('addLocation')}
+            </button>
           </div>
+
+          <Drawer
+            open={editingLocationId != null}
+            onClose={() => setEditingLocationId(null)}
+            title={t('locationServicesPrompt')}
+          >
+            {editingLocationId != null && (() => {
+              const editingLoc = (me.locations ?? []).find((l) => l.id === editingLocationId)
+              const resolved = allLocationsFor(me).find((l) => l.id === editingLocationId)
+              // Own rows only (not the inherited fallback) — pre-seeding the
+              // editor with the primary's list would "fork" it the instant
+              // it's opened, even if the detailer closes without changing
+              // anything. Falls back to the resolved (possibly-inherited)
+              // list only when they've chosen to start from it.
+              const ownServices = editingLoc?.services ?? []
+              return (
+                <div className="flex h-full flex-col">
+                  {ownServices.length > 0 && (
+                    <button
+                      type="button"
+                      disabled={servicesSaving}
+                      onClick={async () => {
+                        if (!window.confirm(t('resetServicesConfirm'))) return
+                        setServicesSaving(true)
+                        try {
+                          await updateMyServices([], editingLocationId)
+                          setEditingLocationId(null)
+                        } catch (e) {
+                          setLocationError(e?.message || t('locationAddFailed'))
+                        } finally {
+                          setServicesSaving(false)
+                        }
+                      }}
+                      className="mx-4 mt-4 self-start text-xs font-semibold text-slate-500 hover:underline dark:text-slate-400"
+                    >
+                      {t('resetToSameAsPrimary')}
+                    </button>
+                  )}
+                  <LocationServicesEditor
+                    key={editingLocationId}
+                    initialServices={ownServices.length > 0 ? ownServices : resolved?.services ?? []}
+                    saving={servicesSaving}
+                    onCancel={() => setEditingLocationId(null)}
+                    onSave={async (rows) => {
+                      setServicesSaving(true)
+                      try {
+                        await updateMyServices(rows, editingLocationId)
+                        setEditingLocationId(null)
+                      } catch (e) {
+                        setLocationError(e?.message || t('locationAddFailed'))
+                      } finally {
+                        setServicesSaving(false)
+                      }
+                    }}
+                  />
+                </div>
+              )
+            })()}
+          </Drawer>
 
           {/* Vehicle-size upcharges — optional, applied automatically at
               booking time from the customer's saved vehicle type. Blank

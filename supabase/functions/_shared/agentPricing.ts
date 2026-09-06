@@ -63,7 +63,7 @@ export async function computeQuote(
 
   const { data: bookedServices } = await admin
     .from('services')
-    .select('id, service_name, price, detailer_id, is_addon, is_active')
+    .select('id, service_name, price, detailer_id, is_addon, is_active, detailer_location_id')
     .in('id', allServiceIds)
 
   if (!bookedServices || bookedServices.length !== allServiceIds.length ||
@@ -165,6 +165,33 @@ export async function computeQuote(
       }
     }
     location = best?.candidate ?? candidates[0]
+  }
+
+  // Services are location-scoped too (075) — a service offered at location
+  // A can't be booked against location B, and the primary never "inherits"
+  // (it's the base case, not a fallback target). A non-primary location
+  // inherits the primary's services ONLY when it has none of its own at
+  // all (same all-or-nothing rule as the read paths in db.js/fuzzyPin.js),
+  // so this needs one extra lookup to know whether that's the case here.
+  let locationHasOwnServices = false
+  if (location.id != null) {
+    const { data: locOwnServices } = await admin
+      .from('services')
+      .select('id')
+      .eq('detailer_id', input.detailerId)
+      .eq('detailer_location_id', location.id)
+      .eq('is_active', true)
+      .limit(1)
+    locationHasOwnServices = (locOwnServices?.length ?? 0) > 0
+  }
+  const serviceBelongsToLocation = (s: { detailer_location_id: string | null }) =>
+    location.id == null
+      ? s.detailer_location_id == null
+      : locationHasOwnServices
+        ? s.detailer_location_id === location.id
+        : s.detailer_location_id == null
+  if (bookedServices.some((s) => !serviceBelongsToLocation(s))) {
+    return { ok: false, error: 'service_id not offered at this location', status: 400 }
   }
 
   let mileageFee = 0

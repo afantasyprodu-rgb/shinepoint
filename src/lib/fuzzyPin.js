@@ -197,10 +197,19 @@ export function milesBetweenZips(zipA, zipB) {
 // the one shape both BookingWizard's nearest-location picker and the
 // detailer's own location-management UI iterate over, so "primary" never
 // needs a separate code path from "additional".
+// services (075): an additional location with none of its own inherits the
+// primary's list here — the ONE place this fallback lives, so it applies
+// identically whether `d` came from normalizeDetailer (real) or the demo
+// store (which never runs through normalizeDetailer at all). Locations
+// only ever carry their OWN rows (possibly empty); "same as primary" is
+// simply never having any, not a copy made at creation time.
 export function allLocationsFor(d) {
   return [
-    { id: null, label: d.name, zip: d.zip, pin: d.pin, travelMiles: d.travelMiles, chargePerMile: d.chargePerMile },
-    ...(d.locations ?? []),
+    { id: null, label: d.name, zip: d.zip, pin: d.pin, travelMiles: d.travelMiles, chargePerMile: d.chargePerMile, services: d.services ?? [] },
+    ...(d.locations ?? []).map((l) => ({
+      ...l,
+      services: l.services?.length ? l.services : (d.services ?? []),
+    })),
   ]
 }
 
