@@ -13,6 +13,31 @@ const WELCOME = {
   es: 'Hola — soy Driplee. Dime tu código postal y qué necesitas, y buscaré opciones cerca.',
 }
 
+const URL_SPLIT_PATTERN = /(https?:\/\/[^\s]+)/g
+const URL_TEST_PATTERN = /^https?:\/\/[^\s]+$/
+
+// The mascot's replies sometimes hand the visitor a sign-up/login URL —
+// render those as real clickable links instead of dead text so tapping one
+// actually opens it, instead of the visitor having to copy/paste it.
+function linkifyMessage(text) {
+  const parts = String(text ?? '').split(URL_SPLIT_PATTERN)
+  return parts.map((part, i) =>
+    URL_TEST_PATTERN.test(part) ? (
+      <a
+        key={i}
+        href={part}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="underline decoration-2 underline-offset-2 hover:opacity-80"
+      >
+        {part}
+      </a>
+    ) : (
+      <span key={i}>{part}</span>
+    )
+  )
+}
+
 // One detailer's search result, rendered as a card instead of prose --
 // name/rating/distance plus every service they offer, matching the
 // approved mockup. The service the model's reply actually called out (e.g.
@@ -208,7 +233,7 @@ export default function ConciergeChat() {
                         : 'bg-slate-100 text-slate-800 dark:bg-white/10 dark:text-slate-100'
                     }`}
                   >
-                    {m.content}
+                    {linkifyMessage(m.content)}
                   </div>
                   {m.results?.detailers?.length > 0 && (
                     <div className="flex w-full flex-col gap-2">
