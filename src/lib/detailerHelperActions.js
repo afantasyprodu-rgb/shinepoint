@@ -29,11 +29,11 @@ function label(id, lang) {
 // Static chrome around the chips (header, placeholders, aria-labels) --
 // kept alongside the chip labels since both drive the same panel.
 const PANEL_STRINGS = {
-  askDrew: { en: 'Ask Drew', es: 'Preguntarle a Drew' },
+  askDrew: { en: 'Ask Drewpli', es: 'Preguntarle a Drewpli' },
   moreOptions: { en: 'More options', es: 'Más opciones' },
   close: { en: 'Close', es: 'Cerrar' },
   subtitle: { en: 'Here to help with this page', es: 'Aquí para ayudarte con esta página' },
-  checking: { en: 'Drew is checking…', es: 'Drew está revisando…' },
+  checking: { en: 'Drewpli is checking…', es: 'Drewpli está revisando…' },
   showOtherOptions: { en: 'Show other options', es: 'Mostrar otras opciones' },
   noAnswer: { en: "I don't have an answer for that right now.", es: 'No tengo una respuesta para eso ahora mismo.' },
   somethingWrong: { en: 'Something went wrong', es: 'Algo salió mal' },

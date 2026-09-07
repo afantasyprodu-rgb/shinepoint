@@ -1,8 +1,8 @@
 /**
- * Drew's live face — no PNG, no flat background. Reuses the exact
+ * Drewpli's live face — no PNG, no flat background. Reuses the exact
  * .nx-tab-drop / .nx-tab-drop-idle / .nx-tab-drop-float recipe the bottom
  * nav's WaterDroplet already uses (src/components/ui/BottomTabBar.jsx,
- * src/index.css) so Drew reads as the same floating, shape-morphing blob
+ * src/index.css) so Drewpli reads as the same floating, shape-morphing blob
  * everywhere he appears, just with eyes instead of a nav icon riding inside.
  * `size` scales the whole thing via the --drew-size custom property that
  * .drew-eyes/.drew-eye read off of.

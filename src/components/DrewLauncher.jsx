@@ -7,14 +7,14 @@ import DrewBlob from './ui/DrewBlob'
 import { useLanguage } from '../context/LanguageContext'
 
 /**
- * Drew, in-app: a top-bar mascot that flies into a centered, backdrop-
+ * Drewpli, in-app: a top-bar mascot that flies into a centered, backdrop-
  * blurred command panel of fixed quick actions (no free-text field -- see
  * supabase/functions/detailer-helper's header comment for why that's a
  * deliberate security choice, not just a UX one). The action set adapts to
- * whatever detailer page is currently open; tapping Drew again while open
+ * whatever detailer page is currently open; tapping Drewpli again while open
  * swaps in an alternate set instead of closing the panel.
  *
- * Drew himself is the live morphing blob (DrewBlob/.nx-tab-drop), not a
+ * Drewpli himself is the live morphing blob (DrewBlob/.nx-tab-drop), not a
  * static image -- the top-bar button and the panel's centered avatar share
  * one Framer layoutId, so opening/closing genuinely flies the same blob
  * between the two spots instead of cross-fading two separate images.
@@ -45,7 +45,7 @@ export default function DrewLauncher() {
       setShowAlt((v) => !v)
       return
     }
-    // Already showing an answer -> tapping Drew again starts a fresh pick.
+    // Already showing an answer -> tapping Drewpli again starts a fresh pick.
     setReply(null)
     setShowAlt((v) => !v)
   }
@@ -117,7 +117,7 @@ export default function DrewLauncher() {
                   <DrewBlob size={56} />
                 </motion.button>
                 <div className="min-w-0 flex-1">
-                  <p className="font-display text-sm font-semibold text-slate-900 dark:text-white">Drew</p>
+                  <p className="font-display text-sm font-semibold text-slate-900 dark:text-white">Drewpli</p>
                   <p className="text-xs text-slate-500 dark:text-slate-400">{t.subtitle}</p>
                 </div>
                 <button
