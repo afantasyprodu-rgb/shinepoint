@@ -86,7 +86,20 @@ export default function CustomerOnboarding() {
     }
   }
 
-  function done() { navigate(returnTo, { replace: true }) }
+  function done() {
+    // Consumed once by CustomerHelper.jsx on its next mount -- makes
+    // Driplee greet the customer right after they finish setup instead of
+    // waiting to be tapped. A plain flag rather than nav state since
+    // `returnTo` can land almost anywhere and a redirect/guard along the
+    // way could drop route state.
+    try {
+      localStorage.setItem('shinepoint:driplee-onboarding-intro-pending', '1')
+    } catch {
+      // Private-mode/storage-blocked browsers just miss the one-time
+      // greeting -- not worth failing onboarding over.
+    }
+    navigate(returnTo, { replace: true })
+  }
 
   async function advance() {
     setBusy(true)

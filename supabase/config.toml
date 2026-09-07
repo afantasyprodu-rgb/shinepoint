@@ -136,6 +136,12 @@ verify_jwt = false
 [functions.extract-flyer-prices]
 verify_jwt = true
 
+[functions.customer-helper]
+verify_jwt = true
+
+[functions.estimate-photo]
+verify_jwt = true
+
 # Agent booking API uses API-key auth inside the function (not a user JWT).
 [functions.agent-v1]
 verify_jwt = false
