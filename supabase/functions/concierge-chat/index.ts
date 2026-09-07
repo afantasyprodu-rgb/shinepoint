@@ -104,13 +104,15 @@ const TOOLS: ChatToolDef[] = [
   },
 ]
 
-async function runTool(admin: SupabaseClient, name: string, input: Record<string, unknown>): Promise<string> {
+type ToolRunResult = { output: string; searchResult?: unknown }
+
+async function runTool(admin: SupabaseClient, name: string, input: Record<string, unknown>): Promise<ToolRunResult> {
   if (name === 'search_detailers') {
     const zip = String(input.zip ?? '').trim()
-    if (!/^\d{5}$/.test(zip)) return JSON.stringify({ error: 'zip must be a 5-digit US zip code' })
+    if (!/^\d{5}$/.test(zip)) return { output: JSON.stringify({ error: 'zip must be a 5-digit US zip code' }) }
     const vehicleType = typeof input.vehicle_type === 'string' ? input.vehicle_type : null
     const searched = await searchDetailers(admin, { zip, vehicleType, limit: 5 })
-    if (!searched.ok) return JSON.stringify({ error: searched.error })
+    if (!searched.ok) return { output: JSON.stringify({ error: searched.error }) }
     // Trim to what a conversation actually needs — full service catalogs
     // and busy_times would bloat the model's context for no benefit here.
     const trimmed = {
@@ -124,7 +126,11 @@ async function runTool(admin: SupabaseClient, name: string, input: Record<string
         services: d.services.slice(0, 8).map((s) => ({ id: s.id, name: s.name, price: s.price, is_addon: s.is_addon })),
       })),
     }
-    return JSON.stringify(trimmed)
+    // Also handed straight to the client (unlike get_quote's result, which
+    // stays purely in the model's own text reply) so the widget can render
+    // real result cards instead of the model having to describe each
+    // detailer in prose — see ConciergeChat.jsx.
+    return { output: JSON.stringify(trimmed), searchResult: trimmed }
   }
   if (name === 'get_quote') {
     const detailerId = String(input.detailer_id ?? '')
@@ -134,17 +140,19 @@ async function runTool(admin: SupabaseClient, name: string, input: Record<string
       ? input.addon_service_ids.filter((v): v is string => typeof v === 'string')
       : []
     const priced = await computeQuote(admin, { detailerId, serviceId, addonServiceIds, bookingZip })
-    if (!priced.ok) return JSON.stringify({ error: priced.error })
+    if (!priced.ok) return { output: JSON.stringify({ error: priced.error }) }
     const q = priced.quote
-    return JSON.stringify({
-      service_price: q.servicePrice,
-      mileage_fee: q.mileageFee,
-      customer_total: q.customerTotal,
-      distance_miles: q.distanceMiles,
-      location_label: q.locationLabel,
-    })
+    return {
+      output: JSON.stringify({
+        service_price: q.servicePrice,
+        mileage_fee: q.mileageFee,
+        customer_total: q.customerTotal,
+        distance_miles: q.distanceMiles,
+        location_label: q.locationLabel,
+      }),
+    }
   }
-  return JSON.stringify({ error: `Unknown tool: ${name}` })
+  return { output: JSON.stringify({ error: `Unknown tool: ${name}` }) }
 }
 
 Deno.serve(async (req) => {
@@ -188,19 +196,24 @@ Deno.serve(async (req) => {
   try {
     // Bounded tool loop — the model can call a tool, see the result, and
     // call another (e.g. search then quote), but never indefinitely.
+    // Tracks the most recent search_detailers result so the client can
+    // render it as cards -- last one wins if the model searches more than
+    // once in a turn (e.g. re-searching after a failed quote).
+    let lastSearchResult: unknown = null
     for (let turn = 0; turn < 4; turn++) {
       const result = await callChat({ system, messages, tools: TOOLS, maxTokens: 220 })
       const toolUses = result.content.filter((c) => c.type === 'tool_use')
       if (toolUses.length === 0) {
         const text = result.content.find((c) => c.type === 'text')
-        return json({ reply: text?.type === 'text' ? text.text : '' })
+        return json({ reply: text?.type === 'text' ? text.text : '', results: lastSearchResult })
       }
 
       messages.push({ role: 'assistant', content: result.content })
       const toolResults: ChatMessage['content'] = []
       for (const use of toolUses) {
         if (use.type !== 'tool_use') continue
-        const output = await runTool(admin, use.name, use.input)
+        const { output, searchResult } = await runTool(admin, use.name, use.input)
+        if (searchResult) lastSearchResult = searchResult
         toolResults.push({ type: 'tool_result', tool_use_id: use.id, content: output })
       }
       messages.push({ role: 'user', content: toolResults })

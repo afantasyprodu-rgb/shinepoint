@@ -12,6 +12,54 @@ const WELCOME = {
   es: 'Hola — soy Driplee. Dime tu código postal y qué necesitas, y buscaré opciones cerca.',
 }
 
+// One detailer's search result, rendered as a card instead of prose --
+// name/rating/distance plus one service, matching the approved mockup.
+// Tapping "Get quote" sends a normal chat message (not a direct API call)
+// so the model still runs its own get_quote tool call and the result stays
+// inside the conversation, consistent with every other turn.
+function DetailerCard({ detailer, replyText, onQuote, busy }) {
+  // Prefer whichever service the model's own reply actually calls out (e.g.
+  // "Smoke Test Detailer 2 offers Pet Hair Removal") over just the first
+  // non-addon row -- otherwise the card can show a different service than
+  // the one the text just named, which reads as a mismatch/bug.
+  const mentioned = detailer.services.find((s) => replyText?.toLowerCase().includes(s.name.toLowerCase()))
+  const service = mentioned ?? detailer.services.find((s) => !s.is_addon) ?? detailer.services[0]
+  return (
+    <div className="rounded-2xl border border-brand-600/15 bg-white p-3 shadow-sm dark:border-brand-400/25 dark:bg-slate-900">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-bold text-slate-900 dark:text-white">{detailer.name}</p>
+          <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+            <span className="text-amber-500">★</span> {detailer.rating.toFixed(1)}
+            <span className="mx-1 opacity-50">·</span>
+            {detailer.reviews} reviews
+          </p>
+        </div>
+        <span className="shrink-0 whitespace-nowrap rounded-full bg-brand-500/15 px-2 py-1 text-[10px] font-semibold text-brand-700 dark:text-brand-300">
+          {detailer.distance_miles != null ? `${detailer.distance_miles} mi` : '—'}
+        </span>
+      </div>
+
+      {service && (
+        <>
+          <div className="mt-2.5 flex items-center justify-between border-t border-dashed border-black/10 pt-2.5 dark:border-white/10">
+            <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">{service.name}</span>
+            <span className="text-base font-extrabold tabular-nums text-slate-900 dark:text-white">${service.price}</span>
+          </div>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => onQuote(detailer, service)}
+            className="mt-2.5 w-full rounded-full bg-brand-600 py-1.5 text-xs font-bold text-white transition hover:bg-brand-700 disabled:opacity-40"
+          >
+            Get quote →
+          </button>
+        </>
+      )}
+    </div>
+  )
+}
+
 /**
  * Public no-key concierge chat — Driplee's face on Landing.
  * Calls supabase/functions/concierge-chat (search + quote only; no booking).
@@ -44,9 +92,9 @@ export default function ConciergeChat() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, open, busy])
 
-  async function send(e) {
+  async function send(e, overrideText) {
     e?.preventDefault?.()
-    const text = input.trim()
+    const text = (overrideText ?? input).trim()
     if (!text || busy) return
     if (!url) {
       setError('Chat is not configured yet.')
@@ -55,7 +103,7 @@ export default function ConciergeChat() {
 
     const next = [...messages, { role: 'user', content: text }]
     setMessages(next)
-    setInput('')
+    if (!overrideText) setInput('')
     setBusy(true)
     setError(null)
 
@@ -72,7 +120,10 @@ export default function ConciergeChat() {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data.error || 'Chat failed')
-      setMessages((prev) => [...prev, { role: 'assistant', content: data.reply || '…' }])
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content: data.reply || '…', results: data.results || null },
+      ])
     } catch (err) {
       setError(err?.message || 'Something went wrong')
       setMessages((prev) => [
@@ -82,6 +133,10 @@ export default function ConciergeChat() {
     } finally {
       setBusy(false)
     }
+  }
+
+  function requestQuote(detailer, service) {
+    send(null, `Quote me the ${service.name} at ${detailer.name}`)
   }
 
   return (
@@ -113,14 +168,23 @@ export default function ConciergeChat() {
                 {m.role === 'assistant' && (
                   <DrewBlob size={28} muted={i !== lastAssistantIndex} className="mt-0.5 shrink-0" />
                 )}
-                <div
-                  className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm leading-snug ${
-                    m.role === 'user'
-                      ? 'bg-brand-500 text-white'
-                      : 'bg-slate-100 text-slate-800 dark:bg-white/10 dark:text-slate-100'
-                  }`}
-                >
-                  {m.content}
+                <div className={`flex min-w-0 max-w-[85%] flex-col gap-2 ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
+                  <div
+                    className={`rounded-2xl px-3 py-2 text-sm leading-snug ${
+                      m.role === 'user'
+                        ? 'bg-brand-500 text-white'
+                        : 'bg-slate-100 text-slate-800 dark:bg-white/10 dark:text-slate-100'
+                    }`}
+                  >
+                    {m.content}
+                  </div>
+                  {m.results?.detailers?.length > 0 && (
+                    <div className="flex w-full flex-col gap-2">
+                      {m.results.detailers.slice(0, 3).map((d) => (
+                        <DetailerCard key={d.id} detailer={d} replyText={m.content} onQuote={requestQuote} busy={busy} />
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
