@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { chargeTip, resolveDisputeWithRefund, declineBookingWithRefund } from '../lib/stripe'
 import { enqueuePhoto } from '../lib/photoQueue'
+import { getPendingEstimatePhotos, clearPendingEstimatePhotos } from '../lib/pendingEstimatePhotos'
 import { updateWidget } from '../lib/widget'
 import { useAuth } from './AuthContext'
 import { MILESTONES } from '../data/milestones'
@@ -902,6 +903,24 @@ export function StoreProvider({ children }) {
             weather: draft.weather,
             detailerLocationId: draft.detailerLocationId,
           })
+          // Attach whatever photo(s) the customer used for Bo/Driplee's
+          // "Take a photo -> estimate" flow, if any are still pending from
+          // this session, so the detailer sees up front what they'll be
+          // working with — 'customer_request' exists in the photos table's
+          // check constraint specifically for a photo supplied before a job
+          // was scheduled. Best-effort: a failed upload here must never
+          // block a booking that's already been created and charged.
+          const pendingPhotos = getPendingEstimatePhotos()
+          if (pendingPhotos?.files?.length) {
+            for (const file of pendingPhotos.files) {
+              try {
+                await uploadBookingPhoto(user.id, bookingId, file, 'customer_request', pendingPhotos.category)
+              } catch (e) {
+                console.error('createBooking: failed to attach estimate photo:', e.message)
+              }
+            }
+            clearPendingEstimatePhotos()
+          }
           const refreshed = await fetchBookingsForCustomer(customerProfile.id)
           setRealBookings(refreshed)
           // No notify() here — the notify_booking_change DB trigger already
@@ -1154,7 +1173,7 @@ export function StoreProvider({ children }) {
     demoDetailers, demoBookings, demoMessages, demoCustomer, demoAdmin,
     realBookings, loyalty,
     customerProfile, detailerProfile,
-    profile,
+    profile, user,
     notifications, realNotifications, realAdmin,
   ])
 

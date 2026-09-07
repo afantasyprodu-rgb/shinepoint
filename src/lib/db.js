@@ -1067,24 +1067,26 @@ export async function extractVehiclePhoto(file) {
   })
 }
 
-// Reads a File (a photo the customer takes of their car's mess/condition,
-// from Driplee's in-app "Take a photo -> estimate" quick action) as base64
-// and sends it to the estimate-photo edge function, which returns which
-// service category it most likely needs plus a real min/max price range
-// pulled from the database for that category (never an invented number) --
-// see that function's header for the full shape of the response.
-export async function estimateFromPhoto(file, lang) {
-  const base64 = await new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(String(reader.result).split(',')[1] ?? '')
-    reader.onerror = () => reject(new Error('Could not read that image.'))
-    reader.readAsDataURL(file)
-  })
-  return invokeFn('estimate-photo', {
-    imageBase64: base64,
-    mediaType: file.type,
-    lang,
-  })
+// Reads 1-3 Files (photos the customer takes of their car's mess/condition,
+// from Driplee's in-app "Take a photo -> estimate" quick action -- multiple
+// shots let the model weigh several angles instead of guessing off one) as
+// base64 and sends them to the estimate-photo edge function, which returns
+// which service category the set most likely needs plus a real min/max
+// price range pulled from the database for that category (never an
+// invented number) -- see that function's header for the full response shape.
+export async function estimateFromPhoto(files, lang) {
+  const images = await Promise.all(
+    files.map(
+      (file) =>
+        new Promise((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onload = () => resolve({ imageBase64: String(reader.result).split(',')[1] ?? '', mediaType: file.type })
+          reader.onerror = () => reject(new Error('Could not read that image.'))
+          reader.readAsDataURL(file)
+        })
+    )
+  )
+  return invokeFn('estimate-photo', { images, lang })
 }
 
 // Admin-only debug tool (AdminVisionCompare.jsx): runs the same photo

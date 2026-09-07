@@ -3,7 +3,10 @@ import { createPortal } from 'react-dom'
 import { motion } from 'motion/react'
 import { invokeFn } from '../lib/supabase'
 import { estimateFromPhoto } from '../lib/db'
+import { setPendingEstimatePhotos } from '../lib/pendingEstimatePhotos'
 import { customerActions, panelStrings } from '../lib/customerHelperActions'
+
+const MAX_ESTIMATE_PHOTOS = 3
 import DrewBlob from './ui/DrewBlob'
 import { useLanguage } from '../context/LanguageContext'
 
@@ -36,6 +39,7 @@ export default function CustomerHelper() {
   const [busyKind, setBusyKind] = useState('text')
   const [reply, setReply] = useState(null)
   const [error, setError] = useState(null)
+  const [photosPending, setPhotosPending] = useState(false)
   const fileInputRef = useRef(null)
 
   const actions = customerActions(lang)
@@ -101,16 +105,24 @@ export default function CustomerHelper() {
   }
 
   async function onPhotoChosen(e) {
-    const file = e.target.files?.[0]
+    const files = Array.from(e.target.files ?? []).slice(0, MAX_ESTIMATE_PHOTOS)
     e.target.value = ''
-    if (!file) return
+    if (files.length === 0) return
     setBusy(true)
     setBusyKind('photo')
     setError(null)
     setReply(null)
+    setPhotosPending(false)
     try {
-      const data = await estimateFromPhoto(file, lang)
+      const data = await estimateFromPhoto(files, lang)
       setReply(data.reply || t.noAnswer)
+      if (data.category) {
+        // Held in memory so StoreContext.createBooking can attach these same
+        // photos to whichever booking the customer actually makes next --
+        // see pendingEstimatePhotos.js for why this isn't React state.
+        setPendingEstimatePhotos(files, data.category)
+        setPhotosPending(true)
+      }
     } catch (err) {
       setError(err?.message || t.somethingWrong)
     } finally {
@@ -124,7 +136,7 @@ export default function CustomerHelper() {
         ref={fileInputRef}
         type="file"
         accept="image/*"
-        capture="environment"
+        multiple
         className="hidden"
         onChange={onPhotoChosen}
       />
@@ -182,6 +194,11 @@ export default function CustomerHelper() {
                 {!busy && !error && reply && (
                   <p className="rounded-2xl bg-slate-100 px-3 py-2 text-sm leading-snug text-slate-800 dark:bg-white/10 dark:text-slate-100">
                     {reply}
+                  </p>
+                )}
+                {!busy && photosPending && (
+                  <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                    {t.photosPending}
                   </p>
                 )}
               </div>

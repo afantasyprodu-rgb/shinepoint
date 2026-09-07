@@ -28,12 +28,16 @@ const PANEL_STRINGS = {
   close: { en: 'Close', es: 'Cerrar' },
   subtitle: { en: 'Your ShinePoint helper', es: 'Tu ayudante de ShinePoint' },
   checking: { en: 'Driplee is checking…', es: 'Driplee está revisando…' },
-  scanning: { en: 'Driplee is looking at your photo…', es: 'Driplee está revisando tu foto…' },
+  scanning: { en: 'Driplee is looking at your photos…', es: 'Driplee está revisando tus fotos…' },
   noAnswer: { en: "I don't have an answer for that right now.", es: 'No tengo una respuesta para eso ahora mismo.' },
   somethingWrong: { en: 'Something went wrong', es: 'Algo salió mal' },
   greeting: {
     en: "Hi — I'm Driplee, your helper. Ask me anything!",
     es: '¡Hola! Soy Driplee, tu ayudante. ¡Pregúntame lo que sea!',
+  },
+  photosPending: {
+    en: "I'll pass these photos along to whichever detailer you book, so they know what to expect.",
+    es: 'Compartiré estas fotos con el detallista que reserves, para que sepa qué esperar.',
   },
 }
 

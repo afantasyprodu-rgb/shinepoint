@@ -33,11 +33,28 @@
 // one per shape, both normalized to "return the raw answer text" for the
 // caller. deepseek-openrouter reuses the same callOpenRouter builder as
 // openrouter, just with a different model id and the same key.
-export interface VisionCallOptions {
+export interface VisionImage {
   imageBase64: string
   mediaType: string
+}
+
+// `images` (added for estimate-photo's multi-shot flow) takes precedence
+// when present; the single imageBase64/mediaType fields stay for the
+// existing single-photo callers (extract-vehicle-photo, extract-flyer-
+// prices) so they don't need to wrap one image in an array just to keep
+// working.
+export interface VisionCallOptions {
+  imageBase64?: string
+  mediaType?: string
+  images?: VisionImage[]
   prompt: string
   maxTokens?: number
+}
+
+function resolveImages(opts: VisionCallOptions): VisionImage[] {
+  if (opts.images?.length) return opts.images
+  if (opts.imageBase64 && opts.mediaType) return [{ imageBase64: opts.imageBase64, mediaType: opts.mediaType }]
+  return []
 }
 
 // Per-provider list pricing, USD per MILLION tokens, {prompt, completion} —
@@ -78,7 +95,10 @@ async function callAnthropicShaped(
         {
           role: 'user',
           content: [
-            { type: 'image', source: { type: 'base64', media_type: opts.mediaType, data: opts.imageBase64 } },
+            ...resolveImages(opts).map((img) => ({
+              type: 'image',
+              source: { type: 'base64', media_type: img.mediaType, data: img.imageBase64 },
+            })),
             { type: 'text', text: opts.prompt },
           ],
         },
@@ -124,7 +144,10 @@ async function callOpenRouter(
           role: 'user',
           content: [
             { type: 'text', text: opts.prompt },
-            { type: 'image_url', image_url: { url: `data:${opts.mediaType};base64,${opts.imageBase64}` } },
+            ...resolveImages(opts).map((img) => ({
+              type: 'image_url',
+              image_url: { url: `data:${img.mediaType};base64,${img.imageBase64}` },
+            })),
           ],
         },
       ],

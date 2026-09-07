@@ -34,6 +34,7 @@ import { callVisionWithFallback } from '../_shared/visionProviders.ts'
 import { callChat, chatConfigured } from '../_shared/chatProvider.ts'
 
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024
+const MAX_IMAGES = 3
 const ALLOWED_MEDIA_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic'])
 
 // Same taxonomy customer-helper's cost_estimate aggregates against, so a
@@ -41,15 +42,23 @@ const ALLOWED_MEDIA_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'i
 const CATEGORIES = ['Exterior Wash', 'Full Detail', 'Interior Deep Clean', 'Pet Hair Removal', 'Engine Bay Clean', 'Ceramic Coating']
 const SEVERITIES = ['light', 'moderate', 'heavy']
 
-const PROMPT =
-  'This is a photo a customer took of their car (its dirt, mess, stains, pet hair, or condition) to ask a ' +
-  'detailing app what service it needs. Reply with ONLY a JSON object, nothing else -- no markdown fences, ' +
-  'no commentary. Shape: {"category": "Pet Hair Removal", "severity": "moderate", "notes": "Pet hair on seats and carpet"}. ' +
-  `"category" must be exactly one of: ${CATEGORIES.join(', ')} -- pick the SINGLE best match for what's most ` +
-  `visibly needed. "severity" must be exactly one of: ${SEVERITIES.join(', ')}. "notes" is a short (under 12 words) ` +
-  'factual description of what you actually see -- never mention a price, that is computed separately. If the ' +
-  'photo does not clearly show a car or its condition (wrong subject, too dark, too zoomed in), return ' +
-  '{"category": null, "severity": null, "notes": "why you can\'t tell, in a few words"}.'
+function buildPrompt(photoCount: number) {
+  const multiShotLine =
+    photoCount > 1
+      ? `You are given ${photoCount} photos of the SAME car, likely different angles or spots -- weigh all of them together for one combined assessment (e.g. pick the most severe category/severity across the set) rather than judging just the first one. `
+      : ''
+  return (
+    multiShotLine +
+    'These are photo(s) a customer took of their car (its dirt, mess, stains, pet hair, or condition) to ask a ' +
+    'detailing app what service it needs. Reply with ONLY a JSON object, nothing else -- no markdown fences, ' +
+    'no commentary. Shape: {"category": "Pet Hair Removal", "severity": "moderate", "notes": "Pet hair on seats and carpet"}. ' +
+    `"category" must be exactly one of: ${CATEGORIES.join(', ')} -- pick the SINGLE best match for what's most ` +
+    `visibly needed. "severity" must be exactly one of: ${SEVERITIES.join(', ')}. "notes" is a short (under 12 words) ` +
+    'factual description of what you actually see -- never mention a price, that is computed separately. If NONE of ' +
+    'the photos clearly show a car or its condition (wrong subject, too dark, too zoomed in), return ' +
+    '{"category": null, "severity": null, "notes": "why you can\'t tell, in a few words"}.'
+  )
+}
 
 function systemPrompt(lang: string) {
   const langLine = lang === 'es' ? 'Reply in Spanish.' : 'Reply in English.'
@@ -75,21 +84,29 @@ Deno.serve(async (req) => {
       return tooManyRequests(3600)
     }
 
-    const { imageBase64, mediaType, lang: rawLang } = await req.json().catch(() => ({}))
+    const { images, lang: rawLang } = await req.json().catch(() => ({}))
     const lang = rawLang === 'es' ? 'es' : 'en'
-    if (typeof imageBase64 !== 'string' || !imageBase64) {
-      return json({ error: 'imageBase64 required' }, 400)
+    if (!Array.isArray(images) || images.length === 0) {
+      return json({ error: 'images required (1-3 photos)' }, 400)
     }
-    if (!ALLOWED_MEDIA_TYPES.has(mediaType)) {
-      return json({ error: 'Unsupported image type' }, 400)
+    if (images.length > MAX_IMAGES) {
+      return json({ error: `At most ${MAX_IMAGES} photos at a time` }, 400)
     }
-    if (imageBase64.length > MAX_IMAGE_BYTES * 1.4) {
-      return json({ error: 'Image is too large.' }, 400)
+    for (const img of images) {
+      if (typeof img?.imageBase64 !== 'string' || !img.imageBase64) {
+        return json({ error: 'Each image needs imageBase64' }, 400)
+      }
+      if (!ALLOWED_MEDIA_TYPES.has(img.mediaType)) {
+        return json({ error: 'Unsupported image type' }, 400)
+      }
+      if (img.imageBase64.length > MAX_IMAGE_BYTES * 1.4) {
+        return json({ error: 'One of those photos is too large.' }, 400)
+      }
     }
 
     let text: string
     try {
-      text = await callVisionWithFallback({ imageBase64, mediaType, prompt: PROMPT })
+      text = await callVisionWithFallback({ images, prompt: buildPrompt(images.length) })
     } catch (e) {
       if ((e as Error).message === 'NOT_CONFIGURED') {
         return json({ error: 'Photo estimates are not configured yet.' }, 503)
