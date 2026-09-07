@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import BoblyBlob from './ui/BoblyBlob'
+import BoBlob from './ui/BoBlob'
 import { UserIcon } from './icons'
 import { useLanguage } from '../context/LanguageContext'
 
@@ -9,8 +9,8 @@ const CONCIERGE_URL = () => {
 }
 
 const WELCOME = {
-  en: "Hi — I'm Bobly. Tell me your zip and what you need detailed, and I'll find nearby options.",
-  es: 'Hola — soy Bobly. Dime tu código postal y qué necesitas, y buscaré opciones cerca.',
+  en: "Hi — I'm Bo. Tell me your zip and what you need detailed, and I'll find nearby options.",
+  es: 'Hola — soy Bo. Dime tu código postal y qué necesitas, y buscaré opciones cerca.',
 }
 
 const URL_SPLIT_PATTERN = /(https?:\/\/[^\s]+)/g
@@ -118,8 +118,8 @@ function DetailerCard({ detailer, replyText, onQuote, busy }) {
 }
 
 /**
- * Public no-key concierge chat — Bobly's face on Landing. Driplee (the
- * droplet) is reserved for the signed-in app (DrewLauncher.jsx); Bobly (the
+ * Public no-key concierge chat — Bo's face on Landing. Driplee (the
+ * droplet) is reserved for the signed-in app (DrewLauncher.jsx); Bo (the
  * bubble) is the public-site character, same job, different face.
  * Calls supabase/functions/concierge-chat (search + quote only; no booking).
  */
@@ -203,9 +203,9 @@ export default function ConciergeChat() {
       {open && (
         <div className="pointer-events-auto flex h-[min(70vh,520px)] w-[min(92vw,360px)] flex-col overflow-hidden rounded-3xl border border-black/5 bg-white shadow-2xl dark:border-white/10 dark:bg-slate-950">
           <header className="flex items-center gap-3 border-b border-black/5 bg-gradient-to-br from-brand-500/15 to-brand-700/10 px-4 py-3 dark:border-white/10">
-            <BoblyBlob size={44} className="shrink-0" />
+            <BoBlob size={44} className="shrink-0" />
             <div className="min-w-0 flex-1">
-              <p className="font-display text-sm font-semibold text-slate-900 dark:text-white">Bobly</p>
+              <p className="font-display text-sm font-semibold text-slate-900 dark:text-white">Bo</p>
               <p className="truncate text-xs text-slate-500 dark:text-slate-400">ShinePoint concierge</p>
             </div>
             <button
@@ -225,7 +225,7 @@ export default function ConciergeChat() {
                 className={`flex gap-2 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 {m.role === 'assistant' && (
-                  <BoblyBlob size={28} muted={i !== lastAssistantIndex} className="mt-0.5 shrink-0" />
+                  <BoBlob size={28} muted={i !== lastAssistantIndex} className="mt-0.5 shrink-0" />
                 )}
                 <div className={`flex min-w-0 max-w-[85%] flex-col gap-2 ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
                   <div
@@ -248,7 +248,7 @@ export default function ConciergeChat() {
               </div>
             ))}
             {busy && (
-              <p className="pl-9 text-xs text-slate-400">Bobly is typing…</p>
+              <p className="pl-9 text-xs text-slate-400">Bo is typing…</p>
             )}
             <div ref={bottomRef} />
           </div>
@@ -280,9 +280,9 @@ export default function ConciergeChat() {
         type="button"
         onClick={() => setOpen((v) => !v)}
         className="pointer-events-auto flex h-20 w-20 items-center justify-center rounded-full transition hover:scale-105"
-        aria-label={open ? 'Close Bobly chat' : 'Chat with Bobly'}
+        aria-label={open ? 'Close Bo chat' : 'Chat with Bo'}
       >
-        <BoblyBlob size={64} />
+        <BoBlob size={64} />
       </button>
     </div>
   )

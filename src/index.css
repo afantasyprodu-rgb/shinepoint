@@ -1496,15 +1496,15 @@
     inset -2px -3px 6px rgba(255, 255, 255, 0.08);
 }
 
-/* Bobly — the public-site concierge mascot (BoblyBlob.jsx), replacing
-   Driplee on the marketing-site widget; Driplee stays the in-app character
-   (DrewLauncher.jsx). Same idea as .nx-tab-drop above (live blob body +
-   eyes riding inside it, sized off one custom property) but a soap-bubble
-   sphere instead of a teardrop, built from the exact radial-gradient +
-   rim-light + glossy-highlight recipe HeroBubbles.jsx's canvas already
-   uses for the background bubble field, and no counter-rotation needed
-   since a circle has no "point" to keep upright. */
-.nx-bobly-bubble {
+/* Bo (formerly Bobly) — the public-site concierge mascot (BoBlob.jsx),
+   replacing Driplee on the marketing-site widget; Driplee stays the in-app
+   character (DrewLauncher.jsx). Same idea as .nx-tab-drop above (live blob
+   body + eyes riding inside it, sized off one custom property) but a
+   soap-bubble sphere instead of a teardrop, built from the exact
+   radial-gradient + rim-light + glossy-highlight recipe HeroBubbles.jsx's
+   canvas already uses for the background bubble field, and no
+   counter-rotation needed since a circle has no "point" to keep upright. */
+.nx-bo-bubble {
   border-radius: 50%;
   position: relative;
   background:
@@ -1522,71 +1522,134 @@
 /* Gentle squash/stretch "breathing" instead of the droplet's corner morph —
    a sphere has no point to hold onto, so the idle life comes from scale
    alone, staying a circle the whole time. */
-@keyframes nx-bobly-idle {
+@keyframes nx-bo-idle {
   0%, 100% { transform: scale(1, 1); }
   15% { transform: scale(1.04, 0.96); }
   35% { transform: scale(0.96, 1.05); }
   55% { transform: scale(1.03, 0.97); }
   75% { transform: scale(0.98, 1.03); }
 }
-.nx-bobly-idle {
-  animation: nx-bobly-idle 6.5s ease-in-out infinite;
+.nx-bo-idle {
+  animation: nx-bo-idle 6.5s ease-in-out infinite;
 }
-.nx-bobly-float {
+.nx-bo-float {
   animation: nx-drop-float 5s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) {
-  .nx-bobly-idle,
-  .nx-bobly-float {
+  .nx-bo-idle,
+  .nx-bo-float {
     animation: none;
   }
 }
 
-/* Bobly's eyes — same two-layer look/blink recipe as .drew-eye above
-   (reuses drew-look/drew-blink directly), just rounded-rectangle instead
-   of full ovals, and sized off --bobly-size instead of --drew-size so one
-   component works at any scale (launcher FAB vs. in-chat avatar). No
-   counter-rotation wrapper needed since the bubble body never rotates. */
-.bobly-eyes {
+/* Bo's eyes — same two-layer look/blink recipe as .drew-eye above (reuses
+   drew-look/drew-blink directly), just rounded-rectangle instead of full
+   ovals, and sized off --bo-size instead of --drew-size so one component
+   works at any scale (launcher FAB vs. in-chat avatar). No counter-rotation
+   wrapper needed since the bubble body never rotates. */
+.bo-eyes {
   position: absolute;
   inset: 0;
   top: 6%;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: calc(var(--bobly-size, 44px) * 0.2);
+  gap: calc(var(--bo-size, 44px) * 0.2);
   pointer-events: none;
 }
-.bobly-eye-look {
+.bo-eye-look {
   display: inline-block;
   animation: drew-look 7.5s ease-in-out infinite;
 }
-.bobly-eye-look + .bobly-eye-look {
+.bo-eye-look + .bo-eye-look {
   animation-delay: -1.6s;
 }
-.bobly-eye {
+.bo-eye {
   display: block;
-  width: calc(var(--bobly-size, 44px) * 0.15);
-  height: calc(var(--bobly-size, 44px) * 0.22);
+  width: calc(var(--bo-size, 44px) * 0.15);
+  height: calc(var(--bo-size, 44px) * 0.22);
   border-radius: 30%;
   background:
     radial-gradient(circle at 32% 22%, rgba(255, 255, 255, 0.65) 0%, rgba(255, 255, 255, 0) 45%),
     #0a0a0a;
   animation: drew-blink 5.2s ease-in-out infinite;
 }
-.bobly-eye-look + .bobly-eye-look .bobly-eye {
+.bo-eye-look + .bo-eye-look .bo-eye {
   animation-delay: -0.08s;
 }
 @media (prefers-reduced-motion: reduce) {
-  .bobly-eye,
-  .bobly-eye-look {
+  .bo-eye,
+  .bo-eye-look {
     animation: none;
   }
 }
 
-/* Muted Bobly — same treatment as .nx-tab-drop-muted, for a past chat
-   message once a newer reply has taken over as "the" active mascot. */
-.nx-bobly-bubble-muted {
+/* Bo's bow tie + collar — drawn flat (no gradients/shading beyond the
+   knot's own highlight) so it reads as a cartoon accessory wrapped around
+   the bottom of the sphere, not a literal rendered suit. Two triangular
+   collar flaps (clip-path) angle up from the bubble's bottom rim like a V
+   neckline, meeting at a small bow tie (two more triangles + a center
+   knot) sitting right where they meet. Everything scales off --bo-size,
+   same as the eyes, and sits UNDER the eyes in paint order (markup order)
+   so a wide grin/expression added later would still read above the collar. */
+.bo-suit {
+  position: absolute;
+  left: 50%;
+  bottom: -4%;
+  transform: translateX(-50%);
+  width: 76%;
+  height: 40%;
+  pointer-events: none;
+}
+.bo-collar {
+  position: absolute;
+  bottom: 0;
+  width: 52%;
+  height: 68%;
+  background: #f8fafc;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+}
+.bo-collar-left {
+  left: 4%;
+  clip-path: polygon(0 0, 100% 100%, 0 100%);
+}
+.bo-collar-right {
+  right: 4%;
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+}
+.bo-bowtie {
+  position: absolute;
+  left: 50%;
+  bottom: 6%;
+  transform: translateX(-50%);
+  width: 34%;
+  height: 34%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.bo-bowtie-wing {
+  width: 42%;
+  height: 100%;
+  background: var(--color-brand-700);
+}
+.bo-bowtie-wing-left {
+  clip-path: polygon(100% 0, 100% 100%, 0 50%);
+}
+.bo-bowtie-wing-right {
+  clip-path: polygon(0 0, 0 100%, 100% 50%);
+}
+.bo-bowtie-knot {
+  width: 22%;
+  height: 60%;
+  border-radius: 2px;
+  background: var(--color-brand-900, #5c0c37);
+  box-shadow: inset 1px 1px 1px rgba(255, 255, 255, 0.3);
+}
+
+/* Muted Bo — same treatment as .nx-tab-drop-muted, for a past chat message
+   once a newer reply has taken over as "the" active mascot. */
+.nx-bo-bubble-muted {
   background:
     radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0) 26%),
     color-mix(in oklch, var(--color-slate-400) 16%, transparent);
