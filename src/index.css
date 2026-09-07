@@ -1496,6 +1496,107 @@
     inset -2px -3px 6px rgba(255, 255, 255, 0.08);
 }
 
+/* Bobly — the public-site concierge mascot (BoblyBlob.jsx), replacing
+   Driplee on the marketing-site widget; Driplee stays the in-app character
+   (DrewLauncher.jsx). Same idea as .nx-tab-drop above (live blob body +
+   eyes riding inside it, sized off one custom property) but a soap-bubble
+   sphere instead of a teardrop, built from the exact radial-gradient +
+   rim-light + glossy-highlight recipe HeroBubbles.jsx's canvas already
+   uses for the background bubble field, and no counter-rotation needed
+   since a circle has no "point" to keep upright. */
+.nx-bobly-bubble {
+  border-radius: 50%;
+  position: relative;
+  background:
+    radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0) 26%),
+    radial-gradient(circle at 34% 30%, color-mix(in oklch, var(--color-brand-300) 55%, transparent) 0%, transparent 46%),
+    radial-gradient(circle at 60% 68%, color-mix(in oklch, var(--color-brand-600) 20%, transparent) 0%, transparent 65%),
+    color-mix(in oklch, var(--color-brand-500) 12%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--color-brand-600) 45%, transparent);
+  box-shadow:
+    0 10px 22px -4px color-mix(in srgb, var(--color-brand-700) 45%, transparent),
+    inset 3px 3px 8px rgba(255, 255, 255, 0.5),
+    inset -4px -6px 12px color-mix(in srgb, var(--color-brand-700) 12%, transparent);
+}
+
+/* Gentle squash/stretch "breathing" instead of the droplet's corner morph —
+   a sphere has no point to hold onto, so the idle life comes from scale
+   alone, staying a circle the whole time. */
+@keyframes nx-bobly-idle {
+  0%, 100% { transform: scale(1, 1); }
+  15% { transform: scale(1.04, 0.96); }
+  35% { transform: scale(0.96, 1.05); }
+  55% { transform: scale(1.03, 0.97); }
+  75% { transform: scale(0.98, 1.03); }
+}
+.nx-bobly-idle {
+  animation: nx-bobly-idle 6.5s ease-in-out infinite;
+}
+.nx-bobly-float {
+  animation: nx-drop-float 5s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .nx-bobly-idle,
+  .nx-bobly-float {
+    animation: none;
+  }
+}
+
+/* Bobly's eyes — same two-layer look/blink recipe as .drew-eye above
+   (reuses drew-look/drew-blink directly), just rounded-rectangle instead
+   of full ovals, and sized off --bobly-size instead of --drew-size so one
+   component works at any scale (launcher FAB vs. in-chat avatar). No
+   counter-rotation wrapper needed since the bubble body never rotates. */
+.bobly-eyes {
+  position: absolute;
+  inset: 0;
+  top: 6%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--bobly-size, 44px) * 0.2);
+  pointer-events: none;
+}
+.bobly-eye-look {
+  display: inline-block;
+  animation: drew-look 7.5s ease-in-out infinite;
+}
+.bobly-eye-look + .bobly-eye-look {
+  animation-delay: -1.6s;
+}
+.bobly-eye {
+  display: block;
+  width: calc(var(--bobly-size, 44px) * 0.15);
+  height: calc(var(--bobly-size, 44px) * 0.22);
+  border-radius: 30%;
+  background:
+    radial-gradient(circle at 32% 22%, rgba(255, 255, 255, 0.65) 0%, rgba(255, 255, 255, 0) 45%),
+    #0a0a0a;
+  animation: drew-blink 5.2s ease-in-out infinite;
+}
+.bobly-eye-look + .bobly-eye-look .bobly-eye {
+  animation-delay: -0.08s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .bobly-eye,
+  .bobly-eye-look {
+    animation: none;
+  }
+}
+
+/* Muted Bobly — same treatment as .nx-tab-drop-muted, for a past chat
+   message once a newer reply has taken over as "the" active mascot. */
+.nx-bobly-bubble-muted {
+  background:
+    radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0) 26%),
+    color-mix(in oklch, var(--color-slate-400) 16%, transparent);
+  border-color: color-mix(in srgb, var(--color-slate-500) 55%, transparent);
+  box-shadow:
+    0 6px 14px -4px rgba(0, 0, 0, 0.18),
+    inset 2px 2px 4px rgba(255, 255, 255, 0.18),
+    inset -2px -3px 6px rgba(255, 255, 255, 0.08);
+}
+
 /* ── Leaflet map: pins, user location, grow-in popups ─────────────────────
    The discovery map (DetailerMap) is Leaflet + OpenStreetMap. Pins and the
    user-location dot are divIcons styled here; the native popup grows in with
