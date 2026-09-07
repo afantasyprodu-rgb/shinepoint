@@ -5,96 +5,58 @@
 // Keyed by pathname prefix; falls back to DEFAULT_ACTIONS for any detailer
 // route not listed explicitly.
 
-const DASHBOARD_ACTIONS = [
-  { id: 'schedule_today', label: "Today's jobs" },
-  { id: 'schedule_upcoming', label: 'Upcoming schedule' },
-  { id: 'earnings_week', label: 'This week’s earnings' },
-  { id: 'help_probation', label: 'Probation status' },
-  { id: 'help_fees', label: 'How fees work' },
-]
+// One label per intent id, in both languages -- the same intent shows up
+// across several pages' action lists, so this keeps the translation in one
+// place instead of repeating (and risking drift) at every call site.
+const LABELS = {
+  schedule_today: { en: "Today's jobs", es: 'Trabajos de hoy' },
+  schedule_upcoming: { en: 'Upcoming schedule', es: 'Próximos trabajos' },
+  earnings_week: { en: 'This week’s earnings', es: 'Ganancias de esta semana' },
+  earnings_next_payout: { en: 'Payout status', es: 'Estado de pago' },
+  analytics_rating: { en: 'My rating', es: 'Mi calificación' },
+  analytics_top_service: { en: 'Top service', es: 'Servicio más popular' },
+  job_summary: { en: 'Summarize this job', es: 'Resumir este trabajo' },
+  help_invoices: { en: 'How invoices work', es: 'Cómo funcionan las facturas' },
+  help_payouts: { en: 'How payouts work', es: 'Cómo funcionan los pagos' },
+  help_probation: { en: 'Probation status', es: 'Estado de prueba' },
+  help_fees: { en: 'How fees work', es: 'Cómo funcionan las comisiones' },
+}
 
-const EARNINGS_ACTIONS = [
-  { id: 'earnings_week', label: 'This week’s earnings' },
-  { id: 'earnings_next_payout', label: 'Payout status' },
-  { id: 'help_payouts', label: 'How payouts work' },
-  { id: 'help_fees', label: 'How fees work' },
-  { id: 'schedule_upcoming', label: 'Upcoming schedule' },
-]
+function label(id, lang) {
+  return LABELS[id]?.[lang] ?? LABELS[id]?.en ?? id
+}
 
-const ANALYTICS_ACTIONS = [
-  { id: 'analytics_rating', label: 'My rating' },
-  { id: 'analytics_top_service', label: 'Top service' },
-  { id: 'earnings_week', label: 'This week’s earnings' },
-  { id: 'schedule_upcoming', label: 'Upcoming schedule' },
-  { id: 'help_fees', label: 'How fees work' },
-]
+function actions(ids, lang) {
+  return ids.map((id) => ({ id, label: label(id, lang) }))
+}
 
-const REPORTS_ACTIONS = [
-  { id: 'earnings_week', label: 'This week’s earnings' },
-  { id: 'analytics_top_service', label: 'Top service' },
-  { id: 'analytics_rating', label: 'My rating' },
-  { id: 'schedule_today', label: "Today's jobs" },
-  { id: 'help_fees', label: 'How fees work' },
-]
-
+const DASHBOARD_IDS = ['schedule_today', 'schedule_upcoming', 'earnings_week', 'help_probation', 'help_fees']
+const EARNINGS_IDS = ['earnings_week', 'earnings_next_payout', 'help_payouts', 'help_fees', 'schedule_upcoming']
+const ANALYTICS_IDS = ['analytics_rating', 'analytics_top_service', 'earnings_week', 'schedule_upcoming', 'help_fees']
+const REPORTS_IDS = ['earnings_week', 'analytics_top_service', 'analytics_rating', 'schedule_today', 'help_fees']
 // Job detail carries the bookingId along with the intent.
-const JOB_ACTIONS = [
-  { id: 'job_summary', label: 'Summarize this job' },
-  { id: 'help_invoices', label: 'How invoices work' },
-  { id: 'help_fees', label: 'How fees work' },
-  { id: 'schedule_today', label: "Today's jobs" },
-  { id: 'help_probation', label: 'Probation status' },
-]
+const JOB_IDS = ['job_summary', 'help_invoices', 'help_fees', 'schedule_today', 'help_probation']
 
-const DEFAULT_ACTIONS = DASHBOARD_ACTIONS
-
-export function actionsForPath(pathname) {
-  if (pathname.startsWith('/detailer/jobs/')) return JOB_ACTIONS
-  if (pathname.startsWith('/detailer/earnings')) return EARNINGS_ACTIONS
-  if (pathname.startsWith('/detailer/analytics')) return ANALYTICS_ACTIONS
-  if (pathname.startsWith('/detailer/reports')) return REPORTS_ACTIONS
-  return DEFAULT_ACTIONS
+export function actionsForPath(pathname, lang = 'en') {
+  if (pathname.startsWith('/detailer/jobs/')) return actions(JOB_IDS, lang)
+  if (pathname.startsWith('/detailer/earnings')) return actions(EARNINGS_IDS, lang)
+  if (pathname.startsWith('/detailer/analytics')) return actions(ANALYTICS_IDS, lang)
+  if (pathname.startsWith('/detailer/reports')) return actions(REPORTS_IDS, lang)
+  return actions(DASHBOARD_IDS, lang)
 }
 
 // A second rotation of actions for the same pages, shown when the detailer
 // taps Drew again wanting different options instead of the first set.
-const ALT = {
-  dashboard: [
-    { id: 'analytics_rating', label: 'My rating' },
-    { id: 'earnings_next_payout', label: 'Payout status' },
-    { id: 'help_invoices', label: 'How invoices work' },
-    { id: 'help_payouts', label: 'How payouts work' },
-    { id: 'analytics_top_service', label: 'Top service' },
-  ],
-}
+const ALT_DASHBOARD_IDS = ['analytics_rating', 'earnings_next_payout', 'help_invoices', 'help_payouts', 'analytics_top_service']
+const ALT_JOB_IDS = ['schedule_upcoming', 'earnings_week', 'analytics_rating', 'help_payouts', 'help_invoices']
+const ALT_EARNINGS_IDS = ['analytics_rating', 'analytics_top_service', 'help_probation', 'schedule_today', 'help_invoices']
+const ALT_ANALYTICS_IDS = ['earnings_next_payout', 'help_payouts', 'help_probation', 'help_invoices', 'schedule_today']
 
-export function altActionsForPath(pathname) {
-  if (pathname.startsWith('/detailer/jobs/')) {
-    return [
-      { id: 'schedule_upcoming', label: 'Upcoming schedule' },
-      { id: 'earnings_week', label: 'This week’s earnings' },
-      { id: 'analytics_rating', label: 'My rating' },
-      { id: 'help_payouts', label: 'How payouts work' },
-      { id: 'help_invoices', label: 'How invoices work' },
-    ]
-  }
-  if (pathname.startsWith('/detailer/earnings')) {
-    return [
-      { id: 'analytics_rating', label: 'My rating' },
-      { id: 'analytics_top_service', label: 'Top service' },
-      { id: 'help_probation', label: 'Probation status' },
-      { id: 'schedule_today', label: "Today's jobs" },
-      { id: 'help_invoices', label: 'How invoices work' },
-    ]
-  }
+export function altActionsForPath(pathname, lang = 'en') {
+  if (pathname.startsWith('/detailer/jobs/')) return actions(ALT_JOB_IDS, lang)
+  if (pathname.startsWith('/detailer/earnings')) return actions(ALT_EARNINGS_IDS, lang)
   if (pathname.startsWith('/detailer/analytics') || pathname.startsWith('/detailer/reports')) {
-    return [
-      { id: 'earnings_next_payout', label: 'Payout status' },
-      { id: 'help_payouts', label: 'How payouts work' },
-      { id: 'help_probation', label: 'Probation status' },
-      { id: 'help_invoices', label: 'How invoices work' },
-      { id: 'schedule_today', label: "Today's jobs" },
-    ]
+    return actions(ALT_ANALYTICS_IDS, lang)
   }
-  return ALT.dashboard
+  return actions(ALT_DASHBOARD_IDS, lang)
 }

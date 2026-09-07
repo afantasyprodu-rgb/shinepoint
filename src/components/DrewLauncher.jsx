@@ -29,7 +29,7 @@ export default function DrewLauncher() {
   const [reply, setReply] = useState(null)
   const [error, setError] = useState(null)
 
-  const actions = (showAlt ? altActionsForPath : actionsForPath)(location.pathname)
+  const actions = (showAlt ? altActionsForPath : actionsForPath)(location.pathname, lang)
 
   function openPanel() {
     setOpen(true)
