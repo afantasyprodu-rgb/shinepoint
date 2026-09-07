@@ -5,8 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="description" content="ShinePoint Privacy Policy, including how phone numbers and SMS opt-in data are used." />
     <meta name="theme-color" content="#de0067" />
+    <!-- Fonts as parallel-fetchable <link>s (not a CSS @import — that was
+         a sequential, render-blocking chain: main.css -> Google's CSS ->
+         the actual woff2 files). preconnect opens the connection to both
+         hosts before the stylesheet request even lands. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap"
+    />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="manifest" href="/manifest.json" />
+    <!-- iOS ignores manifest.json's `display: standalone` — Safari only
+         reads these Apple-specific tags to launch without browser chrome
+         when added to the Home Screen. Keep in sync with manifest.json's
+         name/theme_color if those ever change. -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="ShinePoint" />
     <title>Privacy Policy — ShinePoint</title>
     <!-- Structured data for search/AI answer engines (not shown to users) —
          lets an AI assistant or AI Overview answer "mobile detailer near
@@ -105,7 +123,7 @@
         <h2 style="font-size: 1.05rem; font-weight: 700; margin-top: 20px;">Your choices</h2>
         <p>You can edit or remove your profile photo and details in Account settings. From the same "Danger zone" you can deactivate your account (hidden and paused, undone by simply logging back in) or delete it permanently (erases your data for good; blocked while a booking or payout is still unresolved). We ask for your device location to center the map near you; your last known location is cached on your device (not our servers) so you aren’t asked again every time you open the app, and clearing your browser/app data removes it.</p>
         <h2 style="font-size: 1.05rem; font-weight: 700; margin-top: 20px;">SMS &amp; phone number use</h2>
-        <p>If you opt in to text updates, we use your phone number only to send you a reminder before your appointment and a link to track your detailer in real time, via our messaging provider (Twilio). We never share your phone number or your opt-in status with third parties for marketing purposes. Text STOP to any message to opt out, or turn it off anytime in Account settings.</p>
+        <p>If you opt in to text updates, we use your phone number only to send you a reminder before your appointment and a link to track your detailer in real time, via our messaging provider (Sent). No mobile information will be sold or shared with third parties for promotional or marketing purposes. Text STOP to any message to opt out, or turn it off anytime in Account settings.</p>
         <h2 style="font-size: 1.05rem; font-weight: 700; margin-top: 20px;">Security</h2>
         <p>We use industry-standard measures and access controls. No system is perfectly secure, but we work to protect your data.</p>
         <h2 style="font-size: 1.05rem; font-weight: 700; margin-top: 20px;">Contact</h2>

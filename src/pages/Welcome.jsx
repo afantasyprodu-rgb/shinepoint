@@ -122,11 +122,13 @@ export default function Welcome() {
               {t('badge')}
             </span>
           </FadeIn>
-          <FadeIn delay={0.1} y={22}>
-            <h1 className="mx-auto mt-5 max-w-2xl font-display text-4xl font-bold leading-[1.08] text-slate-950 dark:text-slate-100 sm:text-6xl">
-              {t('titlePre')} <span className="text-cta-600 dark:text-cta-400">{t('titleAccent')}</span> {t('titlePost')}
-            </h1>
-          </FadeIn>
+          {/* Not wrapped in FadeIn: this h1 is the page's LCP element (per
+              Lighthouse), and LCP is measured at final visual state -- an
+              opacity fade-in on it directly inflates the metric being
+              measured, even though a real visitor barely perceives 0.5s. */}
+          <h1 className="mx-auto mt-5 max-w-2xl font-display text-4xl font-bold leading-[1.08] text-slate-950 dark:text-slate-100 sm:text-6xl">
+            {t('titlePre')} <span className="text-cta-600 dark:text-cta-400">{t('titleAccent')}</span> {t('titlePost')}
+          </h1>
           <TextEffect
             as="p"
             per="word"

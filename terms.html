@@ -5,8 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="description" content="ShinePoint Terms of Service, including SMS and text messaging terms." />
     <meta name="theme-color" content="#de0067" />
+    <!-- Fonts as parallel-fetchable <link>s (not a CSS @import — that was
+         a sequential, render-blocking chain: main.css -> Google's CSS ->
+         the actual woff2 files). preconnect opens the connection to both
+         hosts before the stylesheet request even lands. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap"
+    />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="manifest" href="/manifest.json" />
+    <!-- iOS ignores manifest.json's `display: standalone` — Safari only
+         reads these Apple-specific tags to launch without browser chrome
+         when added to the Home Screen. Keep in sync with manifest.json's
+         name/theme_color if those ever change. -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="ShinePoint" />
     <title>Terms of Service — ShinePoint</title>
     <!-- Structured data for search/AI answer engines (not shown to users) —
          lets an AI assistant or AI Overview answer "mobile detailer near

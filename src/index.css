@@ -1,4 +1,9 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+/* Google Fonts moved to index.html as <link rel="preconnect"> + a regular
+   stylesheet link -- a CSS @import here was strictly sequential (fetch this
+   file -> discover the import -> fetch Google's CSS -> discover the woff2
+   URLs -> fetch those), render-blocking the whole page behind a 3-hop chain
+   that measurably delayed LCP. A <link> in <head> lets the browser discover
+   and fetch it in parallel with everything else from the first scan. */
 @import "tailwindcss";
 
 /* Manual dark mode: the `dark` class on <html> wins over the OS setting.
