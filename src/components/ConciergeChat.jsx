@@ -56,9 +56,8 @@ function DetailerCard({ detailer, replyText, onQuote, busy }) {
 
       {service && (
         <>
-          <div className="mt-2.5 flex items-center justify-between border-t border-dashed border-black/10 pt-2.5 dark:border-white/10">
+          <div className="mt-2.5 border-t border-dashed border-black/10 pt-2.5 dark:border-white/10">
             <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">{service.name}</span>
-            <span className="text-base font-extrabold tabular-nums text-slate-900 dark:text-white">${service.price}</span>
           </div>
           <button
             type="button"
@@ -215,7 +214,7 @@ export default function ConciergeChat() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Ask about detailing…"
-                className="min-w-0 flex-1 rounded-full border border-black/10 bg-white px-4 py-2 text-sm outline-none focus:border-brand-500 dark:border-white/15 dark:bg-slate-900"
+                className="min-w-0 flex-1 rounded-full border border-black/10 bg-white px-4 py-2 text-base outline-none focus:border-brand-500 dark:border-white/15 dark:bg-slate-900 sm:text-sm"
                 disabled={busy}
                 maxLength={2000}
               />
