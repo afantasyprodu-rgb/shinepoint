@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useLocation, useParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { invokeFn } from '../lib/supabase'
-import { actionsForPath, altActionsForPath } from '../lib/detailerHelperActions'
+import { actionsForPath, altActionsForPath, panelStrings } from '../lib/detailerHelperActions'
 import DrewBlob from './ui/DrewBlob'
 import { useLanguage } from '../context/LanguageContext'
 
@@ -30,6 +30,7 @@ export default function DrewLauncher() {
   const [error, setError] = useState(null)
 
   const actions = (showAlt ? altActionsForPath : actionsForPath)(location.pathname, lang)
+  const t = panelStrings(lang)
 
   function openPanel() {
     setOpen(true)
@@ -66,9 +67,9 @@ export default function DrewLauncher() {
         bookingId: params.id,
         lang,
       })
-      setReply(data.reply || "I don't have an answer for that right now.")
+      setReply(data.reply || t.noAnswer)
     } catch (err) {
-      setError(err?.message || 'Something went wrong')
+      setError(err?.message || t.somethingWrong)
     } finally {
       setBusy(false)
     }
@@ -81,7 +82,7 @@ export default function DrewLauncher() {
           layoutId="drew-blob"
           type="button"
           onClick={openPanel}
-          aria-label="Ask Drew"
+          aria-label={t.askDrew}
           className="shrink-0"
         >
           <DrewBlob size={36} />
@@ -110,27 +111,27 @@ export default function DrewLauncher() {
                   layoutId="drew-blob"
                   type="button"
                   onClick={cycleOrReset}
-                  aria-label="More options"
+                  aria-label={t.moreOptions}
                   className="shrink-0"
                 >
                   <DrewBlob size={56} />
                 </motion.button>
                 <div className="min-w-0 flex-1">
                   <p className="font-display text-sm font-semibold text-slate-900 dark:text-white">Drew</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Here to help with this page</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">{t.subtitle}</p>
                 </div>
                 <button
                   type="button"
                   onClick={close}
                   className="rounded-full px-2 py-1 text-sm text-slate-500 hover:bg-black/5 dark:hover:bg-white/10"
-                  aria-label="Close"
+                  aria-label={t.close}
                 >
                   ✕
                 </button>
               </div>
 
               <div className="mt-4 min-h-[3rem]">
-                {busy && <p className="text-sm text-slate-400">Drew is checking…</p>}
+                {busy && <p className="text-sm text-slate-400">{t.checking}</p>}
                 {!busy && error && <p className="text-sm text-rose-600">{error}</p>}
                 {!busy && !error && reply && (
                   <p className="rounded-2xl bg-slate-100 px-3 py-2 text-sm leading-snug text-slate-800 dark:bg-white/10 dark:text-slate-100">
@@ -157,7 +158,7 @@ export default function DrewLauncher() {
                 onClick={() => setShowAlt((v) => !v)}
                 className="mt-3 text-xs font-medium text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
               >
-                Show other options
+                {t.showOtherOptions}
               </button>
             </motion.div>
           </div>
