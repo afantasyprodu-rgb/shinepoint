@@ -9,7 +9,6 @@ import LanguageToggle from '../components/LanguageToggle'
 import { useAuth, homePathForRole } from '../context/AuthContext'
 import { markArrival } from '../lib/transition'
 import { FadeIn, Stagger, StaggerItem } from '../components/ui/Motion'
-import { TextEffect } from '../components/motion-primitives/text-effect'
 import { Stars } from '../components/ui/bits'
 import HeroBubbles from '../components/ui/HeroBubbles'
 import { useT } from '../i18n/useT'
@@ -117,25 +116,6 @@ export default function Welcome() {
           <FadeIn y={18}>
             <Logo size="lg" />
           </FadeIn>
-          <FadeIn delay={0.05}>
-            <span className="mt-8 inline-flex items-center rounded-full border border-cta-600/15 bg-cta-600/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-cta-700 dark:border-cta-500/20 dark:bg-cta-500/10 dark:text-cta-500">
-              {t('badge')}
-            </span>
-          </FadeIn>
-          <FadeIn delay={0.1} y={22}>
-            <h1 className="mx-auto mt-5 max-w-2xl font-display text-4xl font-bold leading-[1.08] text-slate-950 dark:text-slate-100 sm:text-6xl">
-              {t('titlePre')} <span className="text-cta-600 dark:text-cta-400">{t('titleAccent')}</span> {t('titlePost')}
-            </h1>
-          </FadeIn>
-          <TextEffect
-            as="p"
-            per="word"
-            preset="fade-in-blur"
-            delay={0.2}
-            className="mx-auto mt-4 max-w-md text-lg text-slate-600 dark:text-slate-400"
-          >
-            {t('subtitle')}
-          </TextEffect>
           <FadeIn delay={0.3}>
             <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link to="/signup" onClick={haptic} className="btn btn-cta press-spring w-full sm:w-auto">
