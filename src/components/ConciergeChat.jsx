@@ -14,17 +14,20 @@ const WELCOME = {
 }
 
 // One detailer's search result, rendered as a card instead of prose --
-// name/rating/distance plus one service, matching the approved mockup.
-// Tapping "Get quote" sends a normal chat message (not a direct API call)
-// so the model still runs its own get_quote tool call and the result stays
+// name/rating/distance plus every service they offer, matching the
+// approved mockup. The service the model's reply actually called out (e.g.
+// "Smoke Test Detailer 2 offers Pet Hair Removal") glows so it reads as
+// "that's the one you asked about" without hiding the rest of the catalog.
+// Tapping a chip re-picks which service "Get quote" asks about; tapping
+// "Get quote" itself sends a normal chat message (not a direct API call) so
+// the model still runs its own get_quote tool call and the result stays
 // inside the conversation, consistent with every other turn.
 function DetailerCard({ detailer, replyText, onQuote, busy }) {
-  // Prefer whichever service the model's own reply actually calls out (e.g.
-  // "Smoke Test Detailer 2 offers Pet Hair Removal") over just the first
-  // non-addon row -- otherwise the card can show a different service than
-  // the one the text just named, which reads as a mismatch/bug.
   const mentioned = detailer.services.find((s) => replyText?.toLowerCase().includes(s.name.toLowerCase()))
-  const service = mentioned ?? detailer.services.find((s) => !s.is_addon) ?? detailer.services[0]
+  const fallback = detailer.services.find((s) => !s.is_addon) ?? detailer.services[0]
+  const [selectedId, setSelectedId] = useState((mentioned ?? fallback)?.id ?? null)
+  const selected = detailer.services.find((s) => s.id === selectedId) ?? mentioned ?? fallback
+
   return (
     <div className="rounded-2xl border border-brand-600/15 bg-white p-3 shadow-sm dark:border-brand-400/25 dark:bg-slate-900">
       <div className="flex items-start justify-between gap-2">
@@ -54,15 +57,31 @@ function DetailerCard({ detailer, replyText, onQuote, busy }) {
         </span>
       </div>
 
-      {service && (
+      {detailer.services.length > 0 && (
         <>
-          <div className="mt-2.5 border-t border-dashed border-black/10 pt-2.5 dark:border-white/10">
-            <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">{service.name}</span>
+          <div className="mt-2.5 flex flex-wrap gap-1.5 border-t border-dashed border-black/10 pt-2.5 dark:border-white/10">
+            {detailer.services.map((s) => {
+              const isSelected = s.id === selected?.id
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => setSelectedId(s.id)}
+                  className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${
+                    isSelected
+                      ? 'bg-brand-600 text-white shadow-[0_0_0_3px_rgba(225,29,128,0.25),0_0_14px_2px_rgba(225,29,128,0.55)] dark:shadow-[0_0_0_3px_rgba(251,158,203,0.25),0_0_14px_2px_rgba(251,158,203,0.55)]'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-white/10 dark:text-slate-300 dark:hover:bg-white/15'
+                  }`}
+                >
+                  {s.name}
+                </button>
+              )
+            })}
           </div>
           <button
             type="button"
-            disabled={busy}
-            onClick={() => onQuote(detailer, service)}
+            disabled={busy || !selected}
+            onClick={() => onQuote(detailer, selected)}
             className="mt-2.5 w-full rounded-full bg-brand-600 py-1.5 text-xs font-bold text-white transition hover:bg-brand-700 disabled:opacity-40"
           >
             Get quote →
