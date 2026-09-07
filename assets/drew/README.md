@@ -1,4 +1,4 @@
-﻿# Drewpli — ShinePoint mascot
+﻿# Driplee — ShinePoint mascot
 
 Minimal Dew: brand-pink eyes-only droplet (tall solid black ovals, no sclera/pupil/glint). Tip-up orientation.
 

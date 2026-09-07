@@ -8,12 +8,12 @@ const CONCIERGE_URL = () => {
 }
 
 const WELCOME = {
-  en: "Hi — I'm Drewpli. Tell me your zip and what you need detailed, and I'll find nearby options.",
-  es: 'Hola — soy Drewpli. Dime tu código postal y qué necesitas, y buscaré opciones cerca.',
+  en: "Hi — I'm Driplee. Tell me your zip and what you need detailed, and I'll find nearby options.",
+  es: 'Hola — soy Driplee. Dime tu código postal y qué necesitas, y buscaré opciones cerca.',
 }
 
 /**
- * Public no-key concierge chat — Drewpli's face on Landing.
+ * Public no-key concierge chat — Driplee's face on Landing.
  * Calls supabase/functions/concierge-chat (search + quote only; no booking).
  */
 export default function ConciergeChat() {
@@ -90,7 +90,7 @@ export default function ConciergeChat() {
           <header className="flex items-center gap-3 border-b border-black/5 bg-gradient-to-br from-brand-500/15 to-brand-700/10 px-4 py-3 dark:border-white/10">
             <DrewBlob size={44} className="shrink-0" />
             <div className="min-w-0 flex-1">
-              <p className="font-display text-sm font-semibold text-slate-900 dark:text-white">Drewpli</p>
+              <p className="font-display text-sm font-semibold text-slate-900 dark:text-white">Driplee</p>
               <p className="truncate text-xs text-slate-500 dark:text-slate-400">ShinePoint concierge</p>
             </div>
             <button
@@ -122,7 +122,7 @@ export default function ConciergeChat() {
               </div>
             ))}
             {busy && (
-              <p className="pl-9 text-xs text-slate-400">Drewpli is typing…</p>
+              <p className="pl-9 text-xs text-slate-400">Driplee is typing…</p>
             )}
             <div ref={bottomRef} />
           </div>
@@ -154,7 +154,7 @@ export default function ConciergeChat() {
         type="button"
         onClick={() => setOpen((v) => !v)}
         className="pointer-events-auto flex h-16 w-16 items-center justify-center rounded-full transition hover:scale-105"
-        aria-label={open ? 'Close Drewpli chat' : 'Chat with Drewpli'}
+        aria-label={open ? 'Close Driplee chat' : 'Chat with Driplee'}
       >
         <DrewBlob size={48} />
       </button>
