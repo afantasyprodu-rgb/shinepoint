@@ -1431,11 +1431,52 @@
   transform: rotate(45deg);
   pointer-events: none;
 }
+/* Two nested elements per eye so "look around" (translate, on the outer
+   wrapper) and "blink" (scaleY, on the inner dot) can animate at once —
+   both set `transform`, and CSS animations targeting the same property on
+   ONE element replace rather than compose, so they have to live on
+   different elements to actually combine. */
+.drew-eye-look {
+  display: inline-block;
+  animation: drew-look 7.5s ease-in-out infinite;
+}
+.drew-eye-look + .drew-eye-look {
+  animation-delay: -1.6s;
+}
 .drew-eye {
+  display: block;
   width: calc(var(--drew-size, 44px) * 0.16);
   height: calc(var(--drew-size, 44px) * 0.36);
   background: #0a0a0a;
   border-radius: 50%;
+  animation: drew-blink 5.2s ease-in-out infinite;
+}
+.drew-eye-look + .drew-eye-look .drew-eye {
+  animation-delay: -0.08s;
+}
+
+@keyframes drew-blink {
+  0%, 92%, 100% { transform: scaleY(1); }
+  95% { transform: scaleY(0.08); }
+  97% { transform: scaleY(1); }
+}
+/* "Looking around" — a small lateral+vertical drift, holding each glance
+   briefly before drifting on, rather than a smooth continuous orbit. */
+@keyframes drew-look {
+  0%, 100% { transform: translate(0, 0); }
+  15% { transform: translate(0, 0); }
+  25% { transform: translate(18%, -6%); }
+  40% { transform: translate(18%, -6%); }
+  50% { transform: translate(-16%, 4%); }
+  65% { transform: translate(-16%, 4%); }
+  75% { transform: translate(0, 8%); }
+  88% { transform: translate(0, 8%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .drew-eye,
+  .drew-eye-look {
+    animation: none;
+  }
 }
 
 /* ── Leaflet map: pins, user location, grow-in popups ─────────────────────

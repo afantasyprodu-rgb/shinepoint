@@ -1,28 +1,42 @@
 import { useEffect, useRef, useState } from 'react'
 import DrewBlob from './ui/DrewBlob'
+import { useLanguage } from '../context/LanguageContext'
 
 const CONCIERGE_URL = () => {
   const base = (import.meta.env.VITE_SUPABASE_URL || '').replace(/\/$/, '')
   return base ? `${base}/functions/v1/concierge-chat` : ''
 }
 
-const WELCOME =
-  "Hi — I'm Drew, ShinePoint's detailing concierge. Tell me your zip and what you need washed or detailed, and I'll find nearby options."
+const WELCOME = {
+  en: "Hi — I'm Drew. Tell me your zip and what you need detailed, and I'll find nearby options.",
+  es: 'Hola — soy Drew. Dime tu código postal y qué necesitas, y buscaré opciones cerca.',
+}
 
 /**
  * Public no-key concierge chat — Drew's face on Landing.
  * Calls supabase/functions/concierge-chat (search + quote only; no booking).
- * Do NOT put eyes on the bottom-nav WaterDroplet — this is the only place
- * the locked hero avatar shows up.
  */
 export default function ConciergeChat() {
+  const { lang } = useLanguage()
   const [open, setOpen] = useState(false)
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
-  const [messages, setMessages] = useState([{ role: 'assistant', content: WELCOME }])
+  const [messages, setMessages] = useState([{ role: 'assistant', content: WELCOME.en }])
   const bottomRef = useRef(null)
   const url = CONCIERGE_URL()
+
+  useEffect(() => {
+    // Swap the canned welcome line if the visitor's language changes before
+    // they've sent anything real yet — once a real conversation exists,
+    // leave history alone and let the system-prompt language switch handle
+    // the rest.
+    setMessages((prev) =>
+      prev.length === 1 && prev[0].role === 'assistant'
+        ? [{ role: 'assistant', content: WELCOME[lang] || WELCOME.en }]
+        : prev
+    )
+  }, [lang])
 
   useEffect(() => {
     if (!open) return
@@ -52,6 +66,7 @@ export default function ConciergeChat() {
           messages: next
             .filter((m) => m.role === 'user' || m.role === 'assistant')
             .map((m) => ({ role: m.role, content: m.content })),
+          lang,
         }),
       })
       const data = await res.json().catch(() => ({}))

@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { invokeFn } from '../lib/supabase'
 import { actionsForPath, altActionsForPath } from '../lib/detailerHelperActions'
 import DrewBlob from './ui/DrewBlob'
+import { useLanguage } from '../context/LanguageContext'
 
 /**
  * Drew, in-app: a top-bar mascot that flies into a centered, backdrop-
@@ -21,6 +22,7 @@ import DrewBlob from './ui/DrewBlob'
 export default function DrewLauncher() {
   const location = useLocation()
   const params = useParams()
+  const { lang } = useLanguage()
   const [open, setOpen] = useState(false)
   const [showAlt, setShowAlt] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -62,6 +64,7 @@ export default function DrewLauncher() {
       const data = await invokeFn('detailer-helper', {
         intent: actionId,
         bookingId: params.id,
+        lang,
       })
       setReply(data.reply || "I don't have an answer for that right now.")
     } catch (err) {

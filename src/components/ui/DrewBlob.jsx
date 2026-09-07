@@ -16,8 +16,12 @@ export default function DrewBlob({ size = 44, className = '' }) {
     >
       <div className="nx-tab-drop nx-tab-drop-idle relative h-full w-full -rotate-45">
         <div className="drew-eyes">
-          <span className="drew-eye" />
-          <span className="drew-eye" />
+          <span className="drew-eye-look">
+            <span className="drew-eye" />
+          </span>
+          <span className="drew-eye-look">
+            <span className="drew-eye" />
+          </span>
         </div>
       </div>
     </div>
