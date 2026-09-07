@@ -1,9 +1,17 @@
 import { useEffect, useState } from 'react'
 import { Capacitor } from '@capacitor/core'
+import { AnimatePresence, motion } from 'motion/react'
 import { ShareIcon, SquarePlusIcon } from './icons'
 import { useT } from '../i18n/useT'
 
 const DISMISSED_KEY = 'shinepoint:ios-install-dismissed'
+// Arm after this long, then wait for the visitor to actually scroll before
+// popping up -- shows real interest in the page instead of interrupting the
+// very first paint. armDelayMs alone (no scroll) would still fire on a
+// visitor who never scrolls at all, so a max wait is used as a fallback.
+const ARM_DELAY_MS = 3000
+const SCROLL_THRESHOLD_PX = 150
+const MAX_WAIT_MS = 15000
 
 // iOS Safari has no native "install this PWA" prompt (no beforeinstallprompt
 // event like Chrome/Android) -- the only path is Share -> Add to Home
@@ -42,7 +50,31 @@ export default function IosInstallPrompt() {
     } catch {
       // localStorage unavailable (private mode edge cases) -- just show it.
     }
-    setVisible(true)
+
+    let armTimer = null
+    let maxWaitTimer = null
+
+    function show() {
+      window.removeEventListener('scroll', onScroll)
+      clearTimeout(maxWaitTimer)
+      setVisible(true)
+    }
+
+    function onScroll() {
+      if (window.scrollY > SCROLL_THRESHOLD_PX) show()
+    }
+
+    armTimer = setTimeout(() => {
+      window.addEventListener('scroll', onScroll, { passive: true })
+      // If they never scroll, still show it eventually rather than never.
+      maxWaitTimer = setTimeout(show, MAX_WAIT_MS)
+    }, ARM_DELAY_MS)
+
+    return () => {
+      clearTimeout(armTimer)
+      clearTimeout(maxWaitTimer)
+      window.removeEventListener('scroll', onScroll)
+    }
   }, [])
 
   function dismiss() {
@@ -54,54 +86,69 @@ export default function IosInstallPrompt() {
     }
   }
 
-  if (!visible) return null
-
   return (
-    <div className="fixed inset-x-0 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-[950] mx-auto w-[calc(100%-2rem)] max-w-sm sm:bottom-6">
-      <div className="card relative overflow-hidden p-4 shadow-2xl">
-        <button
-          type="button"
-          onClick={dismiss}
-          aria-label={t('ariaClose')}
-          className="absolute right-2 top-2 rounded-full p-1.5 text-slate-400 hover:bg-black/5 dark:hover:bg-white/10"
-        >
-          ✕
-        </button>
-        <p className="pr-6 font-display text-sm font-semibold text-slate-900 dark:text-white">{t('title')}</p>
-        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{t('body')}</p>
+    <AnimatePresence>
+      {visible && (
+        <div className="fixed inset-0 z-[950] flex items-center justify-center px-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={dismiss}
+            className="absolute inset-0 bg-slate-900/30 backdrop-blur-md dark:bg-black/50"
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.92 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.92 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 26 }}
+            className="card relative w-full max-w-sm overflow-hidden p-6 shadow-2xl"
+          >
+            <button
+              type="button"
+              onClick={dismiss}
+              aria-label={t('ariaClose')}
+              className="absolute right-3 top-3 rounded-full p-1.5 text-slate-400 hover:bg-black/5 dark:hover:bg-white/10"
+            >
+              ✕
+            </button>
+            <p className="pr-6 font-display text-xl font-semibold text-slate-900 dark:text-white">{t('title')}</p>
+            <p className="mt-2 text-base text-slate-500 dark:text-slate-400">{t('body')}</p>
 
-        <ol className="mt-3 space-y-2">
-          <li className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-200">
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-700 dark:bg-brand-500/20 dark:text-brand-200">
-              <ShareIcon className="h-4 w-4" />
-            </span>
-            <span>
-              <strong className="font-medium">{t('step1')}</strong>{' '}
-              <span className="text-slate-500 dark:text-slate-400">{t('step1Sub')}</span>
-            </span>
-          </li>
-          <li className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-200">
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-700 dark:bg-brand-500/20 dark:text-brand-200">
-              <SquarePlusIcon className="h-4 w-4" />
-            </span>
-            <span>{t('step2')}</span>
-          </li>
-          <li className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-200">
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-700 dark:bg-brand-500/20 dark:text-brand-200 text-sm font-semibold">
-              3
-            </span>
-            <span>{t('step3')}</span>
-          </li>
-        </ol>
+            <ol className="mt-5 space-y-4">
+              <li className="flex items-center gap-3 text-base text-slate-700 dark:text-slate-200">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-700 dark:bg-brand-500/20 dark:text-brand-200">
+                  <ShareIcon className="h-5 w-5" />
+                </span>
+                <span>
+                  <strong className="font-semibold">{t('step1')}</strong>{' '}
+                  <span className="text-slate-500 dark:text-slate-400">{t('step1Sub')}</span>
+                </span>
+              </li>
+              <li className="flex items-center gap-3 text-base text-slate-700 dark:text-slate-200">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-700 dark:bg-brand-500/20 dark:text-brand-200">
+                  <SquarePlusIcon className="h-5 w-5" />
+                </span>
+                <span>{t('step2')}</span>
+              </li>
+              <li className="flex items-center gap-3 text-base text-slate-700 dark:text-slate-200">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-700 dark:bg-brand-500/20 dark:text-brand-200 text-base font-semibold">
+                  3
+                </span>
+                <span>{t('step3')}</span>
+              </li>
+            </ol>
 
-        <button
-          type="button"
-          onClick={dismiss}
-          className="mt-3 text-xs font-medium text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-        >
-          {t('dismiss')}
-        </button>
-      </div>
-    </div>
+            <button
+              type="button"
+              onClick={dismiss}
+              className="mt-5 text-sm font-medium text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+            >
+              {t('dismiss')}
+            </button>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
   )
 }
