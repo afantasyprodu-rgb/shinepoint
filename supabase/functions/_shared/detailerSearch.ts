@@ -21,7 +21,7 @@ export async function searchDetailers(admin: SupabaseClient, input: DetailerSear
   const dest = approxCentroidForZip(zip)
   const [{ data: profiles, error }, { data: names }] = await Promise.all([
     admin.from('detailer_profiles').select(`
-      id, user_id, zip_code, pin_lat, pin_lng, status, bio, average_rating, total_reviews,
+      id, user_id, zip_code, pin_lat, pin_lng, status, bio, profile_photo_url, average_rating, total_reviews,
       total_completed_jobs, free_travel_miles, charge_per_extra_mile, booking_buffer_min,
       service_days, blackout_hours, accepts_bookings_when_busy, accepts_reward_bookings,
       vehicle_upcharge_suv, vehicle_upcharge_truck, vehicle_upcharge_van,
@@ -124,6 +124,7 @@ export async function searchDetailers(admin: SupabaseClient, input: DetailerSear
       distance_miles: distanceMiles,
       rating: Number(row.average_rating ?? 0),
       reviews: row.total_reviews ?? 0,
+      profile_photo_url: row.profile_photo_url ?? null,
       completed_jobs: row.total_completed_jobs ?? 0,
       free_travel_miles: row.free_travel_miles ?? 10,
       charge_per_extra_mile: Number(row.charge_per_extra_mile ?? 0),

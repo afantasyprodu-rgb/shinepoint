@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import DrewBlob from './ui/DrewBlob'
+import { UserIcon } from './icons'
 import { useLanguage } from '../context/LanguageContext'
 
 const CONCIERGE_URL = () => {
@@ -27,13 +28,26 @@ function DetailerCard({ detailer, replyText, onQuote, busy }) {
   return (
     <div className="rounded-2xl border border-brand-600/15 bg-white p-3 shadow-sm dark:border-brand-400/25 dark:bg-slate-900">
       <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <p className="truncate text-sm font-bold text-slate-900 dark:text-white">{detailer.name}</p>
-          <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-            <span className="text-amber-500">★</span> {detailer.rating.toFixed(1)}
-            <span className="mx-1 opacity-50">·</span>
-            {detailer.reviews} reviews
-          </p>
+        <div className="flex min-w-0 items-center gap-2.5">
+          {detailer.profile_photo_url ? (
+            <img
+              src={detailer.profile_photo_url}
+              alt=""
+              className="h-9 w-9 shrink-0 rounded-full object-cover"
+            />
+          ) : (
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-600 dark:bg-white/10 dark:text-brand-300">
+              <UserIcon className="h-4.5 w-4.5" />
+            </span>
+          )}
+          <div className="min-w-0">
+            <p className="truncate text-sm font-bold text-slate-900 dark:text-white">{detailer.name}</p>
+            <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+              <span className="text-amber-500">★</span> {detailer.rating.toFixed(1)}
+              <span className="mx-1 opacity-50">·</span>
+              {detailer.reviews} reviews
+            </p>
+          </div>
         </div>
         <span className="shrink-0 whitespace-nowrap rounded-full bg-brand-500/15 px-2 py-1 text-[10px] font-semibold text-brand-700 dark:text-brand-300">
           {detailer.distance_miles != null ? `${detailer.distance_miles} mi` : '—'}
