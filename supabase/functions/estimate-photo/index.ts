@@ -32,6 +32,7 @@ import { captureException } from '../_shared/sentry.ts'
 import { withinRateLimit, tooManyRequests } from '../_shared/rateLimit.ts'
 import { callVisionWithFallback } from '../_shared/visionProviders.ts'
 import { callChat, chatConfigured } from '../_shared/chatProvider.ts'
+import { searchDetailers } from '../_shared/detailerSearch.ts'
 
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024
 const MAX_IMAGES = 3
@@ -62,7 +63,7 @@ function buildPrompt(photoCount: number) {
 
 function systemPrompt(lang: string) {
   const langLine = lang === 'es' ? 'Reply in Spanish.' : 'Reply in English.'
-  return `You are Driplee, ShinePoint's assistant, telling a logged-in customer what a photo of their car suggests it needs. You will be given a category, severity, short notes, and either (a) a REAL min/max price range already pulled from ShinePoint's own database, or (b) null/null if ShinePoint has no listings for that category yet. Case (a): never invent a number beyond that range, and never state a single price as THE price, always a range. Case (b): ShinePoint has no data, so instead give a brief general price range from your own knowledge of typical US car-detailing prices for that category and severity -- explicitly say it's a general/typical estimate, NOT from ShinePoint's own listings, so it never reads as a real quote. Either way, always end by reminding them the exact price depends on which detailer they book, and BE BRIEF: 2 short sentences at most. ${langLine}`
+  return `You are Driplee, ShinePoint's assistant, telling a logged-in customer what a photo of their car suggests it needs. You will be given a category, severity, short notes, and either (a) a REAL min/max price range already pulled from ShinePoint's own database, or (b) null/null if ShinePoint has no listings for that category yet. LEAD WITH THE PRICE -- your first sentence states the estimated range up front (e.g. "Based on what I can see, this could run about $X-$Y"), immediately followed by an explicit disclaimer that this is just your estimate, not a real quote (e.g. "but heads up -- that's just my estimate, not the real deal"). Case (a): never invent a number beyond the given range, and never state a single price as THE price, always a range. Case (b): ShinePoint has no data for that category yet, so instead lead with a general price range from your own knowledge of typical US car-detailing prices, explicitly calling it a general/typical estimate (still not from ShinePoint's own listings). After the price + disclaimer, in the same reply, mention that detailers near them are listed below so they can pick one and get a real quote. BE BRIEF: 2-3 short sentences total. ${langLine}`
 }
 
 Deno.serve(async (req) => {
@@ -150,6 +151,37 @@ Deno.serve(async (req) => {
     const priceLow = prices.length ? Math.min(...prices) : null
     const priceHigh = prices.length ? Math.max(...prices) : null
 
+    // Nearby detailers offering this category, so the customer has
+    // somewhere to go straight from the estimate instead of a dead end --
+    // reuses the same searchDetailers concierge-chat/agent-v1 already use,
+    // scoped to the customer's own saved zip. No price shown on these
+    // cards (matches concierge-chat's cards): this function already gave a
+    // price ESTIMATE, a specific detailer's real number comes from their
+    // profile/get_quote, not restated here.
+    const { data: customerProfile } = await admin
+      .from('customer_profiles')
+      .select('default_zip')
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    let detailers: unknown[] = []
+    if (customerProfile?.default_zip) {
+      const searched = await searchDetailers(admin, { zip: customerProfile.default_zip, limit: 5 })
+      if (searched.ok) {
+        detailers = searched.result.detailers
+          .filter((d) => d.services.some((s) => String(s.name).toLowerCase().includes(category.toLowerCase())))
+          .slice(0, 5)
+          .map((d) => ({
+            id: d.id,
+            name: d.name,
+            profile_photo_url: d.profile_photo_url,
+            rating: d.rating,
+            reviews: d.reviews,
+            distance_miles: d.distance_miles,
+          }))
+      }
+    }
+
     const structured = {
       category,
       severity,
@@ -160,16 +192,16 @@ Deno.serve(async (req) => {
     }
 
     if (!chatConfigured()) {
-      return json({ ...structured, reply: JSON.stringify(structured) })
+      return json({ ...structured, detailers, reply: JSON.stringify(structured) })
     }
 
     const chat = await callChat({
       system: systemPrompt(lang),
       messages: [{ role: 'user', content: `Data: ${JSON.stringify(structured)}` }],
-      maxTokens: 120,
+      maxTokens: 150,
     })
     const chatText = chat.content.find((c) => c.type === 'text')
-    return json({ ...structured, reply: chatText?.type === 'text' ? chatText.text : JSON.stringify(structured) })
+    return json({ ...structured, detailers, reply: chatText?.type === 'text' ? chatText.text : JSON.stringify(structured) })
   } catch (e) {
     console.error('estimate-photo:', e)
     await captureException(e, 'estimate-photo')

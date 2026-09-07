@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { invokeFn } from '../lib/supabase'
 import { estimateFromPhoto } from '../lib/db'
 import { setPendingEstimatePhotos } from '../lib/pendingEstimatePhotos'
 import { customerActions, panelStrings } from '../lib/customerHelperActions'
+import DrewBlob from './ui/DrewBlob'
+import { UserIcon } from './icons'
+import { useLanguage } from '../context/LanguageContext'
 
 const MAX_ESTIMATE_PHOTOS = 3
-import DrewBlob from './ui/DrewBlob'
-import { useLanguage } from '../context/LanguageContext'
 
 // localStorage flag set by CustomerOnboarding.jsx's done() right before it
 // navigates away -- read here so Driplee greets the customer right after
@@ -34,12 +36,14 @@ const ONBOARDING_INTRO_KEY = 'shinepoint:driplee-onboarding-intro-pending'
  */
 export default function CustomerHelper() {
   const { lang } = useLanguage()
+  const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const [busyKind, setBusyKind] = useState('text')
   const [reply, setReply] = useState(null)
   const [error, setError] = useState(null)
   const [photosPending, setPhotosPending] = useState(false)
+  const [nearbyDetailers, setNearbyDetailers] = useState([])
   const fileInputRef = useRef(null)
 
   const actions = customerActions(lang)
@@ -75,13 +79,20 @@ export default function CustomerHelper() {
     setOpen(true)
     setReply(null)
     setError(null)
+    setNearbyDetailers([])
   }
 
   function close() {
     setOpen(false)
     setReply(null)
     setError(null)
+    setNearbyDetailers([])
     clearOnboardingIntro()
+  }
+
+  function goToDetailer(id) {
+    close()
+    navigate(`/detailers/${id}`)
   }
 
   async function pick(actionId) {
@@ -94,6 +105,7 @@ export default function CustomerHelper() {
     setBusyKind('text')
     setError(null)
     setReply(null)
+    setNearbyDetailers([])
     try {
       const data = await invokeFn('customer-helper', { intent: actionId, lang })
       setReply(data.reply || t.noAnswer)
@@ -113,9 +125,11 @@ export default function CustomerHelper() {
     setError(null)
     setReply(null)
     setPhotosPending(false)
+    setNearbyDetailers([])
     try {
       const data = await estimateFromPhoto(files, lang)
       setReply(data.reply || t.noAnswer)
+      setNearbyDetailers(data.detailers ?? [])
       if (data.category) {
         // Held in memory so StoreContext.createBooking can attach these same
         // photos to whichever booking the customer actually makes next --
@@ -200,6 +214,39 @@ export default function CustomerHelper() {
                   <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
                     {t.photosPending}
                   </p>
+                )}
+                {!busy && nearbyDetailers.length > 0 && (
+                  <div className="mt-3 flex flex-col gap-2">
+                    {nearbyDetailers.map((d) => (
+                      <button
+                        key={d.id}
+                        type="button"
+                        onClick={() => goToDetailer(d.id)}
+                        className="flex items-center gap-2.5 rounded-2xl border border-brand-600/15 bg-white px-3 py-2 text-left transition hover:bg-brand-50 dark:border-brand-400/25 dark:bg-slate-900 dark:hover:bg-white/5"
+                      >
+                        {d.profile_photo_url ? (
+                          <img src={d.profile_photo_url} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
+                        ) : (
+                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-600 dark:bg-white/10 dark:text-brand-300">
+                            <UserIcon className="h-4 w-4" />
+                          </span>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">{d.name}</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            <span className="text-amber-500">★</span> {d.rating.toFixed(1)}
+                            <span className="mx-1 opacity-50">·</span>
+                            {d.reviews} reviews
+                          </p>
+                        </div>
+                        {d.distance_miles != null && (
+                          <span className="shrink-0 whitespace-nowrap rounded-full bg-brand-500/15 px-2 py-1 text-[10px] font-semibold text-brand-700 dark:text-brand-300">
+                            {d.distance_miles} mi
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
                 )}
               </div>
 
