@@ -6,23 +6,32 @@
  * everywhere he appears, just with eyes instead of a nav icon riding inside.
  * `size` scales the whole thing via the --drew-size custom property that
  * .drew-eyes/.drew-eye read off of.
+ *
+ * `muted`: for a past chat message once a newer reply exists -- drops the
+ * eyes and desaturates to slate, so only the latest reply reads as "the"
+ * active mascot instead of a long conversation turning into a wall of
+ * identical pink faces.
  */
-export default function DrewBlob({ size = 44, className = '' }) {
+export default function DrewBlob({ size = 44, muted = false, className = '' }) {
   return (
     <div
       className={`nx-tab-drop-float ${className}`}
       style={{ width: size, height: size, '--drew-size': `${size}px` }}
       aria-hidden="true"
     >
-      <div className="nx-tab-drop nx-tab-drop-idle relative h-full w-full -rotate-45">
-        <div className="drew-eyes">
-          <span className="drew-eye-look">
-            <span className="drew-eye" />
-          </span>
-          <span className="drew-eye-look">
-            <span className="drew-eye" />
-          </span>
-        </div>
+      <div
+        className={`nx-tab-drop nx-tab-drop-idle relative h-full w-full -rotate-45 ${muted ? 'nx-tab-drop-muted' : ''}`}
+      >
+        {!muted && (
+          <div className="drew-eyes">
+            <span className="drew-eye-look">
+              <span className="drew-eye" />
+            </span>
+            <span className="drew-eye-look">
+              <span className="drew-eye" />
+            </span>
+          </div>
+        )}
       </div>
     </div>
   )

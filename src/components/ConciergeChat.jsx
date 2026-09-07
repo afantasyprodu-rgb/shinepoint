@@ -25,6 +25,7 @@ export default function ConciergeChat() {
   const [messages, setMessages] = useState([{ role: 'assistant', content: WELCOME.en }])
   const bottomRef = useRef(null)
   const url = CONCIERGE_URL()
+  const lastAssistantIndex = messages.reduce((last, m, i) => (m.role === 'assistant' ? i : last), -1)
 
   useEffect(() => {
     // Swap the canned welcome line if the visitor's language changes before
@@ -109,7 +110,9 @@ export default function ConciergeChat() {
                 key={`${i}-${m.role}`}
                 className={`flex gap-2 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
-                {m.role === 'assistant' && <DrewBlob size={28} className="mt-0.5 shrink-0" />}
+                {m.role === 'assistant' && (
+                  <DrewBlob size={28} muted={i !== lastAssistantIndex} className="mt-0.5 shrink-0" />
+                )}
                 <div
                   className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm leading-snug ${
                     m.role === 'user'
