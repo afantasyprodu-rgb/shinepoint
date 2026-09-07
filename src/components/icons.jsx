@@ -502,6 +502,26 @@ export function PhoneIcon(props) {
   )
 }
 
+export function ShareIcon(props) {
+  return (
+    <Icon {...props}>
+      <path d="M12 2v13" />
+      <path d="m16 6-4-4-4 4" />
+      <path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8" />
+    </Icon>
+  )
+}
+
+export function SquarePlusIcon(props) {
+  return (
+    <Icon {...props}>
+      <rect width="18" height="18" x="3" y="3" rx="2" />
+      <path d="M8 12h8" />
+      <path d="M12 8v8" />
+    </Icon>
+  )
+}
+
 export function GoogleIcon({ className = 'h-5 w-5' }) {
   return (
     <svg viewBox="0 0 24 24" className={className} aria-hidden="true">

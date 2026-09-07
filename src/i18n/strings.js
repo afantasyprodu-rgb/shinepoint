@@ -4,6 +4,16 @@
 // English via useT's fallback, rather than being blocked on full coverage.
 export const STRINGS = {
   en: {
+    iosInstall: {
+      title: 'Add ShinePoint to your Home Screen',
+      body: 'Get the full-screen app experience — no browser bar, faster access.',
+      step1: 'Tap the Share icon',
+      step1Sub: 'in Safari’s toolbar',
+      step2: 'Scroll down and tap “Add to Home Screen”',
+      step3: 'Tap “Add” to confirm',
+      dismiss: 'Not now',
+      ariaClose: 'Dismiss',
+    },
     welcome: {
       nearbyChip: 'nearby pros',
       badge: 'Mobile detailing · Southern California',
@@ -1633,6 +1643,16 @@ export const STRINGS = {
     },
   },
   es: {
+    iosInstall: {
+      title: 'Agrega ShinePoint a tu pantalla de inicio',
+      body: 'Obtén la experiencia de app completa — sin barra del navegador, acceso más rápido.',
+      step1: 'Toca el ícono de Compartir',
+      step1Sub: 'en la barra de Safari',
+      step2: 'Desliza hacia abajo y toca “Agregar a inicio”',
+      step3: 'Toca “Agregar” para confirmar',
+      dismiss: 'Ahora no',
+      ariaClose: 'Cerrar',
+    },
     welcome: {
       nearbyChip: 'profesionales cerca',
       badge: 'Detallado móvil · Los Ángeles',

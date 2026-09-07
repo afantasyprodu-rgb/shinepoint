@@ -4,6 +4,7 @@ import { supabase } from './lib/supabase'
 import ProtectedRoute from './components/ProtectedRoute'
 import TransitionOverlay from './components/TransitionOverlay'
 import NativeBridge from './components/NativeBridge'
+import IosInstallPrompt from './components/IosInstallPrompt'
 import ErrorBoundary from './components/ErrorBoundary'
 
 // Route-level code splitting: every page loads on demand. Before this, the
@@ -102,6 +103,7 @@ export default function App() {
   return (
     <TransitionOverlay>
       <NativeBridge />
+      <IosInstallPrompt />
       {/* Suspense wraps the whole route table: navigating to any lazy page
           suspends until its chunk lands and shows the spinner fallback. */}
       <Suspense fallback={<PageFallback />}>
