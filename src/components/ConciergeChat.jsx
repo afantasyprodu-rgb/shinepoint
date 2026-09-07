@@ -279,10 +279,10 @@ export default function ConciergeChat() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="pointer-events-auto flex h-16 w-16 items-center justify-center rounded-full transition hover:scale-105"
+        className="pointer-events-auto flex h-20 w-20 items-center justify-center rounded-full transition hover:scale-105"
         aria-label={open ? 'Close Bobly chat' : 'Chat with Bobly'}
       >
-        <BoblyBlob size={48} />
+        <BoblyBlob size={64} />
       </button>
     </div>
   )
