@@ -24,6 +24,11 @@ export function initSentry() {
         dsn,
         environment: import.meta.env.MODE,
         tracesSampleRate: 0,
+        // Facebook's iOS in-app browser injects its own bridge script that
+        // calls window.webkit.messageHandlers.* and throws when that bridge
+        // isn't wired up -- fires from FB's own injected code, not ours
+        // (nothing in this repo references messageHandlers). Not actionable.
+        ignoreErrors: [/window\.webkit\.messageHandlers/],
       })
     })
   })
