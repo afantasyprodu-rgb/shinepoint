@@ -1,6 +1,7 @@
 package app.shinepoint;
 
 import android.os.Bundle;
+import androidx.core.view.WindowCompat;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
@@ -8,5 +9,15 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(WidgetBridgePlugin.class);
         super.onCreate(savedInstanceState);
+        // Edge-to-edge: lets the WebView draw under the status/nav bars
+        // instead of the OS reserving that space itself. Without this,
+        // env(safe-area-inset-top/bottom) in CSS reports ~0 on Android — the
+        // app's layout (AppShell's header padding, BottomTabBar's safe-area
+        // padding, DetailerMap's locate button) was written assuming real
+        // per-device inset values, so this makes those actually meaningful
+        // instead of just falling back to their guessed floors. Also
+        // mandatory outright on Android 15+ (API 35) for apps targeting it,
+        // which this app does (compileSdk/targetSdk 36).
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
     }
 }

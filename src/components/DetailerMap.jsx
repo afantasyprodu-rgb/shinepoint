@@ -568,7 +568,7 @@ export default function DetailerMap({ detailers, focus, focusOpensPopup = true }
         type="button"
         onClick={locateMe}
         aria-label="Show my location"
-        className="nx-neu press-spring absolute bottom-24 right-4 z-[500] flex h-11 w-11 items-center justify-center rounded-full text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-brand-300"
+        className="nx-neu press-spring absolute bottom-[calc(6rem+env(safe-area-inset-bottom))] right-4 z-[500] flex h-11 w-11 items-center justify-center rounded-full text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-brand-300"
       >
         {locating ? (
           <span className="h-4 w-4 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" />
@@ -580,7 +580,7 @@ export default function DetailerMap({ detailers, focus, focusOpensPopup = true }
         )}
       </button>
       {geoError && (
-        <p role="status" className="nx-neu absolute bottom-36 right-4 z-[500] rounded-lg px-3 py-1.5 text-xs text-slate-700 dark:text-slate-300">
+        <p role="status" className="nx-neu absolute bottom-[calc(9rem+env(safe-area-inset-bottom))] right-4 z-[500] rounded-lg px-3 py-1.5 text-xs text-slate-700 dark:text-slate-300">
           {geoError}
         </p>
       )}

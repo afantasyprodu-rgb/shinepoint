@@ -18,5 +18,10 @@
 
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
         <item name="android:background">@drawable/splash</item>
+        <!-- Lets the launch background draw into the notch/cutout area
+             instead of the OS forcing a letterboxed black bar around it —
+             ignored harmlessly on API < 28. Pairs with edge-to-edge in
+             MainActivity.java. -->
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
     </style>
 </resources>

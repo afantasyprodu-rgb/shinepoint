@@ -228,7 +228,11 @@ export default function DetailerProfileEditor() {
       <AnimatedPage className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
         <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">{t('yourProfile')}</h1>
 
-        <div className="relative mt-6 flex gap-1 rounded-full bg-brand-50 p-1 dark:bg-white/5" role="tablist">
+        {/* overflow-x-auto: same fix as CustomerSettings' tab row — 4 nowrap
+            labels can overflow a narrow phone width, and the page itself is
+            overflow-x:hidden (index.css), so without a local scroll here
+            the last tab was clipped invisible instead of reachable. */}
+        <div className="relative mt-6 flex gap-1 overflow-x-auto rounded-full bg-brand-50 p-1 dark:bg-white/5" role="tablist">
           {/* Animated background pill */}
           <motion.div
             className="absolute inset-y-1 left-0 rounded-full bg-white shadow-md dark:bg-white/10"

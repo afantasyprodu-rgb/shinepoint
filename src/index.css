@@ -135,12 +135,22 @@
 @layer base {
   html {
     scroll-behavior: smooth;
+    /* No global overflow-x guard existed at all — any element even
+       slightly wider than the viewport (a carousel row, a fixed-width
+       chip strip, a stray negative margin) made the ENTIRE page
+       side-scrollable with no clipping anywhere in the chain. This is a
+       standard safety net, not a fix for a specific offender — individual
+       horizontally-scrolling components (the map's snap carousels, etc.)
+       keep working since they scroll internally, this only stops that
+       overflow from leaking out to the page itself. */
+    overflow-x: hidden;
   }
 
   body {
     background: var(--neu-bg);
     @apply font-sans text-slate-900 antialiased dark:text-slate-100;
     transition: background-color 0.3s ease, color 0.3s ease;
+    overflow-x: hidden;
   }
 
   h1, h2, h3, h4 {
@@ -541,7 +551,7 @@
     --auth-error-bg: #fef2f2;
     --auth-error-text: #b91c1c;
     background: var(--auth-bg);
-    @apply relative isolate flex min-h-screen items-center justify-center overflow-hidden px-4 py-12;
+    @apply relative isolate flex min-h-dvh items-center justify-center overflow-hidden px-4 py-12;
   }
 
   /* No card bg — content floats directly on the shell (the HeroBubbles

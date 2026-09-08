@@ -305,7 +305,13 @@ export default function CustomerSettings() {
           </div>
         </div>
 
-        <div className="relative mt-6 flex gap-1 rounded-full bg-brand-50 p-1 dark:bg-white/5" role="tablist">
+        {/* overflow-x-auto: 4 nowrap tab labels don't all fit a narrow phone
+            width — without a local scroll here they'd overflow the row and,
+            since the page itself is overflow-x:hidden (index.css, stops
+            unwanted page-level side-scroll), the overflow was just clipped
+            invisible instead of reachable at all (only visible by rotating
+            to landscape for the extra width). */}
+        <div className="relative mt-6 flex gap-1 overflow-x-auto rounded-full bg-brand-50 p-1 dark:bg-white/5" role="tablist">
           {/* Animated background pill */}
           <motion.div
             className="absolute inset-y-1 left-0 rounded-full bg-white shadow-md dark:bg-white/10"

@@ -218,7 +218,7 @@ export default function ColdStart() {
 
   if (closeDetailers.length === 0) {
     return (
-      <div className="flex h-screen w-full flex-col items-center justify-center gap-6 bg-slate-50 p-6 text-center">
+      <div className="flex h-dvh w-full flex-col items-center justify-center gap-6 bg-slate-50 p-6 text-center">
         <p className="text-sm text-slate-500">No nearby detailers — check back soon.</p>
         <div className="flex w-full max-w-xs flex-col gap-2">
           <Link to="/login" className="btn btn-cta press-spring w-full">Sign in</Link>
@@ -231,7 +231,7 @@ export default function ColdStart() {
   }
 
   return (
-    <div className="relative h-screen min-h-screen w-full overflow-hidden bg-slate-100">
+    <div className="relative h-dvh min-h-dvh w-full overflow-hidden bg-slate-100">
       {/* Same fixed top-right pair as Welcome.jsx's own hero — every other
           entry point (marketing page, auth card) has these, this one was
           just missing them. z-30: above the sheet (z-20) so they stay

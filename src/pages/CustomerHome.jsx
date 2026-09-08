@@ -45,13 +45,20 @@ export default function CustomerHome() {
 
   return (
     <AppShell role="customer" collapsibleBottomNav>
-      {/* 100dvh, not 100vh — mobile Safari sizes 100vh against the LARGEST
-          possible viewport (address bar collapsed), so on first paint (bar
-          still showing) this container rendered taller than the visible
-          screen, pushing the fixed bottom-0 tab bar off-screen until the
-          user scrolled and the browser chrome auto-collapsed. dvh tracks
-          the actual current viewport instead. */}
-      <main className="relative h-[calc(100dvh-61px)]">
+      {/* 100dvh minus the header's real height. The header's height is
+          max(env(safe-area-inset-top), 2.75rem) of top padding, plus a
+          constant 61px of border + row padding + content (see AppShell's
+          <header>) — the old `100dvh - 61px` here silently dropped the
+          safe-area term entirely, so on ANY device (even a zero-notch one,
+          where the padding floor is still 2.75rem/44px) this container was
+          always at least ~44px taller than the actual space left below the
+          header, overflowing and forcing a scroll to reach content that
+          should've just fit. `h-full` was tried as a percentage-based fix
+          but AppShell's outer wrapper is only min-h-dvh (no definite
+          height), so the percentage didn't reliably resolve and the map
+          mounted into a 0-height container instead (blank map). This is
+          back to an explicit computed height, just a correct one. */}
+      <main className="relative h-[calc(100dvh-61px-max(env(safe-area-inset-top),2.75rem))]">
         <h1 className="sr-only">{t('srHeading')}</h1>
         <DetailerMap detailers={filtered} />
 

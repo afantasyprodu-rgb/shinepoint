@@ -212,7 +212,7 @@ export default function AppShell({ role, children, collapsibleBottomNav = false,
   }
 
   return (
-    <div className={`relative flex min-h-screen flex-col ${locked ? 'overflow-hidden bg-white dark:bg-[#141026]' : ''}`}>
+    <div className={`relative flex min-h-dvh flex-col ${locked ? 'overflow-hidden bg-white dark:bg-[#141026]' : ''}`}>
       {/* Same soft blurred-blob treatment as the public landing page
           (Welcome.jsx) rather than a solid fill — a wall of saturated
           brand-600 read as overwhelming for a whole onboarding flow. */}
