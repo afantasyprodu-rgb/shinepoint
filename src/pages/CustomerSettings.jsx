@@ -182,13 +182,25 @@ export default function CustomerSettings() {
   ], [t])
 
   useEffect(() => {
-    const activeIdx = tabs.findIndex(t => t.id === activeTab)
-    const btn = tabsRef.current[activeIdx]
-    const container = btn?.parentElement
-    if (!btn || !container) return
-    const btnRect = btn.getBoundingClientRect()
-    const containerRect = container.getBoundingClientRect()
-    setTabPosition({ x: btnRect.left - containerRect.left, width: btnRect.width })
+    const container = tabsRef.current[0]?.parentElement
+    if (!container) return
+    function measure() {
+      const activeIdx = tabs.findIndex(t => t.id === activeTab)
+      const btn = tabsRef.current[activeIdx]
+      if (!btn) return
+      const btnRect = btn.getBoundingClientRect()
+      const containerRect = container.getBoundingClientRect()
+      setTabPosition({ x: btnRect.left - containerRect.left, width: btnRect.width })
+    }
+    measure()
+    // Re-measure on any actual layout change to the tab row, not just tab
+    // clicks -- a web font swapping in after the initial fallback-font
+    // measurement, or the mobile browser chrome collapsing/expanding, both
+    // shift button widths without ever changing activeTab, which used to
+    // leave the pill sized/positioned for stale metrics.
+    const observer = new ResizeObserver(measure)
+    observer.observe(container)
+    return () => observer.disconnect()
   }, [activeTab, tabs])
 
   // Persist photo immediately so the avatar updates everywhere without a save.
