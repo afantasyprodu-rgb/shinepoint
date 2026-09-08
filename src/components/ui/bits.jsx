@@ -320,7 +320,7 @@ export function CarWashIllustration({ className = 'h-32 w-52' }) {
         <circle cx="156" cy="92" r="10" />
         <path d="M56 92 h88" />
         <path d="M22 92 c0-14 8-20 22-22 l14-14 c4-4 8-6 14-6 h32 c8 0 12 3 17 8 l11 12 c14 2 24 8 24 22" />
-        <path d="M76 56 l-10 12 h58 l-9-11 c-2-2.5-4-3.5-7-3.5 h-24 c-3.5 0-6 1-8 2.5z" />
+        <path d="M78 54 L68 62 H108 L98 54 Z" />
       </g>
     </svg>
   )
