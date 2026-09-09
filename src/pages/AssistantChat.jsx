@@ -5,11 +5,37 @@ import AppShell from '../components/AppShell'
 import Modal from '../components/ui/Modal'
 import DrewBlob from '../components/ui/DrewBlob'
 import { AnimatedPage } from '../components/ui/Motion'
-import { SendIcon, UserIcon } from '../components/icons'
+import { SendIcon, UserIcon, ArrowRightIcon } from '../components/icons'
 import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
 import { useT } from '../i18n/useT'
 import { fetchAssistantHistory, sendAssistantMessage, clearAssistantHistory } from '../lib/db'
+
+// Button label per navigate_to destination. The server sends only the
+// destination KEY and a route built from its own fixed allow-list (see
+// assistant-chat's CUSTOMER_DESTINATIONS/DETAILER_DESTINATIONS), so the
+// label a user actually taps is always one of ours, never model-authored
+// text — and an unrecognized key renders no button at all.
+const NAV_LABEL_KEYS = {
+  map: 'goMap',
+  bookings: 'goBookings',
+  booking: 'goBooking',
+  detailer: 'goDetailer',
+  rewards: 'goRewards',
+  account: 'goAccount',
+  faq: 'goFaq',
+  jobs: 'goJobs',
+  job: 'goJob',
+  earnings: 'goEarnings',
+  analytics: 'goAnalytics',
+  reports: 'goReports',
+  profile: 'goProfile',
+  tools_dilution: 'goToolsDilution',
+  tools_chemical: 'goToolsChemical',
+  tools_pricing: 'goToolsPricing',
+  tools_time: 'goToolsTime',
+  tools_cheatsheet: 'goToolsCheatsheet',
+}
 
 /**
  * Driplee's own full-page section — persisted, free-text conversation,
@@ -33,6 +59,7 @@ export default function AssistantChat({ role }) {
   const [error, setError] = useState(null)
   const [confirmClear, setConfirmClear] = useState(false)
   const [resultsByIndex, setResultsByIndex] = useState({})
+  const [navByIndex, setNavByIndex] = useState({})
   const scrollRef = useRef(null)
   const inputRef = useRef(null)
 
@@ -70,6 +97,7 @@ export default function AssistantChat({ role }) {
       setMessages((m) => {
         const next = [...m, { role: 'assistant', content: data.reply || t('errorGeneric') }]
         if (data.results) setResultsByIndex((r) => ({ ...r, [next.length - 1]: data.results }))
+        if (data.navigate) setNavByIndex((n) => ({ ...n, [next.length - 1]: data.navigate }))
         return next
       })
     } catch (err) {
@@ -87,6 +115,7 @@ export default function AssistantChat({ role }) {
     await clearAssistantHistory(user.id).catch((e) => setError(e.message))
     setMessages([])
     setResultsByIndex({})
+    setNavByIndex({})
   }
 
   const subtitle = role === 'detailer' ? t('subtitleDetailer') : t('subtitleCustomer')
@@ -131,7 +160,10 @@ export default function AssistantChat({ role }) {
               key={i}
               message={m}
               results={resultsByIndex[i]}
+              nav={navByIndex[i]}
               onViewDetailer={(id) => navigate(`/detailers/${id}`)}
+              onNavigate={(route) => navigate(route)}
+              t={t}
             />
           ))}
           {sending && (
@@ -188,7 +220,8 @@ export default function AssistantChat({ role }) {
   )
 }
 
-function MessageBubble({ message, results, onViewDetailer }) {
+function MessageBubble({ message, results, nav, onViewDetailer, onNavigate, t }) {
+  const navLabelKey = nav ? NAV_LABEL_KEYS[nav.destination] : null
   const isUser = message.role === 'user'
   return (
     <div>
@@ -208,6 +241,18 @@ function MessageBubble({ message, results, onViewDetailer }) {
           {message.content}
         </p>
       </motion.div>
+      {!isUser && navLabelKey && (
+        <div className="mt-2 pl-[42px]">
+          <button
+            type="button"
+            onClick={() => onNavigate(nav.route)}
+            className="inline-flex items-center gap-1.5 rounded-full bg-brand-600 px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-brand-700"
+          >
+            {t(navLabelKey)}
+            <ArrowRightIcon className="h-4 w-4" />
+          </button>
+        </div>
+      )}
       {!isUser && results?.detailers?.length > 0 && (
         <div className="mt-2 flex flex-col gap-2 pl-[42px]">
           {results.detailers.slice(0, 5).map((d) => (
