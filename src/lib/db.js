@@ -1729,3 +1729,29 @@ export async function adminSetFeedbackStatus(feedbackId, status) {
   const { error } = await supabase.from('feedback').update({ status }).eq('id', feedbackId)
   if (error) throw new Error(error.message)
 }
+
+// ── Dedicated assistant section (AssistantChat.jsx) ─────────────────────
+// Persisted, free-text chat — distinct from CustomerHelper/DrewLauncher's
+// fixed-intent popups. History is read directly via RLS (own rows only);
+// sending a message goes through assistant-chat, which validates/persists
+// both sides itself and is the only writer (076's RLS grants no insert
+// policy to the client).
+export async function fetchAssistantHistory(userId) {
+  const { data, error } = await supabase
+    .from('assistant_messages')
+    .select('id, role, content, created_at')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: true })
+    .limit(200)
+  if (error) throw new Error(error.message)
+  return data ?? []
+}
+
+export async function sendAssistantMessage(message, lang) {
+  return invokeFn('assistant-chat', { message, lang })
+}
+
+export async function clearAssistantHistory(userId) {
+  const { error } = await supabase.from('assistant_messages').delete().eq('user_id', userId)
+  if (error) throw new Error(error.message)
+}

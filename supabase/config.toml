@@ -142,6 +142,9 @@ verify_jwt = true
 [functions.estimate-photo]
 verify_jwt = true
 
+[functions.assistant-chat]
+verify_jwt = true
+
 # Agent booking API uses API-key auth inside the function (not a user JWT).
 [functions.agent-v1]
 verify_jwt = false

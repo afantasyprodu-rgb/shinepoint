@@ -52,6 +52,7 @@ const PrivacyLazy = lazy(() => import('./pages/Legal').then((m) => ({ default: m
 const PublicTracking = lazy(() => import('./pages/PublicTracking'))
 const ManageReschedule = lazy(() => import('./pages/ManageReschedule'))
 const Faq = lazy(() => import('./pages/Faq'))
+const AssistantChat = lazy(() => import('./pages/AssistantChat'))
 
 function PageFallback() {
   return (
@@ -142,6 +143,7 @@ export default function App() {
         <Route path="/bookings/:id" element={guard('customer', <BookingDetail />)} />
         <Route path="/rewards" element={guard('customer', <Rewards />)} />
         <Route path="/settings" element={guard('customer', <CustomerSettings />)} />
+        <Route path="/assistant" element={guard('customer', <AssistantChat role="customer" />)} />
 
         {/* Detailer */}
         <Route path="/detailer" element={guard('detailer', <DetailerDashboard />)} />
@@ -152,6 +154,7 @@ export default function App() {
         <Route path="/detailer/reports" element={guard('detailer', <DetailerReports />)} />
         <Route path="/detailer/tools" element={guard('detailer', <DetailerTools />)} />
         <Route path="/detailer/profile" element={guard('detailer', <DetailerProfileEditor />)} />
+        <Route path="/detailer/assistant" element={guard('detailer', <AssistantChat role="detailer" />)} />
 
         {/* Admin */}
         <Route path="/admin" element={guard('admin', <AdminDashboard />)} />

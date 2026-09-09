@@ -7,7 +7,7 @@ import SfxToggle from './SfxToggle'
 import SyncPendingBadge from './SyncPendingBadge'
 import LanguageToggle from './LanguageToggle'
 import ToolsSidebar from './ToolsSidebar'
-import { BellIcon, ClipboardCheckIcon, TrendingUpIcon, UsersIcon, PieChartIcon, MapPinIcon, MoreIcon, ChevronDownIcon, AlertTriangleIcon } from './icons'
+import { BellIcon, ClipboardCheckIcon, TrendingUpIcon, UsersIcon, PieChartIcon, MapPinIcon, MoreIcon, ChevronDownIcon, AlertTriangleIcon, MessageCircleIcon } from './icons'
 import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
 import BottomTabBar from './ui/BottomTabBar'
@@ -166,6 +166,7 @@ const NAVS = {
   customer: [
     { to: '/home', labelKey: 'map', end: true, icon: MapPinIcon },
     { to: '/bookings', labelKey: 'myBookings', icon: ClipboardCheckIcon },
+    { to: '/assistant', labelKey: 'assistant', icon: MessageCircleIcon },
     { to: '/settings', labelKey: 'account', icon: UsersIcon },
   ],
   detailer: [
@@ -173,6 +174,7 @@ const NAVS = {
     { to: '/detailer/reports', labelKey: 'reports', icon: AlertTriangleIcon },
     { to: '/detailer/earnings', labelKey: 'earnings', icon: TrendingUpIcon },
     { to: '/detailer/analytics', labelKey: 'analytics', icon: PieChartIcon },
+    { to: '/detailer/assistant', labelKey: 'assistant', icon: MessageCircleIcon },
     { to: '/detailer/profile', labelKey: 'account', icon: UsersIcon },
   ],
 }

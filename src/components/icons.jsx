@@ -522,6 +522,14 @@ export function SquarePlusIcon(props) {
   )
 }
 
+export function MessageCircleIcon(props) {
+  return (
+    <Icon {...props}>
+      <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
+    </Icon>
+  )
+}
+
 export function GoogleIcon({ className = 'h-5 w-5' }) {
   return (
     <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
