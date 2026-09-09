@@ -24,6 +24,7 @@ const NAV_LABEL_KEYS = {
   rewards: 'goRewards',
   account: 'goAccount',
   faq: 'goFaq',
+  feedback: 'goFeedback',
   jobs: 'goJobs',
   job: 'goJob',
   earnings: 'goEarnings',
