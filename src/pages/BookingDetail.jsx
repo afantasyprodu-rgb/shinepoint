@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { Elements } from '@stripe/react-stripe-js'
 import AppShell from '../components/AppShell'
@@ -21,6 +21,7 @@ import {
   StarIcon,
   SunIcon,
   CreditCardIcon,
+  HeartIcon,
 } from '../components/icons'
 import { useStore } from '../context/StoreContext'
 import { useLanguage } from '../context/LanguageContext'
@@ -70,6 +71,7 @@ const STAGE_KEYS = {
 // Blueprint 3.1–3.4 — booking status, damage review, chat, completion.
 export default function BookingDetail() {
   const { id } = useParams()
+  const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { getBooking, getDetailer, patchBooking, submitReview, cancelBooking, fileDispute, isDemo } = useStore()
   const { lang } = useLanguage()
@@ -555,6 +557,26 @@ const shownStage = openStage ?? stageIdx
           <p className="mt-4 flex items-center justify-center gap-2 text-sm font-medium text-cta-700">
             <CheckIcon className="h-4 w-4" /> {t('reviewedEarned')}
           </p>
+        )}
+
+        {/* One-tap rebook (077). Same deep link the bookings list and the
+            detailer profile use — BookingWizard opens on the schedule step
+            with these services already chosen. Gated on the detailer still
+            being bookable so it can't dead-end in the wizard. */}
+        {b.status === 'complete' && d && (d.status === 'available' || (d.status === 'busy' && d.acceptsWhenBusy)) && (
+          <button
+            type="button"
+            onClick={() =>
+              navigate(`/book/${b.detailerId}`, {
+                state: {
+                  preselectedServiceIds: [b.serviceId, ...(b.addonServiceIds ?? [])].filter(Boolean),
+                },
+              })
+            }
+            className="btn btn-brand mt-4 w-full"
+          >
+            <HeartIcon className="h-4 w-4" /> {t('bookAgainWith', { name: d.name })}
+          </button>
         )}
 
         <div className="mt-4">

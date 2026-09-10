@@ -540,3 +540,50 @@ export function GoogleIcon({ className = 'h-5 w-5' }) {
     </svg>
   )
 }
+
+// Favorites (077). `filled` swaps the outline for a solid heart — the path's
+// own fill attribute wins over the `fill="none"` the Icon wrapper sets on
+// the <svg>, so no separate icon is needed for the two states.
+export function HeartIcon({ filled = false, ...props }) {
+  return (
+    <Icon {...props}>
+      <path
+        fill={filled ? 'currentColor' : 'none'}
+        d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"
+      />
+    </Icon>
+  )
+}
+
+// Eco badges (077).
+export function DropletOffIcon(props) {
+  return (
+    <Icon {...props}>
+      <path d="M18.715 13.186C18.29 11.858 17.384 10.607 16 9.5c-2-1.6-3.5-4-4-6.5a10.7 10.7 0 0 1-.884 2.586" />
+      <path d="M8.795 8.797A11 11 0 0 1 8 9.5C6 11.1 5 13 5 15a7 7 0 0 0 13.222 3.208" />
+      <path d="m2 2 20 20" />
+    </Icon>
+  )
+}
+
+export function LeafIcon(props) {
+  return (
+    <Icon {...props}>
+      <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" />
+      <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" />
+    </Icon>
+  )
+}
+
+export function RecycleIcon(props) {
+  return (
+    <Icon {...props}>
+      <path d="M7 19H4.815a1.83 1.83 0 0 1-1.57-.881 1.785 1.785 0 0 1-.004-1.784L7.196 9.5" />
+      <path d="M11 19h8.203a1.83 1.83 0 0 0 1.556-.89 1.784 1.784 0 0 0 0-1.775l-1.226-2.12" />
+      <path d="m14 16-3 3 3 3" />
+      <path d="M8.293 13.596 7.196 9.5 3.1 10.598" />
+      <path d="m9.344 5.811 1.093-1.892A1.83 1.83 0 0 1 11.985 3a1.784 1.784 0 0 1 1.546.888l3.943 6.843" />
+      <path d="m13.378 9.633 4.096 1.098 1.097-4.096" />
+    </Icon>
+  )
+}

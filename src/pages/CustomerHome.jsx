@@ -7,17 +7,21 @@ import { CarIcon } from '../components/icons'
 import { useStore } from '../context/StoreContext'
 import { useT } from '../i18n/useT'
 
+// `test` gets the detailer plus a context bag for filters that depend on
+// something outside the detailer row itself (favorites live on the customer,
+// not the detailer) — keeps every filter a plain predicate.
 const FILTERS = [
   { key: 'top', labelKey: 'filterTop', test: (d) => d.rating >= 4.5 },
   { key: 'insured', labelKey: 'filterInsured', test: (d) => d.insurance !== 'none' },
   { key: 'rewards', labelKey: 'filterRewards', test: (d) => d.acceptsRewards },
   { key: 'now', labelKey: 'filterNow', test: (d) => d.status === 'available' },
+  { key: 'favorites', labelKey: 'filterFavorites', test: (d, ctx) => ctx.favoriteIds.includes(d.id) },
 ]
 
 // Blueprint screen 2.1 — Customer Home (Map Screen). Fully map-driven: tap a
 // pin to grow a quick-info bubble, tap the map to dismiss it. No card strip.
 export default function CustomerHome() {
-  const { detailers, customer } = useStore()
+  const { detailers, customer, favoriteIds } = useStore()
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [active, setActive] = useState([])
@@ -35,9 +39,9 @@ export default function CustomerHome() {
     return detailers.filter(
       (d) =>
         (!q || d.zip.includes(q) || d.area.toLowerCase().includes(q) || d.name.toLowerCase().includes(q)) &&
-        active.every((key) => FILTERS.find((f) => f.key === key).test(d))
+        active.every((key) => FILTERS.find((f) => f.key === key).test(d, { favoriteIds }))
     )
-  }, [detailers, query, active])
+  }, [detailers, query, active, favoriteIds])
 
   function toggleFilter(key) {
     setActive((a) => (a.includes(key) ? a.filter((k) => k !== key) : [...a, key]))

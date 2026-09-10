@@ -8,6 +8,9 @@ import { MILESTONES } from '../data/milestones'
 import { useRealtimeChannel } from '../hooks/useRealtimeChannel'
 import {
   fetchDetailers,
+  fetchFavoriteDetailerIds,
+  addFavoriteDetailer,
+  removeFavoriteDetailer,
   fetchCustomerProfile,
   fetchLoyalty,
   claimReferralCode,
@@ -178,9 +181,15 @@ export function StoreProvider({ children }) {
   // reason to make the request at all when we already know it can't
   // succeed without a session.
   useEffect(() => {
-    if (!user?.id) { setRealDetailers([]); return }
+    if (!user?.id) { setRealDetailers([]); setFavoriteIds([]); return }
     fetchDetailers().then(setRealDetailers)
   }, [user?.id])
+
+  // Starred detailers (077). One flat array of detailer ids for both modes —
+  // demo keeps them in memory like every other demo mutation, real reads
+  // them from customer_favorites. Held as a Set-able array rather than a Set
+  // so the identity check consumers do in useMemo deps stays simple.
+  const [favoriteIds, setFavoriteIds] = useState([])
 
   // Load user-specific data when a real user signs in.
   useEffect(() => {
@@ -199,6 +208,9 @@ export function StoreProvider({ children }) {
           // a plain read — refreshed whenever bookings reload.
           fetchLoyalty(cp.id).then((l) => {
             if (!cancelled) setLoyalty(l)
+          })
+          fetchFavoriteDetailerIds(cp.id).then((ids) => {
+            if (!cancelled) setFavoriteIds(ids)
           })
         }
       })
@@ -522,6 +534,31 @@ export function StoreProvider({ children }) {
         ? (demoAdmin ?? EMPTY_ADMIN)
         : (realAdmin ?? EMPTY_ADMIN),
       notifications: isDemo ? notifications : realNotifications,
+      // Starred detailers (077) — read by the map's "Favorites" filter and
+      // the heart on a detailer's profile.
+      favoriteIds,
+      isFavorite(detailerId) {
+        return favoriteIds.includes(detailerId)
+      },
+      // Optimistic: the heart flips immediately and rolls back if the write
+      // fails. Nothing downstream depends on a favorite existing (it's a
+      // bookmark, not a permission), so a silent rollback is the whole
+      // failure story — no error toast for something this low-stakes.
+      async toggleFavorite(detailerId) {
+        const wasFavorite = favoriteIds.includes(detailerId)
+        const next = wasFavorite
+          ? favoriteIds.filter((id) => id !== detailerId)
+          : [...favoriteIds, detailerId]
+        setFavoriteIds(next)
+        if (isDemo || !customerProfile?.id) return
+        try {
+          if (wasFavorite) await removeFavoriteDetailer(customerProfile.id, detailerId)
+          else await addFavoriteDetailer(customerProfile.id, detailerId)
+        } catch (err) {
+          console.error('toggleFavorite:', err.message)
+          setFavoriteIds(favoriteIds)
+        }
+      },
       customerProfile,
       detailerProfile,
       notify,
@@ -586,6 +623,13 @@ export function StoreProvider({ children }) {
         if ('photo' in patch) cols.profile_photo_url = patch.photo
         if (patch.gallery) cols.gallery_urls = patch.gallery
         if (patch.vehicleEmoji != null) cols.vehicle_emoji = patch.vehicleEmoji
+        // Self-declared eco practices (077). Each key is optional so the
+        // editor can toggle one without clobbering the other two.
+        if (patch.eco) {
+          if ('waterless' in patch.eco) cols.eco_waterless = patch.eco.waterless
+          if ('products' in patch.eco) cols.eco_products = patch.eco.products
+          if ('reclaim' in patch.eco) cols.eco_water_reclaim = patch.eco.reclaim
+        }
         // Each key is only touched if present in the patch, so a caller can
         // update just one upcharge without clobbering the others — but
         // '' explicitly clears a previously-set one back to null ("not
@@ -1173,6 +1217,7 @@ export function StoreProvider({ children }) {
     demoDetailers, demoBookings, demoMessages, demoCustomer, demoAdmin,
     realBookings, loyalty,
     customerProfile, detailerProfile,
+    favoriteIds,
     profile, user,
     notifications, realNotifications, realAdmin,
   ])

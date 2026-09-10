@@ -30,6 +30,14 @@ function normalizeDetailer(row) {
     insurance: row.insurance_status,
     acceptsRewards: row.accepts_reward_bookings,
     acceptsWhenBusy: row.accepts_bookings_when_busy,
+    // Self-declared eco practices (077), shown as badges on the profile.
+    // Kept as three separate flags rather than one "eco" boolean because
+    // they mean different things to a customer — see the migration header.
+    eco: {
+      waterless: row.eco_waterless ?? false,
+      products: row.eco_products ?? false,
+      reclaim: row.eco_water_reclaim ?? false,
+    },
     status: row.status,
     bio: row.bio ?? '',
     photo: row.profile_photo_url ?? null,
@@ -337,6 +345,7 @@ export async function fetchDetailers() {
         profile_photo_url, gallery_urls,
         probation_jobs_remaining, service_days, free_travel_miles, booking_buffer_min, charge_per_extra_mile, vehicle_emoji,
         vehicle_upcharge_suv, vehicle_upcharge_truck, vehicle_upcharge_van, blackout_hours,
+        eco_waterless, eco_products, eco_water_reclaim,
         services(id, service_name, description, price, vehicle_types, is_active, is_addon, is_featured, is_package, package_includes, detailer_location_id),
         detailer_locations(id, label, zip_code, pin_lat, pin_lng, free_travel_miles, charge_per_extra_mile, max_travel_miles, is_active)
       `),
@@ -353,6 +362,42 @@ export async function fetchDetailers() {
   return (data ?? [])
     .filter((row) => names.has(row.user_id))
     .map((row) => normalizeDetailer({ ...row, users: { full_name: names.get(row.user_id) } }))
+}
+
+// ── Favorites (077) ─────────────────────────────────────────────────────
+// A customer's starred detailers. Ids are detailer_profiles.id, the same id
+// the map/profile routes use, so the caller can compare against
+// getDetailer(...).id without translating anything.
+export async function fetchFavoriteDetailerIds(customerProfileId) {
+  if (!customerProfileId) return []
+  const { data, error } = await supabase
+    .from('customer_favorites')
+    .select('detailer_id')
+    .eq('customer_id', customerProfileId)
+  if (error) {
+    console.error('fetchFavoriteDetailerIds:', error.message)
+    return []
+  }
+  return (data ?? []).map((row) => row.detailer_id)
+}
+
+// Idempotent on purpose: double-tapping the heart (or a stale optimistic
+// state) must not error. The row has no mutable columns, so ignoring the
+// duplicate is the whole conflict resolution.
+export async function addFavoriteDetailer(customerProfileId, detailerId) {
+  const { error } = await supabase
+    .from('customer_favorites')
+    .upsert({ customer_id: customerProfileId, detailer_id: detailerId }, { onConflict: 'customer_id,detailer_id' })
+  if (error) throw new Error(error.message)
+}
+
+export async function removeFavoriteDetailer(customerProfileId, detailerId) {
+  const { error } = await supabase
+    .from('customer_favorites')
+    .delete()
+    .eq('customer_id', customerProfileId)
+    .eq('detailer_id', detailerId)
+  if (error) throw new Error(error.message)
 }
 
 // Public reviews for one detailer's profile page. Admin-removed rows are

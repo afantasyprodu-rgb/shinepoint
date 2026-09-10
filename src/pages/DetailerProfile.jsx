@@ -14,6 +14,10 @@ import {
   ArrowRightIcon,
   StarIcon,
   TagIcon,
+  HeartIcon,
+  DropletOffIcon,
+  LeafIcon,
+  RecycleIcon,
 } from '../components/icons'
 import { useStore } from '../context/StoreContext'
 import { fetchDetailerReviews } from '../lib/db'
@@ -95,11 +99,21 @@ const DEMO_REVIEWS = [
   { id: 3, name: 'Sam T.', rating: 4, textKey: 'review3' },
 ]
 
+// Self-declared eco practices (077). Three separate badges, not one "eco"
+// chip, because they're different promises — a customer choosing a waterless
+// wash during a drought is making a different decision than one who just
+// wants biodegradable soap. Only the ones a detailer actually claims render.
+const ECO_BADGES = [
+  { key: 'waterless', icon: DropletOffIcon, labelKey: 'ecoWaterless' },
+  { key: 'products', icon: LeafIcon, labelKey: 'ecoProducts' },
+  { key: 'reclaim', icon: RecycleIcon, labelKey: 'ecoReclaim' },
+]
+
 // Blueprint screen 2.2 — Detailer Profile
 export default function DetailerProfile() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { getDetailer, customer, isDemo } = useStore()
+  const { getDetailer, customer, isDemo, isFavorite, toggleFavorite } = useStore()
   const d = getDetailer(id)
   const t = useT('detailerProfile')
   // Vehicle + address are collected by the setup wizard, not required at
@@ -149,6 +163,7 @@ export default function DetailerProfile() {
     )
   }
 
+  const favorited = isFavorite(d.id)
   const uninsured = d.insurance === 'none'
   const bookable = d.status === 'available' || (d.status === 'busy' && d.acceptsWhenBusy)
   // Same rule DetailerOnboarding uses to sort a flyer-scanned/manually-typed
@@ -201,7 +216,26 @@ export default function DetailerProfile() {
                 </div>
               </div>
             </div>
-            <StatusPill status={d.status} acceptsWhenBusy={d.acceptsWhenBusy} />
+            <div className="flex items-center gap-2">
+              <StatusPill status={d.status} acceptsWhenBusy={d.acceptsWhenBusy} />
+              {/* Bookmark only — it changes nothing about pricing or
+                  availability, and the detailer is never told, so it needs
+                  no confirmation step. */}
+              <button
+                type="button"
+                onClick={() => toggleFavorite(d.id)}
+                aria-pressed={favorited}
+                aria-label={favorited ? t('unfavorite') : t('favorite')}
+                title={favorited ? t('unfavorite') : t('favorite')}
+                className={`press-spring flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
+                  favorited
+                    ? 'bg-brand-100 text-brand-600 dark:bg-brand-500/20 dark:text-brand-300'
+                    : 'bg-brand-50 text-slate-400 hover:text-brand-600 dark:bg-white/5 dark:text-slate-500 dark:hover:text-brand-300'
+                }`}
+              >
+                <HeartIcon filled={favorited} className="h-4 w-4" />
+              </button>
+            </div>
           </div>
 
           <div className="mt-4 flex flex-wrap gap-2">
@@ -216,6 +250,11 @@ export default function DetailerProfile() {
               </span>
             )}
             {d.acceptsRewards && <span className="chip bg-brand-100 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">{t('acceptsRewards')}</span>}
+            {ECO_BADGES.filter(({ key }) => d.eco?.[key]).map(({ key, icon: EcoIcon, labelKey }) => (
+              <span key={key} className="chip bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
+                <EcoIcon className="h-3.5 w-3.5" /> {t(labelKey)}
+              </span>
+            ))}
             <span className="chip bg-brand-50 text-slate-600 dark:bg-white/5 dark:text-slate-400">
               <MapPinIcon className="h-3.5 w-3.5" /> {d.area} · {t('travels', { miles: d.travelMiles })}
             </span>

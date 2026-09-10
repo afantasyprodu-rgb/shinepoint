@@ -37,6 +37,9 @@ const detailerRows = [
     completedJobs: 412,
     probationRemaining: 0,
     acceptsRewards: true,
+    // The demo's flagship detailer claims all three eco practices (077) so
+    // the full badge row is visible on the tour.
+    eco: { waterless: true, products: true, reclaim: true },
     photo: null,
     gallery: [],
     services: [
@@ -435,6 +438,9 @@ const detailerRows = [
     acceptsWhenBusy: false,
     insurance: 'none',
     bio: "Eco-friendly products, waterless wash options available.",
+    // Matches what this bio already claimed in free text (077 turned those
+    // claims into structured badges).
+    eco: { waterless: true, products: true, reclaim: false },
     travelMiles: 13,
     completedJobs: 287,
     probationRemaining: 0,
@@ -723,6 +729,9 @@ const detailerRows = [
     acceptsWhenBusy: false,
     insurance: 'insured',
     bio: "Eco-friendly products, waterless wash options available.",
+    // Matches what this bio already claimed in free text (077 turned those
+    // claims into structured badges).
+    eco: { waterless: true, products: true, reclaim: false },
     travelMiles: 16,
     completedJobs: 336,
     probationRemaining: 0,
@@ -806,6 +815,9 @@ const detailerRows = [
     acceptsWhenBusy: false,
     insurance: 'none',
     bio: "Eco-friendly products, waterless wash options available.",
+    // Matches what this bio already claimed in free text (077 turned those
+    // claims into structured badges).
+    eco: { waterless: true, products: true, reclaim: false },
     travelMiles: 8,
     completedJobs: 128,
     probationRemaining: 2,
@@ -991,6 +1003,9 @@ const detailerRows = [
     acceptsWhenBusy: false,
     insurance: 'insured',
     bio: "Eco-friendly products, waterless wash options available.",
+    // Matches what this bio already claimed in free text (077 turned those
+    // claims into structured badges).
+    eco: { waterless: true, products: true, reclaim: false },
     travelMiles: 15,
     completedJobs: 132,
     probationRemaining: 3,
@@ -1195,6 +1210,9 @@ const detailerRows = [
     acceptsWhenBusy: false,
     insurance: 'insured',
     bio: "Eco-friendly products, waterless wash options available.",
+    // Matches what this bio already claimed in free text (077 turned those
+    // claims into structured badges).
+    eco: { waterless: true, products: true, reclaim: false },
     travelMiles: 17,
     completedJobs: 141,
     probationRemaining: 0,
@@ -1276,6 +1294,9 @@ const detailerRows = [
     acceptsWhenBusy: false,
     insurance: 'insured',
     bio: "Eco-friendly products, waterless wash options available.",
+    // Matches what this bio already claimed in free text (077 turned those
+    // claims into structured badges).
+    eco: { waterless: true, products: true, reclaim: false },
     travelMiles: 8,
     completedJobs: 167,
     probationRemaining: 1,
@@ -1379,6 +1400,9 @@ const detailerRows = [
     acceptsWhenBusy: true,
     insurance: 'insured',
     bio: "Eco-friendly products, waterless wash options available.",
+    // Matches what this bio already claimed in free text (077 turned those
+    // claims into structured badges).
+    eco: { waterless: true, products: true, reclaim: false },
     travelMiles: 9,
     completedJobs: 66,
     probationRemaining: 0,
@@ -1772,6 +1796,9 @@ const detailerRows = [
     acceptsWhenBusy: false,
     insurance: 'insured',
     bio: "Eco-friendly products, waterless wash options available.",
+    // Matches what this bio already claimed in free text (077 turned those
+    // claims into structured badges).
+    eco: { waterless: true, products: true, reclaim: false },
     travelMiles: 12,
     completedJobs: 317,
     probationRemaining: 0,
@@ -1793,6 +1820,9 @@ const detailerRows = [
     acceptsWhenBusy: false,
     insurance: 'insured',
     bio: "Eco-friendly products, waterless wash options available.",
+    // Matches what this bio already claimed in free text (077 turned those
+    // claims into structured badges).
+    eco: { waterless: true, products: true, reclaim: false },
     travelMiles: 6,
     completedJobs: 220,
     probationRemaining: 0,
@@ -1814,6 +1844,9 @@ const detailerRows = [
     acceptsWhenBusy: false,
     insurance: 'insured',
     bio: "Eco-friendly products, waterless wash options available.",
+    // Matches what this bio already claimed in free text (077 turned those
+    // claims into structured badges).
+    eco: { waterless: true, products: true, reclaim: false },
     travelMiles: 9,
     completedJobs: 155,
     probationRemaining: 0,
@@ -1896,6 +1929,9 @@ const detailerRows = [
     acceptsWhenBusy: false,
     insurance: 'insured',
     bio: "Eco-friendly products, waterless wash options available.",
+    // Matches what this bio already claimed in free text (077 turned those
+    // claims into structured badges).
+    eco: { waterless: true, products: true, reclaim: false },
     travelMiles: 18,
     completedJobs: 297,
     probationRemaining: 0,
@@ -1978,6 +2014,9 @@ const detailerRows = [
     acceptsWhenBusy: true,
     insurance: 'insured',
     bio: "Eco-friendly products, waterless wash options available.",
+    // Matches what this bio already claimed in free text (077 turned those
+    // claims into structured badges).
+    eco: { waterless: true, products: true, reclaim: false },
     travelMiles: 14,
     completedJobs: 106,
     probationRemaining: 0,
@@ -2020,6 +2059,9 @@ const detailerRows = [
     acceptsWhenBusy: false,
     insurance: 'insured',
     bio: "Eco-friendly products, waterless wash options available.",
+    // Matches what this bio already claimed in free text (077 turned those
+    // claims into structured badges).
+    eco: { waterless: true, products: true, reclaim: false },
     travelMiles: 16,
     completedJobs: 139,
     probationRemaining: 0,

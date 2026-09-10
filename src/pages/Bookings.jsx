@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import AppShell from '../components/AppShell'
 import { AnimatedPage, Stagger, StaggerItem } from '../components/ui/Motion'
@@ -77,6 +77,7 @@ function Chevron({ open }) {
 
 export default function Bookings() {
   const { bookings, customer, isDemo, getDetailer } = useStore()
+  const navigate = useNavigate()
   const t = useT('bookings')
   const { lang } = useLanguage()
   // Demo: filter from the shared demo pool. Real: all bookings loaded are already ours.
@@ -141,6 +142,14 @@ export default function Bookings() {
               // sees and "pending" alone reads as "waiting on the detailer,"
               // not "you still owe money."
               const unpaid = !isDemo && b.status === 'pending' && !b.paidAt
+              // One-tap rebook (077): only offered once a job is actually
+              // finished, and only while the detailer is still bookable —
+              // sending someone into the wizard for an offline detailer
+              // just to hit a wall there isn't a shortcut.
+              const canRebook =
+                b.status === 'complete' &&
+                !!d &&
+                (d.status === 'available' || (d.status === 'busy' && d.acceptsWhenBusy))
               return (
                 <StaggerItem key={b.id}>
                   <div className={isPremium ? 'premium-booking' : ''}>
@@ -256,6 +265,25 @@ export default function Bookings() {
                               >
                                 View details
                               </Link>
+                              {canRebook && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    // Same deep link DetailerProfile uses —
+                                    // BookingWizard sees preselected services
+                                    // and opens on the schedule step, so this
+                                    // really is one tap to "same again".
+                                    navigate(`/book/${b.detailerId}`, {
+                                      state: {
+                                        preselectedServiceIds: [b.serviceId, ...(b.addonServiceIds ?? [])].filter(Boolean),
+                                      },
+                                    })
+                                  }
+                                  className="flex-1 rounded-full bg-brand-600 py-2.5 text-center text-xs font-bold text-white transition hover:bg-brand-700"
+                                >
+                                  {t('bookAgain')}
+                                </button>
+                              )}
                               <button
                                 type="button"
                                 onClick={() => setExpandedId(null)}

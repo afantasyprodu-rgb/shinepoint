@@ -100,6 +100,12 @@ export default function DetailerProfileEditor() {
   const [upchargeVan, setUpchargeVan] = useState(me.vehicleUpcharges?.Van ?? '')
   const [days, setDays] = useState(me.serviceDays?.length ? me.serviceDays : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'])
   const [rewardsOptIn, setRewardsOptIn] = useState(me.acceptsRewards ?? false)
+  // Self-declared eco practices (077) — these render as badges on the public
+  // profile, so they're claims a customer will act on. Kept as three
+  // separate checkboxes to match the three separate promises.
+  const [ecoWaterless, setEcoWaterless] = useState(me.eco?.waterless ?? false)
+  const [ecoProducts, setEcoProducts] = useState(me.eco?.products ?? false)
+  const [ecoReclaim, setEcoReclaim] = useState(me.eco?.reclaim ?? false)
   const [activeTab, setActiveTab] = useState('profile')
   const [saved, setSaved] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -205,6 +211,7 @@ export default function DetailerProfileEditor() {
       await updateDetailerMe({
         name, bio, photo, gallery, vehicleEmoji,
         vehicleUpcharges: { SUV: upchargeSuv, Truck: upchargeTruck, Van: upchargeVan },
+        eco: { waterless: ecoWaterless, products: ecoProducts, reclaim: ecoReclaim },
       })
       await updateMyServices(
         services
@@ -490,6 +497,33 @@ export default function DetailerProfileEditor() {
               />
               {t('acceptRewardBookings')}
             </label>
+          </div>
+
+          {/* Eco badges (077). Self-declared and shown publicly, hence the
+              explicit "only check what you actually do" hint — an unearned
+              waterless badge is a claim a drought-conscious customer books
+              on. */}
+          <div className="card">
+            <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t('ecoLabel')}</h2>
+            <p className="mb-3 mt-1 text-xs text-slate-400 dark:text-slate-500">{t('ecoHint')}</p>
+            <div className="space-y-3">
+              {[
+                { checked: ecoWaterless, set: setEcoWaterless, labelKey: 'ecoWaterlessLabel', hintKey: 'ecoWaterlessHint' },
+                { checked: ecoProducts, set: setEcoProducts, labelKey: 'ecoProductsLabel', hintKey: 'ecoProductsHint' },
+                { checked: ecoReclaim, set: setEcoReclaim, labelKey: 'ecoReclaimLabel', hintKey: 'ecoReclaimHint' },
+              ].map(({ checked, set, labelKey, hintKey }) => (
+                <label key={labelKey} className="flex cursor-pointer items-start gap-2.5 text-sm text-slate-700 dark:text-slate-300">
+                  <input
+                    type="checkbox" checked={checked} onChange={(e) => set(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 cursor-pointer rounded border-slate-300 accent-brand-600"
+                  />
+                  <span>
+                    <span className="font-medium">{t(labelKey)}</span>
+                    <span className="block text-xs text-slate-400 dark:text-slate-500">{t(hintKey)}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
           </div>
 
           {/* Additional service locations (074) — the account's own zip
