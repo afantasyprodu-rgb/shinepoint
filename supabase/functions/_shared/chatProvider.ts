@@ -28,8 +28,16 @@ export type ServerToolDef = {
 
 // Anthropic's content-block shape, used both for what we send back (tool
 // results) and what we get back (text / tool_use).
+// An image the user attached, sent inline in their message. Base64 rather
+// than a URL on purpose: it matches what extract-flyer-prices and
+// extract-vehicle-photo already do -- one-shot, never uploaded to storage,
+// so there's nothing to clean up and no public URL of someone's car sitting
+// around forever.
+export type ImageSource = { type: 'base64'; media_type: string; data: string }
+
 export type ContentBlock =
   | { type: 'text'; text: string }
+  | { type: 'image'; source: ImageSource }
   | { type: 'tool_use'; id: string; name: string; input: Record<string, unknown> }
   | { type: 'tool_result'; tool_use_id: string; content: string }
 

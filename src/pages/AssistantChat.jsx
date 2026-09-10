@@ -6,7 +6,7 @@ import AdminShell from '../components/AdminShell'
 import Modal from '../components/ui/Modal'
 import DrewBlob from '../components/ui/DrewBlob'
 import { AnimatedPage } from '../components/ui/Motion'
-import { SendIcon, UserIcon, ArrowRightIcon } from '../components/icons'
+import { SendIcon, UserIcon, ArrowRightIcon, CameraIcon, XIcon } from '../components/icons'
 import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
 import { useT } from '../i18n/useT'
@@ -39,6 +39,16 @@ const NAV_LABEL_KEYS = {
   tools_cheatsheet: 'goToolsCheatsheet',
 }
 
+// Same cap useFileUpload enforces on every other picker in the app. Kept
+// well under the model's own base64 limit, which assistant-chat re-checks
+// server-side — this one is just so an oversized pick fails instantly
+// instead of after a slow upload.
+const MAX_PHOTO_BYTES = 5 * 1024 * 1024
+
+// Must match assistant-chat's PHOTO_MARKER — what a stored message carries
+// in place of an image that was never saved.
+const PHOTO_MARKER = '[photo]'
+
 /**
  * Driplee's own full-page section — persisted, free-text conversation,
  * reachable from its own bottom-nav tab on both the customer and detailer
@@ -58,12 +68,17 @@ export default function AssistantChat({ role }) {
   const [loadingHistory, setLoadingHistory] = useState(true)
   const [draft, setDraft] = useState('')
   const [sending, setSending] = useState(false)
+  // An attached photo, staged until the next send. `file` goes to the edge
+  // function as base64; `preview` is an object URL used only to show the
+  // thumbnail, and is revoked once the message is sent or cleared.
+  const [photo, setPhoto] = useState(null)
   const [error, setError] = useState(null)
   const [confirmClear, setConfirmClear] = useState(false)
   const [resultsByIndex, setResultsByIndex] = useState({})
   const [navByIndex, setNavByIndex] = useState({})
   const scrollRef = useRef(null)
   const inputRef = useRef(null)
+  const photoInputRef = useRef(null)
 
   useEffect(() => {
     if (isDemo || !user?.id) {
@@ -73,7 +88,20 @@ export default function AssistantChat({ role }) {
     let cancelled = false
     fetchAssistantHistory(user.id)
       .then((rows) => {
-        if (!cancelled) setMessages(rows.map((r) => ({ role: r.role, content: r.content })))
+        // assistant-chat writes a '[photo]' prefix on any message that had
+        // an image, since the image itself isn't stored. Turn that back into
+        // a flag so the transcript shows "Photo" rather than raw marker text.
+        if (!cancelled) {
+          setMessages(rows.map((r) => {
+            const content = String(r.content ?? '')
+            const hadPhoto = content.startsWith(PHOTO_MARKER)
+            return {
+              role: r.role,
+              content: hadPhoto ? content.slice(PHOTO_MARKER.length).trim() : content,
+              hadPhoto,
+            }
+          }))
+        }
       })
       .catch((e) => !cancelled && setError(e.message))
       .finally(() => !cancelled && setLoadingHistory(false))
@@ -86,20 +114,52 @@ export default function AssistantChat({ role }) {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
   }, [messages, sending])
 
+  // Object URLs for sent photos stay alive for the life of the page so the
+  // thumbnails in the transcript keep rendering; this only cleans up a
+  // staged photo that was never sent.
+  const photoRef = useRef(null)
+  useEffect(() => { photoRef.current = photo }, [photo])
+  useEffect(() => () => { if (photoRef.current) URL.revokeObjectURL(photoRef.current.preview) }, [])
+
   async function send(e) {
     e.preventDefault()
     await sendText(draft)
   }
 
+  function pickPhoto(e) {
+    const file = e.target.files?.[0]
+    e.target.value = '' // let them re-pick the same file after removing it
+    if (!file) return
+    if (!file.type.startsWith('image/')) { setError(t('photoNotImage')); return }
+    if (file.size > MAX_PHOTO_BYTES) { setError(t('photoTooBig')); return }
+    setError(null)
+    setPhoto((prev) => {
+      if (prev) URL.revokeObjectURL(prev.preview)
+      return { file, preview: URL.createObjectURL(file) }
+    })
+    inputRef.current?.focus()
+  }
+
+  function clearPhoto() {
+    setPhoto((prev) => {
+      if (prev) URL.revokeObjectURL(prev.preview)
+      return null
+    })
+  }
+
   async function sendText(raw) {
     const text = raw.trim()
-    if (!text || sending || isDemo) return
+    // A photo on its own is a valid message ("what is this?"), so an empty
+    // box is only a no-op when nothing is attached either.
+    if ((!text && !photo) || sending || isDemo) return
+    const attached = photo
     setDraft('')
+    setPhoto(null)
     setError(null)
-    setMessages((m) => [...m, { role: 'user', content: text }])
+    setMessages((m) => [...m, { role: 'user', content: text, image: attached?.preview ?? null }])
     setSending(true)
     try {
-      const data = await sendAssistantMessage(text, lang)
+      const data = await sendAssistantMessage(text, lang, attached?.file)
       setMessages((m) => {
         const next = [...m, { role: 'assistant', content: data.reply || t('errorGeneric') }]
         if (data.results) setResultsByIndex((r) => ({ ...r, [next.length - 1]: data.results }))
@@ -219,24 +279,61 @@ export default function AssistantChat({ role }) {
           )}
         </div>
 
-        <form onSubmit={send} className="flex items-center gap-2 border-t border-black/5 py-3 dark:border-white/10">
-          <input
-            ref={inputRef}
-            type="text"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder={t('placeholder')}
-            disabled={isDemo || sending}
-            className="input flex-1"
-          />
-          <button
-            type="submit"
-            disabled={isDemo || sending || !draft.trim()}
-            aria-label={t('send')}
-            className="btn btn-brand shrink-0 !rounded-full !p-3 disabled:opacity-40"
-          >
-            <SendIcon className="h-5 w-5" />
-          </button>
+        <form onSubmit={send} className="border-t border-black/5 py-3 dark:border-white/10">
+          {photo && (
+            <div className="mb-2 flex items-center gap-2.5 rounded-2xl bg-brand-50 p-2 dark:bg-white/5">
+              <img src={photo.preview} alt="" className="h-12 w-12 shrink-0 rounded-xl object-cover" />
+              <p className="min-w-0 flex-1 truncate text-xs text-slate-600 dark:text-slate-400">{t('photoAttached')}</p>
+              <button
+                type="button"
+                onClick={clearPhoto}
+                aria-label={t('photoRemove')}
+                className="shrink-0 cursor-pointer rounded-full p-1.5 text-slate-400 hover:bg-black/5 hover:text-slate-600 dark:hover:bg-white/10 dark:hover:text-slate-300"
+              >
+                <XIcon className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+          <div className="flex items-center gap-2">
+            {/* capture="environment" opens the rear camera straight away on a
+                phone and falls back to the file picker on desktop — one
+                control covers "take a picture" and "upload" both, same
+                pattern as CarPhotoUpload/DamageInspection. */}
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={pickPhoto}
+              className="sr-only"
+            />
+            <button
+              type="button"
+              onClick={() => photoInputRef.current?.click()}
+              disabled={isDemo || sending}
+              aria-label={t('photoAdd')}
+              className="press-spring flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full bg-brand-50 text-brand-600 transition-colors hover:bg-brand-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 disabled:opacity-40 dark:bg-white/5 dark:text-brand-300 dark:hover:bg-white/10"
+            >
+              <CameraIcon className="h-5 w-5" />
+            </button>
+            <input
+              ref={inputRef}
+              type="text"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder={photo ? t('placeholderPhoto') : t('placeholder')}
+              disabled={isDemo || sending}
+              className="input flex-1"
+            />
+            <button
+              type="submit"
+              disabled={isDemo || sending || (!draft.trim() && !photo)}
+              aria-label={t('send')}
+              className="btn btn-brand shrink-0 !rounded-full !p-3 disabled:opacity-40"
+            >
+              <SendIcon className="h-5 w-5" />
+            </button>
+          </div>
         </form>
       </AnimatedPage>
 
@@ -271,15 +368,34 @@ function MessageBubble({ message, results, nav, onViewDetailer, onNavigate, t })
         className={`flex items-start gap-2.5 ${isUser ? 'flex-row-reverse' : ''}`}
       >
         {!isUser && <DrewBlob size={32} />}
-        <p
-          className={`max-w-[80%] whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2.5 text-sm leading-snug ${
-            isUser
-              ? 'rounded-tr-sm bg-brand-600 text-white'
-              : 'rounded-tl-sm bg-slate-100 text-slate-800 dark:bg-white/10 dark:text-slate-100'
-          }`}
-        >
-          {message.content}
-        </p>
+        <div className={`flex max-w-[80%] flex-col gap-1.5 ${isUser ? 'items-end' : 'items-start'}`}>
+          {/* Only present for a photo sent in THIS session — the image
+              itself is never stored (see sendAssistantMessage), so a
+              reloaded transcript shows the text without a thumbnail. */}
+          {message.image && (
+            <img
+              src={message.image}
+              alt=""
+              className="max-h-56 w-auto max-w-full rounded-2xl object-cover"
+            />
+          )}
+          {!message.image && message.hadPhoto && (
+            <span className="chip bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-slate-400">
+              <CameraIcon className="h-3.5 w-3.5" /> {t('photoSent')}
+            </span>
+          )}
+          {message.content && (
+            <p
+              className={`whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2.5 text-sm leading-snug ${
+                isUser
+                  ? 'rounded-tr-sm bg-brand-600 text-white'
+                  : 'rounded-tl-sm bg-slate-100 text-slate-800 dark:bg-white/10 dark:text-slate-100'
+              }`}
+            >
+              {message.content}
+            </p>
+          )}
+        </div>
       </motion.div>
       {!isUser && navLabelKey && (
         <div className="mt-2 pl-[42px]">

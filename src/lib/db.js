@@ -1792,8 +1792,20 @@ export async function fetchAssistantHistory(userId) {
   return data ?? []
 }
 
-export async function sendAssistantMessage(message, lang) {
-  return invokeFn('assistant-chat', { message, lang })
+// `file` is an optional photo the user attached. Read as base64 and sent
+// inline, same one-shot contract as extractFlyerPrices/extractVehiclePhoto
+// above -- never uploaded to storage, so there's no public URL of someone's
+// car left behind and nothing to clean up. The tradeoff is that a photo
+// isn't replayable: reloading the chat shows the message, not the image.
+export async function sendAssistantMessage(message, lang, file) {
+  if (!file) return invokeFn('assistant-chat', { message, lang })
+  const imageBase64 = await new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result).split(',')[1] ?? '')
+    reader.onerror = () => reject(new Error('Could not read that image.'))
+    reader.readAsDataURL(file)
+  })
+  return invokeFn('assistant-chat', { message, lang, imageBase64, mediaType: file.type })
 }
 
 export async function clearAssistantHistory(userId) {
