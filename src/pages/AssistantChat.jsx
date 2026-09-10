@@ -88,7 +88,11 @@ export default function AssistantChat({ role }) {
 
   async function send(e) {
     e.preventDefault()
-    const text = draft.trim()
+    await sendText(draft)
+  }
+
+  async function sendText(raw) {
+    const text = raw.trim()
     if (!text || sending || isDemo) return
     setDraft('')
     setError(null)
@@ -123,6 +127,12 @@ export default function AssistantChat({ role }) {
   const isAdmin = role === 'admin'
   const subtitle = isAdmin ? t('subtitleAdmin') : role === 'detailer' ? t('subtitleDetailer') : t('subtitleCustomer')
   const emptyText = isAdmin ? t('emptyAdmin') : role === 'detailer' ? t('emptyDetailer') : t('emptyCustomer')
+
+  // Example questions, shown only on an empty conversation — a blank chat box
+  // gives no clue what this thing can actually answer, and the three roles can
+  // ask for completely different things. Tapping one sends it as-is.
+  const starterPrefix = isAdmin ? 'starterAdmin' : role === 'detailer' ? 'starterDetailer' : 'starterCustomer'
+  const starters = [1, 2, 3].map((n) => t(`${starterPrefix}${n}`))
 
   // Admins live in AdminShell (sidebar, no bottom tab bar), so there's no
   // tab bar eating vertical space and the column can be wider — events
@@ -161,12 +171,27 @@ export default function AssistantChat({ role }) {
             </div>
           )}
           {!isDemo && !loadingHistory && messages.length === 0 && (
-            <div className="flex items-start gap-2.5">
-              <DrewBlob size={32} />
-              <p className="max-w-[80%] rounded-2xl rounded-tl-sm bg-slate-100 px-3.5 py-2.5 text-sm leading-snug text-slate-800 dark:bg-white/10 dark:text-slate-100">
-                {emptyText}
-              </p>
-            </div>
+            <>
+              <div className="flex items-start gap-2.5">
+                <DrewBlob size={32} />
+                <p className="max-w-[80%] rounded-2xl rounded-tl-sm bg-slate-100 px-3.5 py-2.5 text-sm leading-snug text-slate-800 dark:bg-white/10 dark:text-slate-100">
+                  {emptyText}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2 pl-[42px]">
+                {starters.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => sendText(s)}
+                    disabled={sending}
+                    className="rounded-full border border-brand-200 bg-brand-50 px-3 py-1.5 text-left text-xs font-medium text-brand-800 transition hover:bg-brand-100 disabled:opacity-40 dark:border-white/15 dark:bg-white/5 dark:text-brand-200 dark:hover:bg-white/10"
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </>
           )}
           {messages.map((m, i) => (
             <MessageBubble
