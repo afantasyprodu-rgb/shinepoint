@@ -4,7 +4,7 @@ import Logo from './Logo'
 import BottomTabBar from './ui/BottomTabBar'
 import ThemeToggle from './ThemeToggle'
 import LanguageToggle from './LanguageToggle'
-import { GridIcon, UsersIcon, AlertTriangleIcon, CreditCardIcon, PieChartIcon } from './icons'
+import { GridIcon, UsersIcon, AlertTriangleIcon, CreditCardIcon, PieChartIcon, MessageCircleIcon } from './icons'
 import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
 import { useT } from '../i18n/useT'
@@ -65,6 +65,7 @@ export default function AdminShell({ children }) {
     { to: '/admin/ops',     label: t('operations'),            badge: opsBadge,    icon: AlertTriangleIcon },
     { to: '/admin/finance', label: t('finance'),               badge: 0,           icon: CreditCardIcon },
     { to: '/admin/analytics', label: t('analytics'),           badge: 0,           icon: PieChartIcon },
+    { to: '/admin/assistant', label: t('assistant'),          badge: 0,           icon: MessageCircleIcon },
   ]
 
   // Land on the public welcome page, not the /login redirect ProtectedRoute fires.

@@ -163,6 +163,7 @@ export default function App() {
         <Route path="/admin/finance" element={guard('admin', <AdminFinance />)} />
         <Route path="/admin/analytics" element={guard('admin', <AdminAnalytics />)} />
         <Route path="/admin/vision-compare" element={guard('admin', <AdminVisionCompare />)} />
+        <Route path="/admin/assistant" element={guard('admin', <AssistantChat role="admin" />)} />
       </Routes>
       </Suspense>
     </TransitionOverlay>

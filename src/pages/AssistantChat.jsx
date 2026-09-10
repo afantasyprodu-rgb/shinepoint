@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
 import AppShell from '../components/AppShell'
+import AdminShell from '../components/AdminShell'
 import Modal from '../components/ui/Modal'
 import DrewBlob from '../components/ui/DrewBlob'
 import { AnimatedPage } from '../components/ui/Motion'
@@ -119,12 +120,23 @@ export default function AssistantChat({ role }) {
     setNavByIndex({})
   }
 
-  const subtitle = role === 'detailer' ? t('subtitleDetailer') : t('subtitleCustomer')
-  const emptyText = role === 'detailer' ? t('emptyDetailer') : t('emptyCustomer')
+  const isAdmin = role === 'admin'
+  const subtitle = isAdmin ? t('subtitleAdmin') : role === 'detailer' ? t('subtitleDetailer') : t('subtitleCustomer')
+  const emptyText = isAdmin ? t('emptyAdmin') : role === 'detailer' ? t('emptyDetailer') : t('emptyCustomer')
 
-  return (
-    <AppShell role={role}>
-      <AnimatedPage className="mx-auto flex h-[calc(100dvh-8.5rem)] max-w-xl flex-col px-4 pt-4 sm:px-6">
+  // Admins live in AdminShell (sidebar, no bottom tab bar), so there's no
+  // tab bar eating vertical space and the column can be wider — events
+  // research is a list, not a phone-sized chat. Branch on the JSX rather
+  // than building a Shell component here: a component defined during render
+  // is a new type every render, which remounts this whole subtree on every
+  // keystroke and drops focus out of the input.
+  const body = (
+    <>
+      <AnimatedPage
+        className={`mx-auto flex flex-col px-4 pt-4 sm:px-6 ${
+          isAdmin ? 'h-[calc(100dvh-4rem)] max-w-3xl' : 'h-[calc(100dvh-8.5rem)] max-w-xl'
+        }`}
+      >
         <div className="flex items-center gap-3 pb-3">
           <DrewBlob size={40} />
           <div className="min-w-0 flex-1">
@@ -217,8 +229,10 @@ export default function AssistantChat({ role }) {
           </button>
         </div>
       </Modal>
-    </AppShell>
+    </>
   )
+
+  return isAdmin ? <AdminShell>{body}</AdminShell> : <AppShell role={role}>{body}</AppShell>
 }
 
 function MessageBubble({ message, results, nav, onViewDetailer, onNavigate, t }) {

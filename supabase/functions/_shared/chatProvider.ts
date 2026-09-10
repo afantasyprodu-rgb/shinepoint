@@ -15,6 +15,17 @@ export type ChatToolDef = {
   input_schema: Record<string, unknown>
 }
 
+// Anthropic-hosted tools (web search) — declared like a normal tool but run
+// on Anthropic's side, so there's no handler here and the result comes back
+// in the SAME response rather than through our tool loop. Shape is
+// {type, name} plus tool-specific options, not our {name, description,
+// input_schema}, hence the separate type.
+export type ServerToolDef = {
+  type: string
+  name: string
+  [option: string]: unknown
+}
+
 // Anthropic's content-block shape, used both for what we send back (tool
 // results) and what we get back (text / tool_use).
 export type ContentBlock =
@@ -39,8 +50,13 @@ export function chatConfigured(): boolean {
 export async function callChat(opts: {
   system: string
   messages: ChatMessage[]
-  tools?: ChatToolDef[]
+  tools?: (ChatToolDef | ServerToolDef)[]
   maxTokens?: number
+  // Overrides the default Haiku tier. Used by the admin assistant, which is
+  // low-volume and does research-shaped work (reading web-search results and
+  // judging what's relevant) rather than the short, tightly-scripted replies
+  // the customer/detailer widgets make thousands of.
+  model?: string
 }): Promise<ChatResult> {
   const apiKey = Deno.env.get('ANTHROPIC_API_KEY')
   if (!apiKey) throw new Error('NOT_CONFIGURED')
@@ -53,7 +69,7 @@ export async function callChat(opts: {
       'content-type': 'application/json',
     },
     body: JSON.stringify({
-      model: MODEL,
+      model: opts.model ?? MODEL,
       max_tokens: opts.maxTokens ?? 1024,
       system: opts.system,
       messages: opts.messages,
