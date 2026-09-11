@@ -188,6 +188,12 @@ export default function AssistantChat({ role }) {
   const subtitle = isAdmin ? t('subtitleAdmin') : role === 'detailer' ? t('subtitleDetailer') : t('subtitleCustomer')
   const emptyText = isAdmin ? t('emptyAdmin') : role === 'detailer' ? t('emptyDetailer') : t('emptyCustomer')
 
+  // Index of the newest assistant reply — the one spot the single Driplee
+  // mascot is allowed to sit next to. Recomputed from scratch each render
+  // rather than tracked separately, since it's just "last index where
+  // role === 'assistant'" and messages is already the source of truth.
+  const lastAssistantIndex = messages.reduce((last, m, i) => (m.role === 'assistant' ? i : last), -1)
+
   // Example questions, shown only on an empty conversation — a blank chat box
   // gives no clue what this thing can actually answer, and the three roles can
   // ask for completely different things. Tapping one sends it as-is.
@@ -208,7 +214,6 @@ export default function AssistantChat({ role }) {
         }`}
       >
         <div className="flex items-center gap-3 pb-3">
-          <DrewBlob size={40} />
           <div className="min-w-0 flex-1">
             <h1 className="font-display text-lg font-bold text-slate-900 dark:text-slate-100">{t('title')}</h1>
             <p className="truncate text-xs text-slate-500 dark:text-slate-400">{subtitle}</p>
@@ -259,6 +264,11 @@ export default function AssistantChat({ role }) {
               message={m}
               results={resultsByIndex[i]}
               nav={navByIndex[i]}
+              // Exactly one Driplee mascot on screen at a time, next to
+              // whichever bubble is actually the current one. While a reply
+              // is in flight the "thinking" indicator below takes that
+              // spot instead, so the last real message steps aside.
+              showAvatar={m.role === 'assistant' && i === lastAssistantIndex && !sending}
               onViewDetailer={(id) => navigate(`/detailers/${id}`)}
               onNavigate={(route) => navigate(route)}
               t={t}
@@ -266,7 +276,13 @@ export default function AssistantChat({ role }) {
           ))}
           {sending && (
             <div className="flex items-center gap-2.5">
-              <DrewBlob size={32} />
+              {/* The mascot's current spot while a reply is in flight — same
+                  drop-in motion as MessageBubble's, so it reads as one
+                  continuous character moving down the conversation rather
+                  than a second one appearing. */}
+              <motion.div initial={{ y: -28, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ type: 'spring', stiffness: 400, damping: 22 }}>
+                <DrewBlob size={32} />
+              </motion.div>
               <p className="rounded-2xl rounded-tl-sm bg-slate-100 px-3.5 py-2.5 text-sm text-slate-400 dark:bg-white/10 dark:text-slate-500">
                 {t('thinking')}
               </p>
@@ -357,7 +373,7 @@ export default function AssistantChat({ role }) {
   return isAdmin ? <AdminShell>{body}</AdminShell> : <AppShell role={role}>{body}</AppShell>
 }
 
-function MessageBubble({ message, results, nav, onViewDetailer, onNavigate, t }) {
+function MessageBubble({ message, results, nav, onViewDetailer, onNavigate, t, showAvatar }) {
   const navLabelKey = nav ? NAV_LABEL_KEYS[nav.destination] : null
   const isUser = message.role === 'user'
   return (
@@ -367,7 +383,21 @@ function MessageBubble({ message, results, nav, onViewDetailer, onNavigate, t })
         animate={{ opacity: 1, y: 0 }}
         className={`flex items-start gap-2.5 ${isUser ? 'flex-row-reverse' : ''}`}
       >
-        {!isUser && <DrewBlob size={32} />}
+        {/* Only the current/most-recent reply gets the mascot (see
+            lastAssistantIndex) — every earlier assistant bubble still
+            reserves the same width so the message column doesn't jog
+            sideways as the avatar moves down the conversation. Dropping in
+            from above (rather than fading in place) is what reads as
+            Driplee "arriving" at the newest message each turn. */}
+        {!isUser && (
+          showAvatar ? (
+            <motion.div initial={{ y: -28, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ type: 'spring', stiffness: 400, damping: 22 }}>
+              <DrewBlob size={32} />
+            </motion.div>
+          ) : (
+            <span className="w-8 shrink-0" aria-hidden="true" />
+          )
+        )}
         <div className={`flex max-w-[80%] flex-col gap-1.5 ${isUser ? 'items-end' : 'items-start'}`}>
           {/* Only present for a photo sent in THIS session — the image
               itself is never stored (see sendAssistantMessage), so a

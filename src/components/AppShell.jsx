@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, NavLink, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import Logo from './Logo'
 import ThemeToggle from './ThemeToggle'
@@ -195,7 +195,13 @@ const NAVS = {
 export default function AppShell({ role, children, collapsibleBottomNav = false, locked = false }) {
   const { signOut, isDemo, profile } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const t = useT('nav')
+  // Driplee's own full-page section already IS the mascot-driven helper —
+  // showing the header's popup-launcher mascot on top of it would just be
+  // the same character twice on one screen. Suppressed only on that route;
+  // every other screen keeps the launcher exactly as before.
+  const onAssistantPage = location.pathname === '/assistant' || location.pathname === '/detailer/assistant'
   const nav = (NAVS[role] ?? []).map((item) => ({ ...item, label: t(item.labelKey) }))
   const [toolsOpen, setToolsOpen] = useState(false)
   // Starts VISIBLE even on a collapsible-nav screen (the map) — it used to
@@ -280,8 +286,8 @@ export default function AppShell({ role, children, collapsibleBottomNav = false,
               </span>
             )}
             {!locked && !isDemo && <SyncPendingBadge className="hidden sm:inline-flex" />}
-            {!locked && role === 'detailer' && <DrewLauncher />}
-            {!locked && role === 'customer' && <CustomerHelper />}
+            {!locked && role === 'detailer' && !onAssistantPage && <DrewLauncher />}
+            {!locked && role === 'customer' && !onAssistantPage && <CustomerHelper />}
             <ThemeToggle />
             {!locked && <SfxToggle />}
             <LanguageToggle />
