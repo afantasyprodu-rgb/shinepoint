@@ -1345,7 +1345,7 @@ export async function sendMessageToDB(bookingId, senderId, content) {
 export async function fetchNotifications(userId, role) {
   const { data, error } = await supabase
     .from('notifications')
-    .select('id, title, body, read_at, created_at, booking_id')
+    .select('id, kind, title, body, read_at, created_at, booking_id')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(50)
@@ -1353,12 +1353,56 @@ export async function fetchNotifications(userId, role) {
   return (data ?? []).map((n) => ({
     id: n.id,
     audience: role,          // a user only ever sees their own; role drives the UI filter
+    kind: n.kind,
     title: n.title,
     body: n.body ?? '',
     bookingId: n.booking_id,
     read: n.read_at != null,
     at: n.created_at,
   }))
+}
+
+// Fires when BookingWizard's time picker turns up a real conflict — the
+// customer's desired slot is genuinely taken, not just a UI dead end
+// (082). Creates the row; the notify_time_request trigger handles telling
+// the detailer, so this is a plain insert, nothing more to orchestrate.
+export async function submitTimeRequest({ detailerId, customerId, dateKey, time, serviceName, note }) {
+  const { error } = await supabase.from('booking_time_requests').insert({
+    detailer_id: detailerId,
+    customer_id: customerId,
+    requested_date: dateKey,
+    requested_time: time,
+    service_name: serviceName ?? null,
+    note: note?.trim() || null,
+  })
+  if (error) throw new Error(error.message)
+}
+
+// Detailer's own queue of open "can't find a time" leads (082).
+export async function fetchTimeRequests(detailerId) {
+  const { data, error } = await supabase
+    .from('booking_time_requests')
+    .select('id, customer_id, requested_date, requested_time, service_name, note, status, created_at, customer_profiles!inner(users!inner(full_name, phone, sms_opt_in))')
+    .eq('detailer_id', detailerId)
+    .order('created_at', { ascending: false })
+    .limit(50)
+  if (error) { console.error('fetchTimeRequests:', error.message); return [] }
+  return (data ?? []).map((r) => ({
+    id: r.id,
+    customerId: r.customer_id,
+    customerName: r.customer_profiles?.users?.full_name ?? 'Customer',
+    date: r.requested_date,
+    time: r.requested_time,
+    service: r.service_name,
+    note: r.note,
+    status: r.status,
+    createdAt: r.created_at,
+  }))
+}
+
+export async function markTimeRequestResponded(id) {
+  const { error } = await supabase.from('booking_time_requests').update({ status: 'responded' }).eq('id', id)
+  if (error) throw new Error(error.message)
 }
 
 export async function markNotificationsReadDB(userId) {

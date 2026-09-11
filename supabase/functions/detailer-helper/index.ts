@@ -224,7 +224,7 @@ function normalizePhoneE164(raw: unknown): string | null {
 
 async function draftReminder(
   ctx: Ctx,
-  opts: { bookingId?: unknown; clientId?: unknown; lang: 'en' | 'es' },
+  opts: { bookingId?: unknown; clientId?: unknown; timeRequestId?: unknown; lang: 'en' | 'es' },
 ) {
   const { admin, detailerProfileId } = ctx
 
@@ -302,12 +302,48 @@ async function draftReminder(
     }
   }
 
-  return { error: 'Pass bookingId or clientId' }
+  // 082: someone whose exact time didn't work -- a lead, not yet a client
+  // or a booking. Their phone/opt-in live on their real users row, same as
+  // a booking's customer, since submitting a request requires being signed
+  // in (BookingWizard is a customer-only screen).
+  if (opts.timeRequestId) {
+    if (!isUuid(opts.timeRequestId)) return { error: 'Invalid timeRequestId' }
+    const { data: reqRow } = await admin
+      .from('booking_time_requests')
+      .select('id, requested_date, requested_time, service_name, note, customer_profiles!inner(users!inner(full_name, phone, sms_opt_in))')
+      .eq('id', opts.timeRequestId)
+      .eq('detailer_id', detailerProfileId)
+      .single()
+    if (!reqRow) return { error: 'Request not found on your account' }
+    const customer = (reqRow as any).customer_profiles?.users
+    const phone = normalizePhoneE164(customer?.phone)
+    if (!phone) {
+      return { error: 'No phone on file for this customer.' }
+    }
+    if (!customer?.sms_opt_in) {
+      return { error: 'Customer has not opted in to SMS. Reply through the app instead.' }
+    }
+    const first = (customer?.full_name || 'there').split(' ')[0]
+    const wanted = `${reqRow.requested_date} ${reqRow.requested_time}`
+    const text =
+      opts.lang === 'es'
+        ? `ShinePoint: Hola ${first}, vi que querías ${wanted} -- no puedo esa hora, pero avísame qué otro día/hora te funciona y te reservo. Responde STOP para cancelar.`
+        : `ShinePoint: Hi ${first}, saw you wanted ${wanted} -- can't do that one, but let me know another day/time that works and I'll get you booked. Reply STOP to opt out.`
+    return {
+      draft: true,
+      text,
+      timeRequestId: reqRow.id,
+      clientName: customer?.full_name ?? 'Customer',
+      phoneMasked: phone.slice(0, 2) + '***' + phone.slice(-4),
+    }
+  }
+
+  return { error: 'Pass bookingId, clientId, or timeRequestId' }
 }
 
 async function sendReminder(
   ctx: Ctx,
-  opts: { bookingId?: unknown; clientId?: unknown; message?: unknown },
+  opts: { bookingId?: unknown; clientId?: unknown; timeRequestId?: unknown; message?: unknown },
 ) {
   const { admin, detailerProfileId } = ctx
   const message = cleanText(opts.message, 320)
@@ -351,11 +387,33 @@ async function sendReminder(
       return { error: 'SMS opt-in is required for offline clients.' }
     }
     targetLabel = client.full_name
+  } else if (opts.timeRequestId) {
+    if (!isUuid(opts.timeRequestId)) return { error: 'Invalid timeRequestId' }
+    const { data: reqRow } = await admin
+      .from('booking_time_requests')
+      .select('id, customer_profiles!inner(users!inner(phone, sms_opt_in, full_name))')
+      .eq('id', opts.timeRequestId)
+      .eq('detailer_id', detailerProfileId)
+      .single()
+    if (!reqRow) return { error: 'Request not found on your account' }
+    const customer = (reqRow as any).customer_profiles?.users
+    phone = normalizePhoneE164(customer?.phone)
+    if (!phone) return { error: 'No phone on file for this customer.' }
+    if (!customer?.sms_opt_in) {
+      return { error: 'Customer has not opted in to SMS.' }
+    }
+    targetLabel = customer?.full_name ?? 'customer'
   } else {
-    return { error: 'Pass bookingId or clientId' }
+    return { error: 'Pass bookingId, clientId, or timeRequestId' }
   }
 
   const result = await sendSms({ to: phone, body: message })
+  // Mark responded regardless of skip/sent -- either way the detailer has
+  // acted on it, and it should drop off their open queue. A soft-skip
+  // (no SMS provider configured) is still "handled", not still-pending.
+  if (opts.timeRequestId && isUuid(opts.timeRequestId)) {
+    await admin.from('booking_time_requests').update({ status: 'responded' }).eq('id', opts.timeRequestId)
+  }
   if ('skipped' in result && result.skipped) {
     return {
       sent: false,
@@ -397,6 +455,7 @@ Deno.serve(async (req) => {
       intent?: string
       bookingId?: string
       clientId?: string
+      timeRequestId?: string
       message?: string
       lang?: string
     }
@@ -424,6 +483,7 @@ Deno.serve(async (req) => {
       const result = await draftReminder(ctx, {
         bookingId: body.bookingId,
         clientId: body.clientId,
+        timeRequestId: body.timeRequestId,
         lang,
       })
       if ((result as { error?: string }).error) {
@@ -438,6 +498,7 @@ Deno.serve(async (req) => {
       const result = await sendReminder(ctx, {
         bookingId: body.bookingId,
         clientId: body.clientId,
+        timeRequestId: body.timeRequestId,
         message: body.message,
       })
       if ((result as { error?: string }).error) {

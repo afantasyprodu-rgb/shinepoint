@@ -11,7 +11,7 @@ import { CheckIcon, AlertTriangleIcon, ChevronLeftIcon, SparklesIcon, CarIcon, C
 import { useStore } from '../context/StoreContext'
 import { useTheme } from '../context/ThemeContext'
 import { stripePromise, isStripeConfigured, createPaymentIntent } from '../lib/stripe'
-import { checkPromoCode, fetchDetailerBusyTimes } from '../lib/db'
+import { checkPromoCode, fetchDetailerBusyTimes, submitTimeRequest } from '../lib/db'
 import { approxCentroidForZip, milesBetween, allLocationsFor, nearestLocationFor } from '../lib/fuzzyPin'
 import { playSfx } from '../lib/sfx'
 import { useT } from '../i18n/useT'
@@ -520,6 +520,15 @@ const [smsError, setSmsError] = useState(null)
   // is just a friendlier "try another time" for the common case.
   const [busyTimes, setBusyTimes] = useState([])
   const [scheduleError, setScheduleError] = useState('')
+  // Set only on a real conflict (an existing booking, not a static
+  // blackout hour -- the wheel can't even land on a blacked-out slot, so
+  // there's nothing for this affordance to offer there). Reset on every
+  // date/time change so it never lingers past the moment it was true.
+  const [conflictBlocked, setConflictBlocked] = useState(false)
+  const [askingDetailer, setAskingDetailer] = useState(false)
+  const [timeRequestNote, setTimeRequestNote] = useState('')
+  const [timeRequestSent, setTimeRequestSent] = useState(false)
+  const [timeRequestBusy, setTimeRequestBusy] = useState(false)
   useEffect(() => {
     setScheduleError('')
     if (isDemo || !d?.id || !date?.key) {
@@ -586,8 +595,33 @@ const [smsError, setSmsError] = useState(null)
   const vehicleUpcharge = Number(d.vehicleUpcharges?.[vehicle] ?? 0)
   const total = Number((baseAfterReward - creditUsed + mileageFee + vehicleUpcharge).toFixed(2))
 
+  // 082: send the picked (conflicting) time to the detailer as a lead
+  // instead of leaving it a dead end. Not a hold on anything -- purely a
+  // notification the detailer can act on by proposing something else.
+  async function askDetailerForTime() {
+    if (!customerProfile?.id || !d?.id || !date?.key || !time) return
+    setTimeRequestBusy(true)
+    try {
+      await submitTimeRequest({
+        detailerId: d.id,
+        customerId: customerProfile.id,
+        dateKey: date.key,
+        time,
+        serviceName: selectedServices.map((s) => s.name).join(', ') || null,
+        note: timeRequestNote,
+      })
+      setTimeRequestSent(true)
+      setAskingDetailer(false)
+    } catch (err) {
+      setScheduleError(err.message || t('scheduleErrorConflict'))
+    } finally {
+      setTimeRequestBusy(false)
+    }
+  }
+
   function continueFromSchedule() {
     setScheduleError('')
+    setConflictBlocked(false)
     if (!isDemo && date?.key === localDateKey(new Date())) {
       const [ph, pm] = time.split(':').map(Number)
       const picked = new Date()
@@ -599,6 +633,7 @@ const [smsError, setSmsError] = useState(null)
     }
     if (!isDemo && timeConflicts(time)) {
       setScheduleError(t('scheduleErrorConflict'))
+      setConflictBlocked(true)
       return
     }
     if (date?.rainy && !weatherAck) {
@@ -971,6 +1006,9 @@ const [smsError, setSmsError] = useState(null)
                   onChange={(v) => {
                     setTime(v)
                     setScheduleError('')
+                    setConflictBlocked(false)
+                    setTimeRequestSent(false)
+                    setAskingDetailer(false)
                   }}
                   // Only today has a "past" to hide — any later day's full
                   // range is fair game.
@@ -982,6 +1020,57 @@ const [smsError, setSmsError] = useState(null)
               {scheduleError && (
                 <p role="alert" className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-400">
                   {scheduleError}
+                </p>
+              )}
+
+              {/* 082: only offered on a real conflict, never on a static
+                  blackout hour -- the wheel can't land on one of those, so
+                  there's never a "picked time" to send in that case. */}
+              {conflictBlocked && !isDemo && !timeRequestSent && (
+                <div className="mt-3">
+                  {!askingDetailer ? (
+                    <button
+                      type="button"
+                      onClick={() => setAskingDetailer(true)}
+                      className="w-full rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-sm font-medium text-brand-700 transition hover:bg-brand-100 dark:border-white/15 dark:bg-white/5 dark:text-brand-300 dark:hover:bg-white/10"
+                    >
+                      {t('askDetailerCta', { name: d.name })}
+                    </button>
+                  ) : (
+                    <div className="rounded-lg border border-brand-200 bg-brand-50 p-3 dark:border-white/15 dark:bg-white/5">
+                      <label className="text-xs font-medium text-slate-600 dark:text-slate-400">{t('askDetailerNoteLabel')}</label>
+                      <input
+                        type="text"
+                        value={timeRequestNote}
+                        onChange={(e) => setTimeRequestNote(e.target.value)}
+                        placeholder={t('askDetailerNotePlaceholder')}
+                        maxLength={200}
+                        className="input mt-1 w-full"
+                      />
+                      <div className="mt-2 flex gap-2">
+                        <button
+                          type="button"
+                          onClick={askDetailerForTime}
+                          disabled={timeRequestBusy}
+                          className="btn btn-brand h-9 flex-1 text-sm disabled:opacity-50"
+                        >
+                          {timeRequestBusy ? t('askDetailerSending') : t('askDetailerSend')}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setAskingDetailer(false)}
+                          className="rounded-lg px-3 text-sm text-slate-500 hover:bg-black/5 dark:hover:bg-white/10"
+                        >
+                          {t('cancel')}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+              {timeRequestSent && (
+                <p role="status" className="mt-3 rounded-lg bg-cta-50 px-3 py-2 text-sm text-cta-700 dark:bg-cta-500/10 dark:text-cta-400">
+                  {t('askDetailerSent', { name: d.name })}
                 </p>
               )}
 
