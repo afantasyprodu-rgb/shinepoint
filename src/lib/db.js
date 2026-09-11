@@ -1382,7 +1382,7 @@ export async function submitTimeRequest({ detailerId, customerId, dateKey, time,
 export async function fetchTimeRequests(detailerId) {
   const { data, error } = await supabase
     .from('booking_time_requests')
-    .select('id, customer_id, requested_date, requested_time, service_name, note, status, created_at, customer_profiles!inner(users!inner(full_name, phone, sms_opt_in))')
+    .select('id, customer_id, guest_email, guest_name, requested_date, requested_time, service_name, note, status, created_at, customer_profiles(users(full_name, phone, sms_opt_in))')
     .eq('detailer_id', detailerId)
     .order('created_at', { ascending: false })
     .limit(50)
@@ -1390,7 +1390,8 @@ export async function fetchTimeRequests(detailerId) {
   return (data ?? []).map((r) => ({
     id: r.id,
     customerId: r.customer_id,
-    customerName: r.customer_profiles?.users?.full_name ?? 'Customer',
+    isGuest: !r.customer_id,
+    customerName: r.customer_profiles?.users?.full_name ?? r.guest_name ?? r.guest_email ?? 'Customer',
     date: r.requested_date,
     time: r.requested_time,
     service: r.service_name,

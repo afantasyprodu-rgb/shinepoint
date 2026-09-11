@@ -134,6 +134,7 @@ export function DetailerTimeRequestRespond() {
   const { isDemo } = useStore()
   const [draft, setDraft] = useState('')
   const [phoneMasked, setPhoneMasked] = useState('')
+  const [emailMasked, setEmailMasked] = useState('')
   const [error, setError] = useState('')
   const [status, setStatus] = useState('')
   const [busy, setBusy] = useState(false)
@@ -153,6 +154,7 @@ export function DetailerTimeRequestRespond() {
       const data = await invokeFn('detailer-helper', { intent: 'draft_reminder', timeRequestId: id })
       setDraft(data.text || '')
       setPhoneMasked(data.phoneMasked || '')
+      setEmailMasked(data.emailMasked || '')
       setPhase('drafted')
     } catch (err) {
       setError(err.message ?? String(err))
@@ -214,7 +216,11 @@ export function DetailerTimeRequestRespond() {
 
           {phase === 'drafted' && (
             <>
-              {phoneMasked && <p className={`${styles.tag} mt-2`}>Will send to {phoneMasked}</p>}
+              {emailMasked ? (
+                <p className={`${styles.tag} mt-2`}>Will email {emailMasked}</p>
+              ) : phoneMasked ? (
+                <p className={`${styles.tag} mt-2`}>Will text {phoneMasked}</p>
+              ) : null}
               <div className={styles.field}>
                 <label>EDITABLE DRAFT</label>
                 <textarea

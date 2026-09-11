@@ -9,17 +9,19 @@
 //     it talks to the database directly (service role), the same way
 //     agent-v1/mcp-server already do internally. There is no secret in
 //     this function's reachable memory for a crafted prompt to exfiltrate.
-//   - Exactly two tools, both read-only, both reusing already-validated
-//     shared logic (searchDetailers, computeQuote) — no "run arbitrary
-//     SQL" / "fetch this URL" tool exists for a jailbreak to abuse.
+//   - Five tools, all reusing already-validated shared logic where one
+//     exists (searchDetailers, computeQuote) — no "run arbitrary SQL" /
+//     "fetch this URL" tool exists for a jailbreak to abuse.
 //   - No booking-creation tool in this pass (guest checkout is on hold —
 //     see docs/agent-api.md's Usage policy and 075's migration header for
 //     why bookings still require a real account). The model is instructed
 //     to hand off to sign-up/login once it has enough to book, the same
 //     disclaimer already shipped on mcp-server's check_availability tool.
-//   - No PII is asked for or accepted — nothing here needs a name/phone/
-//     email, so there is nothing sensitive to mishandle even in the worst
-//     case of a successful jailbreak.
+//   - submit_time_inquiry (083) is the one place this widget accepts PII:
+//     an email, only after the visitor is told their time didn't work and
+//     explicitly agrees to send an inquiry, and only to create a
+//     booking_time_requests row the detailer can see/respond to — never
+//     stored, forwarded, or used anywhere else.
 //
 // CORS is intentionally permissive (not APP_ORIGIN-locked like agentAuth.ts/
 // cors.ts) while this is being built and tested on a separate throwaway
@@ -34,6 +36,7 @@ import { withinRateLimit } from '../_shared/rateLimit.ts'
 import { searchDetailers } from '../_shared/detailerSearch.ts'
 import { computeQuote } from '../_shared/agentPricing.ts'
 import { callChat, chatConfigured, type ChatMessage, type ChatToolDef } from '../_shared/chatProvider.ts'
+import { isUuid, cleanText } from '../_shared/validate.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -64,7 +67,11 @@ What you can actually do:
 - search_detailers: find nearby mobile detailers for a zip code.
 - get_quote: check that a specific detailer + service can be priced (no number given -- sign up to see it).
 - estimate_price: check ShinePoint has listings for a category of service (e.g. "how much for pet hair removal"), without picking a specific detailer -- no number given either.
+- check_availability: check whether a detailer can take a specific date + time the visitor names.
+- submit_time_inquiry: send the detailer a lead when their exact time doesn't work, so the detailer can reach out about a different one.
 You cannot book anything, access any account, or see any customer's data — those tools do not exist for you. If the visitor has picked a detailer and service and is ready to book, tell them to finish at shinepoint.app by signing up or logging in — never imply you can complete a booking yourself.
+
+If a visitor names a specific date and time for a detailer, call check_availability. If it comes back available, tell them that time looks open and to finish booking by signing up/logging in (never say you booked it). If it comes back NOT available (blackout or conflict), tell them that time doesn't work, then ask if they'd like you to send the detailer an inquiry about a different time. Only if they say yes: ask for their email (you have no other way to reach them back — always get the email before submit_time_inquiry, never guess or invent one), then call submit_time_inquiry with that email plus the date/time/detailer/service they wanted. After it succeeds, tell them the detailer will follow up by email with another time — never promise a specific time or that the booking is confirmed, since nothing is booked. If they decline the inquiry, don't push — just repeat the signup link so they can try other times themselves.
 
 Sign-up links — give the exact URL, not vague "go to the site" instructions:
 - Wants to book as a customer: https://shinepoint.app/signup
@@ -122,11 +129,45 @@ const TOOLS: ChatToolDef[] = [
       required: ['category'],
     },
   },
+  {
+    name: 'check_availability',
+    description: 'Check whether a detailer can take a specific date + time the visitor wants. Returns available: true/false only -- never books anything.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        detailer_id: { type: 'string', description: 'Detailer id from search_detailers' },
+        date: { type: 'string', description: 'Desired date, YYYY-MM-DD' },
+        time: { type: 'string', description: 'Desired time, 24h HH:MM' },
+      },
+      required: ['detailer_id', 'date', 'time'],
+    },
+  },
+  {
+    name: 'submit_time_inquiry',
+    description:
+      'Only call this after check_availability came back available: false AND the visitor said yes to sending an inquiry AND they gave you their email. Sends the detailer a lead so they can reach out about a different time. Never call this without a real email address the visitor just gave you in this conversation.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        detailer_id: { type: 'string', description: 'Detailer id from search_detailers' },
+        date: { type: 'string', description: 'Desired date, YYYY-MM-DD, same as the check_availability call' },
+        time: { type: 'string', description: 'Desired time, 24h HH:MM, same as the check_availability call' },
+        email: { type: 'string', description: "Visitor's email address, given by them in this conversation" },
+        name: { type: 'string', description: "Visitor's first name, if they gave one" },
+        service_category: { type: 'string', description: 'What they wanted done, in their own words' },
+      },
+      required: ['detailer_id', 'date', 'time', 'email'],
+    },
+  },
 ]
+
+function isValidEmail(v: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)
+}
 
 type ToolRunResult = { output: string; searchResult?: unknown }
 
-async function runTool(admin: SupabaseClient, name: string, input: Record<string, unknown>): Promise<ToolRunResult> {
+async function runTool(admin: SupabaseClient, name: string, input: Record<string, unknown>, ip: string): Promise<ToolRunResult> {
   if (name === 'search_detailers') {
     const zip = String(input.zip ?? '').trim()
     if (!/^\d{5}$/.test(zip)) return { output: JSON.stringify({ error: 'zip must be a 5-digit US zip code' }) }
@@ -206,6 +247,71 @@ async function runTool(admin: SupabaseClient, name: string, input: Record<string
       }),
     }
   }
+  if (name === 'check_availability') {
+    const detailerId = String(input.detailer_id ?? '')
+    const date = String(input.date ?? '')
+    const time = String(input.time ?? '')
+    if (!isUuid(detailerId)) return { output: JSON.stringify({ error: 'Invalid detailer_id' }) }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return { output: JSON.stringify({ error: 'date must be YYYY-MM-DD' }) }
+    if (!/^\d{2}:\d{2}$/.test(time)) return { output: JSON.stringify({ error: 'time must be HH:MM (24h)' }) }
+
+    const { data: detailer, error: detErr } = await admin
+      .from('detailer_profiles')
+      .select('blackout_hours, booking_buffer_min')
+      .eq('id', detailerId)
+      .single()
+    if (detErr || !detailer) return { output: JSON.stringify({ error: 'Detailer not found' }) }
+
+    const [h] = time.split(':').map(Number)
+    const blackoutHours: number[] = detailer.blackout_hours ?? []
+    if (blackoutHours.includes(h)) {
+      return { output: JSON.stringify({ available: false, reason: 'blackout' }) }
+    }
+
+    const { data: busy } = await admin.rpc('get_detailer_busy_times', {
+      p_detailer_id: detailerId,
+      p_date: date,
+    })
+    const bufferMin = detailer.booking_buffer_min ?? 60
+    const [ph, pm] = time.split(':').map(Number)
+    const pickedMin = ph * 60 + pm
+    const conflict = (busy ?? []).some((row: { scheduled_time: string }) => {
+      const d = new Date(row.scheduled_time)
+      const busyMin = d.getHours() * 60 + d.getMinutes()
+      return Math.abs(pickedMin - busyMin) <= bufferMin
+    })
+    return { output: JSON.stringify({ available: !conflict, reason: conflict ? 'conflict' : null }) }
+  }
+  if (name === 'submit_time_inquiry') {
+    const detailerId = String(input.detailer_id ?? '')
+    const date = String(input.date ?? '')
+    const time = String(input.time ?? '')
+    const email = String(input.email ?? '').trim()
+    if (!isUuid(detailerId)) return { output: JSON.stringify({ error: 'Invalid detailer_id' }) }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return { output: JSON.stringify({ error: 'date must be YYYY-MM-DD' }) }
+    if (!/^\d{2}:\d{2}$/.test(time)) return { output: JSON.stringify({ error: 'time must be HH:MM (24h)' }) }
+    if (!isValidEmail(email)) return { output: JSON.stringify({ error: 'A valid email is required' }) }
+    if (!(await withinRateLimit(admin, `concierge-inquiry:${ip}`, 5, '1 hour'))) {
+      return { output: JSON.stringify({ error: 'Too many inquiries from this visitor. Try again later.' }) }
+    }
+    const name = cleanText(input.name, 80) || null
+    const serviceCategory = cleanText(input.service_category, 80) || null
+
+    const { data: detailer } = await admin.from('detailer_profiles').select('id').eq('id', detailerId).single()
+    if (!detailer) return { output: JSON.stringify({ error: 'Detailer not found' }) }
+
+    const { error: insErr } = await admin.from('booking_time_requests').insert({
+      detailer_id: detailerId,
+      requested_date: date,
+      requested_time: time,
+      service_name: serviceCategory,
+      note: 'Sent by Bo (website chat) -- no account, reply by email.',
+      guest_email: email,
+      guest_name: name,
+    })
+    if (insErr) return { output: JSON.stringify({ error: insErr.message }) }
+    return { output: JSON.stringify({ submitted: true }) }
+  }
   return { output: JSON.stringify({ error: `Unknown tool: ${name}` }) }
 }
 
@@ -266,7 +372,7 @@ Deno.serve(async (req) => {
       const toolResults: ChatMessage['content'] = []
       for (const use of toolUses) {
         if (use.type !== 'tool_use') continue
-        const { output, searchResult } = await runTool(admin, use.name, use.input)
+        const { output, searchResult } = await runTool(admin, use.name, use.input, ip)
         if (searchResult) lastSearchResult = searchResult
         toolResults.push({ type: 'tool_result', tool_use_id: use.id, content: output })
       }
