@@ -149,6 +149,14 @@ verify_jwt = true
 [functions.agent-v1]
 verify_jwt = false
 
+# Public concierge widget (Bo) on the landing page — anonymous visitors have
+# no JWT to send, so the gateway check must stay off. Pinned here so a plain
+# `functions deploy` / `config push` can't flip it on and break the widget
+# for every logged-out visitor. Abuse is bounded inside the function instead
+# (per-IP rate limits) and CORS is APP_ORIGIN-locked via _shared/cors.ts.
+[functions.concierge-chat]
+verify_jwt = false
+
 [functions.create-detailer-charge-intent]
 verify_jwt = true
 

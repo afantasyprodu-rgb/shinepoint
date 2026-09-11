@@ -23,33 +23,27 @@
 //     booking_time_requests row the detailer can see/respond to — never
 //     stored, forwarded, or used anywhere else.
 //
-// CORS is intentionally permissive (not APP_ORIGIN-locked like agentAuth.ts/
-// cors.ts) while this is being built and tested on a separate throwaway
-// page rather than shinepoint.app itself — tighten to APP_ORIGIN once the
-// widget moves onto the real site, matching every other public-facing
-// function's convention.
+// CORS is APP_ORIGIN-locked through the shared _shared/cors.ts, same as
+// every other browser-invoked function. It was deliberately '*' while the
+// widget was being tested on a throwaway page, with a note to tighten it
+// "once the widget moves onto the real site" — it now ships on the real
+// landing page (src/pages/Landing.jsx), and since submit_time_inquiry
+// accepts an email address and writes a row, an open origin would let any
+// site drive it from a visitor's browser. The Capacitor shell still passes
+// because capacitor.config.ts pins server.hostname to shinepoint.app, which
+// is exactly why that override exists.
 //
 // Deploy: supabase functions deploy concierge-chat --no-verify-jwt
+// (verify_jwt=false is also pinned in supabase/config.toml so a plain
+// deploy/config push can't flip this public widget to requiring a JWT.)
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@^2'
+import { corsHeaders, json } from '../_shared/cors.ts'
 import { captureException } from '../_shared/sentry.ts'
-import { withinRateLimit } from '../_shared/rateLimit.ts'
+import { withinRateLimit, tooManyRequests } from '../_shared/rateLimit.ts'
 import { searchDetailers } from '../_shared/detailerSearch.ts'
 import { computeQuote } from '../_shared/agentPricing.ts'
 import { callChat, chatConfigured, type ChatMessage, type ChatToolDef } from '../_shared/chatProvider.ts'
 import { isUuid, cleanText } from '../_shared/validate.ts'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-}
-
-function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  })
-}
 
 // Same category taxonomy customer-helper/estimate-photo aggregate against,
 // so a visitor asking Bo in words gets the same numbers a logged-in
@@ -331,10 +325,7 @@ Deno.serve(async (req) => {
   // every call here spends LLM tokens, not just a DB query.
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
   if (!(await withinRateLimit(admin, `concierge:${ip}`, 15, '1 hour'))) {
-    return new Response(JSON.stringify({ error: 'Too many requests. Please try again later.' }), {
-      status: 429,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': String(15 * 60) },
-    })
+    return tooManyRequests(15 * 60)
   }
 
   let body: { messages?: ChatMessage[]; lang?: string }
