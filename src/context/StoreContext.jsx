@@ -1239,7 +1239,7 @@ export function StoreProvider({ children }) {
     allDetailers,
     demoDetailers, demoBookings, demoMessages, demoCustomer, demoAdmin,
     realBookings, loyalty,
-    customerProfile, detailerProfile,
+    customerProfile, detailerProfile, customerProfileLoaded,
     favoriteIds,
     profile, user,
     notifications, realNotifications, realAdmin,
