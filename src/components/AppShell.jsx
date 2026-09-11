@@ -23,6 +23,9 @@ import { useT } from '../i18n/useT'
 // tapped. Detailer notifications (new booking, new review) just land on the
 // job itself — it has no equivalent stage picker.
 function notificationHref(role, n) {
+  // No booking exists behind this one (082) — it's a lead, not a job, so
+  // it routes to the requests list rather than a booking detail page.
+  if (n.kind === 'time_request' && role === 'detailer') return '/detailer/time-requests'
   if (!n.bookingId) return null
   if (role === 'customer') {
     return n.stage ? `/bookings/${n.bookingId}?stage=${n.stage}` : `/bookings/${n.bookingId}`
