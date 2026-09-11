@@ -224,6 +224,13 @@ export default function DetailerDashboard() {
   return (
     <AppShell role="detailer">
       <AnimatedPage className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
+        <Link
+          to="/detailer/clients"
+          className="mb-4 flex items-center justify-between rounded-2xl border-2 border-[#F43F8C]/25 bg-[#FFF8F3] px-4 py-3 text-sm font-semibold text-[#F43F8C] shadow-sm transition hover:border-[#F43F8C]/50 dark:bg-[#2a2030]"
+        >
+          <span>Client Book - your people and cars</span>
+          <span aria-hidden="true">{">"}</span>
+        </Link>
         <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">
           {t('welcomeBack', { name: profile?.full_name ? `, ${profile.full_name.split(' ')[0]}` : '' })}
         </h1>

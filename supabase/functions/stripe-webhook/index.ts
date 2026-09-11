@@ -136,7 +136,18 @@ Deno.serve(async (req) => {
       case 'payment_intent.succeeded': {
         const pi = event.data.object as Stripe.PaymentIntent
         const bookingId = pi.metadata?.booking_id
-        if (bookingId && pi.metadata?.kind === 'tip') {
+        if (pi.metadata?.kind === 'detailer_charge' && pi.metadata?.charge_id) {
+          // Standalone Client Book charge (create-detailer-charge-intent).
+          await admin
+            .from('detailer_charges')
+            .update({
+              status: 'paid',
+              paid_at: new Date().toISOString(),
+              stripe_payment_intent: pi.id,
+            })
+            .eq('id', pi.metadata.charge_id)
+            .eq('status', 'pending')
+        } else if (bookingId && pi.metadata?.kind === 'tip') {
           // Tip charge (charge-tip). Only now is tip_amount real money —
           // release-payouts refuses to pay a tip without tip_paid_at.
           // The amount comes FROM the PaymentIntent, not from whatever value
@@ -186,6 +197,12 @@ Deno.serve(async (req) => {
           const piId = typeof d.payment_intent === 'string' ? d.payment_intent : d.payment_intent.id
           await admin
             .from('bookings')
+            .update({ payout_hold_until: new Date(Date.now() + 365 * 864e5).toISOString() })
+            .eq('stripe_payment_intent', piId)
+            .is('transferred_at', null)
+          // Same freeze for standalone Client Book charges.
+          await admin
+            .from('detailer_charges')
             .update({ payout_hold_until: new Date(Date.now() + 365 * 864e5).toISOString() })
             .eq('stripe_payment_intent', piId)
             .is('transferred_at', null)

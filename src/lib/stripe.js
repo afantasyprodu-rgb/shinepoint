@@ -80,3 +80,13 @@ export const respondToReschedule = (token, action, pickedTime) =>
 // /reschedule/:token page a guest reaches by email/SMS.
 export const getRescheduleToken = (bookingId) =>
   invokeFn('get-reschedule-token', { bookingId })
+
+
+// Client Book D2: standalone charge/deposit link (not a booking PI).
+export const createDetailerChargeIntent = ({ amount, label, clientId }) =>
+  invokeFn('create-detailer-charge-intent', {
+    amount: Number(amount),
+    label,
+    clientId,
+    origin: typeof window !== 'undefined' ? window.location.origin : undefined,
+  })

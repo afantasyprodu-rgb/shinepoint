@@ -148,3 +148,9 @@ verify_jwt = true
 # Agent booking API uses API-key auth inside the function (not a user JWT).
 [functions.agent-v1]
 verify_jwt = false
+
+[functions.create-detailer-charge-intent]
+verify_jwt = true
+
+[functions.get-detailer-charge-intent]
+verify_jwt = false

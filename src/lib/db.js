@@ -40,6 +40,7 @@ function normalizeDetailer(row) {
     },
     status: row.status,
     bio: row.bio ?? '',
+    slug: row.slug ?? null,
     photo: row.profile_photo_url ?? null,
     gallery: row.gallery_urls ?? [],
     probationRemaining: row.probation_jobs_remaining ?? 0,
@@ -341,7 +342,7 @@ export async function fetchDetailers() {
       .select(`
         id, user_id, zip_code, pin_lat, pin_lng, status,
         accepts_bookings_when_busy, accepts_reward_bookings,
-        insurance_status, total_completed_jobs, average_rating, total_reviews, bio,
+        insurance_status, total_completed_jobs, average_rating, total_reviews, bio, slug,
         profile_photo_url, gallery_urls,
         probation_jobs_remaining, service_days, free_travel_miles, booking_buffer_min, charge_per_extra_mile, vehicle_emoji,
         vehicle_upcharge_suv, vehicle_upcharge_truck, vehicle_upcharge_van, blackout_hours,
@@ -812,7 +813,7 @@ export async function fetchPublicTracking(bookingId) {
 export async function fetchDetailerProfileRow(userId) {
   const { data, error } = await supabase
     .from('detailer_profiles')
-    .select('id, status, accepts_bookings_when_busy, total_completed_jobs, average_rating, probation_jobs_remaining, is_probation, is_verified, bio, zip_code, identity_status')
+    .select('id, status, accepts_bookings_when_busy, total_completed_jobs, average_rating, probation_jobs_remaining, is_probation, is_verified, bio, zip_code, identity_status, slug')
     .eq('user_id', userId)
     .single()
   if (error) {
@@ -906,6 +907,7 @@ export async function createBookingInDB({
   promoCode,
   weather,
   detailerLocationId,
+  bookingSource,
 }) {
   const { data, error } = await supabase
     .from('bookings')
@@ -941,6 +943,9 @@ export async function createBookingInDB({
       // picked (BookingWizard's day strip/calendar) — null when the picked
       // date was outside Open-Meteo's forecast window.
       weather_data: weather ?? null,
+      // D4: marketplace (default) vs direct book-me link. Analytics tag;
+      // fee split still uses tiered platformFeePercent until server-authoritative.
+      booking_source: bookingSource === 'direct' ? 'direct' : 'marketplace',
     })
     .select('id')
     .single()

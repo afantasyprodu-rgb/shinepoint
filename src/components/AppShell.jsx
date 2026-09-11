@@ -7,7 +7,7 @@ import SfxToggle from './SfxToggle'
 import SyncPendingBadge from './SyncPendingBadge'
 import LanguageToggle from './LanguageToggle'
 import ToolsSidebar from './ToolsSidebar'
-import { BellIcon, ClipboardCheckIcon, TrendingUpIcon, UsersIcon, PieChartIcon, MapPinIcon, MoreIcon, ChevronDownIcon, AlertTriangleIcon, MessageCircleIcon } from './icons'
+import { BellIcon, ClipboardCheckIcon, TrendingUpIcon, UsersIcon, UserIcon, PieChartIcon, MapPinIcon, MoreIcon, ChevronDownIcon, AlertTriangleIcon, MessageCircleIcon } from './icons'
 import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
 import BottomTabBar from './ui/BottomTabBar'
@@ -92,7 +92,7 @@ function NotificationBell({ role }) {
         onClick={toggle}
         aria-label={`${t('notifications')}${unread ? ` (${unread} unread)` : ''}`}
         aria-expanded={open}
-        className="relative flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-slate-600 transition-colors duration-200 hover:bg-brand-50 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-brand-200"
+        className="relative flex h-11 w-11 sm:h-9 sm:w-9 cursor-pointer items-center justify-center rounded-full text-slate-600 transition-colors duration-200 hover:bg-brand-50 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-brand-200"
       >
         <BellIcon className="h-5 w-5" />
         <AnimatePresence>
@@ -171,11 +171,12 @@ const NAVS = {
   ],
   detailer: [
     { to: '/detailer', labelKey: 'jobs', end: true, icon: ClipboardCheckIcon },
+    { to: '/detailer/clients', labelKey: 'clients', icon: UsersIcon },
     { to: '/detailer/reports', labelKey: 'reports', icon: AlertTriangleIcon },
     { to: '/detailer/earnings', labelKey: 'earnings', icon: TrendingUpIcon },
     { to: '/detailer/analytics', labelKey: 'analytics', icon: PieChartIcon },
     { to: '/detailer/assistant', labelKey: 'assistant', icon: MessageCircleIcon },
-    { to: '/detailer/profile', labelKey: 'account', icon: UsersIcon },
+    { to: '/detailer/profile', labelKey: 'account', icon: UserIcon },
   ],
 }
 
@@ -317,7 +318,7 @@ export default function AppShell({ role, children, collapsibleBottomNav = false,
           // overlay chrome (locate button, weather badge) at z-[500]+ in the
           // same root stacking context, so the handle rendered behind the
           // map instead of floating above it. Below Drawer's z-[700].
-          className={`nx-neu press-spring fixed left-1/2 z-[650] flex h-7 w-14 -translate-x-1/2 items-center justify-center rounded-full text-slate-500 transition-[bottom] duration-300 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-slate-300 sm:hidden ${
+          className={`nx-neu press-spring fixed left-1/2 z-[650] flex h-8 w-16 -translate-x-1/2 items-center justify-center rounded-full text-slate-500 transition-[bottom] duration-300 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-slate-300 sm:hidden ${
             navHidden
               ? 'bottom-[max(0.5rem,env(safe-area-inset-bottom))]'
               : 'bottom-[calc(4.5rem+env(safe-area-inset-bottom))]'
@@ -340,7 +341,7 @@ export default function AppShell({ role, children, collapsibleBottomNav = false,
             // visually and functionally buried under the header — "Exit
             // demo" et al. were eating its clicks) and below Drawer's
             // z-[700] so the open drawer still layers over it correctly.
-            className="fixed left-3 z-[650] flex h-11 w-11 cursor-pointer items-center justify-center rounded-full bg-white/90 text-slate-700 shadow-[0_4px_14px_-2px_rgba(30,41,59,0.35)] backdrop-blur transition-transform duration-200 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:bg-[#1E1730]/90 dark:text-slate-200"
+            className="fixed left-3 z-[650] flex h-12 w-12 cursor-pointer items-center justify-center rounded-full bg-white/90 text-slate-700 shadow-[0_4px_14px_-2px_rgba(30,41,59,0.35)] backdrop-blur transition-transform duration-200 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:bg-[#1E1730]/90 dark:text-slate-200"
             style={{ top: 'max(env(safe-area-inset-top), 2.25rem)' }}
           >
             <MoreIcon className="h-5 w-5" />

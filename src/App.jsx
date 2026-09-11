@@ -34,6 +34,14 @@ const DetailerAnalytics = lazy(() => import('./pages/DetailerAnalytics'))
 const DetailerReports = lazy(() => import('./pages/DetailerReports'))
 const DetailerTools = lazy(() => import('./pages/DetailerTools'))
 const DetailerProfileEditor = lazy(() => import('./pages/DetailerProfileEditor'))
+const DetailerClients = lazy(() => import('./pages/DetailerClients'))
+const DetailerClientDetail = lazy(() => import('./pages/DetailerClientDetail'))
+const DetailerClientAdd = lazy(() => import('./pages/DetailerClientAdd'))
+const DetailerClientImport = lazy(() => import('./pages/DetailerClientImport'))
+const DetailerClientRequestPayment = lazy(() => import('./pages/DetailerClientRequestPayment'))
+const DetailerClientRemind = lazy(() => import('./pages/DetailerClientRemind'))
+const PayCharge = lazy(() => import('./pages/PayCharge'))
+const DetailerPublicBook = lazy(() => import('./pages/DetailerPublicBook'))
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'))
 const AdminPeople = lazy(() => import('./pages/admin/AdminPeople'))
 const AdminOps = lazy(() => import('./pages/admin/AdminOps'))
@@ -108,7 +116,7 @@ export default function App() {
       {/* Suspense wraps the whole route table: navigating to any lazy page
           suspends until its chunk lands and shows the spinner fallback. */}
       <Suspense fallback={<PageFallback />}>
-      <Routes location={location} key={location.pathname}>
+      <Routes location={location}>
         <Route path="/" element={safe(<Landing />)} />
         <Route path="/login" element={safe(<Login />)} />
         <Route path="/signup" element={safe(<CustomerSignup />)} />
@@ -123,6 +131,8 @@ export default function App() {
             deliberately outside ProtectedRoute; the booking id in the URL
             is the capability. */}
         <Route path="/track/:id" element={safe(<PublicTracking />)} />
+        <Route path="/pay/:chargeId" element={safe(<PayCharge />)} />
+        <Route path="/d/:slug" element={safe(<DetailerPublicBook />)} />
         <Route path="/reschedule/:token" element={safe(<ManageReschedule />)} />
         {/* Post-signup profile setup — any signed-in role, no role gate. */}
         <Route path="/welcome" element={<ProtectedRoute><ErrorBoundary><ProfileSetup /></ErrorBoundary></ProtectedRoute>} />
@@ -154,6 +164,12 @@ export default function App() {
         <Route path="/detailer/reports" element={guard('detailer', <DetailerReports />)} />
         <Route path="/detailer/tools" element={guard('detailer', <DetailerTools />)} />
         <Route path="/detailer/profile" element={guard('detailer', <DetailerProfileEditor />)} />
+        <Route path="/detailer/clients" element={guard('detailer', <DetailerClients />)} />
+        <Route path="/detailer/clients/add" element={guard('detailer', <DetailerClientAdd />)} />
+        <Route path="/detailer/clients/import" element={guard('detailer', <DetailerClientImport />)} />
+        <Route path="/detailer/clients/:id/request-payment" element={guard('detailer', <DetailerClientRequestPayment />)} />
+        <Route path="/detailer/clients/:id/remind" element={guard('detailer', <DetailerClientRemind />)} />
+        <Route path="/detailer/clients/:id" element={guard('detailer', <DetailerClientDetail />)} />
         <Route path="/detailer/assistant" element={guard('detailer', <AssistantChat role="detailer" />)} />
 
         {/* Admin */}

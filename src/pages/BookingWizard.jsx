@@ -347,6 +347,7 @@ export default function BookingWizard() {
   const { id } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
+  const bookingSource = new URLSearchParams(location.search).get('source') === 'direct' ? 'direct' : 'marketplace'
   const { getDetailer, customer, createBooking, isDemo, customerProfile, updateCustomer } = useStore()
   const { theme } = useTheme()
   const t = useT('bookingWizard')
@@ -637,6 +638,7 @@ const [smsError, setSmsError] = useState(null)
       weather: date.rainy
         ? { ok: false, summary: 'Rain forecast', acknowledged: true, rainy: true, tempF: date.tempF ?? null }
         : { ok: true, summary: 'Clear skies', rainy: false, tempF: date.tempF ?? null },
+      bookingSource,
     }
   }
 

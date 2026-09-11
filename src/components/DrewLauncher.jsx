@@ -28,6 +28,8 @@ export default function DrewLauncher() {
   const [busy, setBusy] = useState(false)
   const [reply, setReply] = useState(null)
   const [error, setError] = useState(null)
+  const [draft, setDraft] = useState(null) // { text, clientId?, bookingId? }
+  const [draftText, setDraftText] = useState('')
 
   const actions = (showAlt ? altActionsForPath : actionsForPath)(location.pathname, lang)
   const t = panelStrings(lang)
@@ -37,6 +39,8 @@ export default function DrewLauncher() {
     setShowAlt(false)
     setReply(null)
     setError(null)
+    setDraft(null)
+    setDraftText('')
   }
 
   function cycleOrReset() {
@@ -55,24 +59,69 @@ export default function DrewLauncher() {
     setReply(null)
     setError(null)
     setShowAlt(false)
+    setDraft(null)
+    setDraftText('')
   }
 
   async function pick(actionId) {
     setBusy(true)
     setError(null)
     setReply(null)
+    setDraft(null)
     try {
-      const data = await invokeFn('detailer-helper', {
+      const payload = {
         intent: actionId,
-        bookingId: params.id,
         lang,
-      })
-      setReply(data.reply || t.noAnswer)
+      }
+      // Job page: bookingId from route. Client detail: clientId from route.
+      if (location.pathname.startsWith('/detailer/jobs/')) {
+        payload.bookingId = params.id
+      } else if (location.pathname.match(/^\/detailer\/clients\/[^/]+/)) {
+        payload.clientId = params.id
+      }
+      const data = await invokeFn('detailer-helper', payload)
+      if (data?.draft && data?.text) {
+        setDraft({
+          text: data.text,
+          clientId: data.clientId,
+          bookingId: data.bookingId,
+        })
+        setDraftText(data.text)
+      } else {
+        setReply(data.reply || t.noAnswer)
+      }
     } catch (err) {
       setError(err?.message || t.somethingWrong)
     } finally {
       setBusy(false)
     }
+  }
+
+  async function approveSend() {
+    if (!draft) return
+    setBusy(true)
+    setError(null)
+    try {
+      const data = await invokeFn('detailer-helper', {
+        intent: 'send_reminder',
+        clientId: draft.clientId,
+        bookingId: draft.bookingId,
+        message: draftText,
+        lang,
+      })
+      setReply(data.reply || (data.sent ? 'Sent.' : 'Done.'))
+      setDraft(null)
+      setDraftText('')
+    } catch (err) {
+      setError(err?.message || t.somethingWrong)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  function discardDraft() {
+    setDraft(null)
+    setDraftText('')
   }
 
   return (
@@ -133,7 +182,38 @@ export default function DrewLauncher() {
               <div className="mt-4 min-h-[3rem]">
                 {busy && <p className="text-sm text-slate-400">{t.checking}</p>}
                 {!busy && error && <p className="text-sm text-rose-600">{error}</p>}
-                {!busy && !error && reply && (
+                {!busy && !error && draft && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[#F43F8C]">
+                      Review before send
+                    </p>
+                    <textarea
+                      rows={4}
+                      value={draftText}
+                      onChange={(e) => setDraftText(e.target.value)}
+                      className="w-full rounded-2xl border border-[#F43F8C]/40 bg-white px-3 py-2 text-sm text-slate-800 dark:bg-white/10 dark:text-slate-100"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={approveSend}
+                        disabled={busy || !draftText.trim()}
+                        className="rounded-full bg-[#F43F8C] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40"
+                      >
+                        Send
+                      </button>
+                      <button
+                        type="button"
+                        onClick={discardDraft}
+                        disabled={busy}
+                        className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 dark:border-white/15 dark:text-slate-200"
+                      >
+                        Discard
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {!busy && !error && !draft && reply && (
                   <p className="rounded-2xl bg-slate-100 px-3 py-2 text-sm leading-snug text-slate-800 dark:bg-white/10 dark:text-slate-100">
                     {reply}
                   </p>

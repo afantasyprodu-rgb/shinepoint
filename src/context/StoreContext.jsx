@@ -6,6 +6,7 @@ import { updateWidget } from '../lib/widget'
 import { useAuth } from './AuthContext'
 import { MILESTONES } from '../data/milestones'
 import { useRealtimeChannel } from '../hooks/useRealtimeChannel'
+import { downscaleImage } from '../lib/imageUtils'
 import {
   fetchDetailers,
   fetchFavoriteDetailerIds,
@@ -148,6 +149,14 @@ export function StoreProvider({ children }) {
   const [realBookings, setRealBookings] = useState([])
   const [loyalty, setLoyalty] = useState({ points: 0, rewards: [] })
   const [customerProfile, setCustomerProfile] = useState(null)  // { id, referral_code, ... }
+  // True once the real customer-profile fetch below has actually resolved
+  // (found a row or not) — customer.address/vehicle default to '' while
+  // customerProfile is still null, which is indistinguishable from "setup
+  // genuinely not done" unless callers can tell the difference. Without
+  // this, CustomerHome's "finish setup" prompt flashed on every cold app
+  // launch even for an already-configured account, for exactly as long as
+  // this fetch was in flight.
+  const [customerProfileLoaded, setCustomerProfileLoaded] = useState(false)
   const [detailerProfile, setDetailerProfile] = useState(null)  // { id, status, ... }
   const [realNotifications, setRealNotifications] = useState([])
   const [realAdmin, setRealAdmin] = useState(null)  // built from live moderation queries
@@ -200,6 +209,7 @@ export function StoreProvider({ children }) {
       fetchCustomerProfile(profile.id).then((cp) => {
         if (cancelled) return
         setCustomerProfile(cp)
+        setCustomerProfileLoaded(true)
         if (cp) {
           fetchBookingsForCustomer(cp.id).then((bs) => {
             if (!cancelled) setRealBookings(bs)
@@ -528,6 +538,10 @@ export function StoreProvider({ children }) {
       bookings,
       messages,
       customer,
+      // True immediately in demo (customer is already the full seed object)
+      // or once the real profile fetch above has resolved — see that
+      // state's own comment for why this exists.
+      customerProfileLoaded: isDemo || customerProfileLoaded,
       // Pre-load shape for a real admin: everything empty/zero, never the
       // demo seed — a blank dashboard is honest, seeded revenue is not.
       admin: isDemo
@@ -564,10 +578,16 @@ export function StoreProvider({ children }) {
       notify,
 
       // Upload a profile/gallery image. Demo → base64 data URL held in state;
-      // real → Supabase Storage public URL. Same return shape either way.
+      // real → Supabase Storage public URL. Downscaled on client to save memory & bandwidth.
       async uploadImage(file, bucket = 'avatars') {
-        if (isDemo || !profile?.id) return fileToDataUrl(file)
-        return uploadProfileImage(profile.id, bucket, file)
+        try {
+          const { file: optimizedFile, dataUrl } = await downscaleImage(file, { maxWidth: 1280, maxHeight: 1280, quality: 0.82 })
+          if (isDemo || !profile?.id) return dataUrl || fileToDataUrl(file)
+          return uploadProfileImage(profile.id, bucket, optimizedFile || file)
+        } catch {
+          if (isDemo || !profile?.id) return fileToDataUrl(file)
+          return uploadProfileImage(profile.id, bucket, file)
+        }
       },
 
       // Update the customer profile. `patch` uses app-shaped keys (name, address,
@@ -593,6 +613,7 @@ export function StoreProvider({ children }) {
         if (patch.zip != null) cols.default_zip = patch.zip
         if ('photo' in patch) cols.profile_photo_url = patch.photo
         if (patch.bio != null) cols.bio = patch.bio
+        if ('slug' in patch) cols.slug = patch.slug ? String(patch.slug).toLowerCase().trim() : null
         if (patch.vehicle) {
           cols.vehicle_make = patch.vehicle.make ?? ''
           cols.vehicle_model = patch.vehicle.model ?? ''
@@ -620,6 +641,7 @@ export function StoreProvider({ children }) {
         if (patch.name != null) await updateUserName(profile.id, patch.name)
         const cols = {}
         if (patch.bio != null) cols.bio = patch.bio
+        if ('slug' in patch) cols.slug = patch.slug ? String(patch.slug).toLowerCase().trim() : null
         if ('photo' in patch) cols.profile_photo_url = patch.photo
         if (patch.gallery) cols.gallery_urls = patch.gallery
         if (patch.vehicleEmoji != null) cols.vehicle_emoji = patch.vehicleEmoji
@@ -946,6 +968,7 @@ export function StoreProvider({ children }) {
             promoCode: draft.promoCode,
             weather: draft.weather,
             detailerLocationId: draft.detailerLocationId,
+            bookingSource: draft.bookingSource,
           })
           // Attach whatever photo(s) the customer used for Bo/Driplee's
           // "Take a photo -> estimate" flow, if any are still pending from

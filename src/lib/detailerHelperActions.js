@@ -20,6 +20,7 @@ const LABELS = {
   help_payouts: { en: 'How payouts work', es: 'Cómo funcionan los pagos' },
   help_probation: { en: 'Probation status', es: 'Estado de prueba' },
   help_fees: { en: 'How fees work', es: 'Cómo funcionan las comisiones' },
+  draft_reminder: { en: 'Draft a reminder', es: 'Borrador de recordatorio' },
 }
 
 function label(id, lang) {
@@ -54,7 +55,12 @@ const REPORTS_IDS = ['earnings_week', 'analytics_top_service', 'analytics_rating
 // Job detail carries the bookingId along with the intent.
 const JOB_IDS = ['job_summary', 'help_invoices', 'help_fees', 'schedule_today', 'help_probation']
 
+const CLIENT_IDS = ['draft_reminder', 'schedule_today', 'schedule_upcoming', 'help_fees', 'earnings_week']
+const ALT_CLIENT_IDS = ['earnings_next_payout', 'help_payouts', 'analytics_rating', 'help_invoices', 'help_probation']
+
 export function actionsForPath(pathname, lang = 'en') {
+  if (pathname.match(/^\/detailer\/clients\/[^/]+/)) return actions(CLIENT_IDS, lang)
+  if (pathname.startsWith('/detailer/clients')) return actions(DASHBOARD_IDS, lang)
   if (pathname.startsWith('/detailer/jobs/')) return actions(JOB_IDS, lang)
   if (pathname.startsWith('/detailer/earnings')) return actions(EARNINGS_IDS, lang)
   if (pathname.startsWith('/detailer/analytics')) return actions(ANALYTICS_IDS, lang)
@@ -70,6 +76,7 @@ const ALT_EARNINGS_IDS = ['analytics_rating', 'analytics_top_service', 'help_pro
 const ALT_ANALYTICS_IDS = ['earnings_next_payout', 'help_payouts', 'help_probation', 'help_invoices', 'schedule_today']
 
 export function altActionsForPath(pathname, lang = 'en') {
+  if (pathname.match(/^\/detailer\/clients\/[^/]+/)) return actions(ALT_CLIENT_IDS, lang)
   if (pathname.startsWith('/detailer/jobs/')) return actions(ALT_JOB_IDS, lang)
   if (pathname.startsWith('/detailer/earnings')) return actions(ALT_EARNINGS_IDS, lang)
   if (pathname.startsWith('/detailer/analytics') || pathname.startsWith('/detailer/reports')) {

@@ -95,5 +95,51 @@ Deno.serve(async (req) => {
     }
   }
 
-  return json({ released, skipped, errors })
+  // ── Standalone Client Book charges (077) ─────────────────────────────
+  // Same platform-balance → Transfer model as bookings. No job "complete"
+  // gate — once paid and hold clears, the detailer's cut can move. Additive
+  // only; booking loop above is unchanged.
+  const { data: dueCharges, error: chargeErr } = await admin
+    .from('detailer_charges')
+    .select('id, detailer_payout, detailer_id, detailer_profiles!detailer_charges_detailer_id_fkey(stripe_account_id)')
+    .eq('status', 'paid')
+    .is('transferred_at', null)
+    .lte('payout_hold_until', new Date().toISOString())
+    .gt('detailer_payout', 0)
+  if (chargeErr) {
+    console.error('release-payouts charges query:', chargeErr.message)
+    errors.push(`charges-query: ${chargeErr.message}`)
+  }
+
+  let chargesReleased = 0
+  let chargesSkipped = 0
+  for (const c of dueCharges ?? []) {
+    const acctId = (c as any).detailer_profiles?.stripe_account_id
+    if (!acctId) {
+      chargesSkipped++
+      continue
+    }
+    try {
+      const transfer = await stripe.transfers.create({
+        amount: Math.round(Number(c.detailer_payout) * 100),
+        currency: 'usd',
+        destination: acctId,
+        transfer_group: c.id,
+        metadata: { charge_id: c.id, kind: 'detailer_charge' },
+      }, {
+        idempotencyKey: `charge-payout-${c.id}`,
+      })
+      await admin
+        .from('detailer_charges')
+        .update({ transferred_at: new Date().toISOString(), stripe_transfer_id: transfer.id })
+        .eq('id', c.id)
+      chargesReleased++
+    } catch (e) {
+      console.error('release-payouts charge transfer failed for', c.id, (e as Error).message)
+      await captureException(e, 'release-payouts:charge')
+      errors.push(`charge:${c.id}: ${(e as Error).message}`)
+    }
+  }
+
+  return json({ released, skipped, errors, chargesReleased, chargesSkipped })
 })

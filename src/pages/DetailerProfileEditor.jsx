@@ -84,6 +84,7 @@ export default function DetailerProfileEditor() {
   const [photo, setPhoto] = useState(me.photo ?? null)
   const [name, setName] = useState(me.name ?? '')
   const [bio, setBio] = useState(me.bio ?? '')
+  const [slug, setSlug] = useState(me.slug ?? '')
   const [vehicleEmoji, setVehicleEmoji] = useState(me.vehicleEmoji || '🚗')
   const [gallery, setGallery] = useState(me.gallery ?? [])
   const [services, setServices] = useState(
@@ -137,7 +138,12 @@ export default function DetailerProfileEditor() {
     if (!btn || !container) return
     const btnRect = btn.getBoundingClientRect()
     const containerRect = container.getBoundingClientRect()
-    setTabPosition({ x: btnRect.left - containerRect.left, width: btnRect.width })
+    // See CustomerSettings' identical fix: the pill scrolls with this same
+    // container, so its position needs the container's scrollLeft added
+    // back — otherwise it undershoots by that amount once the row's
+    // actually scrolled (only visible reaching the last, off-screen tab).
+    setTabPosition({ x: btnRect.left - containerRect.left + container.scrollLeft, width: btnRect.width })
+    btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })
   }, [activeTab])
 
   function toggleDay(day) {
@@ -209,7 +215,7 @@ export default function DetailerProfileEditor() {
     setBusy(true)
     try {
       await updateDetailerMe({
-        name, bio, photo, gallery, vehicleEmoji,
+        name, bio, slug: slug.trim() || null, photo, gallery, vehicleEmoji,
         vehicleUpcharges: { SUV: upchargeSuv, Truck: upchargeTruck, Van: upchargeVan },
         eco: { waterless: ecoWaterless, products: ecoProducts, reclaim: ecoReclaim },
       })
@@ -304,6 +310,25 @@ export default function DetailerProfileEditor() {
                   onChange={(e) => setBio(e.target.value)} className="input-flat h-auto resize-none py-2"
                   placeholder={t('bioPlaceholder')}
                 />
+
+                <label htmlFor="book-me-slug" className="label mt-4">
+                  Book-me link
+                </label>
+                <div className="flex items-center gap-2">
+                  <span className="shrink-0 text-sm text-slate-500">shinepoint.app/d/</span>
+                  <input
+                    id="book-me-slug"
+                    value={slug}
+                    onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 48))}
+                    className="input-flat"
+                    placeholder="your-name"
+                    maxLength={48}
+                    autoComplete="off"
+                  />
+                </div>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  Share this link so clients can book you directly (outside the marketplace map).
+                </p>
               </div>
             </div>
           </div>
