@@ -31,6 +31,7 @@ import { captureException } from '../_shared/sentry.ts'
 import { withinRateLimit, tooManyRequests } from '../_shared/rateLimit.ts'
 import { callChat, chatConfigured } from '../_shared/chatProvider.ts'
 import { sendSms } from '../_shared/sentdm.ts'
+import { sendEmail } from '../_shared/resend.ts'
 import { appointmentReminderSms } from '../_shared/sms-templates.ts'
 import { isUuid, cleanText } from '../_shared/validate.ts'
 
@@ -222,6 +223,13 @@ function normalizePhoneE164(raw: unknown): string | null {
   return null
 }
 
+function maskEmail(email: string): string {
+  const [user, domain] = email.split('@')
+  if (!domain) return email
+  const head = user.slice(0, 2)
+  return `${head}${'*'.repeat(Math.max(user.length - 2, 1))}@${domain}`
+}
+
 async function draftReminder(
   ctx: Ctx,
   opts: { bookingId?: unknown; clientId?: unknown; timeRequestId?: unknown; lang: 'en' | 'es' },
@@ -303,18 +311,39 @@ async function draftReminder(
   }
 
   // 082: someone whose exact time didn't work -- a lead, not yet a client
-  // or a booking. Their phone/opt-in live on their real users row, same as
-  // a booking's customer, since submitting a request requires being signed
-  // in (BookingWizard is a customer-only screen).
+  // or a booking. A signed-in customer's phone/opt-in live on their real
+  // users row, same as a booking's customer. A guest (083: submitted
+  // through Bo with no account) has no phone at all -- only the email they
+  // gave -- so that branch drafts an email instead of an SMS.
   if (opts.timeRequestId) {
     if (!isUuid(opts.timeRequestId)) return { error: 'Invalid timeRequestId' }
     const { data: reqRow } = await admin
       .from('booking_time_requests')
-      .select('id, requested_date, requested_time, service_name, note, customer_profiles!inner(users!inner(full_name, phone, sms_opt_in))')
+      .select('id, requested_date, requested_time, service_name, note, guest_email, guest_name, customer_profiles(users(full_name, phone, sms_opt_in))')
       .eq('id', opts.timeRequestId)
       .eq('detailer_id', detailerProfileId)
       .single()
     if (!reqRow) return { error: 'Request not found on your account' }
+    const wanted = `${reqRow.requested_date} ${reqRow.requested_time}`
+
+    if (!(reqRow as any).customer_profiles) {
+      const guestEmail = (reqRow as any).guest_email as string | null
+      if (!guestEmail) return { error: 'This request has no contact info on file.' }
+      const first = ((reqRow as any).guest_name || 'there').split(' ')[0]
+      const text =
+        opts.lang === 'es'
+          ? `Hola ${first}, vi que querías ${wanted} para tu detallado -- esa hora no la tengo, pero avísame qué otro día/hora te funciona y te consigo un lugar. -- ${detailerName}`
+          : `Hi ${first}, saw you wanted ${wanted} for your detail -- I can't do that exact time, but let me know another day/time that works and I'll get you booked. -- ${detailerName}`
+      return {
+        draft: true,
+        text,
+        timeRequestId: reqRow.id,
+        clientName: (reqRow as any).guest_name || guestEmail,
+        channel: 'email',
+        emailMasked: maskEmail(guestEmail),
+      }
+    }
+
     const customer = (reqRow as any).customer_profiles?.users
     const phone = normalizePhoneE164(customer?.phone)
     if (!phone) {
@@ -324,7 +353,6 @@ async function draftReminder(
       return { error: 'Customer has not opted in to SMS. Reply through the app instead.' }
     }
     const first = (customer?.full_name || 'there').split(' ')[0]
-    const wanted = `${reqRow.requested_date} ${reqRow.requested_time}`
     const text =
       opts.lang === 'es'
         ? `ShinePoint: Hola ${first}, vi que querías ${wanted} -- no puedo esa hora, pero avísame qué otro día/hora te funciona y te reservo. Responde STOP para cancelar.`
@@ -334,6 +362,7 @@ async function draftReminder(
       text,
       timeRequestId: reqRow.id,
       clientName: customer?.full_name ?? 'Customer',
+      channel: 'sms',
       phoneMasked: phone.slice(0, 2) + '***' + phone.slice(-4),
     }
   }
@@ -348,15 +377,15 @@ async function sendReminder(
   const { admin, detailerProfileId } = ctx
   const message = cleanText(opts.message, 320)
   if (!message) return { error: 'Approved message required' }
-  // Must include STOP language for carrier policy — soft check.
-  if (!/stop/i.test(message)) {
-    return { error: 'Message must include opt-out language (e.g. Reply STOP to opt out).' }
-  }
 
   let phone: string | null = null
+  let guestEmail: string | null = null
   let targetLabel = ''
 
   if (opts.bookingId) {
+    if (!/stop/i.test(message)) {
+      return { error: 'Message must include opt-out language (e.g. Reply STOP to opt out).' }
+    }
     if (!isUuid(opts.bookingId)) return { error: 'Invalid bookingId' }
     const { data: booking } = await admin
       .from('bookings')
@@ -373,6 +402,9 @@ async function sendReminder(
     }
     targetLabel = customer?.full_name ?? 'customer'
   } else if (opts.clientId) {
+    if (!/stop/i.test(message)) {
+      return { error: 'Message must include opt-out language (e.g. Reply STOP to opt out).' }
+    }
     if (!isUuid(opts.clientId)) return { error: 'Invalid clientId' }
     const { data: client } = await admin
       .from('detailer_clients')
@@ -391,26 +423,41 @@ async function sendReminder(
     if (!isUuid(opts.timeRequestId)) return { error: 'Invalid timeRequestId' }
     const { data: reqRow } = await admin
       .from('booking_time_requests')
-      .select('id, customer_profiles!inner(users!inner(phone, sms_opt_in, full_name))')
+      .select('id, guest_email, guest_name, customer_profiles(users(phone, sms_opt_in, full_name))')
       .eq('id', opts.timeRequestId)
       .eq('detailer_id', detailerProfileId)
       .single()
     if (!reqRow) return { error: 'Request not found on your account' }
-    const customer = (reqRow as any).customer_profiles?.users
-    phone = normalizePhoneE164(customer?.phone)
-    if (!phone) return { error: 'No phone on file for this customer.' }
-    if (!customer?.sms_opt_in) {
-      return { error: 'Customer has not opted in to SMS.' }
+    if (!(reqRow as any).customer_profiles) {
+      guestEmail = (reqRow as any).guest_email
+      if (!guestEmail) return { error: 'This request has no contact info on file.' }
+      targetLabel = (reqRow as any).guest_name || guestEmail
+    } else {
+      if (!/stop/i.test(message)) {
+        return { error: 'Message must include opt-out language (e.g. Reply STOP to opt out).' }
+      }
+      const customer = (reqRow as any).customer_profiles?.users
+      phone = normalizePhoneE164(customer?.phone)
+      if (!phone) return { error: 'No phone on file for this customer.' }
+      if (!customer?.sms_opt_in) {
+        return { error: 'Customer has not opted in to SMS.' }
+      }
+      targetLabel = customer?.full_name ?? 'customer'
     }
-    targetLabel = customer?.full_name ?? 'customer'
   } else {
     return { error: 'Pass bookingId, clientId, or timeRequestId' }
   }
 
-  const result = await sendSms({ to: phone, body: message })
+  const result = guestEmail
+    ? await sendEmail({
+        to: guestEmail,
+        subject: "Re: your time request",
+        html: `<p>${message.replace(/\n/g, '<br>')}</p>`,
+      })
+    : await sendSms({ to: phone as string, body: message })
   // Mark responded regardless of skip/sent -- either way the detailer has
   // acted on it, and it should drop off their open queue. A soft-skip
-  // (no SMS provider configured) is still "handled", not still-pending.
+  // (no SMS/email provider configured) is still "handled", not still-pending.
   if (opts.timeRequestId && isUuid(opts.timeRequestId)) {
     await admin.from('booking_time_requests').update({ status: 'responded' }).eq('id', opts.timeRequestId)
   }
@@ -418,7 +465,7 @@ async function sendReminder(
     return {
       sent: false,
       skipped: true,
-      reply: `SMS provider not configured — draft was approved but nothing was sent to ${targetLabel}.`,
+      reply: `${guestEmail ? 'Email' : 'SMS'} provider not configured — draft was approved but nothing was sent to ${targetLabel}.`,
     }
   }
   return {
