@@ -128,7 +128,14 @@ Deno.serve(async (req) => {
             detailer_id: booking.detailer_id,
           },
         },
-        { idempotencyKey: `balance-${booking.id}` }
+        // Keyed on the amount as well as the booking: a key pinned to the
+        // booking alone makes Stripe REFUSE any retry whose parameters
+        // changed ("can only be used with the same parameters"), which
+        // would strand a balance whose outstanding figure moved (a partial
+        // refund, a repriced job) permanently. Double-charge protection
+        // still holds for an identical retry, and balance_paid_at above is
+        // the real "already settled" guard.
+        { idempotencyKey: `balance-${booking.id}-${Math.round(outstanding * 100)}` }
       )
     } catch (e) {
       // The work is already done, so a decline is a collections problem,

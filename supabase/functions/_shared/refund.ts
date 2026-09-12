@@ -4,12 +4,24 @@
 // 24h timeout) can both call it instead of re-implementing it. Refund
 // FIRST, then record — never mark money moved before it actually did.
 //
-// 086: refunds are computed from amount_collected, NOT total_price. Before
-// deposits those were always the same number; now they are not, and asking
-// Stripe for total_price on a deposit-only booking is rejected outright
-// ("refund amount greater than charge amount") — after the Stripe call,
-// which is the worst place to fail. amount_collected is what was actually
-// captured, so it is the only honest ceiling on a refund.
+// 086: the refund amount comes from STRIPE, not from our own columns.
+//
+// The first version of this computed it from total_price, which broke the
+// moment a deposit existed: asking Stripe for total_price on a
+// deposit-only booking is rejected outright ("refund amount greater than
+// charge amount"), after the Stripe call, which is the worst place to fail.
+//
+// Computing it from amount_collected fixed that but introduced a subtler
+// bug: stripe-webhook writes paid_at and amount_collected asynchronously,
+// so a customer who pays and then cancels within a second or two hits a
+// row that still reads unpaid. That cancellation skipped the refund
+// entirely and silently kept their money — caught in a live test, where a
+// $20 deposit vanished on an early cancel that should have been free.
+//
+// Our columns can be behind. Stripe cannot be: it knows exactly what was
+// captured and what has already been sent back. So the charges are the
+// source of truth for how much to return, and amount_collected is left to
+// do what it is actually good at — capping payouts.
 import type Stripe from 'npm:stripe@^18'
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@^2'
 
@@ -51,43 +63,44 @@ export async function refundBooking(
   const alreadyRefunded = Number(booking.refunded_amount ?? 0)
   const deposit = Number(booking.deposit_amount ?? 0)
 
-  // amount_collected is authoritative once it's set. The fallback covers
-  // two cases where it legitimately isn't: a pre-086 booking paid before
-  // the column existed, and the deploy window where the migration is live
-  // but stripe-webhook hasn't shipped yet and is still writing paid_at
-  // without it. Both are full-price charges by definition, so total_price
-  // is the right figure.
-  //
-  // Guarded on deposit_amount === 0 so this can NEVER apply to a deposit
-  // booking — that's the case where total_price would over-refund, which is
-  // the whole reason amount_collected exists.
-  const recorded = Number(booking.amount_collected ?? 0)
-  const collected =
-    recorded > 0
-      ? recorded
-      : booking.paid_at && deposit === 0
-        ? Number(booking.total_price ?? 0)
-        : 0
+  // What Stripe says is still refundable across this booking's charges.
+  // STRIPE IS THE AUTHORITY HERE, not our own columns, because our columns
+  // can legitimately be behind: stripe-webhook writes paid_at and
+  // amount_collected asynchronously, so a customer who pays and cancels
+  // seconds later hits a row that still reads unpaid. Gating on paid_at
+  // meant that cancellation skipped the refund entirely and silently kept
+  // the money -- observed in test, not hypothetical. amountRefundableOn
+  // already nets out anything previously refunded.
+  const intents = [booking.balance_payment_intent, booking.stripe_payment_intent].filter(
+    (v): v is string => Boolean(v)
+  )
+  const available: { id: string; amount: number }[] = []
+  for (const intentId of intents) {
+    available.push({ id: intentId, amount: await amountRefundableOn(stripe, intentId) })
+  }
+  const stripeAvailable = Number(
+    available.reduce((sum, a) => sum + a.amount, 0).toFixed(2)
+  )
 
-  // What the customer keeps losing when they cancel late. Never more than
-  // what was actually taken — if only the deposit was collected, keeping it
-  // means refunding nothing rather than refunding a negative.
-  const keptDeposit = opts.keepDeposit ? Math.min(deposit, collected) : 0
-  const refundable = Number((collected - keptDeposit - alreadyRefunded).toFixed(2))
+  // What the customer forfeits on a late cancellation. Capped by what
+  // Stripe actually holds for the same reason the refund is: if only the
+  // deposit was ever captured, keeping it means refunding nothing rather
+  // than refunding a negative.
+  const keptDeposit = opts.keepDeposit ? Math.min(deposit, stripeAvailable) : 0
+
+  // Never refund more than Stripe actually holds; never refund the part of
+  // it we are deliberately keeping.
+  const refundable = Number(Math.max(0, stripeAvailable - keptDeposit).toFixed(2))
 
   let refundId: string | null = null
-  if (booking.paid_at && booking.stripe_payment_intent && refundable > 0.001) {
+  if (refundable > 0.001) {
     // The deposit and the balance are two separate PaymentIntents, and
     // Stripe refunds against one charge at a time. Refund the balance
     // first: it is the larger, later capture, and on a keepDeposit refund
     // it is the only one that should move at all.
     let remaining = refundable
-    const intents = [booking.balance_payment_intent, booking.stripe_payment_intent].filter(
-      (v): v is string => Boolean(v)
-    )
-    for (const intentId of intents) {
+    for (const { id: intentId, amount: charged } of available) {
       if (remaining <= 0.001) break
-      const charged = await amountRefundableOn(stripe, intentId)
       const take = Math.min(remaining, charged)
       if (take <= 0.001) continue
       const refund = await stripe.refunds.create(
@@ -106,7 +119,7 @@ export async function refundBooking(
     }
   }
 
-  const refunded = refundId ? Number((refundable - 0).toFixed(2)) : 0
+  const refunded = refundId ? refundable : 0
 
   const { error: updateErr } = await admin
     .from('bookings')
