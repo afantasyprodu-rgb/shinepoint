@@ -58,6 +58,26 @@ const HELP_TEXT: Record<string, Record<'en' | 'es', string>> = {
     en: 'ShinePoint takes a tiered platform fee that steps down as the job total goes up. Tips are 100% yours.',
     es: 'ShinePoint cobra una comisión escalonada que baja cuando el total del trabajo sube. Las propinas son 100% tuyas.',
   },
+  // Onboarding-scoped (added for the setup wizard's Driplee helper —
+  // src/components/OnboardingHelper.jsx). Static, canned answers on purpose:
+  // nothing here depends on a completed profile, so these work even before
+  // detailer_profiles has real data, unlike the DB-backed intents below.
+  help_id_onboarding: {
+    en: 'We verify your ID to keep the marketplace safe for customers letting a stranger into their car -- it also unlocks your Stripe payouts. The scan and your ID photo go straight to our verification provider and are never stored on our servers.',
+    es: 'Verificamos tu identidad para que el mercado sea seguro para clientes que dejan entrar a un desconocido a su auto -- también desbloquea tus pagos por Stripe. El escaneo y tu foto de ID van directo a nuestro proveedor de verificación y nunca se guardan en nuestros servidores.',
+  },
+  help_insurance_onboarding: {
+    en: "Insurance protects you if something goes wrong on a job -- a scratch, a spill, an accident. You can still sign up without it, but you'll need to acknowledge you're working uninsured, and customers can see that on your profile.",
+    es: 'El seguro te protege si algo sale mal en un trabajo -- un rayón, un derrame, un accidente. Puedes registrarte sin él, pero deberás confirmar que trabajas sin seguro, y los clientes lo verán en tu perfil.',
+  },
+  help_pricing_method: {
+    en: "Upload a flyer and we'll read the prices off it, start from our example template and edit it, or type everything in yourself -- all three end up in the same place, so pick whichever is fastest for you right now.",
+    es: 'Sube un volante y leeremos los precios, empieza con nuestra plantilla de ejemplo y edítala, o escribe todo tú mismo -- las tres opciones terminan en el mismo lugar, así que elige la más rápida para ti ahora.',
+  },
+  help_deposit_onboarding: {
+    en: "A deposit is a percentage of the job price charged when the customer books, with the rest charged when you mark the job complete -- it protects you from a no-show. Leave it at 0% to keep charging the full price up front like today. You can turn it on later in Profile if you're not sure yet.",
+    es: 'Un depósito es un porcentaje del precio del trabajo que se cobra al reservar, y el resto se cobra al marcar el trabajo completado -- te protege de un cliente que no se presenta. Déjalo en 0% para seguir cobrando el total por adelantado como ahora. Puedes activarlo después en Perfil si aún no estás seguro.',
+  },
 }
 
 async function getDetailerContext(admin: ReturnType<typeof createClient>, userId: string) {

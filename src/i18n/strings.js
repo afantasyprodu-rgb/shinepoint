@@ -1140,6 +1140,26 @@ export const STRINGS = {
       bankConnected: 'Bank account connected',
       bankPending: "Onboarding started — you'll be redirected back once Stripe finishes verifying your account.",
       payoutRealFlow: "Real flow collects legal name, address, and SSN/EIN/ITIN through Stripe's hosted onboarding — never stored on our servers. Simulated in demo.",
+      // Deposit-at-booking (086) — set once here so it's live from the first
+      // booking, instead of only discoverable later in Profile settings.
+      depositSetupLabel: 'Deposit at booking (optional)',
+      depositSetupHint: 'Take part of the price up front to hold the slot. The rest is charged when you finish the job. Leave at 0 to keep charging the full price at booking — you can change this any time in Profile.',
+      depositPercentLabel: 'Deposit',
+      depositExample: 'On a $200 job: ${deposit} now, ${balance} when you mark it complete. Cancel within 4 hours of the appointment and the {pct}% deposit is yours.',
+      // Driplee, scoped to onboarding — fixed quick-help chips only, no
+      // free-text field and no schedule/earnings actions (nothing to show
+      // yet). See src/components/OnboardingHelper.jsx.
+      askDriplee: 'Ask Driplee',
+      helperClose: 'Close',
+      helperChecking: 'Driplee is checking…',
+      helperNoAnswer: "I don't have an answer for that right now.",
+      helperError: 'Something went wrong',
+      helpIdLabel: 'Why we verify ID',
+      helpInsuranceLabel: 'Why insurance matters',
+      helpPricingLabel: 'Which pricing method?',
+      helpDepositLabel: 'How deposits work',
+      helpPayoutsLabel: 'How payouts work',
+      helpFeesLabel: 'How fees work',
     },
     detailerAnalytics: {
       title: 'Analytics',
@@ -2881,6 +2901,21 @@ export const STRINGS = {
       bankConnected: 'Cuenta bancaria conectada',
       bankPending: 'Proceso iniciado — serás redirigido de vuelta cuando Stripe termine de verificar tu cuenta.',
       payoutRealFlow: 'El flujo real recopila nombre legal, dirección y SSN/EIN/ITIN a través del proceso alojado de Stripe — nunca almacenado en nuestros servidores. Simulado en la demo.',
+      depositSetupLabel: 'Depósito al reservar (opcional)',
+      depositSetupHint: 'Cobra una parte por adelantado para apartar el horario. El resto se cobra al terminar el trabajo. Déjalo en 0 para seguir cobrando el total al reservar — puedes cambiarlo cuando quieras en Perfil.',
+      depositPercentLabel: 'Depósito',
+      depositExample: 'En un trabajo de $200: ${deposit} ahora y ${balance} al marcarlo completado. Si cancelan dentro de las 4 horas previas, el depósito del {pct}% es tuyo.',
+      askDriplee: 'Preguntarle a Driplee',
+      helperClose: 'Cerrar',
+      helperChecking: 'Driplee está revisando…',
+      helperNoAnswer: 'No tengo una respuesta para eso ahora mismo.',
+      helperError: 'Algo salió mal',
+      helpIdLabel: 'Por qué verificamos tu identidad',
+      helpInsuranceLabel: 'Por qué importa el seguro',
+      helpPricingLabel: '¿Qué método de precios?',
+      helpDepositLabel: 'Cómo funcionan los depósitos',
+      helpPayoutsLabel: 'Cómo funcionan los pagos',
+      helpFeesLabel: 'Cómo funcionan las comisiones',
     },
     detailerAnalytics: {
       title: 'Analítica',

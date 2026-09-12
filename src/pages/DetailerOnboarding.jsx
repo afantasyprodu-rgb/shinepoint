@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import AppShell from '../components/AppShell'
 import Modal from '../components/ui/Modal'
 import MarketingTip from '../components/MarketingTip'
+import OnboardingHelper from '../components/OnboardingHelper'
 import { useStore } from '../context/StoreContext'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
@@ -52,7 +53,7 @@ const EXAMPLE_TEMPLATE = { 'Exterior Wash': 45, 'Full Detail': 175, 'Interior De
 // Stripe Identity / Connect calls are simulated until Phase 4 wiring.
 export default function DetailerOnboarding() {
   const navigate = useNavigate()
-  const { isDemo, saveOnboarding, detailerProfile } = useStore()
+  const { isDemo, saveOnboarding, detailerProfile, updateDetailerMe } = useStore()
   const { session } = useAuth()
   const draftUserId = isDemo ? null : session?.user?.id
   const { theme } = useTheme()
@@ -117,6 +118,10 @@ export default function DetailerOnboarding() {
   const [payoutStatus, setPayoutStatus] = useState(null)
   const [connectingBank, setConnectingBank] = useState(false)
   const [connectError, setConnectError] = useState('')
+  // 086, added to onboarding so it's live from the very first booking
+  // instead of only discoverable later in Profile. Picks up wherever a real
+  // account left off (e.g. set it, left onboarding, came back).
+  const [depositPercent, setDepositPercent] = useState(String(detailerProfile?.deposit_percent ?? 0))
 
   // Quick-survey step — every field optional, none block continuing.
   const [yearsExperience, setYearsExperience] = useState(null)
@@ -306,6 +311,16 @@ export default function DetailerOnboarding() {
     }
   }
 
+  // Saved on blur, not on every keystroke — same pattern as
+  // changePhoto/addGalleryPhoto in DetailerProfileEditor.jsx. There's no
+  // final review screen for this field, so onBlur is the only save point
+  // before a detailer might tab away to Connect bank and never come back
+  // to this input.
+  function saveDepositPercent() {
+    const clamped = Math.min(100, Math.max(0, Number(depositPercent) || 0))
+    updateDetailerMe({ depositPercent: clamped })
+  }
+
   function toggle(list, setList, item) {
     setList(list.includes(item) ? list.filter((x) => x !== item) : [...list, item])
   }
@@ -406,6 +421,8 @@ export default function DetailerOnboarding() {
         <p className="mt-1.5 text-xs font-semibold text-brand-700 dark:text-brand-300">
           {step + 1}/{STEPS.length} · {STEPS[step]}
         </p>
+
+        <OnboardingHelper step={step} />
 
         <AnimatePresence mode="wait">
           <motion.div
@@ -1040,6 +1057,42 @@ export default function DetailerOnboarding() {
                     </p>
                   </>
                 )}
+                </div>
+
+                {/* 086. Own card, separate from bank connection — this is a
+                    pricing choice, not a Stripe requirement, and doesn't
+                    block the rest of onboarding either way. */}
+                <div className="card space-y-2">
+                  <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">
+                    {t('depositSetupLabel')}
+                  </h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">{t('depositSetupHint')}</p>
+                  <div className="mt-2 flex items-center justify-between gap-3">
+                    <label htmlFor="ob-deposit" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                      {t('depositPercentLabel')}
+                    </label>
+                    <div className="flex items-center gap-1">
+                      <input
+                        id="ob-deposit"
+                        type="number" min={0} max={100} step={5} inputMode="numeric"
+                        value={depositPercent}
+                        onChange={(e) => setDepositPercent(e.target.value)}
+                        onBlur={saveDepositPercent}
+                        placeholder="0"
+                        className="input h-10 w-24"
+                      />
+                      <span className="text-slate-500 dark:text-slate-400">%</span>
+                    </div>
+                  </div>
+                  {Number(depositPercent) > 0 && (
+                    <p className="rounded-xl bg-brand-50/60 p-2 text-xs text-slate-600 dark:bg-white/5 dark:text-slate-400">
+                      {t('depositExample', {
+                        pct: Math.min(100, Math.max(0, Number(depositPercent) || 0)),
+                        deposit: (200 * Math.min(100, Math.max(0, Number(depositPercent) || 0)) / 100).toFixed(0),
+                        balance: (200 - 200 * Math.min(100, Math.max(0, Number(depositPercent) || 0)) / 100).toFixed(0),
+                      })}
+                    </p>
+                  )}
                 </div>
               </div>
             )}
