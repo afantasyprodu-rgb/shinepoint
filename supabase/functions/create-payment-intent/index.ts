@@ -16,6 +16,7 @@ import { isUuid } from '../_shared/validate.ts'
 import { withinRateLimit, tooManyRequests } from '../_shared/rateLimit.ts'
 import { approxCentroidForZip, milesBetween } from '../_shared/geo.ts'
 import { platformFeePercent } from '../_shared/fees.ts'
+import { ensureStripeCustomer } from '../_shared/stripeCustomer.ts'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
   apiVersion: '2026-05-27.dahlia' as Stripe.LatestApiVersion,
@@ -355,12 +356,24 @@ Deno.serve(async (req) => {
         intent = await stripe.paymentIntents.update(intent.id, { amount })
       }
     } else {
+      // setup_future_usage only actually SAVES the card if the intent names
+      // a Customer -- without one Stripe attaches the PaymentMethod to
+      // nothing and every later reuse (tip, deposit balance) fails with
+      // "must attach it to a Customer first". That was the case until now,
+      // which is why no tip had ever been charged.
+      const stripeCustomerId = await ensureStripeCustomer(
+        admin,
+        stripe,
+        (booking as any).customer_profiles?.user_id
+      )
       intent = await stripe.paymentIntents.create({
         amount,
         currency: 'usd',
-        // Save the card so the post-job tip can be charged without asking
-        // for it again. The tip is a separate PaymentIntent (charge-tip),
-        // confirmed while the customer is present so 3DS can be handled.
+        ...(stripeCustomerId ? { customer: stripeCustomerId } : {}),
+        // Save the card so the post-job tip and any deposit balance can be
+        // charged without asking for it again. The tip is a separate
+        // PaymentIntent (charge-tip), confirmed while the customer is
+        // present so 3DS can be handled.
         setup_future_usage: 'off_session',
         // Deliberately no application_fee_amount/transfer_data — this
         // charges the platform's own balance. The detailer's cut moves via

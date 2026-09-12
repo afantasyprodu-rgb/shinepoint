@@ -16,6 +16,7 @@
 import Stripe from 'npm:stripe@^18'
 import { createClient } from 'npm:@supabase/supabase-js@^2'
 import { corsHeaders, json } from '../_shared/cors.ts'
+import { ensureStripeCustomer, attachPaymentMethod } from '../_shared/stripeCustomer.ts'
 import { captureException } from '../_shared/sentry.ts'
 import { isUuid, isFiniteNumber } from '../_shared/validate.ts'
 import { withinRateLimit, tooManyRequests } from '../_shared/rateLimit.ts'
@@ -86,9 +87,20 @@ Deno.serve(async (req) => {
       return json({ error: 'No saved card for this booking.', needsCard: true }, 409)
     }
 
+    // Reusing a saved card requires it to be attached to a Stripe Customer.
+    // It never was -- create-payment-intent set setup_future_usage without
+    // naming a customer -- which is why zero tips had ever been charged.
+    // Ensure/attach here too so tips on bookings paid before that fix still
+    // work instead of erroring at the moment someone tries to tip.
+    const tipCustomerId = await ensureStripeCustomer(admin, stripe, user.id)
+    if (tipCustomerId) {
+      await attachPaymentMethod(stripe, booking.stripe_payment_method, tipCustomerId)
+    }
+
     const intent = await stripe.paymentIntents.create({
       amount: Math.round(amount * 100),
       currency: 'usd',
+      ...(tipCustomerId ? { customer: tipCustomerId } : {}),
       payment_method: booking.stripe_payment_method,
       confirm: true,
       // The customer is in the app tapping "tip", so a 3DS challenge can be

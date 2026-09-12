@@ -26,6 +26,7 @@ import { corsHeaders, json } from '../_shared/cors.ts'
 import { captureException } from '../_shared/sentry.ts'
 import { isUuid } from '../_shared/validate.ts'
 import { withinRateLimit, tooManyRequests } from '../_shared/rateLimit.ts'
+import { ensureStripeCustomer, attachPaymentMethod } from '../_shared/stripeCustomer.ts'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
   apiVersion: '2026-05-27.dahlia' as Stripe.LatestApiVersion,
@@ -99,13 +100,24 @@ Deno.serve(async (req) => {
       return json({ error: 'No saved card on this booking. Ask the customer to pay from the app.' }, 409)
     }
 
+    // Off-session reuse requires the card to belong to a Stripe Customer.
+    // Cards saved before that was wired up aren't attached to anyone, so
+    // attach on the way through rather than stranding those bookings.
+    const stripeCustomerId = customerUser
+      ? await ensureStripeCustomer(admin, stripe, customerUser)
+      : null
+    if (!stripeCustomerId) {
+      return json({ error: 'Could not resolve a Stripe customer for this booking.' }, 409)
+    }
+
     let intent: Stripe.PaymentIntent
     try {
+      await attachPaymentMethod(stripe, booking.stripe_payment_method, stripeCustomerId)
       intent = await stripe.paymentIntents.create(
         {
           amount: Math.round(outstanding * 100),
           currency: 'usd',
-          customer: undefined,
+          customer: stripeCustomerId,
           payment_method: booking.stripe_payment_method,
           off_session: true,
           confirm: true,
