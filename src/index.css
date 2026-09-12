@@ -1566,6 +1566,8 @@
   justify-content: center;
   gap: calc(var(--bo-size, 44px) * 0.2);
   pointer-events: none;
+  transform: translate(var(--bo-look-x, 0px), var(--bo-look-y, 0px));
+  transition: transform 100ms ease-out;
 }
 .bo-eye-look {
   display: inline-block;
@@ -1573,6 +1575,10 @@
 }
 .bo-eye-look + .bo-eye-look {
   animation-delay: -1.6s;
+}
+/* Finger/cursor gaze — pause idle wander while tracking; blink stays on. */
+.nx-bo-looking .bo-eye-look {
+  animation: none;
 }
 .bo-eye {
   display: block;
