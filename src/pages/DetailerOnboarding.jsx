@@ -422,7 +422,12 @@ export default function DetailerOnboarding() {
           {step + 1}/{STEPS.length} · {STEPS[step]}
         </p>
 
-        <OnboardingHelper step={step} />
+        <OnboardingHelper
+          step={step}
+          onApplyExamplePricing={
+            step === 4 && Object.keys(services).length === 0 ? applyExampleTemplate : null
+          }
+        />
 
         <AnimatePresence mode="wait">
           <motion.div

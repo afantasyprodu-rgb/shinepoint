@@ -36,3 +36,22 @@ export function intentsForStep(step) {
 export function labelKeyFor(intentId) {
   return LABEL_KEYS[intentId] ?? intentId
 }
+
+// Step-aware greeting: "I see you're on step N, here's what to do" -- shown
+// the moment Driplee opens, before any chip is picked, on every step
+// (unlike the help chips above, which only exist on the four steps that
+// warrant one). Local strings, not a backend call -- it has to render
+// instantly and never depend on being online.
+const GREETING_KEYS = {
+  0: 'greetingIdentity',
+  1: 'greetingInsurance',
+  2: 'greetingProfile',
+  3: 'greetingSurvey',
+  4: 'greetingServices',
+  5: 'greetingSchedule',
+  6: 'greetingPayout',
+}
+
+export function greetingKeyForStep(step) {
+  return GREETING_KEYS[step] ?? null
+}
