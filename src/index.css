@@ -1566,6 +1566,8 @@
   justify-content: center;
   gap: calc(var(--bo-size, 44px) * 0.2);
   pointer-events: none;
+  transform: translate(var(--bo-look-x, 0px), var(--bo-look-y, 0px));
+  transition: transform 100ms ease-out;
 }
 .bo-eye-look {
   display: inline-block;
@@ -1573,6 +1575,10 @@
 }
 .bo-eye-look + .bo-eye-look {
   animation-delay: -1.6s;
+}
+/* Finger/cursor gaze — pause idle wander while tracking; blink stays on. */
+.nx-bo-looking .bo-eye-look {
+  animation: none;
 }
 .bo-eye {
   display: block;
@@ -1594,67 +1600,157 @@
   }
 }
 
-/* Bo's bow tie + collar — drawn flat (no gradients/shading beyond the
-   knot's own highlight) so it reads as a cartoon accessory wrapped around
-   the bottom of the sphere, not a literal rendered suit. Two triangular
-   collar flaps (clip-path) angle up from the bubble's bottom rim like a V
-   neckline, meeting at a small bow tie (two more triangles + a center
-   knot) sitting right where they meet. Everything scales off --bo-size,
-   same as the eyes, and sits UNDER the eyes in paint order (markup order)
-   so a wide grin/expression added later would still read above the collar. */
+/* Bo tuxedo — bottom-quarter wrap only (still a circle, not a human body).
+   Soft black jacket mass at the south pole; lapels/shirt/bow sit inside that
+   ~25% band so most of the pink soap-bubble stays visible above. */
 .bo-suit {
   position: absolute;
-  left: 50%;
-  bottom: -4%;
-  transform: translateX(-50%);
-  width: 76%;
-  height: 40%;
+  inset: 0;
   pointer-events: none;
+  overflow: hidden;
+  border-radius: 50%;
 }
-.bo-collar {
+.bo-tux-body {
   position: absolute;
+  left: 5%;
+  right: 5%;
   bottom: 0;
-  width: 52%;
-  height: 68%;
-  background: #f8fafc;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+  height: 25%;
+  background: #1a1220;
+  border-radius: 50% 50% 50% 50% / 28% 28% 100% 100%;
+  box-shadow:
+    inset 0 4px 8px rgba(255, 255, 255, 0.08),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.35);
 }
-.bo-collar-left {
-  left: 4%;
-  clip-path: polygon(0 0, 100% 100%, 0 100%);
+.bo-tux-lapel {
+  position: absolute;
+  bottom: 4%;
+  width: 24%;
+  height: 18%;
+  background: #2a2030;
+  border-radius: 55% 40% 60% 45% / 40% 55% 45% 60%;
+  box-shadow: inset 1px 1px 2px rgba(255, 255, 255, 0.12);
 }
-.bo-collar-right {
-  right: 4%;
-  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+.bo-tux-lapel-left {
+  left: 12%;
+  transform: rotate(-16deg);
+}
+.bo-tux-lapel-right {
+  right: 12%;
+  transform: rotate(16deg);
+}
+.bo-tux-shirt {
+  position: absolute;
+  left: 50%;
+  bottom: 2%;
+  transform: translateX(-50%);
+  width: 22%;
+  height: 18%;
+  background: #fff8f3;
+  border-radius: 45% 45% 40% 40% / 20% 20% 80% 80%;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.9), 0 1px 2px rgba(0, 0, 0, 0.12);
 }
 .bo-bowtie {
   position: absolute;
   left: 50%;
-  bottom: 6%;
+  bottom: 18%;
   transform: translateX(-50%);
-  width: 34%;
-  height: 34%;
+  width: 32%;
+  height: 10%;
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 2;
 }
 .bo-bowtie-wing {
-  width: 42%;
-  height: 100%;
-  background: var(--color-brand-700);
+  width: 40%;
+  height: 90%;
+  background: var(--color-brand-600, #F43F8C);
+  border-radius: 50%;
+  box-shadow: inset 1px 1px 2px rgba(255, 255, 255, 0.35);
 }
 .bo-bowtie-wing-left {
-  clip-path: polygon(100% 0, 100% 100%, 0 50%);
+  margin-right: -6%;
 }
 .bo-bowtie-wing-right {
-  clip-path: polygon(0 0, 0 100%, 100% 50%);
+  margin-left: -6%;
 }
 .bo-bowtie-knot {
   width: 22%;
-  height: 60%;
-  border-radius: 2px;
-  background: var(--color-brand-900, #5c0c37);
-  box-shadow: inset 1px 1px 1px rgba(255, 255, 255, 0.3);
+  height: 70%;
+  border-radius: 50%;
+  background: var(--color-brand-800, #9d174d);
+  box-shadow: inset 1px 1px 1px rgba(255, 255, 255, 0.35);
+  z-index: 1;
+}
+
+
+/* Bo sparkles — tiny 4-point diamonds around the live bubble (not muted).
+   Sized off --bo-size so FAB (64) and chat avatar (28/44) scale together.
+   Positions sit ABOVE the tuxedo bottom-quarter so they don't fight the suit. */
+.bo-sparkle {
+  position: absolute;
+  width: calc(var(--bo-size, 44px) * 0.09);
+  height: calc(var(--bo-size, 44px) * 0.09);
+  background: #F43F8C;
+  border-radius: 1px;
+  transform: rotate(45deg);
+  pointer-events: none;
+  z-index: 3;
+  opacity: 0.9;
+  animation: boSparkleTwinkle 2.2s ease-in-out infinite;
+  box-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.55);
+}
+.bo-sparkle-tr {
+  top: 6%;
+  right: 8%;
+  background: #F43F8C;
+  animation-delay: 0s;
+}
+.bo-sparkle-tl {
+  top: 10%;
+  left: 6%;
+  width: calc(var(--bo-size, 44px) * 0.07);
+  height: calc(var(--bo-size, 44px) * 0.07);
+  background: #FFD6E8;
+  animation-delay: -0.6s;
+}
+.bo-sparkle-mr {
+  top: 38%;
+  right: 2%;
+  width: calc(var(--bo-size, 44px) * 0.065);
+  height: calc(var(--bo-size, 44px) * 0.065);
+  background: #ffffff;
+  opacity: 0.95;
+  animation-delay: -1.1s;
+}
+.bo-sparkle-bl {
+  /* above tuxedo (~25% band) — mid-lower left */
+  top: 58%;
+  left: 4%;
+  width: calc(var(--bo-size, 44px) * 0.06);
+  height: calc(var(--bo-size, 44px) * 0.06);
+  background: #F43F8C;
+  opacity: 0.75;
+  animation-delay: -1.6s;
+}
+.bo-sparkle-tm {
+  top: 2%;
+  left: 42%;
+  width: calc(var(--bo-size, 44px) * 0.055);
+  height: calc(var(--bo-size, 44px) * 0.055);
+  background: #ffffff;
+  opacity: 0.85;
+  animation-delay: -0.3s;
+}
+@keyframes boSparkleTwinkle {
+  0%, 100% { opacity: 0.45; transform: rotate(45deg) scale(0.8); }
+  50% { opacity: 1; transform: rotate(45deg) scale(1.2); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bo-sparkle {
+    animation: none !important;
+  }
 }
 
 /* Muted Bo — same treatment as .nx-tab-drop-muted, for a past chat message
