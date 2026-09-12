@@ -163,6 +163,11 @@ verify_jwt = false
 [functions.concierge-chat]
 verify_jwt = false
 
+# Captures the remainder of a deposit booking after the work is done.
+# Authenticates the caller and checks they're on the booking before charging.
+[functions.charge-balance]
+verify_jwt = true
+
 # Customer cancelling their own booking — issues a real Stripe refund, so
 # it authenticates the caller and checks booking ownership inside the
 # function on top of this gateway check.

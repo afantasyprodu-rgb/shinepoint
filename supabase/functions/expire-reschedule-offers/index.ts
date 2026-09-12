@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
 
   const { data: due, error } = await admin
     .from('bookings')
-    .select('id, total_price, paid_at, stripe_payment_intent, refunded_amount')
+    .select('id, total_price, paid_at, stripe_payment_intent, refunded_amount, amount_collected, deposit_amount, balance_payment_intent')
     .eq('status', 'reschedule_offered')
     .lt('reschedule_offer_expires_at', new Date().toISOString())
   if (error) {

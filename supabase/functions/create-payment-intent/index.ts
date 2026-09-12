@@ -278,7 +278,28 @@ Deno.serve(async (req) => {
       }
     }
 
-    const amount = Math.round(expected * 100)
+    // 086: a detailer can take a percentage up front to hold the slot
+    // instead of the whole job. deposit_percent = 0 (the default, and every
+    // pre-086 detailer) means charge in full, exactly as before.
+    //
+    // Credits complicate this: `expected` is already net of rewards/promo,
+    // so the deposit is taken as a share of what the customer actually owes
+    // rather than of the list price -- charging 20% of a price they aren't
+    // paying would over-collect.
+    const { data: depositCfg } = await admin
+      .from('detailer_profiles')
+      .select('deposit_percent')
+      .eq('id', booking.detailer_id)
+      .single()
+    const depositPct = Number(depositCfg?.deposit_percent ?? 0)
+    const depositAmount =
+      depositPct > 0 && expected > 0
+        ? Number(Math.max(0.5, (expected * depositPct) / 100).toFixed(2))
+        : 0
+    // Never let a "deposit" quietly become the whole price plus rounding.
+    const chargeNow = depositAmount > 0 ? Math.min(depositAmount, expected) : expected
+
+    const amount = Math.round(chargeNow * 100)
     // Correct the row so downstream reads (detailer payout views, receipts)
     // show the enforced price, not whatever the client inserted.
     if (Number(booking.total_price) !== expected || mileageFee > 0 || vehicleUpchargeFee > 0) {
@@ -364,6 +385,9 @@ Deno.serve(async (req) => {
           // more than the platform's normal margin.
           platform_cut: Number((expected - detailerPayout).toFixed(2)),
           detailer_payout: detailerPayout,
+          // 086. amount_collected stays 0 until the webhook confirms the
+          // charge actually succeeded -- this intent may never be paid.
+          deposit_amount: depositAmount,
           promo_code_id: promoCodeId,
           promo_discount: promoDiscount,
         })

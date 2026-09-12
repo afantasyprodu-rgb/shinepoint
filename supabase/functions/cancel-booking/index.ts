@@ -41,6 +41,11 @@ const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
 
 const CANCELLABLE = ['pending', 'accepted', 'en_route', 'arrived']
 
+// Matches the cancel dialog's own copy in src/i18n/strings.js
+// ("Free cancellation up to 4 hours before the appointment"). Change both
+// together or the app promises one thing and the server does another.
+const FREE_CANCEL_HOURS = 4
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   if (req.method !== 'POST') return json({ error: 'POST only' }, 405)
@@ -75,6 +80,7 @@ Deno.serve(async (req) => {
       .from('bookings')
       .select(
         `id, status, total_price, paid_at, stripe_payment_intent, refunded_amount,
+         amount_collected, deposit_amount, balance_payment_intent, scheduled_time,
          customer_profiles!inner(user_id)`
       )
       .eq('id', bookingId)
@@ -100,12 +106,21 @@ Deno.serve(async (req) => {
       )
     }
 
-    const { refundId, refunded } = await refundBooking(
+    // 086: past the cutoff the deposit is forfeited — that is the whole
+    // point of taking one. The window matches the promise already shipped
+    // in the cancel dialog's own copy ("Free cancellation up to 4 hours
+    // before the appointment"), so the rule and the copy agree. A detailer
+    // declining or a booking expiring never forfeits: those aren't the
+    // customer's fault, and those paths don't pass keepDeposit at all.
+    const hoursOut = (new Date(booking.scheduled_time).getTime() - Date.now()) / 3600_000
+    const keepDeposit = Number(booking.deposit_amount ?? 0) > 0 && hoursOut < FREE_CANCEL_HOURS
+
+    const { refundId, refunded, keptDeposit } = await refundBooking(
       admin,
       stripe,
       booking,
       'customer',
-      'customer_cancelled'
+      { reason: 'customer_cancelled', keepDeposit }
     )
 
     if (reason) {
@@ -118,7 +133,7 @@ Deno.serve(async (req) => {
       if (noteErr) console.error('cancel-booking: reason not saved:', noteErr.message)
     }
 
-    return json({ ok: true, refundId, refunded })
+    return json({ ok: true, refundId, refunded, keptDeposit })
   } catch (e) {
     console.error('cancel-booking:', e)
     await captureException(e, 'cancel-booking')

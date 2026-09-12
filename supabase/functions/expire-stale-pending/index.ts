@@ -51,6 +51,7 @@ Deno.serve(async (req) => {
     .from('bookings')
     .select(
       `id, total_price, paid_at, stripe_payment_intent, refunded_amount, scheduled_time,
+       amount_collected, deposit_amount, balance_payment_intent,
        customer_profiles!inner(user_id)`
     )
     .eq('status', 'pending')

@@ -162,6 +162,26 @@ Deno.serve(async (req) => {
               tip_amount: Math.round(pi.amount) / 100,
             })
             .eq('id', bookingId)
+        } else if (bookingId && pi.metadata?.kind === 'balance') {
+          // 086: the remainder captured after the job (charge-balance).
+          // Like the tip above, the amount comes FROM the PaymentIntent,
+          // and it ADDS to what the deposit already collected rather than
+          // replacing it.
+          const { data: row } = await admin
+            .from('bookings')
+            .select('amount_collected')
+            .eq('id', bookingId)
+            .single()
+          await admin
+            .from('bookings')
+            .update({
+              balance_paid_at: new Date().toISOString(),
+              balance_payment_intent: pi.id,
+              amount_collected: Number(
+                (Number(row?.amount_collected ?? 0) + Math.round(pi.amount) / 100).toFixed(2)
+              ),
+            })
+            .eq('id', bookingId)
         } else if (bookingId) {
           await admin
             .from('bookings')
@@ -170,6 +190,10 @@ Deno.serve(async (req) => {
               stripe_payment_intent: pi.id,
               // Kept so the post-job tip can reuse the card.
               stripe_payment_method: typeof pi.payment_method === 'string' ? pi.payment_method : null,
+              // 086: only now is this real money. On a full-price booking
+              // this is the whole total; on a deposit booking it is just
+              // the deposit, and charge-balance adds the rest later.
+              amount_collected: Math.round(pi.amount) / 100,
             })
             .eq('id', bookingId)
           await sendBookingConfirmation(bookingId)

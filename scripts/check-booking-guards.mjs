@@ -47,6 +47,11 @@ const REQUIRED_UPDATE_COLS = [
   'reschedule_customer_pick',
   'detailer_location_id',
   'stripe_refund_id',
+  'deposit_amount',
+  'amount_collected',
+  'balance_payment_intent',
+  'balance_paid_at',
+  'deposit_forfeited',
 ]
 
 // Fields the INSERT guard must strip from client inserts.
@@ -57,6 +62,12 @@ const REQUIRED_INSERT_STRIPS = [
   ['detailer_payout', ':= null'],
   ['stripe_payment_intent', ':= null'],
   ['paid_at', ':= null'],
+  // 086: a client must not be able to assert money was already taken.
+  ['deposit_amount', ':= 0'],
+  ['amount_collected', ':= 0'],
+  ['balance_payment_intent', ':= null'],
+  ['balance_paid_at', ':= null'],
+  ['deposit_forfeited', ':= false'],
 ]
 
 // Last definition wins, mirroring CREATE OR REPLACE semantics applied in

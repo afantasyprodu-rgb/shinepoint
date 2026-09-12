@@ -71,6 +71,7 @@ Deno.serve(async (req) => {
       .from('bookings')
       .select(
         `id, status, total_price, paid_at, stripe_payment_intent, refunded_amount, detailer_id, scheduled_time,
+         amount_collected, deposit_amount, balance_payment_intent,
          detailer_profiles!bookings_detailer_id_fkey(user_id, users!inner(full_name)),
          customer_profiles!inner(users!inner(email, phone, sms_opt_in, full_name)),
          services(service_name)`

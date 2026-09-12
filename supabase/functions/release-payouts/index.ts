@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
   // admin calls admin_approve_payout and payout_approved_at is set.
   const { data: due, error } = await admin
     .from('bookings')
-    .select('id, detailer_payout, tip_amount, tip_paid_at, detailer_id, payout_requires_approval, payout_approved_at, detailer_profiles!bookings_detailer_id_fkey(stripe_account_id)')
+    .select('id, detailer_payout, tip_amount, tip_paid_at, amount_collected, refunded_amount, detailer_id, payout_requires_approval, payout_approved_at, detailer_profiles!bookings_detailer_id_fkey(stripe_account_id)')
     .eq('status', 'complete')
     .is('transferred_at', null)
     .not('paid_at', 'is', null)
@@ -66,7 +66,19 @@ Deno.serve(async (req) => {
     // tip charge actually succeeded. tip_amount alone is what the customer
     // chose; tip_paid_at is what was actually collected.
     const tip = b.tip_paid_at ? Number(b.tip_amount ?? 0) : 0
-    const payoutTotal = Number(b.detailer_payout) + tip
+    // 086: never transfer more than the platform actually holds. On a
+    // deposit booking whose balance was never captured, detailer_payout is
+    // still the full-job figure -- paying that out would send money that
+    // was never collected. amount_collected (minus anything refunded) is
+    // the real ceiling; the tip sits outside it as its own charge.
+    const netCollected = Number(
+      (Number(b.amount_collected ?? 0) - Number(b.refunded_amount ?? 0)).toFixed(2)
+    )
+    const payoutTotal = Math.min(Number(b.detailer_payout), Math.max(0, netCollected)) + tip
+    if (payoutTotal <= 0) {
+      skipped++
+      continue
+    }
     try {
       const transfer = await stripe.transfers.create({
         amount: Math.round(payoutTotal * 100),
