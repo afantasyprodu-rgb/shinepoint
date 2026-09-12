@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
   // admin calls admin_approve_payout and payout_approved_at is set.
   const { data: due, error } = await admin
     .from('bookings')
-    .select('id, detailer_payout, tip_amount, tip_paid_at, amount_collected, refunded_amount, detailer_id, payout_requires_approval, payout_approved_at, detailer_profiles!bookings_detailer_id_fkey(stripe_account_id)')
+    .select('id, detailer_payout, tip_amount, tip_paid_at, amount_collected, deposit_amount, refunded_amount, detailer_id, payout_requires_approval, payout_approved_at, detailer_profiles!bookings_detailer_id_fkey(stripe_account_id)')
     .eq('status', 'complete')
     .is('transferred_at', null)
     .not('paid_at', 'is', null)
@@ -66,15 +66,22 @@ Deno.serve(async (req) => {
     // tip charge actually succeeded. tip_amount alone is what the customer
     // chose; tip_paid_at is what was actually collected.
     const tip = b.tip_paid_at ? Number(b.tip_amount ?? 0) : 0
-    // 086: never transfer more than the platform actually holds. On a
-    // deposit booking whose balance was never captured, detailer_payout is
-    // still the full-job figure -- paying that out would send money that
-    // was never collected. amount_collected (minus anything refunded) is
-    // the real ceiling; the tip sits outside it as its own charge.
+    // 086: on a DEPOSIT booking, never transfer more than was actually
+    // collected -- detailer_payout is still the full-job figure, so paying
+    // it when the balance was never captured sends money that never came
+    // in. The cap is scoped to deposit bookings deliberately: a booking
+    // fully covered by reward/referral credit collects $0 by design and the
+    // platform funds the payout itself (see create-payment-intent's
+    // amount <= 0 branch, where platform_cut goes negative on purpose).
+    // Capping on collection alone would silently stop paying those.
+    const isDeposit = Number(b.deposit_amount ?? 0) > 0
     const netCollected = Number(
       (Number(b.amount_collected ?? 0) - Number(b.refunded_amount ?? 0)).toFixed(2)
     )
-    const payoutTotal = Math.min(Number(b.detailer_payout), Math.max(0, netCollected)) + tip
+    const basePayout = isDeposit
+      ? Math.min(Number(b.detailer_payout), Math.max(0, netCollected))
+      : Number(b.detailer_payout)
+    const payoutTotal = basePayout + tip
     if (payoutTotal <= 0) {
       skipped++
       continue
