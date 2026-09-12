@@ -1594,67 +1594,88 @@
   }
 }
 
-/* Bo's bow tie + collar — drawn flat (no gradients/shading beyond the
-   knot's own highlight) so it reads as a cartoon accessory wrapped around
-   the bottom of the sphere, not a literal rendered suit. Two triangular
-   collar flaps (clip-path) angle up from the bubble's bottom rim like a V
-   neckline, meeting at a small bow tie (two more triangles + a center
-   knot) sitting right where they meet. Everything scales off --bo-size,
-   same as the eyes, and sits UNDER the eyes in paint order (markup order)
-   so a wide grin/expression added later would still read above the collar. */
+/* Bo's bubbly tuxedo — wrapped around the LOWER HALF of the sphere only.
+   Still a circle: black jacket mass + soft white shirt V + brand bow as
+   rounded blobs, not a human torso. Scales off --bo-size. */
 .bo-suit {
   position: absolute;
-  left: 50%;
-  bottom: -4%;
-  transform: translateX(-50%);
-  width: 76%;
-  height: 40%;
+  inset: 0;
   pointer-events: none;
+  overflow: hidden;
+  border-radius: 50%;
 }
-.bo-collar {
+.bo-tux-body {
   position: absolute;
-  bottom: 0;
-  width: 52%;
-  height: 68%;
-  background: #f8fafc;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
-}
-.bo-collar-left {
   left: 4%;
-  clip-path: polygon(0 0, 100% 100%, 0 100%);
-}
-.bo-collar-right {
   right: 4%;
-  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+  bottom: 0;
+  height: 52%;
+  background: #1a1220;
+  border-radius: 50% 50% 50% 50% / 18% 18% 100% 100%;
+  box-shadow:
+    inset 0 6px 10px rgba(255, 255, 255, 0.08),
+    inset 0 -4px 8px rgba(0, 0, 0, 0.35);
+}
+.bo-tux-lapel {
+  position: absolute;
+  bottom: 18%;
+  width: 28%;
+  height: 34%;
+  background: #2a2030;
+  border-radius: 55% 40% 60% 45% / 40% 55% 45% 60%;
+  box-shadow: inset 1px 1px 2px rgba(255, 255, 255, 0.12);
+}
+.bo-tux-lapel-left {
+  left: 10%;
+  transform: rotate(-18deg);
+}
+.bo-tux-lapel-right {
+  right: 10%;
+  transform: rotate(18deg);
+}
+.bo-tux-shirt {
+  position: absolute;
+  left: 50%;
+  bottom: 8%;
+  transform: translateX(-50%);
+  width: 26%;
+  height: 38%;
+  background: #fff8f3;
+  border-radius: 45% 45% 40% 40% / 20% 20% 80% 80%;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.9), 0 1px 2px rgba(0, 0, 0, 0.12);
 }
 .bo-bowtie {
   position: absolute;
   left: 50%;
-  bottom: 6%;
+  bottom: 36%;
   transform: translateX(-50%);
-  width: 34%;
-  height: 34%;
+  width: 38%;
+  height: 18%;
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 2;
 }
 .bo-bowtie-wing {
-  width: 42%;
-  height: 100%;
-  background: var(--color-brand-700);
+  width: 40%;
+  height: 90%;
+  background: var(--color-brand-600, #F43F8C);
+  border-radius: 50%;
+  box-shadow: inset 1px 1px 2px rgba(255, 255, 255, 0.35);
 }
 .bo-bowtie-wing-left {
-  clip-path: polygon(100% 0, 100% 100%, 0 50%);
+  margin-right: -6%;
 }
 .bo-bowtie-wing-right {
-  clip-path: polygon(0 0, 0 100%, 100% 50%);
+  margin-left: -6%;
 }
 .bo-bowtie-knot {
   width: 22%;
-  height: 60%;
-  border-radius: 2px;
-  background: var(--color-brand-900, #5c0c37);
-  box-shadow: inset 1px 1px 1px rgba(255, 255, 255, 0.3);
+  height: 70%;
+  border-radius: 50%;
+  background: var(--color-brand-800, #9d174d);
+  box-shadow: inset 1px 1px 1px rgba(255, 255, 255, 0.35);
+  z-index: 1;
 }
 
 /* Muted Bo — same treatment as .nx-tab-drop-muted, for a past chat message
