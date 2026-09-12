@@ -184,6 +184,20 @@ export default function DetailerOnboarding() {
     setServiceMethod('template')
   }
 
+  // Same idea as applyExampleTemplate, generalized for whatever Driplee's
+  // suggest_prices intent came back with (tailored to zip/experience, or
+  // the server's own static fallback) instead of always the fixed example
+  // set. Only ever called from OnboardingHelper's confirm tap -- never
+  // automatically.
+  function applySuggestedPricing(suggestions) {
+    const map = {}
+    for (const { name, price } of suggestions) map[name] = price
+    setServices(map)
+    setServiceAddons({})
+    setFeaturedService(null)
+    setServiceMethod('template')
+  }
+
   // Persist the pricing-path draft so it survives Back navigation and
   // closing the tab entirely, until onboarding is actually submitted.
   useEffect(() => {
@@ -424,9 +438,12 @@ export default function DetailerOnboarding() {
 
         <OnboardingHelper
           step={step}
-          onApplyExamplePricing={
-            step === 4 && Object.keys(services).length === 0 ? applyExampleTemplate : null
+          onApplyPricing={
+            step === 4 && Object.keys(services).length === 0 ? applySuggestedPricing : null
           }
+          zip={zip}
+          yearsExperience={yearsExperience}
+          certifications={certifications}
         />
 
         <AnimatePresence mode="wait">

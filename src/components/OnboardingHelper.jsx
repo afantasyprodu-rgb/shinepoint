@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { invokeFn } from '../lib/supabase'
 import { intentsForStep, labelKeyFor, greetingKeyForStep } from '../lib/onboardingHelperActions'
@@ -12,38 +12,51 @@ import { useT } from '../i18n/useT'
  * flow, see AppShell.jsx's comment on that prop) -- this is a separate,
  * intentionally smaller stand-in for that screen only.
  *
- * Two things this does that the dashboard launcher doesn't:
+ * Three things this does that the dashboard launcher doesn't:
+ *  - Opens itself once, unprompted, the moment a brand-new detailer lands
+ *    on step 0 -- Driplee is the first thing they see, not something they
+ *    have to go find.
  *  - Step-aware greeting: opening the panel always shows a short "here's
  *    what this step needs" line for whatever step is current, before any
  *    chip is picked -- local text, not a backend call, so it's instant and
  *    never depends on being online.
- *  - A single permission-gated action, on the Services step only: offer to
- *    fill in example prices, show exactly what that would add, and only
- *    apply it after an explicit confirm tap. Nothing here ever writes to
- *    onboarding state without that confirm.
+ *  - A single permission-gated action, on the Services step only: ask the
+ *    model for a starter price list tailored to whatever the detailer has
+ *    already told the wizard (zip, experience, certifications), show
+ *    exactly what that would add, and only apply it after an explicit
+ *    confirm tap. Nothing here ever writes to onboarding state without
+ *    that confirm, and a fallback list covers the case where the model
+ *    call fails or isn't configured.
  *
  * Everything else stays read-only quick-help chips -- no free-text field,
  * no drafting/sending anything (there's nothing to send before onboarding
  * is even done).
  */
-export default function OnboardingHelper({ step, onApplyExamplePricing }) {
+export default function OnboardingHelper({ step, onApplyPricing, zip, yearsExperience, certifications }) {
   const { lang } = useLanguage()
   const t = useT('detailerOnboarding')
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [fetchingPrices, setFetchingPrices] = useState(false)
   const [reply, setReply] = useState(null)
   const [error, setError] = useState(null)
-  const [pricingPreview, setPricingPreview] = useState(false)
+  const [suggestions, setSuggestions] = useState(null)
   const [pricingApplied, setPricingApplied] = useState(false)
 
   const intents = intentsForStep(step)
   const greetingKey = greetingKeyForStep(step)
 
+  // See class doc above -- runs once, ever, for this mount of the wizard.
+  useEffect(() => {
+    if (step === 0) setOpen(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   function toggle() {
     setOpen((v) => !v)
     setReply(null)
     setError(null)
-    setPricingPreview(false)
+    setSuggestions(null)
     setPricingApplied(false)
   }
 
@@ -51,7 +64,7 @@ export default function OnboardingHelper({ step, onApplyExamplePricing }) {
     setBusy(true)
     setError(null)
     setReply(null)
-    setPricingPreview(false)
+    setSuggestions(null)
     try {
       const data = await invokeFn('detailer-helper', { intent: intentId, lang })
       setReply(data?.reply || t('helperNoAnswer'))
@@ -62,9 +75,32 @@ export default function OnboardingHelper({ step, onApplyExamplePricing }) {
     }
   }
 
+  async function fetchPriceSuggestions() {
+    setFetchingPrices(true)
+    setError(null)
+    setReply(null)
+    setSuggestions(null)
+    try {
+      const data = await invokeFn('detailer-helper', {
+        intent: 'suggest_prices',
+        zip,
+        yearsExperience,
+        certifications,
+        lang,
+      })
+      setSuggestions(Array.isArray(data?.suggestions) && data.suggestions.length ? data.suggestions : null)
+      if (!data?.suggestions?.length) setError(t('helperError'))
+    } catch (err) {
+      setError(err?.message || t('helperError'))
+    } finally {
+      setFetchingPrices(false)
+    }
+  }
+
   function confirmApplyPricing() {
-    onApplyExamplePricing?.()
-    setPricingPreview(false)
+    if (!suggestions) return
+    onApplyPricing?.(suggestions)
+    setSuggestions(null)
     setPricingApplied(true)
     setReply(null)
   }
@@ -108,11 +144,11 @@ export default function OnboardingHelper({ step, onApplyExamplePricing }) {
                     {t(labelKeyFor(id))}
                   </button>
                 ))}
-                {onApplyExamplePricing && !pricingApplied && (
+                {onApplyPricing && !pricingApplied && (
                   <button
                     type="button"
-                    onClick={() => setPricingPreview((v) => !v)}
-                    disabled={busy}
+                    onClick={fetchPriceSuggestions}
+                    disabled={busy || fetchingPrices}
                     className="rounded-full border border-brand-300 bg-brand-50 px-3 py-1 text-xs font-medium text-brand-800 transition hover:bg-brand-100 disabled:opacity-40 dark:border-brand-400/40 dark:bg-white/5 dark:text-brand-200"
                   >
                     {t('helpApplyPricingLabel')}
@@ -128,20 +164,14 @@ export default function OnboardingHelper({ step, onApplyExamplePricing }) {
                 </button>
               </div>
 
-              {/* Permission gate: show exactly what would be added, apply
-                  only on an explicit tap. No network call -- these are the
-                  same static example prices the "start from a template"
-                  option on this step already uses. */}
-              {pricingPreview && !pricingApplied && (
+              {/* Permission gate: fetch and show exactly what would be
+                  added, apply only on an explicit tap -- nothing is written
+                  to onboarding state until confirmApplyPricing runs. */}
+              {suggestions && !pricingApplied && (
                 <div className="mt-2 space-y-2 rounded-xl border border-brand-200 bg-brand-50/40 p-2.5 dark:border-brand-400/30 dark:bg-white/5">
                   <p className="text-xs text-slate-600 dark:text-slate-300">{t('pricingPreviewIntro')}</p>
                   <ul className="space-y-1 text-xs text-slate-700 dark:text-slate-200">
-                    {[
-                      ['Exterior Wash', 45],
-                      ['Full Detail', 175],
-                      ['Interior Deep Clean', 85],
-                      ['Wax & Seal', 60],
-                    ].map(([name, price]) => (
+                    {suggestions.map(({ name, price }) => (
                       <li key={name} className="flex justify-between">
                         <span>{name}</span>
                         <span className="font-medium tabular-nums">${price}</span>
@@ -158,7 +188,7 @@ export default function OnboardingHelper({ step, onApplyExamplePricing }) {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setPricingPreview(false)}
+                      onClick={() => setSuggestions(null)}
                       className="rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 dark:border-white/15 dark:text-slate-300"
                     >
                       {t('pricingPreviewCancel')}
@@ -167,16 +197,17 @@ export default function OnboardingHelper({ step, onApplyExamplePricing }) {
                 </div>
               )}
 
-              {(busy || error || reply || pricingApplied) && (
+              {(busy || fetchingPrices || error || reply || pricingApplied) && (
                 <div className="mt-2 min-h-[1.5rem]">
                   {busy && <p className="text-xs text-slate-400">{t('helperChecking')}</p>}
-                  {!busy && error && <p className="text-xs text-rose-600">{error}</p>}
-                  {!busy && !error && pricingApplied && (
+                  {fetchingPrices && <p className="text-xs text-slate-400">{t('pricingSuggesting')}</p>}
+                  {!busy && !fetchingPrices && error && <p className="text-xs text-rose-600">{error}</p>}
+                  {!busy && !fetchingPrices && !error && pricingApplied && (
                     <p className="rounded-xl bg-cta-50 px-3 py-2 text-xs leading-snug text-cta-700 dark:bg-cta-500/10 dark:text-cta-400">
                       {t('pricingApplied')}
                     </p>
                   )}
-                  {!busy && !error && !pricingApplied && reply && (
+                  {!busy && !fetchingPrices && !error && !pricingApplied && reply && (
                     <p className="rounded-xl bg-slate-100 px-3 py-2 text-xs leading-snug text-slate-800 dark:bg-white/10 dark:text-slate-100">
                       {reply}
                     </p>

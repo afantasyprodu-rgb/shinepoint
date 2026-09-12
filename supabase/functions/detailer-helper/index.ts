@@ -33,7 +33,7 @@ import { callChat, chatConfigured } from '../_shared/chatProvider.ts'
 import { sendSms } from '../_shared/sentdm.ts'
 import { sendEmail } from '../_shared/resend.ts'
 import { appointmentReminderSms } from '../_shared/sms-templates.ts'
-import { isUuid, cleanText } from '../_shared/validate.ts'
+import { isUuid, cleanText, isOneOf } from '../_shared/validate.ts'
 
 type Ctx = {
   admin: ReturnType<typeof createClient>
@@ -226,6 +226,84 @@ const INTENTS: Record<string, (ctx: Ctx, bookingId?: unknown) => Promise<unknown
   analytics_rating: analyticsRating,
   analytics_top_service: analyticsTopService,
   job_summary: (ctx, bookingId) => jobSummary(ctx, bookingId),
+}
+
+// Static fallback -- identical to the wizard's own EXAMPLE_TEMPLATE
+// (src/pages/DetailerOnboarding.jsx). Used whenever the model isn't
+// configured or its output can't be trusted, so "tailored" pricing degrades
+// to the same safe default the wizard already offers rather than failing.
+const FALLBACK_PRICES = [
+  { name: 'Exterior Wash', price: 45 },
+  { name: 'Full Detail', price: 175 },
+  { name: 'Interior Deep Clean', price: 85 },
+  { name: 'Wax & Seal', price: 60 },
+]
+
+const YEARS_OPTIONS = ['0-1', '1-3', '3-5', '5+']
+
+// Onboarding-scoped, called directly from the Services step -- the only
+// caller-controlled inputs are zip (must be exactly 5 digits), an
+// already-fixed years-experience bucket, and certification labels, which
+// includes free text (a detailer can type a custom cert name in the
+// wizard). All of it is capped and only ever used to steer number
+// suggestions in a prompt whose OUTPUT is validated just as strictly on
+// the way back out -- see the parsing below. Nothing here reaches a
+// database or another user's data; a detailer "attacking" their own price
+// suggestions has nothing to gain.
+async function suggestPrices(
+  opts: { zip?: unknown; yearsExperience?: unknown; certifications?: unknown; lang: 'en' | 'es' }
+): Promise<{ suggestions: { name: string; price: number }[]; source: 'ai' | 'fallback' }> {
+  if (!chatConfigured()) return { suggestions: FALLBACK_PRICES, source: 'fallback' }
+
+  const zip = typeof opts.zip === 'string' && /^\d{5}$/.test(opts.zip) ? opts.zip : null
+  const years = isOneOf(opts.yearsExperience, YEARS_OPTIONS) ? opts.yearsExperience : null
+  const certs = Array.isArray(opts.certifications)
+    ? opts.certifications
+        .filter((c): c is string => typeof c === 'string')
+        .map((c) => cleanText(c, 40))
+        .filter((c): c is string => Boolean(c))
+        .slice(0, 5)
+    : []
+
+  const facts = [
+    zip ? `Service area ZIP: ${zip}` : null,
+    years ? `Years of detailing experience: ${years}` : null,
+    certs.length ? `Certifications: ${certs.join(', ')}` : null,
+  ].filter(Boolean)
+
+  const langLine = opts.lang === 'es' ? 'Respond in Spanish for the "name" fields.' : 'Respond in English.'
+  const system = `You suggest starter mobile car-detailing service menu prices for a brand-new detailer signing up on ShinePoint, a Southern California marketplace. Given optional context about the detailer below, output 4-5 common services with a reasonable US mobile-detailing price for each, scaled a bit for their experience level if given (more experience/certifications -> slightly higher prices is fine, but keep everything in a normal $30-$400 range). Output ONLY a JSON array like [{"name":"Exterior Wash","price":45}] -- no prose, no markdown fences, nothing else. ${langLine}\n\nContext:\n${facts.length ? facts.join('\n') : 'None given -- use general SoCal mobile detailing norms.'}`
+
+  try {
+    const chat = await callChat({
+      system,
+      messages: [{ role: 'user', content: 'Suggest the menu.' }],
+      maxTokens: 300,
+    })
+    const text = chat.content.find((c) => c.type === 'text')
+    const raw = text?.type === 'text' ? text.text : ''
+    const match = raw.match(/\[[\s\S]*\]/)
+    if (!match) return { suggestions: FALLBACK_PRICES, source: 'fallback' }
+    const parsed = JSON.parse(match[0])
+    if (!Array.isArray(parsed)) return { suggestions: FALLBACK_PRICES, source: 'fallback' }
+    // Never trust the model's numbers/strings directly into a form the
+    // detailer will save -- clamp and re-validate every field exactly like
+    // any other client input, even though this one came from our own call.
+    const cleaned = parsed
+      .map((item) => {
+        const name = cleanText(item?.name, 40)
+        const price = Number(item?.price)
+        if (!name || !Number.isFinite(price)) return null
+        return { name, price: Math.min(400, Math.max(10, Math.round(price))) }
+      })
+      .filter((v): v is { name: string; price: number } => Boolean(v))
+      .slice(0, 5)
+    if (!cleaned.length) return { suggestions: FALLBACK_PRICES, source: 'fallback' }
+    return { suggestions: cleaned, source: 'ai' }
+  } catch (e) {
+    console.error('suggestPrices: chat call failed, using fallback:', (e as Error).message)
+    return { suggestions: FALLBACK_PRICES, source: 'fallback' }
+  }
 }
 
 function systemPrompt(lang: string) {
@@ -525,6 +603,9 @@ Deno.serve(async (req) => {
       timeRequestId?: string
       message?: string
       lang?: string
+      zip?: string
+      yearsExperience?: string
+      certifications?: string[]
     }
     try {
       body = await req.json()
@@ -538,6 +619,20 @@ Deno.serve(async (req) => {
 
     if (intent in HELP_TEXT) {
       return json({ reply: HELP_TEXT[intent][lang] })
+    }
+
+    // Onboarding-scoped, same as HELP_TEXT above -- runs before the
+    // detailer_profiles lookup because a brand-new detailer may not have
+    // one filled in yet, and this intent doesn't need it: everything it
+    // uses comes straight from the wizard's own in-progress state.
+    if (intent === 'suggest_prices') {
+      const result = await suggestPrices({
+        zip: body.zip,
+        yearsExperience: body.yearsExperience,
+        certifications: body.certifications,
+        lang,
+      })
+      return json(result)
     }
 
     const profile = await getDetailerContext(admin, user.id)
