@@ -65,7 +65,7 @@
     168px -1px 0 5px var(--bo-white),
     200px 4px 0 3px var(--bo-pink-soft),
     230px 1px 0 2px var(--bo-white);
-  opacity: 0.95;
+  opacity: 0.55;
   pointer-events: none;
   z-index: 2;
 }
@@ -75,26 +75,19 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  border-bottom: 2px solid rgba(244, 63, 140, 0.12);
-  background: var(--bo-pink);
-  color: #fff;
+  border-bottom: 1.5px solid rgba(244, 63, 140, 0.18);
+  background: var(--bo-cream);
+  color: var(--bo-ink);
   padding: 0.85rem 1rem;
   position: relative;
   overflow: hidden;
-  clip-path: polygon(
-    0% 0%, 100% 0%, 100% 82%,
-    94% 92%, 88% 82%, 82% 94%, 76% 84%, 70% 96%, 64% 84%,
-    58% 94%, 52% 82%, 46% 96%, 40% 84%, 34% 94%, 28% 82%,
-    22% 94%, 16% 84%, 10% 96%, 0% 86%
-  );
-  padding-bottom: 1.15rem;
 }
 
 .headerSparkle {
   position: absolute;
   width: 6px;
   height: 6px;
-  background: #fff;
+  background: var(--bo-pink);
   border-radius: 1px;
   transform: rotate(45deg);
   opacity: 0.85;
@@ -110,14 +103,14 @@
   font-family: inherit;
   font-size: 0.9rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--bo-ink);
   letter-spacing: -0.01em;
 }
 
 .headerSub {
   margin: 0.1rem 0 0;
   font-size: 0.7rem;
-  color: rgba(255, 255, 255, 0.88);
+  color: var(--bo-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -127,15 +120,15 @@
   margin-left: auto;
   border: 0;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.18);
-  color: #fff;
+  background: rgba(244, 63, 140, 0.12);
+  color: var(--bo-pink-deep);
   padding: 0.25rem 0.55rem;
   font-size: 0.85rem;
   cursor: pointer;
   line-height: 1.2;
 }
 .closeBtn:hover {
-  background: rgba(255, 255, 255, 0.28);
+  background: rgba(244, 63, 140, 0.2);
 }
 
 /* —— Messages —— */
@@ -365,7 +358,7 @@
     154px 3px 0 2px var(--bo-pink-soft),
     186px -1px 0 4px var(--bo-white),
     218px 4px 0 2px var(--bo-peach);
-  opacity: 0.95;
+  opacity: 0.55;
 }
 
 .error {
@@ -441,39 +434,32 @@
 }
 
 .launcher::before {
-  /* foam / suds ring */
+  /* quiet cream ring — no scattered foam blobs */
   content: "";
   position: absolute;
   inset: -4px;
   border-radius: 999px;
-  background: var(--bo-pink-soft);
+  background: var(--bo-cream);
   box-shadow:
-    0 0 0 3px var(--bo-white),
-    0 0 0 6px rgba(244, 63, 140, 0.22),
-    18px -10px 0 -10px var(--bo-white),
-    -16px -12px 0 -11px var(--bo-peach),
-    14px 16px 0 -11px var(--bo-white),
-    -18px 12px 0 -10px var(--bo-pink-soft),
-    0 10px 18px rgba(244, 63, 140, 0.28);
+    0 0 0 2px var(--bo-white),
+    0 0 0 4px rgba(244, 63, 140, 0.28),
+    0 8px 18px rgba(244, 63, 140, 0.18);
   z-index: 0;
   animation: boPulse 2.6s ease-in-out infinite;
 }
 
 .launcher::after {
-  /* sparkle accent */
+  /* one small pink sparkle */
   content: "";
   position: absolute;
-  top: 2px;
-  right: 4px;
-  width: 7px;
-  height: 7px;
+  top: 4px;
+  right: 6px;
+  width: 5px;
+  height: 5px;
   background: var(--bo-pink);
   border-radius: 1px;
   transform: rotate(45deg);
   z-index: 2;
-  box-shadow:
-    -42px 8px 0 -2px #fff,
-    -6px 44px 0 -2px var(--bo-peach);
   animation: boTwinkle 2.2s ease-in-out infinite;
 }
 
@@ -491,7 +477,7 @@
 
 @keyframes boBob {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
+  50% { transform: translateY(-3px); }
 }
 
 @keyframes boPulse {
