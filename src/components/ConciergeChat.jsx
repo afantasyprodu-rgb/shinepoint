@@ -202,6 +202,9 @@ export default function ConciergeChat() {
             <span className={styles.headerSparkle} aria-hidden="true" />
             <span className={styles.headerSparkle} aria-hidden="true" />
             <span className={styles.headerSparkle} aria-hidden="true" />
+            <span className={styles.headerSparkle} aria-hidden="true" />
+            <span className={styles.headerSparkle} aria-hidden="true" />
+            <span className={styles.headerSparkle} aria-hidden="true" />
             <BoBlob size={44} className="shrink-0" />
             <div className="min-w-0 flex-1">
               <p className={styles.headerTitle}>Bo</p>

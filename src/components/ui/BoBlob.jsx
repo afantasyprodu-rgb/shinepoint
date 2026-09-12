@@ -3,7 +3,7 @@
  * inside the sphere (.nx-bo-bubble). Tuxedo is a bottom-quarter wrap only —
  * still a circle, not a human body: soft black jacket mass at the south pole,
  * rounded shirt V, brand bow. `muted`: past chat message — hide eyes/suit,
- * desaturate via CSS.
+ * desaturate via CSS. Live Bo gets tiny decorative sparkles; muted stays quiet.
  */
 export default function BoBlob({ size = 44, muted = false, className = '' }) {
   return (
@@ -15,6 +15,11 @@ export default function BoBlob({ size = 44, muted = false, className = '' }) {
       <div className={`nx-bo-bubble nx-bo-idle relative h-full w-full ${muted ? 'nx-bo-bubble-muted' : ''}`}>
         {!muted && (
           <>
+            <span className="bo-sparkle bo-sparkle-tr" />
+            <span className="bo-sparkle bo-sparkle-tl" />
+            <span className="bo-sparkle bo-sparkle-mr" />
+            <span className="bo-sparkle bo-sparkle-bl" />
+            <span className="bo-sparkle bo-sparkle-tm" />
             <div className="bo-eyes">
               <span className="bo-eye-look"><span className="bo-eye" /></span>
               <span className="bo-eye-look"><span className="bo-eye" /></span>
