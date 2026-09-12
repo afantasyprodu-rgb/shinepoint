@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { chargeTip, resolveDisputeWithRefund, declineBookingWithRefund, cancelBookingWithRefund } from '../lib/stripe'
+import { chargeTip, resolveDisputeWithRefund, declineBookingWithRefund, cancelBookingWithRefund, chargeBookingBalance } from '../lib/stripe'
 import { enqueuePhoto } from '../lib/photoQueue'
 import { getPendingEstimatePhotos, clearPendingEstimatePhotos } from '../lib/pendingEstimatePhotos'
 import { updateWidget } from '../lib/widget'
@@ -662,6 +662,8 @@ export function StoreProvider({ children }) {
           if ('Truck' in vu) cols.vehicle_upcharge_truck = vu.Truck === '' ? null : vu.Truck
           if ('Van' in vu) cols.vehicle_upcharge_van = vu.Van === '' ? null : vu.Van
         }
+        // Deposit share taken up front (086). 0 means charge in full.
+        if (patch.depositPercent != null) cols.deposit_percent = Number(patch.depositPercent) || 0
         if (Object.keys(cols).length) {
           await updateDetailerProfile(profile.id, cols)
           setDetailerProfile((dp) => ({ ...(dp ?? {}), ...cols }))
@@ -864,6 +866,23 @@ export function StoreProvider({ children }) {
           return
         }
         patchBooking(id, { status: 'cancelled', cancelledBy: by })
+      },
+
+      // Deposits (086): capture what's still owed after the deposit. The
+      // webhook is the authoritative writer for balance_paid_at /
+      // amount_collected, so this mirrors the result locally rather than
+      // claiming it — same shape cancelBooking above uses.
+      async chargeBalance(id) {
+        const booking = bookings.find((b) => b.id === id)
+        if (isDemo || !booking?._real) return
+        await chargeBookingBalance(id)
+        setRealBookings((bs) =>
+          bs.map((b) =>
+            b.id === id
+              ? { ...b, balancePaidAt: new Date().toISOString(), amountCollected: Number(b.price ?? 0) }
+              : b
+          )
+        )
       },
 
       async fileDispute(bookingId, against, reason) {

@@ -73,7 +73,7 @@ export default function BookingDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { getBooking, getDetailer, patchBooking, submitReview, cancelBooking, fileDispute, isDemo } = useStore()
+  const { getBooking, getDetailer, patchBooking, submitReview, cancelBooking, chargeBalance, fileDispute, isDemo } = useStore()
   const { lang } = useLanguage()
   const t = useT('bookingDetail')
   const [rating, setRating] = useState(0)
@@ -99,6 +99,20 @@ export default function BookingDetail() {
   // read as "cancelled" when nothing happened and nothing was refunded.
   const [cancelBusy, setCancelBusy] = useState(false)
   const [cancelError, setCancelError] = useState(null)
+  const [balanceBusy, setBalanceBusy] = useState(false)
+  const [balanceError, setBalanceError] = useState(null)
+
+  async function payBalance() {
+    setBalanceBusy(true)
+    setBalanceError(null)
+    try {
+      await chargeBalance(b.id)
+    } catch (err) {
+      setBalanceError(err?.message ?? String(err))
+    } finally {
+      setBalanceBusy(false)
+    }
+  }
 
   async function runCancel(closeModal) {
     setCancelBusy(true)
@@ -197,6 +211,13 @@ const shownStage = openStage ?? stageIdx
   // back after a successful confirmPayment while the webhook + realtime
   // paid_at merge (StoreContext) catch up.
   const unpaid = !isDemo && b.status === 'pending' && !b.paidAt && !justPaid
+  // Deposits (086): what's left after the deposit, once anything was
+  // actually collected. Sub-50c is treated as nothing owed, matching
+  // charge-balance's floor (and Stripe's minimum).
+  const balanceDue =
+    !isDemo && b.paidAt && !b.balancePaidAt && Number(b.depositAmount ?? 0) > 0
+      ? Math.max(0, Number((Number(b.price ?? 0) - Number(b.amountCollected ?? 0)).toFixed(2)))
+      : 0
 
   // Demo helper: advance the job to showcase the full lifecycle.
   function advance() {
@@ -300,6 +321,35 @@ const shownStage = openStage ?? stageIdx
               ) : (
                 <div className="mt-3 h-9 w-32 animate-pulse rounded-full bg-amber-200/60 dark:bg-amber-500/20" />
               )}
+            </div>
+          )}
+
+          {/* Deposits (086): a job charged as a deposit still owes the
+              balance. Shown to the customer on their own booking so the
+              outstanding amount is never a surprise, and so a declined
+              off-session capture (charge-balance) has somewhere to be paid
+              from. */}
+          {balanceDue > 0 && (
+            <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-500/30 dark:bg-amber-500/10">
+              <p className="flex items-center gap-1.5 font-display text-sm font-bold text-amber-800 dark:text-amber-300">
+                <CreditCardIcon className="h-4 w-4" /> {t('balanceDueTitle', { amount: balanceDue.toFixed(2) })}
+              </p>
+              <p className="mt-1 text-sm text-amber-800/90 dark:text-amber-300/90">
+                {t('balanceDueBody', { paid: Number(b.amountCollected ?? 0).toFixed(2) })}
+              </p>
+              {balanceError && (
+                <p role="alert" className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-400">
+                  {balanceError}
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={payBalance}
+                disabled={balanceBusy}
+                className="btn btn-cta mt-3 h-10 px-4 text-sm disabled:opacity-60"
+              >
+                {balanceBusy ? t('balanceCharging') : t('balancePayNow', { amount: balanceDue.toFixed(2) })}
+              </button>
             </div>
           )}
 

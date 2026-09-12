@@ -60,6 +60,9 @@ function normalizeDetailer(row) {
     // Minimum gap the detailer wants between bookings — see BookingWizard's
     // conflict pre-check and migration 053's server-side guard.
     bufferMinutes: row.booking_buffer_min ?? 60,
+    // Share of the total taken up front to hold the slot (086). 0 = full
+    // payment at booking, which is every detailer until they opt in.
+    depositPercent: row.deposit_percent ?? 0,
     // Recurring hour-of-day (0-23, local) the detailer never wants booked
     // (065) — e.g. a lunch block. Captured at onboarding; BookingWizard's
     // TimePicker grays these out.
@@ -177,6 +180,13 @@ function normalizeCustomerBooking(row) {
     // filter, which uses this to keep unpaid requests from ever reaching a
     // detailer's Accept button.
     paidAt: row.paid_at ?? null,
+    // Deposits (086). depositAmount 0 means the job was charged in
+    // full up front; otherwise amountCollected is what has actually
+    // been taken so far and the rest is still owed.
+    depositAmount: Number(row.deposit_amount ?? 0),
+    amountCollected: Number(row.amount_collected ?? 0),
+    balancePaidAt: row.balance_paid_at ?? null,
+    depositForfeited: Boolean(row.deposit_forfeited),
     scheduledTime: row.scheduled_time,
     address: row.booking_address ?? '',
     zip: row.booking_zip ?? '',
@@ -232,6 +242,13 @@ function normalizeDetailerBooking(row) {
     // See normalizeCustomerBooking's paidAt comment — same field, same
     // "can be pending-but-unpaid" caveat. Gates the Accept action below.
     paidAt: row.paid_at ?? null,
+    // Deposits (086). depositAmount 0 means the job was charged in
+    // full up front; otherwise amountCollected is what has actually
+    // been taken so far and the rest is still owed.
+    depositAmount: Number(row.deposit_amount ?? 0),
+    amountCollected: Number(row.amount_collected ?? 0),
+    balancePaidAt: row.balance_paid_at ?? null,
+    depositForfeited: Boolean(row.deposit_forfeited),
     scheduledTime: row.scheduled_time,
     startedAt: row.started_at,
     completedAt: row.completed_at,
@@ -353,7 +370,7 @@ export async function fetchDetailers() {
         insurance_status, total_completed_jobs, average_rating, total_reviews, bio, slug,
         profile_photo_url, gallery_urls,
         probation_jobs_remaining, service_days, free_travel_miles, booking_buffer_min, charge_per_extra_mile, vehicle_emoji,
-        vehicle_upcharge_suv, vehicle_upcharge_truck, vehicle_upcharge_van, blackout_hours,
+        vehicle_upcharge_suv, vehicle_upcharge_truck, vehicle_upcharge_van, blackout_hours, deposit_percent,
         eco_waterless, eco_products, eco_water_reclaim,
         services(id, service_name, description, price, vehicle_types, is_active, is_addon, is_featured, is_package, package_includes, detailer_location_id),
         detailer_locations(id, label, zip_code, pin_lat, pin_lng, free_travel_miles, charge_per_extra_mile, max_travel_miles, is_active),
@@ -842,6 +859,7 @@ export async function fetchBookingsForCustomer(customerProfileId) {
       vehicle_type, vehicle_make, vehicle_model,
       damage_report_submitted, damage_report_acknowledged,
       cancelled_by, invoice, tip_paid_at, refunded_amount, paid_at,
+      deposit_amount, amount_collected, balance_paid_at, deposit_forfeited,
       decline_reason, reschedule_suggested_time, reschedule_offer_status,
       reschedule_offer_expires_at, reschedule_customer_pick,
       services(service_name),
@@ -873,6 +891,7 @@ export async function fetchBookingsForDetailer(detailerProfileId) {
       vehicle_type, vehicle_make, vehicle_model,
       damage_report_submitted, damage_report_acknowledged,
       cancelled_by, invoice, tip_paid_at, refunded_amount, paid_at,
+      deposit_amount, amount_collected, balance_paid_at, deposit_forfeited,
       platform_cut, detailer_payout, payout_hold_until, transferred_at,
       decline_reason, reschedule_suggested_time, reschedule_offer_status,
       reschedule_offer_expires_at, reschedule_customer_pick,

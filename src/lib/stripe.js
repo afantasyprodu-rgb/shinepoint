@@ -73,6 +73,13 @@ export const declineBookingWithRefund = (bookingId, suggestedTime, reason) =>
 export const cancelBookingWithRefund = (bookingId, reason) =>
   invokeFn('cancel-booking', { bookingId, reason })
 
+// Captures the outstanding balance on a deposit booking (086), off-session
+// against the card saved at booking. Callable by either side of the job.
+// Throws on a decline — the caller must surface that, because by then the
+// work is already done and the money is genuinely outstanding.
+export const chargeBookingBalance = (bookingId) =>
+  invokeFn('charge-balance', { bookingId })
+
 // Detailer confirming the time a customer countered with on a reschedule
 // offer — see confirm-reschedule-pick/index.ts for why this isn't automatic.
 export const confirmReschedulePick = (bookingId) =>

@@ -616,6 +616,13 @@ const [smsError, setSmsError] = useState(null)
   // added, not "$0 added".
   const vehicleUpcharge = Number(d.vehicleUpcharges?.[vehicle] ?? 0)
   const total = Number((baseAfterReward - creditUsed + mileageFee + vehicleUpcharge).toFixed(2))
+  // Deposits (086). Display only — create-payment-intent recomputes this
+  // server-side and its figure is what Stripe actually charges. null when
+  // the detailer takes no deposit, which is the default.
+  const depositToday =
+    Number(d.depositPercent ?? 0) > 0 && total > 0
+      ? Math.min(total, Number(Math.max(0.5, (total * Number(d.depositPercent)) / 100).toFixed(2)))
+      : null
 
   // 082: send the picked (conflicting) time to the detailer as a lead
   // instead of leaving it a dead end. Not a hold on anything -- purely a
@@ -1374,6 +1381,24 @@ const [smsError, setSmsError] = useState(null)
               <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
                 {t('serviceWithDetailer', { service: serviceName, name: d.name, total })}
               </p>
+              {/* Deposits (086): the card is about to be charged the deposit,
+                  not the total shown above, so say so before they type a
+                  number in. The figure mirrors create-payment-intent's math
+                  (percent of what's actually owed, after credits), but the
+                  server's amount is the one that gets charged. */}
+              {depositToday != null && (
+                <div className="mt-3 rounded-2xl border border-brand-100 bg-brand-50/60 p-3 dark:border-white/10 dark:bg-white/5">
+                  <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                    {t('depositTodayTitle', { deposit: depositToday.toFixed(2) })}
+                  </p>
+                  <p className="mt-0.5 text-sm text-slate-600 dark:text-slate-400">
+                    {t('depositTodayBody', {
+                      balance: (total - depositToday).toFixed(2),
+                      name: d.name,
+                    })}
+                  </p>
+                </div>
+              )}
               {/* Stripe Elements renders in its own iframe and can't read our
                   CSS custom properties, so colorPrimary below can't just
                   reference --color-brand-600 — it's a static snapshot of

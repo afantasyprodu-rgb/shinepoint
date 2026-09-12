@@ -102,6 +102,7 @@ export default function DetailerProfileEditor() {
   const [upchargeVan, setUpchargeVan] = useState(me.vehicleUpcharges?.Van ?? '')
   const [days, setDays] = useState(me.serviceDays?.length ? me.serviceDays : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'])
   const [rewardsOptIn, setRewardsOptIn] = useState(me.acceptsRewards ?? false)
+  const [depositPercent, setDepositPercent] = useState(String(me.depositPercent ?? 0))
   // Vacations (085) — own rows, saved on their own button, so this state is
   // separate from the page's main save.
   const [vacations, setVacations] = useState([])
@@ -277,6 +278,7 @@ export default function DetailerProfileEditor() {
       await updateDetailerMe({
         name, bio, slug: slug.trim() || null, photo, gallery, vehicleEmoji,
         vehicleUpcharges: { SUV: upchargeSuv, Truck: upchargeTruck, Van: upchargeVan },
+        depositPercent: Math.min(100, Math.max(0, Number(depositPercent) || 0)),
         eco: { waterless: ecoWaterless, products: ecoProducts, reclaim: ecoReclaim },
       })
       await updateMyServices(
@@ -899,6 +901,38 @@ export default function DetailerProfileEditor() {
                 </div>
               </div>
             ))}
+
+            {/* Deposit (086). Lives with the upcharges because both are
+                "what the customer is charged", and both are optional. 0 is
+                the default and means the old behaviour: full price at
+                booking. */}
+            <h2 className="mt-6 text-sm font-semibold text-slate-700 dark:text-slate-300">{t('depositLabel')}</h2>
+            <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">{t('depositHint')}</p>
+            <div className="mt-3 flex items-center justify-between gap-3">
+              <label htmlFor="pe-deposit" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                {t('depositPercentLabel')}
+              </label>
+              <div className="flex items-center gap-1">
+                <input
+                  id="pe-deposit"
+                  type="number" min={0} max={100} step={5} inputMode="numeric"
+                  value={depositPercent}
+                  onChange={(e) => setDepositPercent(e.target.value)}
+                  placeholder="0"
+                  className="input h-10 w-24"
+                />
+                <span className="text-slate-500 dark:text-slate-400">%</span>
+              </div>
+            </div>
+            {Number(depositPercent) > 0 && (
+              <p className="mt-2 rounded-xl bg-brand-50/60 p-2 text-xs text-slate-600 dark:bg-white/5 dark:text-slate-400">
+                {t('depositExample', {
+                  pct: Math.min(100, Math.max(0, Number(depositPercent) || 0)),
+                  deposit: (200 * Math.min(100, Math.max(0, Number(depositPercent) || 0)) / 100).toFixed(0),
+                  balance: (200 - 200 * Math.min(100, Math.max(0, Number(depositPercent) || 0)) / 100).toFixed(0),
+                })}
+              </p>
+            )}
           </div>
           </div>
           )}
