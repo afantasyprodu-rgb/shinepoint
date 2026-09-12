@@ -65,6 +65,14 @@ export const resolveDisputeWithRefund = (disputeId, resolution, refundAmount = 0
 export const declineBookingWithRefund = (bookingId, suggestedTime, reason) =>
   invokeFn('decline-booking', { bookingId, suggestedTime, reason })
 
+// Customer cancelling their own booking — same rule as the decline above,
+// for the same reason: a plain status patch left a paying customer charged
+// with nothing refunded. Only cancellable while nothing has been performed
+// (pending/accepted/en_route/arrived); cancel-booking/index.ts enforces
+// that and issues the Stripe refund.
+export const cancelBookingWithRefund = (bookingId, reason) =>
+  invokeFn('cancel-booking', { bookingId, reason })
+
 // Detailer confirming the time a customer countered with on a reschedule
 // offer — see confirm-reschedule-pick/index.ts for why this isn't automatic.
 export const confirmReschedulePick = (bookingId) =>

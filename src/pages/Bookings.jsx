@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import AppShell from '../components/AppShell'
+import Modal from '../components/ui/Modal'
 import { AnimatedPage, Stagger, StaggerItem } from '../components/ui/Motion'
 import { StatusPill, EmptyState, Avatar, Skeleton, CarWashIllustration } from '../components/ui/bits'
 import { PhoneIcon, XIcon } from '../components/icons'
@@ -76,9 +77,33 @@ function Chevron({ open }) {
 }
 
 export default function Bookings() {
-  const { bookings, customer, isDemo, getDetailer } = useStore()
+  const { bookings, customer, isDemo, getDetailer, cancelBooking } = useStore()
+  // Cancelling from the list goes through the same refund-issuing path the
+  // detail page uses (StoreContext.cancelBooking -> cancel-booking). Held
+  // here by booking id so the confirm modal can be a single instance
+  // rather than one per card.
+  const [cancelId, setCancelId] = useState(null)
+  const [cancelBusy, setCancelBusy] = useState(false)
+  const [cancelError, setCancelError] = useState(null)
+
+  async function confirmCancel() {
+    setCancelBusy(true)
+    setCancelError(null)
+    try {
+      await cancelBooking(cancelId, 'customer')
+      setCancelId(null)
+    } catch (err) {
+      setCancelError(err?.message ?? String(err))
+    } finally {
+      setCancelBusy(false)
+    }
+  }
   const navigate = useNavigate()
   const t = useT('bookings')
+  // Cancel copy lives in the bookingDetail namespace — reused verbatim so
+  // the confirm dialog here and the one on the detail page can't drift
+  // apart (they describe the same policy and the same refund).
+  const tCancel = useT('bookingDetail')
   const { lang } = useLanguage()
   // Demo: filter from the shared demo pool. Real: all bookings loaded are already ours.
   const mine = isDemo ? bookings.filter((b) => b.customerName === customer.name) : bookings
@@ -150,6 +175,11 @@ export default function Bookings() {
                 b.status === 'complete' &&
                 !!d &&
                 (d.status === 'available' || (d.status === 'busy' && d.acceptsWhenBusy))
+              // Same window cancel-booking accepts server-side: everything
+              // before work starts. Cancel used to live only on the detail
+              // page, as grey text under the timeline, which is where
+              // people looked for it and didn't find it.
+              const canCancel = ['pending', 'accepted', 'en_route', 'arrived'].includes(b.status)
               return (
                 <StaggerItem key={b.id}>
                   <div className={isPremium ? 'premium-booking' : ''}>
@@ -284,6 +314,18 @@ export default function Bookings() {
                                   {t('bookAgain')}
                                 </button>
                               )}
+                              {canCancel && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setCancelError(null)
+                                    setCancelId(b.id)
+                                  }}
+                                  className="rounded-full bg-white px-5 py-2.5 text-xs font-bold text-red-600 shadow-sm ring-1 ring-red-200 transition hover:bg-red-50 dark:bg-white/10 dark:text-red-400 dark:ring-red-500/30 dark:hover:bg-red-500/10"
+                                >
+                                  {tCancel('cancelBookingBtn')}
+                                </button>
+                              )}
                               <button
                                 type="button"
                                 onClick={() => setExpandedId(null)}
@@ -303,6 +345,29 @@ export default function Bookings() {
             })}
           </Stagger>
         )}
+        <Modal open={!!cancelId} onClose={() => setCancelId(null)} labelledBy="bookings-cancel-title">
+          <h2 id="bookings-cancel-title" className="text-center font-display text-xl font-bold text-slate-900 dark:text-slate-100">
+            {tCancel('cancelTitle')}
+          </h2>
+          <p className="mt-2 text-center text-sm text-slate-600 dark:text-slate-400">
+            {tCancel('cancelBody')}
+          </p>
+          <div className="mt-6 flex flex-col gap-2">
+            {cancelError && (
+              <p className="text-center text-sm font-medium text-red-600" role="alert">{cancelError}</p>
+            )}
+            <button
+              onClick={confirmCancel}
+              disabled={cancelBusy}
+              className="btn bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-600 disabled:opacity-60"
+            >
+              {cancelBusy ? tCancel('cancelling') : tCancel('yesCancelBooking')}
+            </button>
+            <button onClick={() => setCancelId(null)} disabled={cancelBusy} className="btn btn-outline">
+              {tCancel('keepBooking')}
+            </button>
+          </div>
+        </Modal>
       </AnimatedPage>
     </AppShell>
   )

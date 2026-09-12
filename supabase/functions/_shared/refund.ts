@@ -18,7 +18,12 @@ export async function refundBooking(
   admin: SupabaseClient,
   stripe: Stripe,
   booking: RefundableBooking,
-  cancelledBy: 'customer' | 'detailer' | 'admin' | 'system'
+  cancelledBy: 'customer' | 'detailer' | 'admin' | 'system',
+  // Stripe-side label for reconciliation. Defaults to the original
+  // detailer-decline wording so the three callers that predate this
+  // parameter keep writing exactly what they always did; cancel-booking
+  // passes its own so a customer cancellation isn't filed as a decline.
+  reason = 'detailer_declined'
 ): Promise<{ refundId: string | null; refunded: number }> {
   let refundId: string | null = null
   const alreadyRefunded = Number(booking.refunded_amount ?? 0)
@@ -29,7 +34,7 @@ export async function refundBooking(
       {
         payment_intent: booking.stripe_payment_intent,
         amount: Math.round(refundable * 100),
-        metadata: { booking_id: booking.id, reason: 'detailer_declined' },
+        metadata: { booking_id: booking.id, reason },
       },
       { idempotencyKey: `refund-${booking.id}` }
     )

@@ -94,6 +94,24 @@ export default function BookingDetail() {
   const [tipError, setTipError] = useState(null)
   const [showCancel, setShowCancel] = useState(false)
   const [showRejectDamage, setShowRejectDamage] = useState(false)
+  // Cancelling now moves real money (a Stripe refund), so it can fail the
+  // same way tipping can. Never close the modal on failure — that would
+  // read as "cancelled" when nothing happened and nothing was refunded.
+  const [cancelBusy, setCancelBusy] = useState(false)
+  const [cancelError, setCancelError] = useState(null)
+
+  async function runCancel(closeModal) {
+    setCancelBusy(true)
+    setCancelError(null)
+    try {
+      await cancelBooking(b.id, 'customer')
+      closeModal()
+    } catch (err) {
+      setCancelError(err?.message ?? String(err))
+    } finally {
+      setCancelBusy(false)
+    }
+  }
   const [showDispute, setShowDispute] = useState(false)
   const [showInvoice, setShowInvoice] = useState(false)
   const [disputeReason, setDisputeReason] = useState('')
@@ -483,7 +501,7 @@ const shownStage = openStage ?? stageIdx
           {['pending', 'accepted'].includes(b.status) && (
             <button
               onClick={() => setShowCancel(true)}
-              className="mt-3 w-full cursor-pointer rounded text-center text-xs font-medium text-slate-400 transition-colors duration-200 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+              className="btn btn-outline mt-4 h-10 w-full border-red-200 text-sm font-semibold text-red-600 hover:border-red-300 hover:bg-red-50 focus-visible:ring-red-500 dark:border-red-500/30 dark:text-red-400 dark:hover:bg-red-500/10"
             >
               {t('cancelBookingBtn')}
             </button>
@@ -611,14 +629,15 @@ const shownStage = openStage ?? stageIdx
             {t('rejectDamageBody')}
           </p>
           <div className="mt-6 flex flex-col gap-2">
+            {cancelError && (
+              <p className="text-center text-sm font-medium text-red-600" role="alert">{cancelError}</p>
+            )}
             <button
-              onClick={() => {
-                cancelBooking(b.id, 'customer')
-                setShowRejectDamage(false)
-              }}
-              className="btn bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-600"
+              onClick={() => runCancel(() => setShowRejectDamage(false))}
+              disabled={cancelBusy}
+              className="btn bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-600 disabled:opacity-60"
             >
-              {t('yesCancelJob')}
+              {cancelBusy ? t('cancelling') : t('yesCancelJob')}
             </button>
             <button
               onClick={() => setShowRejectDamage(false)}
@@ -638,14 +657,15 @@ const shownStage = openStage ?? stageIdx
             {t('cancelBody')}
           </p>
           <div className="mt-6 flex flex-col gap-2">
+            {cancelError && (
+              <p className="text-center text-sm font-medium text-red-600" role="alert">{cancelError}</p>
+            )}
             <button
-              onClick={() => {
-                cancelBooking(b.id, 'customer')
-                setShowCancel(false)
-              }}
-              className="btn bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-600"
+              onClick={() => runCancel(() => setShowCancel(false))}
+              disabled={cancelBusy}
+              className="btn bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-600 disabled:opacity-60"
             >
-              {t('yesCancelBooking')}
+              {cancelBusy ? t('cancelling') : t('yesCancelBooking')}
             </button>
             <button onClick={() => setShowCancel(false)} className="btn btn-outline">
               {t('keepBooking')}

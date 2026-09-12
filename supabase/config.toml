@@ -157,6 +157,12 @@ verify_jwt = false
 [functions.concierge-chat]
 verify_jwt = false
 
+# Customer cancelling their own booking — issues a real Stripe refund, so
+# it authenticates the caller and checks booking ownership inside the
+# function on top of this gateway check.
+[functions.cancel-booking]
+verify_jwt = true
+
 [functions.create-detailer-charge-intent]
 verify_jwt = true
 

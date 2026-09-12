@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { chargeTip, resolveDisputeWithRefund, declineBookingWithRefund } from '../lib/stripe'
+import { chargeTip, resolveDisputeWithRefund, declineBookingWithRefund, cancelBookingWithRefund } from '../lib/stripe'
 import { enqueuePhoto } from '../lib/photoQueue'
 import { getPendingEstimatePhotos, clearPendingEstimatePhotos } from '../lib/pendingEstimatePhotos'
 import { updateWidget } from '../lib/widget'
@@ -849,7 +849,20 @@ export function StoreProvider({ children }) {
         if (profile?.id) markNotificationsReadDB(profile.id)
       },
 
-      cancelBooking(id, by) {
+      // Never a plain patchBooking(status:'cancelled') for a real booking —
+      // the same rule declineBooking below has always followed, and for the
+      // same reason: if the customer already paid, a client-side status flip
+      // leaves them charged with no refund. cancel-booking issues the real
+      // Stripe refund first, then updates the row.
+      async cancelBooking(id, by) {
+        const booking = bookings.find((b) => b.id === id)
+        if (!isDemo && booking?._real) {
+          await cancelBookingWithRefund(id)
+          setRealBookings((bs) =>
+            bs.map((b) => (b.id === id ? { ...b, status: 'cancelled', cancelledBy: 'customer' } : b))
+          )
+          return
+        }
         patchBooking(id, { status: 'cancelled', cancelledBy: by })
       },
 
