@@ -65,7 +65,7 @@ What you can actually do:
 - submit_time_inquiry: send the detailer a lead when their exact time doesn't work, so the detailer can reach out about a different one.
 You cannot book anything, access any account, or see any customer's data — those tools do not exist for you. If the visitor has picked a detailer and service and is ready to book, tell them to finish at shinepoint.app by signing up or logging in — never imply you can complete a booking yourself.
 
-If a visitor names a specific date and time for a detailer, call check_availability. If it comes back available, tell them that time looks open and to finish booking by signing up/logging in (never say you booked it). If it comes back NOT available (blackout or conflict), tell them that time doesn't work — ALWAYS naming the detailer explicitly ("Dave's Detailing can't do 2pm on Sep 20") — then ask if they'd like you to send that detailer an inquiry about a different time. Naming them is required, not optional: you don't get your own past tool results back, so if your reply doesn't contain the name, you won't be able to work out who the inquiry is for on the next turn and the visitor will be stuck. Only if they say yes: ask for their email (you have no other way to reach them back — always get the email before submit_time_inquiry, never guess or invent one), then call submit_time_inquiry with that email plus the date/time/detailer/service they wanted. After it succeeds, tell them the detailer will follow up by email with another time — never promise a specific time or that the booking is confirmed, since nothing is booked. If they decline the inquiry, don't push — just repeat the signup link so they can try other times themselves.
+If a visitor names a specific date and time for a detailer, call check_availability. If it comes back available, tell them that time looks open and to finish booking by signing up/logging in (never say you booked it). If it comes back NOT available with reason "vacation", that detailer is away on that date: say so plainly, name them, and give the back_on date ("Dave's Detailing is on vacation until Jan 15 and is back Jan 16"), then ask whether they'd like that later date instead. A vacation is not a scheduling conflict, so don't offer to send an inquiry about "another time that day" for it -- offer the return date, or other detailers nearby via search_detailers. If it comes back NOT available for any other reason (blackout or conflict), tell them that time doesn't work — ALWAYS naming the detailer explicitly ("Dave's Detailing can't do 2pm on Sep 20") — then ask if they'd like you to send that detailer an inquiry about a different time. Naming them is required, not optional: you don't get your own past tool results back, so if your reply doesn't contain the name, you won't be able to work out who the inquiry is for on the next turn and the visitor will be stuck. Only if they say yes: ask for their email (you have no other way to reach them back — always get the email before submit_time_inquiry, never guess or invent one), then call submit_time_inquiry with that email plus the date/time/detailer/service they wanted. After it succeeds, tell them the detailer will follow up by email with another time — never promise a specific time or that the booking is confirmed, since nothing is booked. If they decline the inquiry, don't push — just repeat the signup link so they can try other times themselves.
 
 Sign-up links — give the exact URL, not vague "go to the site" instructions:
 - Wants to book as a customer: https://shinepoint.app/signup
@@ -125,7 +125,7 @@ const TOOLS: ChatToolDef[] = [
   },
   {
     name: 'check_availability',
-    description: 'Check whether a detailer can take a specific date + time the visitor wants. Returns available: true/false only -- never books anything.',
+    description: 'Check whether a detailer can take a specific date + time the visitor wants. Returns available: true/false, and when false a reason (vacation / blackout / conflict) -- never books anything.',
     input_schema: {
       type: 'object',
       properties: {
@@ -179,6 +179,9 @@ async function runTool(admin: SupabaseClient, name: string, input: Record<string
         rating: d.rating,
         reviews: d.reviews,
         distance_miles: d.distance_miles,
+        // Upcoming away-days (085) so Bo can warn before the visitor even
+        // names a date.
+        vacations: d.vacations,
         services: d.services.slice(0, 8).map((s) => ({ id: s.id, name: s.name, price: s.price, is_addon: s.is_addon })),
       })),
     }
@@ -255,6 +258,25 @@ async function runTool(admin: SupabaseClient, name: string, input: Record<string
       .eq('id', detailerId)
       .single()
     if (detErr || !detailer) return { output: JSON.stringify({ error: 'Detailer not found' }) }
+
+    // Vacation (085) outranks every other reason: if they're away, the hour
+    // is irrelevant and the useful answer is the date they're back.
+    const { data: vac } = await admin.rpc('detailer_vacation_on', {
+      p_detailer_id: detailerId,
+      p_date: date,
+    })
+    const vacation = Array.isArray(vac) ? vac[0] : vac
+    if (vacation) {
+      return {
+        output: JSON.stringify({
+          available: false,
+          reason: 'vacation',
+          away_from: vacation.starts_on,
+          away_until: vacation.ends_on,
+          back_on: vacation.back_on,
+        }),
+      }
+    }
 
     const [h] = time.split(':').map(Number)
     const blackoutHours: number[] = detailer.blackout_hours ?? []

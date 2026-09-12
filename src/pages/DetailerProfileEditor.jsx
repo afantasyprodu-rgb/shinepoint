@@ -13,7 +13,8 @@ import { allLocationsFor } from '../lib/fuzzyPin'
 import { CheckIcon, TrashIcon, PlusIcon, LightbulbIcon, ArrowRightIcon, CreditCardIcon, InfoIcon } from '../components/icons'
 import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
-import { fetchMyPayoutStatus } from '../lib/db'
+import { fetchMyPayoutStatus, fetchVacations, addVacation, removeVacation, bookingsInRange } from '../lib/db'
+import { backOnKey, formatDateKey, todayKey } from '../lib/vacations'
 import { openDetailerDashboard, isStripeConfigured } from '../lib/stripe'
 import { useTiltShadow } from '../hooks/useTiltShadow'
 import { useT } from '../i18n/useT'
@@ -76,7 +77,7 @@ function PayoutManagement() {
 }
 
 export default function DetailerProfileEditor() {
-  const { myDetailer, setAvailability, uploadImage, updateDetailerMe, updateMyServices, addLocation, deleteLocation } = useStore()
+  const { myDetailer, setAvailability, uploadImage, updateDetailerMe, updateMyServices, addLocation, deleteLocation, isDemo: storeIsDemo } = useStore()
   const me = myDetailer ?? {}
   const tiltRef = useTiltShadow()
   const t = useT('detailerProfileEditor')
@@ -101,6 +102,65 @@ export default function DetailerProfileEditor() {
   const [upchargeVan, setUpchargeVan] = useState(me.vehicleUpcharges?.Van ?? '')
   const [days, setDays] = useState(me.serviceDays?.length ? me.serviceDays : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'])
   const [rewardsOptIn, setRewardsOptIn] = useState(me.acceptsRewards ?? false)
+  // Vacations (085) — own rows, saved on their own button, so this state is
+  // separate from the page's main save.
+  const [vacations, setVacations] = useState([])
+  const [vacStart, setVacStart] = useState('')
+  const [vacEnd, setVacEnd] = useState('')
+  const [vacBusy, setVacBusy] = useState(false)
+  const [vacationError, setVacationError] = useState('')
+  const [vacationWarning, setVacationWarning] = useState('')
+
+  useEffect(() => {
+    if (storeIsDemo || !me.id) return
+    let cancelled = false
+    fetchVacations(me.id).then((rows) => {
+      if (!cancelled) setVacations(rows)
+    })
+    return () => { cancelled = true }
+  }, [storeIsDemo, me.id])
+
+  async function saveVacation() {
+    setVacationError('')
+    setVacationWarning('')
+    if (vacEnd < vacStart) {
+      setVacationError(t('vacationRangeInvalid'))
+      return
+    }
+    setVacBusy(true)
+    try {
+      if (storeIsDemo) {
+        setVacations((vs) => [...vs, { id: `demo-${Date.now()}`, startsOn: vacStart, endsOn: vacEnd }])
+      } else {
+        // Warn about jobs already booked inside the range, but never cancel
+        // them here: cancelling someone's booking refunds real money and is
+        // the detailer's decision, not a side effect of picking dates.
+        const clashes = await bookingsInRange(me.id, vacStart, vacEnd)
+        const created = await addVacation(me.id, vacStart, vacEnd)
+        setVacations((vs) => [...vs, created].sort((a, b) => a.startsOn.localeCompare(b.startsOn)))
+        if (clashes.length > 0) {
+          setVacationWarning(t('vacationClashWarning', { count: clashes.length }))
+        }
+      }
+      setVacStart('')
+      setVacEnd('')
+    } catch (err) {
+      setVacationError(err?.message ?? String(err))
+    } finally {
+      setVacBusy(false)
+    }
+  }
+
+  async function deleteVacation(id) {
+    setVacationError('')
+    setVacationWarning('')
+    try {
+      if (!storeIsDemo) await removeVacation(id)
+      setVacations((vs) => vs.filter((v) => v.id !== id))
+    } catch (err) {
+      setVacationError(err?.message ?? String(err))
+    }
+  }
   // Self-declared eco practices (077) — these render as badges on the public
   // profile, so they're claims a customer will act on. Kept as three
   // separate checkboxes to match the three separate promises.
@@ -522,6 +582,80 @@ export default function DetailerProfileEditor() {
               />
               {t('acceptRewardBookings')}
             </label>
+
+            {/* Vacations (085). Sits with service days because it answers the
+                same question — when am I workable — just as a finite range
+                instead of a weekly pattern. Saves immediately rather than on
+                the page's Save button: these are their own rows, and a
+                half-entered range that vanishes on navigate-away is worse
+                than one that's obviously already stored. */}
+            <h2 className="mt-6 text-sm font-semibold text-slate-700 dark:text-slate-300">{t('vacationsLabel')}</h2>
+            <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">{t('vacationsHint')}</p>
+
+            {vacationError && (
+              <p className="mt-2 text-sm font-medium text-red-600" role="alert">{vacationError}</p>
+            )}
+
+            {vacations.length > 0 && (
+              <ul className="mt-3 space-y-2">
+                {vacations.map((v) => (
+                  <li key={v.id} className="flex items-center justify-between gap-3 rounded-xl bg-brand-50/60 px-3 py-2 dark:bg-white/5">
+                    <span className="text-sm text-slate-700 dark:text-slate-300">
+                      {formatDateKey(v.startsOn, { month: 'short', day: 'numeric', year: 'numeric' })}
+                      {' – '}
+                      {formatDateKey(v.endsOn, { month: 'short', day: 'numeric', year: 'numeric' })}
+                      <span className="ml-2 text-xs text-slate-400 dark:text-slate-500">
+                        {t('backOn', { back: formatDateKey(backOnKey(v)) })}
+                      </span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => deleteVacation(v.id)}
+                      className="shrink-0 cursor-pointer text-xs font-semibold text-red-600 hover:underline dark:text-red-400"
+                    >
+                      {t('removeVacation')}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <div className="mt-3 flex flex-wrap items-end gap-2">
+              <label className="flex flex-col text-xs font-medium text-slate-500 dark:text-slate-400">
+                {t('vacationFrom')}
+                <input
+                  type="date"
+                  value={vacStart}
+                  min={todayKey()}
+                  onChange={(e) => setVacStart(e.target.value)}
+                  className="input mt-1 h-10 w-40"
+                />
+              </label>
+              <label className="flex flex-col text-xs font-medium text-slate-500 dark:text-slate-400">
+                {t('vacationTo')}
+                <input
+                  type="date"
+                  value={vacEnd}
+                  min={vacStart || todayKey()}
+                  onChange={(e) => setVacEnd(e.target.value)}
+                  className="input mt-1 h-10 w-40"
+                />
+              </label>
+              <button
+                type="button"
+                onClick={saveVacation}
+                disabled={!vacStart || !vacEnd || vacBusy}
+                className="btn btn-brand h-10 px-4 text-sm disabled:opacity-50"
+              >
+                {vacBusy ? t('savingVacation') : t('addVacation')}
+              </button>
+            </div>
+
+            {vacationWarning && (
+              <p className="mt-2 rounded-xl border border-amber-200 bg-amber-50 p-2 text-xs text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
+                {vacationWarning}
+              </p>
+            )}
           </div>
 
           {/* Eco badges (077). Self-declared and shown publicly, hence the

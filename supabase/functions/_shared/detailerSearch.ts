@@ -5,6 +5,14 @@
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@^2'
 import { approxCentroidForZip, milesBetween } from './geo.ts'
 
+// ends_on is the last day away, so the first bookable day is the next one.
+// Pure date math on a 'YYYY-MM-DD' string — no zone involved.
+function nextDay(dateKey: string): string {
+  const [y, m, d] = dateKey.split('-').map(Number)
+  const next = new Date(Date.UTC(y, m - 1, d + 1))
+  return next.toISOString().slice(0, 10)
+}
+
 export type DetailerSearchInput = {
   zip: string
   date?: string | null
@@ -27,7 +35,8 @@ export async function searchDetailers(admin: SupabaseClient, input: DetailerSear
       vehicle_upcharge_suv, vehicle_upcharge_truck, vehicle_upcharge_van,
       stripe_charges_enabled,
       services(id, service_name, description, price, vehicle_types, is_active, is_addon, is_featured, is_package, detailer_location_id),
-      detailer_locations(id, label, zip_code, pin_lat, pin_lng, free_travel_miles, charge_per_extra_mile, is_active)
+      detailer_locations(id, label, zip_code, pin_lat, pin_lng, free_travel_miles, charge_per_extra_mile, is_active),
+      detailer_vacations(starts_on, ends_on)
     `).in('status', ['available', 'busy']),
     admin.from('detailer_directory').select('id, full_name'),
   ])
@@ -131,6 +140,12 @@ export async function searchDetailers(admin: SupabaseClient, input: DetailerSear
       buffer_minutes: row.booking_buffer_min ?? 60,
       service_days: row.service_days ?? [],
       blackout_hours: row.blackout_hours ?? [],
+      // Vacations (085). Surfaced to both mascots through this one shared
+      // shaping so neither can tell a customer someone is available on a
+      // day they're away. Only upcoming ranges — a finished trip is noise.
+      vacations: ((row.detailer_vacations as Array<Record<string, unknown>>) ?? [])
+        .filter((v) => String(v.ends_on) >= new Date().toISOString().slice(0, 10))
+        .map((v) => ({ starts_on: v.starts_on, ends_on: v.ends_on, back_on: nextDay(String(v.ends_on)) })),
       accepts_reward_bookings: Boolean(row.accepts_reward_bookings),
       payouts_ready: Boolean(row.stripe_charges_enabled),
       bio: row.bio ?? '',

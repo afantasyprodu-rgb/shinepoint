@@ -12,6 +12,7 @@ import { useStore } from '../context/StoreContext'
 import { useTheme } from '../context/ThemeContext'
 import { stripePromise, isStripeConfigured, createPaymentIntent } from '../lib/stripe'
 import { checkPromoCode, fetchDetailerBusyTimes, submitTimeRequest } from '../lib/db'
+import { vacationOn, backOnKey, formatDateKey } from '../lib/vacations'
 import { approxCentroidForZip, milesBetween, allLocationsFor, nearestLocationFor } from '../lib/fuzzyPin'
 import { playSfx } from '../lib/sfx'
 import { useT } from '../i18n/useT'
@@ -110,7 +111,7 @@ async function fetchWeatherDays(lat, lng) {
 // customer jump to any future month — Open-Meteo only covers 16 days out,
 // so temp/rain badges simply stop appearing past that, same as any real
 // forecast running out of confidence.
-function CalendarModal({ open, onClose, weatherDays, isDemo, selected, onSelect }) {
+function CalendarModal({ open, onClose, weatherDays, isDemo, selected, onSelect, vacations }) {
   const minDate = useMemo(() => {
     const d = new Date()
     if (pastSameDayCutoff(d)) d.setDate(d.getDate() + 1)
@@ -170,6 +171,10 @@ function CalendarModal({ open, onClose, weatherDays, isDemo, selected, onSelect 
           if (!cellDate) return <div key={`empty-${i}`} />
           const key = localDateKey(cellDate)
           const disabled = cellDate < minDate
+          // Away days stay tappable on purpose: a dead cell tells the
+          // customer nothing, whereas tapping one explains the trip and
+          // offers the return date.
+          const vac = disabled ? null : vacationOn(vacations, key)
           const w = weatherDays?.get(key)
           const rainy = isDemo ? cellDate.getDate() % 4 === 0 : w?.rainy ?? false
           const tempF = isDemo ? 74 + (cellDate.getDate() % 9) : w?.tempF
@@ -186,15 +191,18 @@ function CalendarModal({ open, onClose, weatherDays, isDemo, selected, onSelect 
                   day: cellDate.getDate(),
                   rainy,
                   tempF,
+                  vacation: vac,
                 })
                 onClose()
               }}
               className={`flex aspect-square flex-col items-center justify-center gap-0.5 rounded-xl text-sm transition-colors ${
                 disabled
                   ? 'cursor-not-allowed text-slate-300 dark:text-slate-700'
-                  : isSelected
-                    ? 'cursor-pointer bg-brand-700 text-white shadow-[0_6px_14px_-8px_rgba(76,29,149,0.8)]'
-                    : 'cursor-pointer text-slate-700 hover:bg-brand-50 dark:text-slate-300 dark:hover:bg-white/10'
+                  : vac
+                    ? 'cursor-pointer bg-slate-100 text-slate-400 line-through decoration-slate-300 dark:bg-white/5 dark:text-slate-600'
+                    : isSelected
+                      ? 'cursor-pointer bg-brand-700 text-white shadow-[0_6px_14px_-8px_rgba(76,29,149,0.8)]'
+                      : 'cursor-pointer text-slate-700 hover:bg-brand-50 dark:text-slate-300 dark:hover:bg-white/10'
               }`}
             >
               <span className="font-semibold tabular-nums">{cellDate.getDate()}</span>
@@ -412,6 +420,20 @@ export default function BookingWizard() {
   const [date, setDate] = useState(null)
   const [time, setTime] = useState('')
   const [weatherAck, setWeatherAck] = useState(false)
+  // The vacation the customer just tapped into (085). Holding it here
+  // rather than blocking the tap is what lets us answer "he's away until
+  // the 15th, want the 16th?" instead of an inert grayed-out cell.
+  const [vacationHit, setVacationHit] = useState(null)
+
+  function pickDate(day) {
+    if (day.vacation) {
+      setVacationHit(day.vacation)
+      return
+    }
+    setVacationHit(null)
+    setDate(day)
+    setWeatherAck(false)
+  }
   const [showWeather, setShowWeather] = useState(false)
   const [showUninsured, setShowUninsured] = useState(false)
   const [showSmsPrompt, setShowSmsPrompt] = useState(false)
@@ -971,34 +993,79 @@ const [smsError, setSmsError] = useState(null)
               </div>
 
               <div className="mt-2 flex gap-2 overflow-x-auto pb-2" role="radiogroup" aria-label="Date">
-                {days.map((day) => (
+                {days.map((day) => {
+                  const dayVac = vacationOn(d?.vacations, day.key)
+                  return (
                   <button
                     key={day.key}
                     type="button"
                     role="radio"
                     aria-checked={date?.key === day.key}
-                    onClick={() => {
-                      setDate(day)
-                      setWeatherAck(false)
-                    }}
+                    onClick={() => pickDate({ ...day, vacation: dayVac })}
                     className={`flex w-16 shrink-0 cursor-pointer flex-col items-center rounded-2xl border py-3 transition-all duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
-                      date?.key === day.key
-                        ? 'border-brand-600 bg-brand-700 text-white shadow-[0_8px_18px_-12px_rgba(76,29,149,0.8)]'
-                        : 'border-brand-100 bg-white text-slate-700 shadow-sm hover:border-brand-300 dark:border-white/10 dark:bg-white/5 dark:text-slate-300'
+                      dayVac
+                        ? 'border-slate-200 bg-slate-100 text-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-600'
+                        : date?.key === day.key
+                          ? 'border-brand-600 bg-brand-700 text-white shadow-[0_8px_18px_-12px_rgba(76,29,149,0.8)]'
+                          : 'border-brand-100 bg-white text-slate-700 shadow-sm hover:border-brand-300 dark:border-white/10 dark:bg-white/5 dark:text-slate-300'
                     }`}
                   >
                     <span className="text-xs font-medium opacity-80">{day.label}</span>
-                    <span className="font-display text-xl font-bold">{day.day}</span>
-                    {day.tempF != null && (
+                    <span className={`font-display text-xl font-bold ${dayVac ? 'line-through decoration-slate-300' : ''}`}>{day.day}</span>
+                    {dayVac && <span className="text-[10px] font-semibold uppercase tracking-wide">{t('away')}</span>}
+                    {!dayVac && day.tempF != null && (
                       <span className={`flex items-center gap-0.5 text-[10px] font-medium tabular-nums ${date?.key === day.key ? 'text-white/80' : 'text-slate-400 dark:text-slate-500'}`}>
                         <WeatherGlyph tempF={day.tempF} className="text-xs" />
                         {day.tempF}°
                       </span>
                     )}
-                    {day.rainy && <span className={`text-[10px] ${date?.key === day.key ? 'text-amber-200' : 'text-amber-600 dark:text-amber-400'}`}>{t('rain')}</span>}
+                    {!dayVac && day.rainy && <span className={`text-[10px] ${date?.key === day.key ? 'text-amber-200' : 'text-amber-600 dark:text-amber-400'}`}>{t('rain')}</span>}
                   </button>
-                ))}
+                  )
+                })}
               </div>
+
+              {vacationHit && (
+                <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-3 dark:border-amber-500/30 dark:bg-amber-500/10">
+                  <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+                    {t('onVacationTitle', { name: d.name })}
+                  </p>
+                  <p className="mt-1 text-sm text-amber-800 dark:text-amber-300">
+                    {t('onVacationBody', {
+                      from: formatDateKey(vacationHit.startsOn),
+                      to: formatDateKey(vacationHit.endsOn),
+                      back: formatDateKey(backOnKey(vacationHit)),
+                    })}
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const key = backOnKey(vacationHit)
+                        const [y, m, dd] = key.split('-').map(Number)
+                        const back = new Date(y, m - 1, dd)
+                        pickDate({
+                          key,
+                          label: back.toLocaleDateString('en-US', { weekday: 'short' }),
+                          day: back.getDate(),
+                          rainy: false,
+                          tempF: null,
+                        })
+                      }}
+                      className="btn btn-brand h-9 px-4 text-sm"
+                    >
+                      {t('onVacationTakeBackDate', { back: formatDateKey(backOnKey(vacationHit)) })}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setVacationHit(null)}
+                      className="btn btn-outline h-9 px-4 text-sm"
+                    >
+                      {t('onVacationPickAnother')}
+                    </button>
+                  </div>
+                </div>
+              )}
 
               <div className="mt-5">
                 <TimePicker
@@ -1331,10 +1398,8 @@ const [smsError, setSmsError] = useState(null)
           weatherDays={weatherDays}
           isDemo={isDemo}
           selected={date?.key}
-          onSelect={(d) => {
-            setDate(d)
-            setWeatherAck(false)
-          }}
+          vacations={d?.vacations}
+          onSelect={pickDate}
         />
 
         {/* Weather warning (2.4b) */}

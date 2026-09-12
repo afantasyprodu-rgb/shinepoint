@@ -64,6 +64,14 @@ function normalizeDetailer(row) {
     // (065) — e.g. a lunch block. Captured at onboarding; BookingWizard's
     // TimePicker grays these out.
     blackoutHours: row.blackout_hours ?? [],
+    // Date ranges the detailer is away (085). Unlike blackoutHours (every
+    // day, forever) these are finite, so the booking wizard can gray the
+    // days out AND say which day they're back.
+    vacations: (row.detailer_vacations ?? []).map((v) => ({
+      id: v.id,
+      startsOn: v.starts_on,
+      endsOn: v.ends_on,
+    })),
     // Shown as the moving marker on EnRouteTracker's live map once this
     // detailer is en route to a job (057).
     vehicleEmoji: row.vehicle_emoji || '🚗',
@@ -348,7 +356,8 @@ export async function fetchDetailers() {
         vehicle_upcharge_suv, vehicle_upcharge_truck, vehicle_upcharge_van, blackout_hours,
         eco_waterless, eco_products, eco_water_reclaim,
         services(id, service_name, description, price, vehicle_types, is_active, is_addon, is_featured, is_package, package_includes, detailer_location_id),
-        detailer_locations(id, label, zip_code, pin_lat, pin_lng, free_travel_miles, charge_per_extra_mile, max_travel_miles, is_active)
+        detailer_locations(id, label, zip_code, pin_lat, pin_lng, free_travel_miles, charge_per_extra_mile, max_travel_miles, is_active),
+        detailer_vacations(id, starts_on, ends_on)
       `),
     fetchDetailerNames(),
   ])
@@ -1379,6 +1388,48 @@ export async function submitTimeRequest({ detailerId, customerId, dateKey, time,
 }
 
 // Detailer's own queue of open "can't find a time" leads (082).
+// Vacations (085) — a detailer's own away-day ranges.
+export async function fetchVacations(detailerId) {
+  const { data, error } = await supabase
+    .from('detailer_vacations')
+    .select('id, starts_on, ends_on, note')
+    .eq('detailer_id', detailerId)
+    .order('starts_on', { ascending: true })
+  if (error) { console.error('fetchVacations:', error.message); return [] }
+  return (data ?? []).map((v) => ({ id: v.id, startsOn: v.starts_on, endsOn: v.ends_on, note: v.note }))
+}
+
+export async function addVacation(detailerId, startsOn, endsOn, note) {
+  const { data, error } = await supabase
+    .from('detailer_vacations')
+    .insert({ detailer_id: detailerId, starts_on: startsOn, ends_on: endsOn, note: note?.trim() || null })
+    .select('id, starts_on, ends_on, note')
+    .single()
+  if (error) throw new Error(error.message)
+  return { id: data.id, startsOn: data.starts_on, endsOn: data.ends_on, note: data.note }
+}
+
+export async function removeVacation(id) {
+  const { error } = await supabase.from('detailer_vacations').delete().eq('id', id)
+  if (error) throw new Error(error.message)
+}
+
+// Bookings already on the schedule inside a proposed range. Adding a
+// vacation deliberately does NOT cancel them — cancelling someone's job out
+// from under them (and refunding) is the detailer's call, not a side effect
+// of setting dates — so the UI warns and links them instead.
+export async function bookingsInRange(detailerId, startsOn, endsOn) {
+  const { data, error } = await supabase
+    .from('bookings')
+    .select('id, scheduled_time, status')
+    .eq('detailer_id', detailerId)
+    .not('status', 'in', '("cancelled","complete")')
+    .gte('scheduled_time', `${startsOn}T00:00:00`)
+    .lte('scheduled_time', `${endsOn}T23:59:59`)
+  if (error) { console.error('bookingsInRange:', error.message); return [] }
+  return data ?? []
+}
+
 export async function fetchTimeRequests(detailerId) {
   const { data, error } = await supabase
     .from('booking_time_requests')
