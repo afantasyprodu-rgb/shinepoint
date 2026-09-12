@@ -30,6 +30,12 @@ verify_jwt = true
 [functions.release-payouts]
 verify_jwt = false
 
+# Cron job — nobody is signed in when it fires, so it authenticates with
+# CRON_SECRET inside the function instead of a JWT (same as release-payouts
+# and expire-reschedule-offers).
+[functions.expire-stale-pending]
+verify_jwt = false
+
 [functions.stripe-webhook]
 verify_jwt = false
 

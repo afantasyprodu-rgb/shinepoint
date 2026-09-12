@@ -155,6 +155,25 @@ select cron.schedule(
 
 ---
 
+### The other scheduled jobs
+
+Three more run on exactly this pattern (same `x-cron-secret` header, same
+hourly cadence) - repeat the block above with the job name and function name
+swapped:
+
+| Job name | Function | Schedule | What it does |
+| --- | --- | --- | --- |
+| `send-appointment-reminders-hourly` | `send-appointment-reminders` | `0 * * * *` | Day-of reminder SMS/email. |
+| `expire-reschedule-offers-hourly` | `expire-reschedule-offers` | `0 * * * *` | A reschedule offer the customer never answered within 24h -> full refund. |
+| `expire-stale-pending-hourly` | `expire-stale-pending` | `15 * * * *` | A booking the **detailer** never accepted, whose appointment time has since passed -> full refund. Staggered to `:15` only to keep the four jobs off the same tick. |
+
+Between them `expire-reschedule-offers` covers the customer going quiet and
+`expire-stale-pending` covers the detailer going quiet. A customer who does
+not want to wait for either can cancel themselves (`cancel-booking`), which
+refunds on the same path.
+
+---
+
 ## 6. Smoke test (test mode)
 
 1. **Detailer payout setup:** sign in as a real detailer â†’ Dashboard â†’ "Set up payouts" â†’ finish Stripe onboarding with test data. The `account.updated` webhook flips `detailer_profiles.stripe_charges_enabled` to true.
