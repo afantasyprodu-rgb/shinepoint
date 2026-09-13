@@ -1,6 +1,8 @@
 package app.shinepoint;
 
 import android.os.Bundle;
+import android.view.View;
+import android.webkit.WebView;
 import androidx.core.view.WindowCompat;
 import com.getcapacitor.BridgeActivity;
 
@@ -19,5 +21,19 @@ public class MainActivity extends BridgeActivity {
         // mandatory outright on Android 15+ (API 35) for apps targeting it,
         // which this app does (compileSdk/targetSdk 36).
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        // Vertical swipes were being eaten as WebView overscroll, so the
+        // landing slab never saw a finger drag. Keep native scroll bounce
+        // off; JS on ColdStart owns the drawer gesture.
+        if (getBridge() == null) return;
+        WebView webView = getBridge().getWebView();
+        if (webView == null) return;
+        webView.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        webView.setNestedScrollingEnabled(false);
+        webView.setVerticalScrollBarEnabled(false);
     }
 }

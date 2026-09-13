@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import gsap from 'gsap'
 import BoBlob from './ui/BoBlob'
 import { UserIcon } from './icons'
 import { useLanguage } from '../context/LanguageContext'
@@ -119,8 +120,21 @@ function DetailerCard({ detailer, replyText, onQuote, busy }) {
  * bubble) is the public-site character, same job, different face.
  * Calls supabase/functions/concierge-chat (search + quote only; no booking).
  */
-export default function ConciergeChat() {
+export default function ConciergeChat({ offsetBottom, popIn } = {}) {
   const { lang } = useLanguage()
+  const rootRef = useRef(null)
+
+  useLayoutEffect(() => {
+    if (!popIn || !rootRef.current) return
+    const el = rootRef.current
+    gsap.fromTo(
+      el,
+      { scale: 0, y: 28, opacity: 0, transformOrigin: '80% 100%' },
+      { scale: 1, y: 0, opacity: 1, duration: 0.5, ease: 'back.out(1.8)' },
+    )
+    return () => { gsap.killTweensOf(el) }
+  }, [popIn])
+
   const [open, setOpen] = useState(false)
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
@@ -195,7 +209,11 @@ export default function ConciergeChat() {
   }
 
   return (
-    <div className={styles.root}>
+    <div
+      ref={rootRef}
+      className={styles.root}
+      style={offsetBottom ? { bottom: offsetBottom } : undefined}
+    >
       {open && (
         <div className={styles.panel}>
           <header className={styles.header}>

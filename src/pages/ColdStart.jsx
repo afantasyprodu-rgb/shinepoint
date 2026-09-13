@@ -1,25 +1,16 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react'
+import gsap from 'gsap'
 import DetailerMap from '../components/DetailerMap'
 import { useStore } from '../context/StoreContext'
 import { Stars } from '../components/ui/bits'
 import HeroBubbles from '../components/ui/HeroBubbles'
-import { UserIcon, ArrowRightIcon, SparklesIcon, CameraIcon } from '../components/icons'
+import { UserIcon, ArrowRightIcon, SparklesIcon, CameraIcon, ChevronDownIcon } from '../components/icons'
 import ThemeToggle from '../components/ThemeToggle'
 import LanguageToggle from '../components/LanguageToggle'
+import ConciergeChat from '../components/ConciergeChat'
 import { milesBetween } from '../lib/fuzzyPin'
-
-// Spots the "Join as detailer" sparkles fade in/out at — more spots than
-// visible at once, each with its own delay/repeatDelay/size so they don't
-// all blink in sync and appear to hop around the pill over time.
-const JOIN_SPARKLES = [
-  { top: '-10px', left: '-6px', size: 'h-3 w-3', delay: 0, repeatDelay: 1.8 },
-  { top: '-14px', left: '55%', size: 'h-2 w-2', delay: 0.6, repeatDelay: 2.4 },
-  { top: '55%', left: '-10px', size: 'h-2.5 w-2.5', delay: 1.1, repeatDelay: 2 },
-  { top: 'calc(100% + 2px)', left: '70%', size: 'h-2.5 w-2.5', delay: 1.6, repeatDelay: 1.6 },
-  { top: 'calc(100% + 6px)', left: '20%', size: 'h-2 w-2', delay: 0.3, repeatDelay: 2.8 },
-]
 
 // This screen is demo-only (see the two-stage-reveal note above), and
 // neither the demo dataset nor the real reviews_of_detailers table stores a
@@ -103,6 +94,76 @@ export default function ColdStart() {
   // the rotation comes back if they stop engaging.
   const [autoScroll, setAutoScroll] = useState(true)
   const carouselRef = useRef(null)
+  const handleDragged = useRef(false)
+  const sheetRef = useRef(null)
+  const handleRef = useRef(null)
+  const contentRef = useRef(null)
+  const dockYRef = useRef(0)
+  const stickTRef = useRef(0)
+  const [boBottom, setBoBottom] = useState('20rem')
+
+  function measureStick() {
+    const content = contentRef.current
+    const handle = handleRef.current
+    if (!content) return 0
+    const handleBottom = handle ? handle.offsetTop + handle.offsetHeight : 32
+    stickTRef.current = Math.max(0, content.offsetTop - handleBottom)
+    return stickTRef.current
+  }
+
+  function stickContent(sheetY) {
+    const content = contentRef.current
+    if (!content) return
+    if (!stickTRef.current) measureStick()
+    const y = Number(sheetY) || 0
+    gsap.set(content, { y: -Math.min(Math.max(0, y), stickTRef.current) })
+  }
+
+  function measureDock() {
+    const el = sheetRef.current
+    if (!el) return 0
+    const peek = Math.max(el.clientHeight * 0.25, 280)
+    dockYRef.current = Math.max(0, el.clientHeight - peek)
+    measureStick()
+    const nextBo = `${Math.round(peek + 16)}px`
+    setBoBottom((prev) => (prev === nextBo ? prev : nextBo))
+    return dockYRef.current
+  }
+
+  function coverMap() {
+    const el = sheetRef.current
+    setRevealed(false)
+    if (!el || reduce) {
+      stickContent(0)
+      return
+    }
+    gsap.to(el, {
+      y: 0,
+      duration: 0.42,
+      ease: 'power3.inOut',
+      overwrite: true,
+      onUpdate() { stickContent(gsap.getProperty(el, 'y')) },
+    })
+  }
+
+  function openDrawer() {
+    requestLocation()
+    setRevealed(true)
+    const el = sheetRef.current
+    const y = measureDock()
+    if (!el || reduce) {
+      stickContent(y)
+      return
+    }
+    gsap.to(el, {
+      y,
+      duration: 0.45,
+      ease: 'power3.inOut',
+      overwrite: true,
+      onUpdate() { stickContent(gsap.getProperty(el, 'y')) },
+    })
+  }
+
 
   // True while we're smooth-scrolling the carousel programmatically (the
   // auto-advance). `handleCarouselScroll` ignores scroll-position changes
@@ -123,6 +184,130 @@ export default function ColdStart() {
       { enableHighAccuracy: false, timeout: 8000 }
     )
   }
+
+
+  useLayoutEffect(() => {
+    const el = sheetRef.current
+    if (!el || reduce) return undefined
+    measureDock()
+    el.style.touchAction = 'none'
+    el.style.userSelect = 'none'
+    el.style.webkitUserSelect = 'none'
+    const html = document.documentElement
+    const body = document.body
+    const prevOverflow = {
+      html: html.style.overflow,
+      body: body.style.overflow,
+      htmlTouch: html.style.touchAction,
+      bodyTouch: body.style.touchAction,
+    }
+    html.style.overflow = 'hidden'
+    body.style.overflow = 'hidden'
+    html.style.touchAction = 'none'
+    body.style.touchAction = 'none'
+
+    let dragging = false
+    let startY = 0
+    let startTy = 0
+    let lastY = 0
+    let lastT = 0
+    let vel = 0
+
+    const yOf = () => Number(gsap.getProperty(el, 'y')) || 0
+
+    const eventY = (e) => {
+      if (e.touches && e.touches[0]) return e.touches[0].clientY
+      if (e.changedTouches && e.changedTouches[0]) return e.changedTouches[0].clientY
+      return e.clientY
+    }
+
+    const bindWindow = () => {
+      window.addEventListener('pointermove', onMove, { passive: false })
+      window.addEventListener('pointerup', finish)
+      window.addEventListener('pointercancel', finish)
+      window.addEventListener('touchmove', onMove, { capture: true, passive: false })
+      window.addEventListener('touchend', finish, true)
+      window.addEventListener('touchcancel', finish, true)
+    }
+
+    const unbindWindow = () => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', finish)
+      window.removeEventListener('pointercancel', finish)
+      window.removeEventListener('touchmove', onMove, true)
+      window.removeEventListener('touchend', finish, true)
+      window.removeEventListener('touchcancel', finish, true)
+    }
+
+    const onDown = (e) => {
+      if (dragging) return
+      if (e.pointerType === 'mouse' && e.button !== 0) return
+      if (e.target && !el.contains(e.target)) return
+      if (!dockYRef.current) measureDock()
+      else measureStick()
+      dragging = true
+      handleDragged.current = false
+      const y = eventY(e)
+      startY = y
+      startTy = yOf()
+      lastY = y
+      lastT = performance.now()
+      vel = 0
+      gsap.killTweensOf(el)
+      if (e.pointerId != null) {
+        try { el.setPointerCapture(e.pointerId) } catch { /* WebView may omit capture */ }
+      }
+      bindWindow()
+    }
+
+    const onMove = (e) => {
+      if (!dragging) return
+      const y = eventY(e)
+      const dy = y - startY
+      if (Math.abs(dy) > 4) handleDragged.current = true
+      const next = Math.min(dockYRef.current, Math.max(0, startTy + dy))
+      gsap.set(el, { y: next })
+      stickContent(next)
+      const now = performance.now()
+      const dt = now - lastT
+      if (dt > 0) vel = ((y - lastY) / dt) * 1000
+      lastY = y
+      lastT = now
+      if (e.cancelable) e.preventDefault()
+    }
+
+    const finish = () => {
+      if (!dragging) return
+      dragging = false
+      unbindWindow()
+      if (!handleDragged.current) return
+      const y = yOf()
+      const mid = dockYRef.current / 2
+      if (y > mid || vel > 400) openDrawer()
+      else coverMap()
+    }
+
+    const onClickCapture = (e) => {
+      if (handleDragged.current) {
+        e.preventDefault()
+        e.stopPropagation()
+      }
+    }
+
+    document.addEventListener('pointerdown', onDown, true)
+    document.addEventListener('touchstart', onDown, { capture: true, passive: false })
+    el.addEventListener('click', onClickCapture, true)
+    return () => {
+      unbindWindow()
+      html.style.overflow = prevOverflow.html
+      body.style.overflow = prevOverflow.body
+      html.style.touchAction = prevOverflow.htmlTouch
+      body.style.touchAction = prevOverflow.bodyTouch
+      document.removeEventListener('pointerdown', onDown, true)
+      document.removeEventListener('touchstart', onDown, true)
+      el.removeEventListener('click', onClickCapture, true)
+    }
+  }, [reduce])
 
   useEffect(() => {
     if (detailers.length > 0 || demoDetailers.length > 0) return
@@ -413,127 +598,95 @@ export default function ColdStart() {
         </div>
       )}
 
-      {/* The sheet itself — full-screen intro, then animates down to a
-          normal bottom sheet on reveal. `layout` gives Motion's automatic
-          FLIP animation between the two states instead of hand-written
-          keyframes for every property that changes (position, size,
-          rounding, content alignment). */}
-      <motion.div
-        layout
-        transition={reduce ? { duration: 0 } : { type: 'spring', stiffness: 260, damping: 28 }}
-        className={`pointer-events-auto absolute z-20 overflow-hidden shadow-[0_-8px_24px_rgba(0,0,0,0.08)] ${
-          revealed
-            ? 'inset-x-0 bottom-0 rounded-t-3xl px-6 pb-8 pt-5'
-            : 'inset-0 flex flex-col items-center justify-center rounded-none px-6 text-center'
-        }`}
-        // G1+G4 — Studio Wash: rose-tinted neumorphic surface (#f1eff3) with a
-        // soft-embossed dual shadow, so the sheet reads as a moulded slab the
-        // user can press, matching the brand mockup. Once revealed, the sheet
-        // sits directly under the map/cards — plain white reads cleaner there
-        // than the pink tint, which is kept for the pre-reveal intro only.
-        style={{ background: revealed ? '#ffffff' : '#f5edf3', boxShadow: '0 -8px 24px rgba(0,0,0,0.08), 6px 6px 18px rgba(15,23,42,0.12), -6px -6px 18px rgba(255,255,255,0.9)' }}
+      {/* One full-screen slab. Map lives behind it. The slab slides DOWN
+          so only about a quarter stays on screen; sliding it back up
+          covers the map again. Explore stays on the slab the whole time. */}
+      <div
+        ref={sheetRef}
+        className="pointer-events-auto absolute inset-0 z-20 flex flex-col items-center overflow-hidden px-6 pt-6 text-center touch-none select-none"
+        style={{ background: '#f5edf3', touchAction: 'none', WebkitUserSelect: 'none', boxShadow: '0 -8px 24px rgba(0,0,0,0.08), 6px 6px 18px rgba(15,23,42,0.12), -6px -6px 18px rgba(255,255,255,0.9)' }}
       >
-        {/* Ambient brand-pink glow + soap-bubble field, same as the auth
-            card's hero — only on the pre-reveal intro. Once the map is
-            showing (revealed), the pink glow/bubbles competed visually
-            with the actual map content sitting right above this sheet, so
-            they're dropped for that state instead of layering on top. */}
-        {!revealed && (
-          <>
-            <div aria-hidden="true" className="pointer-events-none absolute left-1/2 top-1/4 h-72 w-72 -translate-x-1/2 rounded-full bg-brand-200/50 blur-3xl dark:bg-brand-800/20" />
-            {!reduce && (
-              <div aria-hidden="true" className="pointer-events-none absolute inset-0">
-                <HeroBubbles seed={7} bubbleCount={22} />
-              </div>
-            )}
-          </>
+        <div aria-hidden="true" className="pointer-events-none absolute left-1/2 top-1/4 h-72 w-72 -translate-x-1/2 rounded-full bg-brand-200/50 blur-3xl dark:bg-brand-800/20" />
+        {!reduce && (
+          <div aria-hidden="true" className="pointer-events-none absolute inset-0" style={{ transform: 'none' }}>
+            <HeroBubbles key="coldstart-bubbles" seed={7} bubbleCount={22} />
+          </div>
         )}
-        <div className="relative w-full max-w-xs">
-          {revealed && <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-slate-200" aria-hidden="true" />}
-          {!revealed && (
-            // Not the shared <Logo> component here: its wordmark switches to
-            // light text in dark mode (dark:text-brand-200) for surfaces
-            // that actually go dark — this sheet's background is a fixed
-            // light pink gradient regardless of theme, so that swap made
-            // "ShinePoint" nearly invisible (light-on-light) whenever
-            // someone toggled dark mode on this screen specifically.
-            <div className="mx-auto mb-4 flex items-center justify-center gap-2.5">
-              <span className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-sm">
-                <SparklesIcon className="h-8 w-8" />
+        <button
+          ref={handleRef}
+          type="button"
+          aria-label={revealed ? 'Cover map' : 'Explore detailers'}
+          className="absolute left-1/2 top-5 z-10 flex -translate-x-1/2 touch-none items-center justify-center px-5 py-2"
+          onClick={() => {
+            if (handleDragged.current) return
+            if (revealed) coverMap()
+            else openDrawer()
+          }}
+        >
+          <ChevronDownIcon
+            className={`h-7 w-7 text-slate-400 transition-transform duration-200 ${revealed ? 'rotate-180' : ''}`}
+            aria-hidden="true"
+          />
+        </button>
+        <div className="relative flex h-full w-full flex-col items-center justify-center">
+        <div ref={contentRef} className="relative mx-auto w-full max-w-[17.5rem] text-center">
+          <div className="mx-auto flex flex-col items-center">
+            <div className="flex items-center justify-center gap-2.5">
+              <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-[0_8px_20px_rgba(222,0,103,0.28)]">
+                <SparklesIcon className="h-7 w-7" />
               </span>
-              <span className="font-display text-3xl font-semibold text-brand-900">ShinePoint</span>
+              <span className="font-display text-[1.65rem] font-semibold leading-none tracking-tight text-brand-900">ShinePoint</span>
             </div>
-          )}
-          {!revealed && (
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-600">Mobile detailing</p>
-          )}
-          <h1 className={`font-display font-bold text-slate-950 ${revealed ? 'text-xl' : 'mt-1 text-3xl'}`}>See who's nearby</h1>
-          <p className={`mt-1 text-sm text-slate-600 ${revealed ? '' : 'mt-2'}`}>Browse vetted detailers live before you sign in.</p>
-          {!revealed && (
+            <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-brand-600">Mobile detailing</p>
+          </div>
+          <h1 className="mt-3 font-display text-xl font-bold leading-tight text-slate-950">See who's nearby</h1>
+          <p className="mt-1 text-sm leading-relaxed text-slate-600">Browse vetted detailers nearby — no account needed.</p>
+          <div
+            className="mt-3 rounded-3xl p-3"
+            style={{
+              background: 'rgba(255,255,255,0.34)',
+              backdropFilter: 'blur(18px) saturate(1.45)',
+              WebkitBackdropFilter: 'blur(18px) saturate(1.45)',
+              border: '1px solid rgba(255,255,255,0.55)',
+              boxShadow: '0 8px 28px rgba(15,23,42,0.08)',
+            }}
+          >
             <button
               type="button"
-              onClick={() => { setRevealed(true); requestLocation() }}
-              className="press-spring mt-5 flex w-full items-center justify-center gap-1.5 rounded-2xl bg-[#f5edf3] py-3 text-sm font-bold text-brand-700 shadow-[6px_6px_14px_rgba(15,23,42,0.18),-6px_-6px_14px_rgba(255,255,255,0.9)]"
-              style={{ color: '#de0067' }}
+              onClick={() => { if (!handleDragged.current) openDrawer() }}
+              className="press-spring flex w-full items-center justify-center gap-1.5 rounded-2xl py-3.5 text-sm font-bold text-white shadow-[0_8px_18px_rgba(222,0,103,0.32)]"
+              style={{ background: '#de0067' }}
             >
               Explore detailers <ArrowRightIcon className="h-4 w-4" />
             </button>
-          )}
-          {/* Solid white pill (not transparent, not the app's dark
-              neumorphic .btn-outline) — a filled white background is what
-              actually gives these legible contrast against the pink glow +
-              bubbles behind them; the app's own dark surface read as too
-              heavy for a secondary action sitting right under the primary
-              pink CTA above. */}
-          <div className="mt-3 flex gap-2">
-            {/* Pre-reveal: "Sign in" for a returning user landing straight on
-                the branded intro. Once revealed (they've tapped Explore and
-                are looking at real pins/cards), the more likely next step
-                for someone who was just browsing is starting a NEW account,
-                not logging into an existing one — so this becomes "Create
-                an account" -> /signup instead. */}
-            <Link
-              to={revealed ? '/signup' : '/login'}
-              className={`press-spring flex-1 rounded-full py-2.5 text-center text-sm font-semibold text-slate-700 shadow-[4px_4px_9px_rgba(15,23,42,0.12),-4px_-4px_9px_rgba(255,255,255,0.9)] ${revealed ? 'bg-white' : 'bg-[#f5edf3]'}`}
-            >
-              {revealed ? 'Create an account' : 'Sign in'}
-            </Link>
-            <div className="relative flex-1">
-              {/* Outer golden ring glow + sparkles around "Join as detailer"
-                  — decorative accent to draw the detailer-side eye, amber-400
-                  to read gold rather than yellow. Glow "breathes" (opacity +
-                  scale pulse); each sparkle drifts between a few spots around
-                  the pill, fading in/out at its own spot rather than staying
-                  fixed, so they read as randomly appearing/disappearing. */}
-              {!reduce && (
-                <motion.div
-                  aria-hidden="true"
-                  className="pointer-events-none absolute -inset-1 rounded-full bg-amber-400/60 blur-md"
-                  animate={{ opacity: [0.35, 0.75, 0.35], scale: [1, 1.08, 1] }}
-                  transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut' }}
-                />
-              )}
-              {JOIN_SPARKLES.map((spot, i) => (
-                <motion.span
-                  key={i}
-                  aria-hidden="true"
-                  className="pointer-events-none absolute"
-                  style={{ top: spot.top, left: spot.left }}
-                  animate={
-                    reduce
-                      ? { opacity: 0.8 }
-                      : { opacity: [0, 1, 0], scale: [0.4, 1, 0.4], rotate: [0, 25, 0] }
-                  }
-                  transition={{ duration: 2.2, repeat: Infinity, repeatDelay: spot.repeatDelay, delay: spot.delay, ease: 'easeInOut' }}
-                >
-                  <SparklesIcon className={`${spot.size} text-amber-400`} />
-                </motion.span>
-              ))}
-              <Link to="/signup/detailer" className={`press-spring relative z-10 block w-full rounded-full py-2.5 text-center text-sm font-semibold text-slate-700 shadow-[4px_4px_9px_rgba(15,23,42,0.12),-4px_-4px_9px_rgba(255,255,255,0.9)] ${revealed ? 'bg-white' : 'bg-[#f5edf3]'}`}>Join as detailer</Link>
+            <div className="mt-2.5 grid grid-cols-2 gap-2">
+              <Link
+                to="/login"
+                className="press-spring rounded-2xl py-3 text-center text-sm font-semibold text-slate-700"
+                style={{ background: 'rgba(255,255,255,0.28)', border: '1px solid rgba(15,23,42,0.08)' }}
+              >
+                Log in
+              </Link>
+              <Link
+                to="/signup"
+                className="press-spring rounded-2xl py-3 text-center text-sm font-semibold text-slate-700"
+                style={{ background: 'rgba(255,255,255,0.28)', border: '1px solid rgba(15,23,42,0.08)' }}
+              >
+                Sign up
+              </Link>
             </div>
+            <Link
+              to="/signup/detailer"
+              className="press-spring mt-2.5 block w-full rounded-full py-2.5 text-center text-sm font-semibold"
+              style={{ color: '#b8860b' }}
+            >
+              Join as detailer
+            </Link>
           </div>
         </div>
-      </motion.div>
+        </div>
+      </div>
+      {revealed && <ConciergeChat offsetBottom={boBottom} popIn />}
     </div>
   )
 }
