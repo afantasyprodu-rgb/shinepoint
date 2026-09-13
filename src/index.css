@@ -483,6 +483,19 @@
   .bento-action {
     background: linear-gradient(135deg in oklch, var(--color-brand-700), var(--color-brand-800));
     @apply rounded-3xl p-5 text-white shadow-lg shadow-brand-900/20;
+    --concentric-outer: 1.5rem; /* rounded-3xl */
+    --concentric-inset: 1.25rem; /* p-5 */
+  }
+
+  /* Same fix SwiftUI's ConcentricRectangle ships in iOS 26: a rounded child
+     sitting inset inside a rounded parent reads as MORE rounded than the
+     parent unless its own radius shrinks by the inset (inner = outer -
+     inset), so the two curves share a center instead of visually clashing.
+     Nearest ancestor sets --concentric-outer/--concentric-inset; falls
+     back to values matching .card's own rounded-3xl/p-8 if unset. Floors
+     at 4px so it never goes negative or fully square. */
+  .rounded-concentric {
+    border-radius: max(4px, calc(var(--concentric-outer, 1.5rem) - var(--concentric-inset, 2rem))) !important;
   }
 
   /* ── Skeleton bones ──────────────────────────────────────

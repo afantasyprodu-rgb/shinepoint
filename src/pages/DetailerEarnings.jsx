@@ -366,7 +366,7 @@ export default function DetailerEarnings() {
                     <CountUp value={963} prefix="$" />
                   </p>
                 </div>
-                <button className="press-spring btn btn-cta h-11 shrink-0 text-sm">
+                <button className="press-spring btn btn-cta rounded-concentric h-11 shrink-0 text-sm">
                   {t('cashOut')}
                 </button>
               </div>
