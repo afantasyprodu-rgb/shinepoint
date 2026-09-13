@@ -3,6 +3,7 @@ import { chargeTip, resolveDisputeWithRefund, declineBookingWithRefund, cancelBo
 import { enqueuePhoto } from '../lib/photoQueue'
 import { getPendingEstimatePhotos, clearPendingEstimatePhotos } from '../lib/pendingEstimatePhotos'
 import { updateWidget } from '../lib/widget'
+import { sendRescheduleNotice } from '../lib/email'
 import { useAuth } from './AuthContext'
 import { MILESTONES } from '../data/milestones'
 import { useRealtimeChannel } from '../hooks/useRealtimeChannel'
@@ -1105,6 +1106,7 @@ export function StoreProvider({ children }) {
           setRealBookings((bs) =>
             bs.map((b) => (b.id === id ? { ...b, scheduledTime: newScheduledTimeIso } : b))
           )
+          sendRescheduleNotice(id).catch((e) => console.error('sendRescheduleNotice:', e.message))
           return
         }
         // Demo store: patchBooking spreads any keys, no schema needed, and

@@ -14,3 +14,13 @@ export const sendReceiptEmail = (bookingId) => invokeFn('send-receipt-email', { 
 // must never block on email delivery.
 export const sendEnRouteEmail = (bookingId, etaMinutes) =>
   invokeFn('send-en-route-email', { bookingId, etaMinutes })
+
+// Sends the "your appointment time changed" email after a detailer drags a
+// job onto a different day on their calendar (087). The in-app notification
+// always fires (notify_booking_change's DB trigger), so this is the extra
+// channel for a customer who isn't watching the app right then — same
+// non-fatal-to-the-caller contract as the two above: a drag that already
+// succeeded in the database must never appear to fail because the email
+// didn't go out.
+export const sendRescheduleNotice = (bookingId) =>
+  invokeFn('send-reschedule-notice', { bookingId })
