@@ -20,6 +20,7 @@ import {
   fetchBookingsForDetailer,
   createBookingInDB,
   updateBookingStatusInDB,
+  rescheduleBookingInDB,
   saveDetailerOnboarding,
   insertDetailerReview,
   insertCustomerReview,
@@ -1088,6 +1089,27 @@ export function StoreProvider({ children }) {
         }
         patchBooking(id, { status: 'cancelled', cancelledBy: 'detailer' })
         return { ok: true, offered: false }
+      },
+
+      // Detailer calendar drag-to-reschedule (087). Never patchBooking for
+      // the real path — that routes through updateBookingStatusInDB, which
+      // swallows a failure into the offline-retry queue. A 087 guard
+      // rejection (buffer conflict, or the job already started) will keep
+      // failing identically on retry, so the caller needs to see it now and
+      // revert the optimistic drag, not have it silently queued forever.
+      // Throws on failure; the caller (the calendar) is responsible for
+      // catching it and snapping the card back to its original day.
+      async rescheduleBooking(id, newScheduledTimeIso) {
+        if (!isDemo) {
+          await rescheduleBookingInDB(id, newScheduledTimeIso)
+          setRealBookings((bs) =>
+            bs.map((b) => (b.id === id ? { ...b, scheduledTime: newScheduledTimeIso } : b))
+          )
+          return
+        }
+        // Demo store: patchBooking spreads any keys, no schema needed, and
+        // never fails -- there's no server-side buffer conflict to hit.
+        patchBooking(id, { scheduledTime: newScheduledTimeIso })
       },
 
       sendMessage(bookingId, from, text) {

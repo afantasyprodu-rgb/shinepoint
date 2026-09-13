@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import AppShell from '../components/AppShell'
 import AvailabilityToggle from '../components/AvailabilityToggle'
+import DetailerCalendar from '../components/DetailerCalendar'
 import Modal from '../components/ui/Modal'
 import { AnimatedPage, FadeIn } from '../components/ui/Motion'
 import { Avatar, CountUp, ProgressBar, StatusPill } from '../components/ui/bits'
@@ -143,11 +144,16 @@ function JobRow({ b, t, lang }) {
 // Blueprint screen 5.1 — Detailer Dashboard.
 export default function DetailerDashboard() {
   const { profile } = useAuth()
-  const { bookings, getDetailer, patchBooking, declineBooking, isDemo, detailerProfile } = useStore()
+  const { bookings, getDetailer, patchBooking, declineBooking, rescheduleBooking, isDemo, detailerProfile } = useStore()
   const [decliningId, setDecliningId] = useState(null)
   const [declineError, setDeclineError] = useState('')
   const [expandedIncomingId, setExpandedIncomingId] = useState(null)
   const [declineModalBooking, setDeclineModalBooking] = useState(null)
+  // List is the long-standing default; Calendar (087) is opt-in per visit,
+  // not persisted -- a detailer who wants it every time will just tap it
+  // once each session, and this avoids a new settings field for a view
+  // preference that's cheap to re-pick.
+  const [scheduleView, setScheduleView] = useState('list')
 
   async function handleDecline(id, suggestedTime, reason) {
     setDeclineError('')
@@ -481,9 +487,34 @@ export default function DetailerDashboard() {
             {/* Jobs, grouped by date — today always expanded and sorted by
                 time so "what's next" never needs a click; every later date
                 collapses to a count until tapped, in chronological order,
-                same time-sort inside once opened. */}
-            <h2 className="mt-8 font-display text-lg font-semibold text-slate-900 dark:text-slate-100">{t('activeJobs')}</h2>
-            {active.length === 0 ? (
+                same time-sort inside once opened. Calendar (087) is the
+                same jobs, laid out on a month grid instead, with a
+                pending/accepted job draggable onto a different day. */}
+            <div className="mt-8 flex items-center justify-between">
+              <h2 className="font-display text-lg font-semibold text-slate-900 dark:text-slate-100">{t('activeJobs')}</h2>
+              <div className="inline-flex rounded-full border border-slate-200 bg-white p-0.5 dark:border-white/10 dark:bg-white/5">
+                {['list', 'calendar'].map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => setScheduleView(v)}
+                    aria-pressed={scheduleView === v}
+                    className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+                      scheduleView === v
+                        ? 'bg-brand-600 text-white'
+                        : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                    }`}
+                  >
+                    {v === 'list' ? t('viewList') : t('viewCalendar')}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {scheduleView === 'calendar' ? (
+              <div className="mt-3">
+                <DetailerCalendar jobs={active} onReschedule={rescheduleBooking} />
+              </div>
+            ) : active.length === 0 ? (
               <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">{t('noActiveJobs')}</p>
             ) : (
               <div className="mt-3 space-y-3">

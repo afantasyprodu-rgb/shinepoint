@@ -1502,6 +1502,16 @@ export const STRINGS = {
       jobsCount: '{count} jobs',
       jobsLockedTitle: 'Jobs are locked for now',
       jobsLockedBody: 'Incoming requests and active jobs will show up here once your account is verified.',
+      viewList: 'List',
+      viewCalendar: 'Calendar',
+    },
+    detailerCalendar: {
+      prevMonth: 'Previous month',
+      nextMonth: 'Next month',
+      noJobsThisDay: 'No jobs scheduled.',
+      dragHint: 'Drag to move',
+      dropOnDay: 'Drop on a day to move it',
+      rescheduleFailed: "Couldn't move this job. Please try a different day.",
     },
     authCallback: {
       signinError: 'Could not complete sign-in. Please try again.',
@@ -3270,6 +3280,16 @@ export const STRINGS = {
       jobsCount: '{count} trabajos',
       jobsLockedTitle: 'Los trabajos están bloqueados por ahora',
       jobsLockedBody: 'Las solicitudes entrantes y los trabajos activos aparecerán aquí una vez que tu cuenta esté verificada.',
+      viewList: 'Lista',
+      viewCalendar: 'Calendario',
+    },
+    detailerCalendar: {
+      prevMonth: 'Mes anterior',
+      nextMonth: 'Mes siguiente',
+      noJobsThisDay: 'No hay trabajos programados.',
+      dragHint: 'Arrastra para mover',
+      dropOnDay: 'Suelta sobre un día para moverlo',
+      rescheduleFailed: 'No se pudo mover este trabajo. Prueba otro día.',
     },
     authCallback: {
       signinError: 'No se pudo completar el inicio de sesión. Inténtalo de nuevo.',

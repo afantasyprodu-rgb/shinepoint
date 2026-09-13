@@ -1050,6 +1050,22 @@ async function writeBookingStatus({ bookingId, dbPatch }) {
 }
 registerHandler('bookingStatus', writeBookingStatus)
 
+// Detailer calendar drag-to-reschedule (087). Deliberately NOT routed
+// through updateBookingStatusInDB above: that function swallows a failure
+// into the offline-retry queue, which is right for a status flip (near-
+// impossible to reject) but wrong here -- a 087 guard rejection (booking
+// buffer conflict, or the job already started) is a business decision the
+// same drag will keep failing on forever, not a connectivity blip. The
+// caller needs to see the error immediately and revert the optimistic
+// drag, not have it silently queued and retried.
+export async function rescheduleBookingInDB(bookingId, newScheduledTimeIso) {
+  const { error } = await supabase
+    .from('bookings')
+    .update({ scheduled_time: newScheduledTimeIso })
+    .eq('id', bookingId)
+  if (error) throw new Error(error.message)
+}
+
 // A detailer on a job can lose signal mid-shift (parking structure, a rural
 // driveway) right as they tap a status gate. The optimistic React state
 // update already happened in StoreContext regardless of this call's outcome

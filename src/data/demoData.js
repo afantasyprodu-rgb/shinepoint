@@ -2168,6 +2168,31 @@ export const DEMO_BOOKINGS = [
     afterPhotos: 0,
     weather: { ok: true, summary: 'Sunny, 78°F' },
   },
+  // A confirmed-but-not-yet-started job a few days out — det-1 otherwise has
+  // nothing between 'pending' (bk-104) and 'complete', so the calendar
+  // view's drag-to-reschedule (087) had no demo job to actually show
+  // draggable.
+  {
+    id: 'bk-112',
+    customerName: 'Priya Sharma',
+    detailerId: 'det-1',
+    service: 'Ceramic Coating',
+    price: 260,
+    tip: 0,
+    status: 'accepted',
+    scheduledTime: hrs(4 * 24 + 9),
+    address: '1180 6th St, Santa Monica',
+    zip: '90405',
+    vehicle: 'Sedan',
+    vehicleType: 'Sedan',
+    vehicleMake: 'Honda',
+    vehicleModel: 'Civic',
+    vehiclePhoto: null,
+    damageReport: { submitted: false, acknowledged: false, items: [] },
+    beforePhotos: 0,
+    afterPhotos: 0,
+    weather: { ok: true, summary: 'Sunny, 80°F' },
+  },
   {
     id: 'bk-102',
     customerName: 'Alex Rivera',
