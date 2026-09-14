@@ -495,7 +495,7 @@
      (all four sides) or the individual --concentric-inset-{top,right,bottom,
      left} (falling back to --concentric-inset per side, then to .card's own
      rounded-3xl/p-8 if nothing is set at all). Floors at --concentric-min
-     (default 4px) so it never goes negative or fully square.
+     (default 12px) so it never goes negative or reads as barely-rounded.
 
      Real SwiftUI corners aren't uniform by default: a corner shrinks by
      whichever of its two adjacent edges sits closer in (the smaller
@@ -513,10 +513,10 @@
     --cb: var(--concentric-inset-bottom, var(--concentric-inset, 2rem));
     --cl: var(--concentric-inset-left, var(--concentric-inset, 2rem));
     border-radius:
-      max(var(--concentric-min, 4px), calc(var(--concentric-outer, 1.5rem) - max(var(--ct), var(--cl))))
-      max(var(--concentric-min, 4px), calc(var(--concentric-outer, 1.5rem) - max(var(--ct), var(--cr))))
-      max(var(--concentric-min, 4px), calc(var(--concentric-outer, 1.5rem) - max(var(--cb), var(--cr))))
-      max(var(--concentric-min, 4px), calc(var(--concentric-outer, 1.5rem) - max(var(--cb), var(--cl))))
+      max(var(--concentric-min, 12px), calc(var(--concentric-outer, 1.5rem) - max(var(--ct), var(--cl))))
+      max(var(--concentric-min, 12px), calc(var(--concentric-outer, 1.5rem) - max(var(--ct), var(--cr))))
+      max(var(--concentric-min, 12px), calc(var(--concentric-outer, 1.5rem) - max(var(--cb), var(--cr))))
+      max(var(--concentric-min, 12px), calc(var(--concentric-outer, 1.5rem) - max(var(--cb), var(--cl))))
       !important;
   }
   .rounded-concentric-uniform {
@@ -524,7 +524,7 @@
     --cr: var(--concentric-inset-right, var(--concentric-inset, 2rem));
     --cb: var(--concentric-inset-bottom, var(--concentric-inset, 2rem));
     --cl: var(--concentric-inset-left, var(--concentric-inset, 2rem));
-    border-radius: max(var(--concentric-min, 4px), calc(var(--concentric-outer, 1.5rem) - max(var(--ct), var(--cr), var(--cb), var(--cl)))) !important;
+    border-radius: max(var(--concentric-min, 12px), calc(var(--concentric-outer, 1.5rem) - max(var(--ct), var(--cr), var(--cb), var(--cl)))) !important;
   }
 
   /* ── Skeleton bones ──────────────────────────────────────
