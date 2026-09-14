@@ -15,7 +15,7 @@ import {
   TrashIcon,
 } from '../../components/icons'
 import { useStore } from '../../context/StoreContext'
-import { fetchAllUsersForAdmin, adminDeleteUser, fetchAccountDeletionFeedback } from '../../lib/db'
+import { fetchAllUsersForAdmin, adminDeleteUser, fetchAccountDeletionFeedback, sendDetailerRecruitSms } from '../../lib/db'
 import { captureException } from '../../lib/sentry'
 import { useT } from '../../i18n/useT'
 
@@ -236,6 +236,10 @@ export default function AdminPeople() {
   const [deleteBusy, setDeleteBusy] = useState(false)
   const [deletions, setDeletions] = useState(null) // self-service hard-delete history
 
+  const [recruitPhone, setRecruitPhone] = useState('')
+  const [recruitBusy, setRecruitBusy] = useState(false)
+  const [recruitError, setRecruitError] = useState('')
+
   // Customers/Team also read from this same real user list (filtered by
   // role below) — FAKE_CUSTOMERS/DEMO_ADMINS were rendering unconditionally,
   // showing made-up named people to real admins with no real data behind them.
@@ -289,6 +293,25 @@ export default function AdminPeople() {
     showToast('approved', app.name)
   }
 
+  async function sendRecruitSms() {
+    setRecruitError('')
+    if (isDemo) {
+      showToast('recruited')
+      setRecruitPhone('')
+      return
+    }
+    setRecruitBusy(true)
+    try {
+      await sendDetailerRecruitSms(recruitPhone.trim())
+      setRecruitPhone('')
+      showToast('recruited')
+    } catch (e) {
+      setRecruitError(e.message)
+    } finally {
+      setRecruitBusy(false)
+    }
+  }
+
   function confirmReject() {
     decideApplication(rejecting.id, 'rejected')
     showToast('rejected', rejecting.name)
@@ -333,6 +356,33 @@ export default function AdminPeople() {
           >
             {tab === 'Applications' && (
               <div className="space-y-3">
+                <div className="card !p-4">
+                  <p className="font-semibold text-slate-900 dark:text-slate-100">{t('recruitTitle')}</p>
+                  <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">{t('recruitBody')}</p>
+                  <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                    <input
+                      type="tel"
+                      inputMode="tel"
+                      autoComplete="off"
+                      value={recruitPhone}
+                      onChange={(e) => { setRecruitPhone(e.target.value); setRecruitError('') }}
+                      placeholder={t('recruitPhonePlaceholder')}
+                      aria-label={t('recruitPhonePlaceholder')}
+                      className="input flex-1"
+                    />
+                    <button
+                      onClick={sendRecruitSms}
+                      disabled={recruitBusy || !recruitPhone.trim()}
+                      className="btn btn-brand shrink-0 text-sm"
+                    >
+                      {recruitBusy ? t('recruitSending') : t('recruitSend')}
+                    </button>
+                  </div>
+                  {recruitError && (
+                    <p className="mt-2 text-sm font-medium text-red-600 dark:text-red-400">{recruitError}</p>
+                  )}
+                </div>
+
                 {admin.applications.length === 0 && (
                   <div className="card flex flex-col items-center py-10 text-center">
                     <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cta-700/10 text-cta-700 dark:text-cta-500">
@@ -663,7 +713,7 @@ export default function AdminPeople() {
           >
             <div
               className={`flex items-center gap-2.5 rounded-2xl px-5 py-3 text-sm font-semibold text-white shadow-xl ${
-                toast.type === 'approved' ? 'bg-cta-700' : 'bg-slate-800'
+                toast.type === 'approved' || toast.type === 'recruited' ? 'bg-cta-700' : 'bg-slate-800'
               }`}
             >
               {toast.type === 'approved' ? (
@@ -672,6 +722,13 @@ export default function AdminPeople() {
                     <CheckIcon className="h-3.5 w-3.5" />
                   </span>
                   {t('toastApproved', { name: toast.name })}
+                </>
+              ) : toast.type === 'recruited' ? (
+                <>
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/20">
+                    <CheckIcon className="h-3.5 w-3.5" />
+                  </span>
+                  {t('toastRecruited')}
                 </>
               ) : toast.type === 'deleted' ? (
                 <>

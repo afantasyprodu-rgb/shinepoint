@@ -268,32 +268,32 @@ export default function DetailerJob() {
                 onSubmit={(photos) => addBookingPhotos(b.id, g.key, photos)}
               />
             ) : g.ready && g.key === 'en_route' ? (
-              <div className="mt-3 rounded-2xl border border-brand-100 bg-brand-50/60 p-4 dark:border-brand-500/20 dark:bg-brand-500/10">
+              <div className="mt-3 rounded-2xl border border-brand-100 bg-brand-50/60 p-4 dark:border-brand-500/20 dark:bg-brand-500/10" style={{ '--concentric-outer': '1rem', '--concentric-inset': '1rem' }}>
                 <p className="text-xs font-semibold uppercase tracking-wide text-brand-700 dark:text-brand-300">{t('headingTo')}</p>
                 <p className="mt-1 font-display text-base font-bold text-slate-900 dark:text-slate-100">{displayAddress}</p>
                 <div className="mt-3 flex gap-2">
                   <button
                     onClick={g.action}
-                    className="btn btn-brand h-10 flex-1 text-sm"
+                    className="btn btn-brand rounded-concentric h-10 flex-1 text-sm"
                   >
                     <NavigationIcon className="h-4 w-4" /> {t('gateEnRouteCta')}
                   </button>
                 </div>
               </div>
             ) : g.ready && g.key === 'arrived' ? (
-              <div className="mt-3 rounded-2xl border border-cta-200 bg-cta-50/60 p-4 dark:border-cta-500/20 dark:bg-cta-500/10">
+              <div className="mt-3 rounded-2xl border border-cta-200 bg-cta-50/60 p-4 dark:border-cta-500/20 dark:bg-cta-500/10" style={{ '--concentric-outer': '1rem', '--concentric-inset': '1rem' }}>
                 <p className="text-xs font-semibold uppercase tracking-wide text-cta-700 dark:text-cta-400">{t('addressLabel')}</p>
                 <p className="mt-1 font-display text-base font-bold text-slate-900 dark:text-slate-100">{displayAddress}</p>
                 <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{t('confirmVehicle')}</p>
                 <button
                   onClick={g.action}
-                  className="btn btn-cta mt-3 h-10 w-full text-sm"
+                  className="btn btn-cta rounded-concentric mt-3 h-10 w-full text-sm"
                 >
                   <CheckIcon className="h-4 w-4" /> {t('arrivedCorrectVehicle')}
                 </button>
               </div>
             ) : g.ready && g.key === 'start' ? (
-              <div className="mt-3 rounded-2xl border border-brand-200 bg-white p-4 dark:border-white/10 dark:bg-white/5">
+              <div className="mt-3 rounded-2xl border border-brand-200 bg-white p-4 dark:border-white/10 dark:bg-white/5" style={{ '--concentric-outer': '1rem', '--concentric-inset': '1rem' }}>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-slate-500 dark:text-slate-400">{t('service')}</span>
                   <span className="font-semibold text-slate-900 dark:text-slate-100">{fullServiceName}</span>
@@ -323,7 +323,7 @@ export default function DetailerJob() {
                 </div>
                 <button
                   onClick={g.action}
-                  className="btn btn-brand mt-4 h-10 w-full text-sm"
+                  className="btn btn-brand rounded-concentric mt-4 h-10 w-full text-sm"
                 >
                   {g.cta}
                 </button>

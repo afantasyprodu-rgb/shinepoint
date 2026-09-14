@@ -286,6 +286,54 @@ export function enRouteEmail(data: EnRouteData): { subject: string; html: string
   }
 }
 
+export interface RescheduleNoticeData {
+  customerName: string
+  detailerName: string
+  service: string
+  newTime: string // ISO
+  bookingId: string
+  bookingUrl?: string
+}
+
+// Sent the moment a detailer drags a job onto a different day on their
+// calendar (087) -- distinct from rescheduleOfferEmail below: that one asks
+// the customer to accept/counter/refund because the detailer can't make the
+// ORIGINAL time at all. This is the detailer moving a job they still intend
+// to do, informing rather than asking -- no response needed, so no token,
+// no expiry, no action buttons. Email-only by design: sms-templates.ts
+// scopes SMS to exactly two moments (the day-of reminder and the en-route
+// link), and this isn't either one.
+export function rescheduleNoticeEmail(data: RescheduleNoticeData): { subject: string; html: string } {
+  const {
+    customerName, detailerName, service, newTime, bookingId,
+    bookingUrl = 'https://shinepoint.app/bookings',
+  } = data
+
+  const body = `
+    <p style="margin:0 0 4px; font-size:13px; font-weight:600; color:${BRAND_700}; text-transform:uppercase; letter-spacing:0.05em;">Appointment time changed</p>
+    <h1 style="margin:0 0 8px; font-size:24px; font-weight:700; color:${SLATE_900};">${esc(detailerName)} moved your appointment, ${esc(customerName.split(' ')[0])}</h1>
+    <p style="margin:0 0 20px; font-size:15px; line-height:1.5; color:${SLATE_600};">
+      Your ${esc(service)} is now scheduled for a different time. Nothing else about your booking changed.
+    </p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:${BRAND_50}; border-radius:12px; margin-bottom:20px;">
+      <tr>
+        <td style="padding:16px 18px;">
+          <p style="margin:0 0 2px; font-size:11.5px; font-weight:700; color:${BRAND_700}; text-transform:uppercase; letter-spacing:0.05em;">New time</p>
+          <p style="margin:0; font-size:16px; font-weight:700; color:${SLATE_900};">${esc(formatDateTime(newTime))}</p>
+        </td>
+      </tr>
+    </table>
+    ${button('View booking', bookingUrl)}
+    <p style="margin:20px 0 0; font-size:12px; line-height:1.5; color:${SLATE_400};">
+      Confirmation # ${esc(bookingId)} — free cancellation up to 4 hours before the appointment if the new time doesn't work.
+    </p>`
+
+  return {
+    subject: `${detailerName} moved your ${service} to ${formatDate(newTime)}`,
+    html: emailShell(`Your appointment is now ${formatDateTime(newTime)}`, body),
+  }
+}
+
 export interface ReminderData {
   customerName: string
   detailerName: string

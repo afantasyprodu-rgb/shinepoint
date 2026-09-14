@@ -483,6 +483,48 @@
   .bento-action {
     background: linear-gradient(135deg in oklch, var(--color-brand-700), var(--color-brand-800));
     @apply rounded-3xl p-5 text-white shadow-lg shadow-brand-900/20;
+    --concentric-outer: 1.5rem; /* rounded-3xl */
+    --concentric-inset: 1.25rem; /* p-5 */
+  }
+
+  /* Same fix SwiftUI's ConcentricRectangle ships in iOS 26: a rounded child
+     sitting inset inside a rounded parent reads as MORE rounded than the
+     parent unless its own radius shrinks by the inset (inner = outer -
+     inset), so the two curves share a center instead of visually clashing.
+     Nearest ancestor sets --concentric-outer plus either --concentric-inset
+     (all four sides) or the individual --concentric-inset-{top,right,bottom,
+     left} (falling back to --concentric-inset per side, then to .card's own
+     rounded-3xl/p-8 if nothing is set at all). Floors at --concentric-min
+     (default 12px) so it never goes negative or reads as barely-rounded.
+
+     Real SwiftUI corners aren't uniform by default: a corner shrinks by
+     whichever of its two adjacent edges sits closer in (the smaller
+     "room to round" wins), so a child inset more on one side than another
+     gets four different radii, each still centered with the parent's own
+     curve at that corner. .rounded-concentric does the same per-corner
+     math. Add .rounded-concentric-uniform instead (mirrors SwiftUI's
+     isUniform: true) when asymmetric corners would look inconsistent next
+     to something else round on the same row (e.g. a pill button beside a
+     popover arrow) — it uses the single tightest edge for all four
+     corners so nothing looks more round than its most-constrained side. */
+  .rounded-concentric {
+    --ct: var(--concentric-inset-top, var(--concentric-inset, 2rem));
+    --cr: var(--concentric-inset-right, var(--concentric-inset, 2rem));
+    --cb: var(--concentric-inset-bottom, var(--concentric-inset, 2rem));
+    --cl: var(--concentric-inset-left, var(--concentric-inset, 2rem));
+    border-radius:
+      max(var(--concentric-min, 12px), calc(var(--concentric-outer, 1.5rem) - max(var(--ct), var(--cl))))
+      max(var(--concentric-min, 12px), calc(var(--concentric-outer, 1.5rem) - max(var(--ct), var(--cr))))
+      max(var(--concentric-min, 12px), calc(var(--concentric-outer, 1.5rem) - max(var(--cb), var(--cr))))
+      max(var(--concentric-min, 12px), calc(var(--concentric-outer, 1.5rem) - max(var(--cb), var(--cl))))
+      !important;
+  }
+  .rounded-concentric-uniform {
+    --ct: var(--concentric-inset-top, var(--concentric-inset, 2rem));
+    --cr: var(--concentric-inset-right, var(--concentric-inset, 2rem));
+    --cb: var(--concentric-inset-bottom, var(--concentric-inset, 2rem));
+    --cl: var(--concentric-inset-left, var(--concentric-inset, 2rem));
+    border-radius: max(var(--concentric-min, 12px), calc(var(--concentric-outer, 1.5rem) - max(var(--ct), var(--cr), var(--cb), var(--cl)))) !important;
   }
 
   /* ── Skeleton bones ──────────────────────────────────────

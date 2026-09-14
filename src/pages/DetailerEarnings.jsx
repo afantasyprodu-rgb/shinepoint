@@ -366,7 +366,13 @@ export default function DetailerEarnings() {
                     <CountUp value={963} prefix="$" />
                   </p>
                 </div>
-                <button className="press-spring btn btn-cta h-11 shrink-0 text-sm">
+                {/* rounded-concentric-uniform, not the plain per-corner variant: this
+                    button sits shrink-0 against the tile's right/top/bottom edges but
+                    is nowhere near the left edge (the balance label owns that side), so
+                    per-corner math would shrink its left corners toward 0 for no reason.
+                    Forcing all four corners to the tightest relevant edge (isUniform in
+                    SwiftUI's version) keeps it looking like one coherent pill. */}
+                <button className="press-spring btn btn-cta rounded-concentric-uniform h-11 shrink-0 text-sm">
                   {t('cashOut')}
                 </button>
               </div>
