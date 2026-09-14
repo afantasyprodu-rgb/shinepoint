@@ -13,7 +13,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@^2'
 import { corsHeaders, json } from '../_shared/cors.ts'
 import { captureException } from '../_shared/sentry.ts'
-import { isPhoneNumber } from '../_shared/validate.ts'
+import { toE164 } from '../_shared/validate.ts'
 import { withinRateLimit, tooManyRequests } from '../_shared/rateLimit.ts'
 import { sendSms } from '../_shared/sentdm.ts'
 import { detailerRecruitSms } from '../_shared/sms-templates.ts'
@@ -43,8 +43,14 @@ Deno.serve(async (req) => {
       .from('users').select('role').eq('id', user.id).single()
     if (callerRow?.role !== 'admin') return json({ error: 'admin only' }, 403)
 
-    const { phone } = await req.json().catch(() => ({}))
-    if (!isPhoneNumber(phone)) return json({ error: 'A valid phone number is required.' }, 400)
+    const { phone: rawPhone } = await req.json().catch(() => ({}))
+    // toE164 normalizes a bare 10-digit US number ("4244696986") or one with
+    // formatting ("424-469-6986") into the strict +1XXXXXXXXXX Sent's API
+    // requires -- it rejected the raw form outright (400 VALIDATION_001)
+    // the first time an admin typed a number the way people actually type
+    // phone numbers.
+    const phone = toE164(rawPhone)
+    if (!phone) return json({ error: 'A valid phone number is required.' }, 400)
 
     // Per-admin, generous but bounded -- this is a person manually inviting
     // people one at a time, not a bulk-import tool.

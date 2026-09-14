@@ -26,6 +26,20 @@ export function isPhoneNumber(v: unknown): v is string {
   return typeof v === 'string' && PHONE_RE.test(v.replace(/[\s()-]/g, ''))
 }
 
+// SMS providers (Sent included) want strict E.164 (+14244696986), but a
+// human typing into a form gives "424-469-6986" or "4244696986" -- ShinePoint
+// is SoCal-only, so a bare 10-digit number is unambiguously a US number.
+// Returns null instead of guessing on anything else (11+ digits not
+// starting with 1, or already-invalid input per isPhoneNumber above).
+export function toE164(v: unknown): string | null {
+  if (!isPhoneNumber(v)) return null
+  const digits = v.replace(/[\s()-]/g, '')
+  if (digits.startsWith('+')) return digits
+  if (digits.length === 10) return `+1${digits}`
+  if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`
+  return null
+}
+
 // `typeof x === 'number'` alone passes NaN and ±Infinity — both survive
 // arithmetic and only blow up much later (a NaN latitude reaches Postgres,
 // an Infinity amount reaches Stripe). Every numeric check here goes
