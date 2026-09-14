@@ -139,6 +139,9 @@ verify_jwt = true
 [functions.send-reschedule-notice]
 verify_jwt = true
 
+[functions.send-detailer-recruit-sms]
+verify_jwt = true
+
 [functions.send-appointment-reminders]
 verify_jwt = false
 

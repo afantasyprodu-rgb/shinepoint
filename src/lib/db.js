@@ -1778,6 +1778,15 @@ export async function adminDeleteUser(userId) {
   await invokeFn('admin-delete-user', { userId })
 }
 
+// Texts a phone number that isn't in the system yet, inviting them to sign
+// up as a detailer — the admin has already talked to this person and is
+// vouching for the invite themselves. Throws on failure so the admin UI can
+// show it: unlike sendSmsOptInConfirmation this isn't a background nicety,
+// it's the entire point of the click.
+export async function sendDetailerRecruitSms(phone) {
+  return invokeFn('send-detailer-recruit-sms', { phone })
+}
+
 // Soft delete: hides a detailer from the map / pauses the account without
 // touching any data. Plain RLS self-update (see 025_account_deactivation.sql
 // — deliberately not server-managed) rather than an edge function, since a

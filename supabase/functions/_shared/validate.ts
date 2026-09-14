@@ -17,6 +17,15 @@ export function isUuid(v: unknown): v is string {
   return typeof v === 'string' && UUID_RE.test(v)
 }
 
+// E.164: optional leading +, 8-15 digits total, no leading 0 on the
+// country code. Loose on purpose (this isn't carrier-grade validation,
+// Sent's API rejects a truly malformed number anyway) -- just enough to
+// reject "123" or a pasted name before it reaches an SMS provider.
+const PHONE_RE = /^\+?[1-9]\d{7,14}$/
+export function isPhoneNumber(v: unknown): v is string {
+  return typeof v === 'string' && PHONE_RE.test(v.replace(/[\s()-]/g, ''))
+}
+
 // `typeof x === 'number'` alone passes NaN and ±Infinity — both survive
 // arithmetic and only blow up much later (a NaN latitude reaches Postgres,
 // an Infinity amount reaches Stripe). Every numeric check here goes

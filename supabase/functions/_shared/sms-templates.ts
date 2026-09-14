@@ -64,6 +64,17 @@ export function appointmentReminderSms(data: AppointmentReminderSmsData): string
   return `ShinePoint reminder: your ${service} with ${detailerName} is today at ${formatShortDateTime(scheduledTime)}, ${customerName.split(' ')[0]}. ${OPT_OUT}`
 }
 
+// Sent by an admin, on demand, to a phone number that isn't in the system
+// yet — inviting someone the admin has already talked to (a prospective
+// detailer who verbally agreed to join) to create their account. The only
+// SMS in this file that isn't tied to an existing booking/account: it's a
+// cold number by definition, so the opt-out line matters even more than
+// usual, and the admin is the one vouching that this person actually asked
+// to be texted (send-detailer-recruit-sms doesn't and can't verify that).
+export function detailerRecruitSms(): string {
+  return `ShinePoint: You've been invited to join as a detailer! Create your free account: https://shinepoint.app/signup/detailer ${OPT_OUT}`
+}
+
 // Sent once, immediately after a customer checks the SMS opt-in box (either
 // in CustomerSettings or the post-booking prompt) — the "double opt-in"
 // confirmation carriers expect to see land on the number that was just
