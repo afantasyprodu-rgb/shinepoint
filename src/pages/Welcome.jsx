@@ -321,7 +321,6 @@ export default function Welcome() {
             to Vercel's /business-info rewrite. */}
         <a href="/business-info" className="underline hover:text-brand-100">{t('footerBusinessInfo')}</a>
         <p className="mt-2">{t('footer')}</p>
-        <p className="mt-1 text-xs text-brand-400">{t('footerContact')}</p>
       </footer>
     </div>
   )

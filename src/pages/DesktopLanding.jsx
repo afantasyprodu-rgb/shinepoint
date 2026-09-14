@@ -232,13 +232,13 @@ export default function DesktopLanding() {
           </Link>
         </div>
 
-        {/* Business contact info — this full-bleed hero has no page footer,
-            so this is the only place it's visible on desktop. Carrier/toll-
-            free verification checks the public site for a real, matching
-            phone/email/address; keep it in sync with the Welcome.jsx footer. */}
+        {/* Business info link — no raw address/phone on the front page by
+            design; /business-info (linked here) is the dedicated, JS-free
+            page carrier/toll-free verification crawls, and already has the
+            full NAP details plus structured data. This full-bleed hero has
+            no page footer, so this is the only place it's visible on
+            desktop; keep in sync with the Welcome.jsx footer. */}
         <p className="mt-8 text-xs text-white/40">
-          {t('footerContact')}
-          {' · '}
           {/* Plain <a>, not <Link> — business-info.html is a static file
               with no matching client route (see App.jsx). */}
           <a href="/business-info" className="underline hover:text-white/70">{t('footerBusinessInfo')}</a>
