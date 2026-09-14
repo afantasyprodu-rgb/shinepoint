@@ -20,6 +20,7 @@ import { ensureStripeCustomer, attachPaymentMethod } from '../_shared/stripeCust
 import { captureException } from '../_shared/sentry.ts'
 import { isUuid, isFiniteNumber } from '../_shared/validate.ts'
 import { withinRateLimit, tooManyRequests } from '../_shared/rateLimit.ts'
+import { publicErrorMessage } from '../_shared/errors.ts'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
   apiVersion: '2026-05-27.dahlia' as Stripe.LatestApiVersion,
@@ -134,6 +135,6 @@ Deno.serve(async (req) => {
   } catch (e) {
     console.error('charge-tip:', e)
     await captureException(e, 'charge-tip')
-    return json({ error: (e as Error).message }, 500)
+    return json({ error: publicErrorMessage(e) }, 500)
   }
 })

@@ -12,16 +12,17 @@ import { useT } from '../i18n/useT'
 
 // A detailer's own reported-issue inbox — the proactive counterpart to the
 // reactive dispute card on DetailerJob.jsx (which only surfaces once you
-// happen to open that specific booking). Lets a detailer resolve a dispute
-// filed against them directly with the customer: full refund, partial, or
-// none — no admin required (067). Admin still sees everything and can
-// override — this view is additive, not a replacement for AdminOps.
+// happen to open that specific booking). Lets a detailer settle a dispute
+// filed against them by refunding the customer (full or partial) without
+// waiting on an admin. Contesting it ("no refund") is deliberately NOT
+// offered here — the accused party can't rule in their own favor; they give
+// their side via respond_to_dispute and an admin decides. Enforced
+// server-side too (resolve-dispute + migration 088), not just hidden here.
 function resolutionOptions(refundable, t) {
   const half = Math.round((refundable / 2) * 100) / 100
   return [
     { key: 'customer_wins', refund: refundable, label: t('optionFullRefund'), consequence: t('optionFullRefundBody', { amount: refundable }) },
     { key: 'split', refund: half, label: t('optionPartialRefund'), consequence: t('optionPartialRefundBody', { amount: half }) },
-    { key: 'detailer_wins', refund: 0, label: t('optionNoRefund'), consequence: t('optionNoRefundBody') },
   ]
 }
 
@@ -45,7 +46,7 @@ function ReportCard({ dispute, onResolve }) {
   const options = resolutionOptions(refundable, t)
 
   function customOption(amount) {
-    const key = amount <= 0 ? 'detailer_wins' : amount >= refundable ? 'customer_wins' : 'split'
+    const key = amount >= refundable ? 'customer_wins' : 'split'
     return { key, refund: amount, label: t('customRefundLabel'), consequence: t('optionPartialRefundBody', { amount }) }
   }
 
@@ -97,7 +98,7 @@ function ReportCard({ dispute, onResolve }) {
               ) : (
                 <div>
                   <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">{t('resolveLabel')}</p>
-                  <div className="grid gap-2 sm:grid-cols-3">
+                  <div className="grid gap-2 sm:grid-cols-2">
                     {options.map((opt) => (
                       <button
                         key={opt.key}
@@ -122,7 +123,7 @@ function ReportCard({ dispute, onResolve }) {
                       className="input h-10 flex-1 text-sm"
                     />
                     <button
-                      disabled={customAmount === '' || Number(customAmount) < 0 || Number(customAmount) > refundable}
+                      disabled={customAmount === '' || !(Number(customAmount) > 0) || Number(customAmount) > refundable}
                       onClick={() => setConfirming(customOption(Math.round(Number(customAmount) * 100) / 100))}
                       className="btn btn-outline h-10 shrink-0 text-sm disabled:cursor-not-allowed disabled:opacity-50"
                     >

@@ -12,6 +12,7 @@ import { createClient } from 'npm:@supabase/supabase-js@^2'
 import { corsHeaders, json } from '../_shared/cors.ts'
 import { captureException } from '../_shared/sentry.ts'
 import { withinRateLimit, tooManyRequests } from '../_shared/rateLimit.ts'
+import { publicErrorMessage } from '../_shared/errors.ts'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
   apiVersion: '2026-05-27.dahlia' as Stripe.LatestApiVersion,
@@ -55,6 +56,6 @@ Deno.serve(async (req) => {
   } catch (e) {
     console.error('detailer-dashboard-link:', e)
     await captureException(e, 'detailer-dashboard-link')
-    return json({ error: (e as Error).message }, 500)
+    return json({ error: publicErrorMessage(e) }, 500)
   }
 })

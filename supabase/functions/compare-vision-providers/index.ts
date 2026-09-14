@@ -24,6 +24,7 @@ import { corsHeaders, json } from '../_shared/cors.ts'
 import { captureException } from '../_shared/sentry.ts'
 import { withinRateLimit, tooManyRequests } from '../_shared/rateLimit.ts'
 import { callSpecificProviderWithUsage, estimateCostUsd, type VisionProviderName } from '../_shared/visionProviders.ts'
+import { publicErrorMessage } from '../_shared/errors.ts'
 
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024
 const ALLOWED_MEDIA_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic'])
@@ -175,6 +176,6 @@ Deno.serve(async (req) => {
   } catch (e) {
     console.error('compare-vision-providers:', e)
     await captureException(e, 'compare-vision-providers')
-    return json({ error: (e as Error).message }, 500)
+    return json({ error: publicErrorMessage(e) }, 500)
   }
 })

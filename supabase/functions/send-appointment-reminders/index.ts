@@ -26,10 +26,10 @@ import { sendEmail } from '../_shared/resend.ts'
 import { sendSms } from '../_shared/sentdm.ts'
 import { reminderEmail } from '../_shared/email-templates.ts'
 import { appointmentReminderSms } from '../_shared/sms-templates.ts'
+import { isCronAuthorized } from '../_shared/cronAuth.ts'
 
 Deno.serve(async (req) => {
-  const secret = Deno.env.get('CRON_SECRET')
-  if (!secret || req.headers.get('x-cron-secret') !== secret) {
+  if (!isCronAuthorized(req)) {
     return json({ error: 'Unauthorized' }, 401)
   }
 

@@ -13,10 +13,15 @@ import { useT } from '../i18n/useT'
 // The moving marker on the live map below — the detailer's own chosen
 // vehicle emoji (DetailerProfileEditor's "Your vehicle" picker), falling
 // back to a generic car for accounts that predate that field.
+// Allowlisted, not escaped: vehicle_emoji is a free-text column the detailer
+// can write directly, and it's rendered as HTML (Leaflet divIcon) — including
+// on the public tracking page. Must match DetailerProfileEditor's picker.
+const VEHICLE_EMOJIS = ['🚗', '🚙', '🚐', '🚚', '🛻', '🏍️', '🚲', '🚕']
+
 function vehicleIcon(emoji) {
   return L.divIcon({
     className: '',
-    html: `<span class="nx-vehicle-marker">${emoji || '🚗'}</span>`,
+    html: `<span class="nx-vehicle-marker">${VEHICLE_EMOJIS.includes(emoji) ? emoji : '🚗'}</span>`,
     iconSize: [30, 30],
     iconAnchor: [15, 15],
   })

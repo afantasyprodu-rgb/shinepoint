@@ -122,16 +122,24 @@ const userIcon = L.divIcon({
 // would let someone scanning the public map single out detailers who
 // appear uninsured or reward-less as easier targets. That's still shown
 // on the full profile (DetailerProfile.jsx), reached only by tapping in.
+// Leaflet renders popup strings via innerHTML, and name/service names/area
+// are detailer-controlled — unescaped, a service named `<img onerror=…>`
+// runs in every customer's session that taps the pin (stored XSS).
+function esc(v) {
+  return String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
+}
+
 function popupHtml(d) {
   const color = PIN_COLORS[d.status] ?? PIN_COLORS.offline
   // Names only, no prices — pricing is a "View profile" decision, not
   // something to compare pin-to-pin while browsing the map.
-  const services = d.services.map((s) => `<li>${s.name}</li>`).join('')
+  const services = d.services.map((s) => `<li>${esc(s.name)}</li>`).join('')
+  const rating = d.isRated === false ? 'New' : `★ ${Number(d.rating).toFixed(1)} (${Number(d.reviews) || 0})`
   return `
     <div class="nx-pop">
-      <p class="nx-pop-name">${d.name}</p>
-      <p class="nx-pop-meta">${d.isRated === false ? 'New' : `★ ${d.rating.toFixed(1)} (${d.reviews})`} · ${d.area} · ${d.travelMiles} mi radius</p>
-      <p class="nx-pop-status" style="color:${color}">${statusLine(d)} · ${d.completedJobs} jobs done</p>
+      <p class="nx-pop-name">${esc(d.name)}</p>
+      <p class="nx-pop-meta">${rating} · ${esc(d.area)} · ${Number(d.travelMiles) || 0} mi radius</p>
+      <p class="nx-pop-status" style="color:${color}">${statusLine(d)} · ${Number(d.completedJobs) || 0} jobs done</p>
       <ul class="nx-pop-services">${services}</ul>
       <button type="button" data-view class="nx-pop-btn">View profile</button>
     </div>`

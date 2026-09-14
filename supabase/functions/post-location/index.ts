@@ -9,6 +9,7 @@ import { corsHeaders, json } from '../_shared/cors.ts'
 import { captureException } from '../_shared/sentry.ts'
 import { withinRateLimit, tooManyRequests } from '../_shared/rateLimit.ts'
 import { isUuid, isInRange, isFiniteNumber } from '../_shared/validate.ts'
+import { publicErrorMessage } from '../_shared/errors.ts'
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
@@ -72,6 +73,6 @@ Deno.serve(async (req) => {
   } catch (e) {
     console.error('post-location:', e)
     await captureException(e, 'post-location')
-    return json({ error: (e as Error).message }, 500)
+    return json({ error: publicErrorMessage(e) }, 500)
   }
 })

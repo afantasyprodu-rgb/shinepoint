@@ -1734,13 +1734,6 @@ export async function adminApprovePayout(bookingId) {
   if (error) console.error('adminApprovePayout:', error.message)
 }
 
-export async function adminResolveDispute(disputeId, resolution, refundAmount = null) {
-  const { error } = await supabase.rpc('admin_resolve_dispute', {
-    p_dispute_id: disputeId, p_resolution: resolution, p_refund_amount: refundAmount,
-  })
-  if (error) console.error('adminResolveDispute:', error.message)
-}
-
 export async function adminClearFlag(messageId) {
   const { error } = await supabase.rpc('admin_clear_flag', { p_message_id: messageId })
   if (error) console.error('adminClearFlag:', error.message)

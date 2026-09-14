@@ -19,8 +19,9 @@ import { createClient } from 'npm:@supabase/supabase-js@^2'
 import { corsHeaders, json } from '../_shared/cors.ts'
 import { captureException } from '../_shared/sentry.ts'
 import { isOneOf } from '../_shared/validate.ts'
-import { withinRateLimit, tooManyRequests } from '../_shared/rateLimit.ts'
+import { withinRateLimit, tooManyRequests, clientIp } from '../_shared/rateLimit.ts'
 import { refundBooking } from '../_shared/refund.ts'
+import { publicErrorMessage } from '../_shared/errors.ts'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
   apiVersion: '2026-05-27.dahlia' as Stripe.LatestApiVersion,
@@ -37,7 +38,7 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+    const ip = clientIp(req)
     if (!(await withinRateLimit(admin, `reschedule:${ip}`, 30, '1 hour'))) {
       return tooManyRequests(3600)
     }
@@ -139,6 +140,6 @@ Deno.serve(async (req) => {
   } catch (e) {
     console.error('respond-to-reschedule:', e)
     await captureException(e, 'respond-to-reschedule')
-    return json({ error: (e as Error).message }, 500)
+    return json({ error: publicErrorMessage(e) }, 500)
   }
 })

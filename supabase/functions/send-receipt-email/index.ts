@@ -12,6 +12,7 @@ import { isUuid } from '../_shared/validate.ts'
 import { withinRateLimit, tooManyRequests } from '../_shared/rateLimit.ts'
 import { sendEmail } from '../_shared/resend.ts'
 import { receiptEmail } from '../_shared/email-templates.ts'
+import { publicErrorMessage } from '../_shared/errors.ts'
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
@@ -105,6 +106,6 @@ Deno.serve(async (req) => {
   } catch (e) {
     console.error('send-receipt-email:', e)
     await captureException(e, 'send-receipt-email')
-    return json({ error: (e as Error).message }, 500)
+    return json({ error: publicErrorMessage(e) }, 500)
   }
 })

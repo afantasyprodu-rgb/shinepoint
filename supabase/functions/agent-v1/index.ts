@@ -8,6 +8,7 @@ import { computeQuote } from '../_shared/agentPricing.ts'
 import { searchDetailers } from '../_shared/detailerSearch.ts'
 
 import Stripe from 'npm:stripe@^18'
+import { publicErrorMessage } from '../_shared/errors.ts'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
   apiVersion: '2026-05-27.dahlia' as Stripe.LatestApiVersion,
@@ -449,6 +450,6 @@ Deno.serve(async (req) => {
   } catch (e) {
     console.error('agent-v1:', e)
     await captureException(e, 'agent-v1')
-    return agentJson({ error: (e as Error).message }, 500)
+    return agentJson({ error: publicErrorMessage(e) }, 500)
   }
 })

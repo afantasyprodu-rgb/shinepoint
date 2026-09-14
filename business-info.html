@@ -76,27 +76,7 @@
         }
       }
     </script>
-    <script>
-      // Seed the theme before first paint so dark mode never flashes white.
-      // Default is light regardless of OS preference — dark is opt-in only.
-      (function () {
-        try {
-          var saved = localStorage.getItem('shinepoint-theme')
-          var mode = saved === 'dark' ? 'dark' : 'light'
-          if (mode === 'dark') document.documentElement.classList.add('dark')
-          var paint = localStorage.getItem('shinepoint-paint')
-          if (paint) document.documentElement.style.setProperty('--accent', paint)
-          // Seed the mode's rotated brand hue too (ThemeContext.jsx owns
-          // rotating it on each toggle) so a reload never flashes back to
-          // the default purple before React mounts.
-          var hue = Number(localStorage.getItem('shinepoint-hue-' + mode))
-          if (hue) {
-            document.documentElement.style.setProperty('--brand-h', hue)
-            document.documentElement.style.setProperty('--cta-h', ((hue - 120 + 360) % 360))
-          }
-        } catch (e) {}
-      })()
-    </script>
+    <script src="/theme-init.js"></script>
   </head>
   <body>
     <!-- Static fallback content: replaced by React once the bundle mounts,
@@ -136,6 +116,6 @@
           <a href="/privacy" style="color: #de0067;">Privacy Policy</a>
         </p>
       </main>
-    </div>
+    </div>
   </body>
 </html>

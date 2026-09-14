@@ -197,3 +197,31 @@ verify_jwt = true
 
 [functions.get-detailer-charge-intent]
 verify_jwt = false
+
+# ── Pinned to match what is already deployed (security audit, Sept 2026) ──
+# These eight had no entry, so their JWT setting depended on whatever flag
+# the last manual deploy used. All are live with verify_jwt = true; pinning
+# it here keeps a future deploy from silently dropping auth on them.
+[functions.admin-delete-user]
+verify_jwt = true
+
+[functions.compare-vision-providers]
+verify_jwt = true
+
+[functions.confirm-reschedule-pick]
+verify_jwt = true
+
+[functions.decline-booking]
+verify_jwt = true
+
+[functions.delete-own-account]
+verify_jwt = true
+
+[functions.extract-vehicle-photo]
+verify_jwt = true
+
+[functions.get-reschedule-token]
+verify_jwt = true
+
+[functions.send-sms-optin-confirmation]
+verify_jwt = true

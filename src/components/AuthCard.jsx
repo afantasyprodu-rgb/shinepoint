@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react'
-import { supabase } from '../lib/supabase'
+import { supabase, recoveryClient } from '../lib/supabase'
 import { isGoogleIdentityConfigured, requestGoogleIdToken } from '../lib/googleIdentity'
 import { isNative } from '../lib/native'
 import { homePathForRole, signupHomePath } from '../context/AuthContext'
@@ -193,7 +193,9 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
     e.preventDefault()
     setError('')
     setBusy(true)
-    const { error: _err } = await supabase.auth.resetPasswordForEmail(email, {
+    // recoveryClient, not supabase: on native the main client is PKCE, and
+    // this link opens in the browser where the in-app verifier doesn't exist.
+    const { error: _err } = await recoveryClient.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password`,
       captchaToken,
     })

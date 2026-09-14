@@ -27,6 +27,7 @@ import { sendEmail } from '../_shared/resend.ts'
 import { sendSms } from '../_shared/sentdm.ts'
 import { rescheduleOfferEmail } from '../_shared/email-templates.ts'
 import { rescheduleOfferSms } from '../_shared/sms-templates.ts'
+import { publicErrorMessage } from '../_shared/errors.ts'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
   apiVersion: '2026-05-27.dahlia' as Stripe.LatestApiVersion,
@@ -157,6 +158,6 @@ Deno.serve(async (req) => {
   } catch (e) {
     console.error('decline-booking:', e)
     await captureException(e, 'decline-booking')
-    return json({ error: (e as Error).message }, 500)
+    return json({ error: publicErrorMessage(e) }, 500)
   }
 })

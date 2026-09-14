@@ -81,15 +81,14 @@ export default function NativeBridge() {
         const parsedUrl = new URL(url)
         const params = parsedUrl.searchParams
         const code = params.get('code')
-        // Confirmed live: this redirect actually comes back as an implicit-
-        // flow hash fragment (#access_token=...&refresh_token=...), not a
-        // ?code= query param — the tokens were sitting right there in every
-        // appUrlOpen event, but nothing ever read them, so the client never
-        // got a session, AuthCallback found none, and bounced back to
-        // /login on a ~1.8s timer, over and over, on every single attempt.
+        // Native is PKCE now (lib/supabase.js), so a legitimate return is
+        // always ?code=. Raw #access_token/#refresh_token are deliberately
+        // NOT accepted anymore: any app on the device can fire a
+        // shinepoint://auth intent, and calling setSession on tokens from it
+        // would silently sign the user into an attacker's account (session
+        // fixation). A forged ?code= is harmless — it can't be exchanged
+        // without the verifier this app stored when sign-in started.
         const hashParams = new URLSearchParams(parsedUrl.hash.replace(/^#/, ''))
-        const accessToken = hashParams.get('access_token')
-        const refreshToken = hashParams.get('refresh_token')
         // Supabase can bounce back with no code/token at all — e.g. the
         // /authorize request itself was rejected (redirect_to not allow-
         // listed, the provider misconfigured, etc.) — and instead attaches
@@ -100,20 +99,7 @@ export default function NativeBridge() {
         let oauthError =
           params.get('error_description') || params.get('error') ||
           hashParams.get('error_description') || hashParams.get('error')
-        if (accessToken && refreshToken) {
-          try {
-            const { error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
-            if (error) {
-              console.error('setSession:', error.message)
-              captureException(error, { scope: 'NativeBridge:setSession' })
-              oauthError = error.message
-            }
-          } catch (e) {
-            console.error('setSession threw:', e.message)
-            captureException(e, { scope: 'NativeBridge:setSession' })
-            oauthError = e.message
-          }
-        } else if (code) {
+        if (code) {
           try {
             const { error } = await supabase.auth.exchangeCodeForSession(code)
             if (error) {

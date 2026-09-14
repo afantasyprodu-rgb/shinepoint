@@ -15,6 +15,7 @@ import { captureException } from '../_shared/sentry.ts'
 import { withinRateLimit, tooManyRequests } from '../_shared/rateLimit.ts'
 import { sendSms } from '../_shared/sentdm.ts'
 import { optInConfirmationSms } from '../_shared/sms-templates.ts'
+import { publicErrorMessage } from '../_shared/errors.ts'
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
@@ -56,6 +57,6 @@ Deno.serve(async (req) => {
   } catch (e) {
     console.error('send-sms-optin-confirmation:', e)
     await captureException(e, 'send-sms-optin-confirmation')
-    return json({ error: (e as Error).message }, 500)
+    return json({ error: publicErrorMessage(e) }, 500)
   }
 })

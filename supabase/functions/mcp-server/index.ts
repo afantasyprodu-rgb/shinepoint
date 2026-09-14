@@ -17,7 +17,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@^2'
 import { corsHeaders } from '../_shared/cors.ts'
 import { captureException } from '../_shared/sentry.ts'
-import { withinRateLimit } from '../_shared/rateLimit.ts'
+import { withinRateLimit, clientIp } from '../_shared/rateLimit.ts'
 import { checkAvailability } from '../_shared/availability.ts'
 
 const PROTOCOL_VERSION = '2025-06-18'
@@ -103,7 +103,7 @@ Deno.serve(async (req) => {
         // than a user id (there isn't one). Falls back to a shared bucket
         // if the platform doesn't forward one, same fail-closed posture as
         // every other use of withinRateLimit in this codebase.
-        const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+        const ip = clientIp(req)
         if (!(await withinRateLimit(admin, `mcp:check_availability:${ip}`, 30, '1 hour'))) {
           return Response.json(rpcError(id, -32000, 'Rate limit exceeded — try again later.'), {
             status: 429,

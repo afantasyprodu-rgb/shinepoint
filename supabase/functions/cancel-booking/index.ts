@@ -34,6 +34,7 @@ import { captureException } from '../_shared/sentry.ts'
 import { isUuid, cleanText } from '../_shared/validate.ts'
 import { withinRateLimit, tooManyRequests } from '../_shared/rateLimit.ts'
 import { refundBooking } from '../_shared/refund.ts'
+import { publicErrorMessage } from '../_shared/errors.ts'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
   apiVersion: '2026-05-27.dahlia' as Stripe.LatestApiVersion,
@@ -137,6 +138,6 @@ Deno.serve(async (req) => {
   } catch (e) {
     console.error('cancel-booking:', e)
     await captureException(e, 'cancel-booking')
-    return json({ error: (e as Error).message }, 500)
+    return json({ error: publicErrorMessage(e) }, 500)
   }
 })

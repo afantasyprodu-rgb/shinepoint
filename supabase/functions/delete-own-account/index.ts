@@ -11,6 +11,7 @@ import { createClient } from 'npm:@supabase/supabase-js@^2'
 import { corsHeaders, json } from '../_shared/cors.ts'
 import { captureException } from '../_shared/sentry.ts'
 import { cleanText } from '../_shared/validate.ts'
+import { publicErrorMessage } from '../_shared/errors.ts'
 
 // Anything short of complete/cancelled still has money or a dispute in
 // flight — deleting the account out from under that would strand the
@@ -151,6 +152,6 @@ Deno.serve(async (req) => {
   } catch (e) {
     console.error('delete-own-account:', e)
     await captureException(e, 'delete-own-account')
-    return json({ error: (e as Error).message }, 500)
+    return json({ error: publicErrorMessage(e) }, 500)
   }
 })

@@ -18,14 +18,14 @@ import Stripe from 'npm:stripe@^18'
 import { createClient } from 'npm:@supabase/supabase-js@^2'
 import { json } from '../_shared/cors.ts'
 import { captureException } from '../_shared/sentry.ts'
+import { isCronAuthorized } from '../_shared/cronAuth.ts'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
   apiVersion: '2026-05-27.dahlia' as Stripe.LatestApiVersion,
 })
 
 Deno.serve(async (req) => {
-  const secret = Deno.env.get('CRON_SECRET')
-  if (!secret || req.headers.get('x-cron-secret') !== secret) {
+  if (!isCronAuthorized(req)) {
     return json({ error: 'Unauthorized' }, 401)
   }
 

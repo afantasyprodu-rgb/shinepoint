@@ -39,7 +39,7 @@
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@^2'
 import { corsHeaders, json } from '../_shared/cors.ts'
 import { captureException } from '../_shared/sentry.ts'
-import { withinRateLimit, tooManyRequests } from '../_shared/rateLimit.ts'
+import { withinRateLimit, tooManyRequests, clientIp } from '../_shared/rateLimit.ts'
 import { searchDetailers } from '../_shared/detailerSearch.ts'
 import { computeQuote } from '../_shared/agentPricing.ts'
 import { callChat, chatConfigured, type ChatMessage, type ChatToolDef } from '../_shared/chatProvider.ts'
@@ -310,6 +310,11 @@ async function runTool(admin: SupabaseClient, name: string, input: Record<string
     if (!(await withinRateLimit(admin, `concierge-inquiry:${ip}`, 5, '1 hour'))) {
       return { output: JSON.stringify({ error: 'Too many inquiries from this visitor. Try again later.' }) }
     }
+    // Per-detailer cap, independent of (spoofable) IP — stops anyone from
+    // flooding one detailer's inbox with fake guest requests.
+    if (!(await withinRateLimit(admin, `concierge-inquiry-detailer:${detailerId}`, 15, '1 day'))) {
+      return { output: JSON.stringify({ error: 'This detailer has a lot of pending requests right now. Try again tomorrow.' }) }
+    }
     const name = cleanText(input.name, 80) || null
     const serviceCategory = cleanText(input.service_category, 80) || null
 
@@ -345,8 +350,14 @@ Deno.serve(async (req) => {
   // Public, unauthenticated — rate-limited by caller IP, same precedent as
   // mcp-server's check_availability. Tighter than that tool's 30/hour since
   // every call here spends LLM tokens, not just a DB query.
-  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+  const ip = clientIp(req)
   if (!(await withinRateLimit(admin, `concierge:${ip}`, 15, '1 hour'))) {
+    return tooManyRequests(15 * 60)
+  }
+  // Global ceiling across ALL callers. The per-IP bucket can be dodged by
+  // spoofing forwarding headers; this bounds worst-case LLM spend regardless.
+  // Well above real public-chat traffic — raise it if Bo gets popular.
+  if (!(await withinRateLimit(admin, 'concierge:global', 600, '1 hour'))) {
     return tooManyRequests(15 * 60)
   }
 
@@ -360,10 +371,15 @@ Deno.serve(async (req) => {
   const incoming = Array.isArray(body.messages) ? body.messages : []
   if (incoming.length === 0) return json({ error: 'messages required' }, 400)
   // Bound both cost and abuse surface: short rolling history, short messages.
-  const messages: ChatMessage[] = incoming.slice(-12).map((m) => ({
-    role: m.role === 'assistant' ? 'assistant' : 'user',
-    content: typeof m.content === 'string' ? m.content.slice(0, 2000) : m.content,
-  }))
+  // Strings only: non-string content (arrays of blocks) used to pass through
+  // untouched, skipping the 2,000-char cap entirely. The client only sends text.
+  const messages: ChatMessage[] = incoming.slice(-12)
+    .filter((m) => typeof m?.content === 'string' && m.content.trim())
+    .map((m) => ({
+      role: m.role === 'assistant' ? 'assistant' : 'user',
+      content: (m.content as string).slice(0, 2000),
+    }))
+  if (messages.length === 0) return json({ error: 'messages required' }, 400)
   const system = systemPrompt(body.lang === 'es' ? 'es' : 'en')
 
   try {

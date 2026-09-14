@@ -31,6 +31,22 @@ export async function withinRateLimit(
   return data === true
 }
 
+// Best-effort client IP for per-IP buckets on unauthenticated endpoints.
+// The FIRST X-Forwarded-For entry is whatever the client sent — proxies
+// append, never replace — so keying on it let anyone mint a fresh bucket per
+// request. cf-connecting-ip is set by Cloudflare at the edge and overwrites
+// any client-supplied value, so prefer it. Because the fallback can still be
+// spoofed, never rely on a per-IP bucket alone for anything that costs money:
+// pair it with a global cap (see concierge-chat).
+export function clientIp(req: Request): string {
+  const cf = req.headers.get('cf-connecting-ip')?.trim()
+  if (cf) return cf
+  // Fallback: first entry. Observed traffic shows this is the real client
+  // in practice; the rightmost may be a shared internal hop, which would pool
+  // every user into one bucket. Spoofable — hence the global caps.
+  return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+}
+
 // 429 with a plain-language message. Deliberately says nothing about the
 // limit, the window, or how much quota is left — an attacker tuning a loop
 // learns nothing, while a real user learns to come back later.

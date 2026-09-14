@@ -17,6 +17,7 @@ import { sendEmail } from '../_shared/resend.ts'
 import { sendSms } from '../_shared/sentdm.ts'
 import { enRouteEmail } from '../_shared/email-templates.ts'
 import { enRouteSms } from '../_shared/sms-templates.ts'
+import { publicErrorMessage } from '../_shared/errors.ts'
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
@@ -113,6 +114,6 @@ Deno.serve(async (req) => {
   } catch (e) {
     console.error('send-en-route-email:', e)
     await captureException(e, 'send-en-route-email')
-    return json({ error: (e as Error).message }, 500)
+    return json({ error: publicErrorMessage(e) }, 500)
   }
 })

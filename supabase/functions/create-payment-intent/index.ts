@@ -17,6 +17,7 @@ import { withinRateLimit, tooManyRequests } from '../_shared/rateLimit.ts'
 import { approxCentroidForZip, milesBetween } from '../_shared/geo.ts'
 import { platformFeePercent } from '../_shared/fees.ts'
 import { ensureStripeCustomer } from '../_shared/stripeCustomer.ts'
+import { publicErrorMessage } from '../_shared/errors.ts'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
   apiVersion: '2026-05-27.dahlia' as Stripe.LatestApiVersion,
@@ -412,6 +413,6 @@ Deno.serve(async (req) => {
   } catch (e) {
     console.error('create-payment-intent:', e)
     await captureException(e, 'create-payment-intent')
-    return json({ error: (e as Error).message }, 500)
+    return json({ error: publicErrorMessage(e) }, 500)
   }
 })

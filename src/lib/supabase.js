@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { isNative } from './native'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -13,9 +14,25 @@ if (!isSupabaseConfigured) {
 
 // Placeholder values keep the app rendering before .env is set up;
 // any real auth/database call will fail until credentials are provided.
+// Native OAuth returns through the shinepoint:// custom scheme, which any other
+// installed app can also register. Under the default implicit flow that
+// redirect carried the access + refresh tokens themselves, so an app claiming
+// the scheme could take over the account. PKCE returns only a one-time code
+// that's useless without the verifier stored in THIS app. Web keeps implicit:
+// its redirect goes to our own https origin, and nothing else needs changing.
 export const supabase = createClient(
   supabaseUrl || 'https://placeholder.supabase.co',
-  supabaseAnonKey || 'placeholder-anon-key'
+  supabaseAnonKey || 'placeholder-anon-key',
+  { auth: { flowType: isNative ? 'pkce' : 'implicit' } }
+)
+
+// Password-reset emails open in the phone's browser, not the app, so a PKCE
+// link (verifier stored in-app) could never be redeemed there. This client
+// only sends the reset email; it holds no session.
+export const recoveryClient = createClient(
+  supabaseUrl || 'https://placeholder.supabase.co',
+  supabaseAnonKey || 'placeholder-anon-key',
+  { auth: { flowType: 'implicit', persistSession: false, autoRefreshToken: false, detectSessionInUrl: false, storageKey: 'sb-recovery' } }
 )
 
 // Every edge function returns either a transport error or a `{ error }` body,

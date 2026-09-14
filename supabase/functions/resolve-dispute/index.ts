@@ -20,6 +20,7 @@ import { createClient } from 'npm:@supabase/supabase-js@^2'
 import { corsHeaders, json } from '../_shared/cors.ts'
 import { captureException } from '../_shared/sentry.ts'
 import { isUuid, isOneOf, isFiniteNumber, cleanText } from '../_shared/validate.ts'
+import { publicErrorMessage } from '../_shared/errors.ts'
 
 // Mirrors the resolution CHECK constraint on public.disputes (migration 002).
 const RESOLUTIONS = ['customer_wins', 'detailer_wins', 'split', 'dismissed'] as const
@@ -88,6 +89,13 @@ Deno.serve(async (req) => {
     if (dispute.status === 'resolved' && !isAdmin) {
       return json({ error: 'This dispute is already resolved.' }, 409)
     }
+    // The accused party can settle by refunding, but can't rule in their
+    // own favor — closing it with no refund would also stamp the customer's
+    // complaint as a false dispute and release the payout. Contesting goes
+    // to an admin (respond_to_dispute). Mirrored in the RPC (088).
+    if (!isAdmin && (resolution === 'detailer_wins' || !(Number(refundAmount ?? 0) > 0))) {
+      return json({ error: 'To contest this, add your side of the story — an admin will review it.' }, 403)
+    }
 
     const booking = (dispute as any).bookings
     const amount = Number(refundAmount ?? 0)
@@ -120,7 +128,12 @@ Deno.serve(async (req) => {
 
     // Records the outcome, reduces detailer_payout by the refund, and only
     // marks the booking 'complete' when the customer was NOT made whole.
+    // Called with the service role, so auth.uid()/is_admin() inside the RPC
+    // are null/false — pass the verified caller explicitly (088). Only the
+    // service role can execute this RPC, so these can't be forged by a user.
     const { error: rpcErr } = await admin.rpc('admin_resolve_dispute', {
+      p_actor_id: user.id,
+      p_actor_is_admin: isAdmin,
       p_dispute_id: disputeId,
       p_resolution: resolution,
       p_refund_amount: amount > 0 ? amount : null,
@@ -176,6 +189,6 @@ Deno.serve(async (req) => {
   } catch (e) {
     console.error('resolve-dispute:', e)
     await captureException(e, 'resolve-dispute')
-    return json({ error: (e as Error).message }, 500)
+    return json({ error: publicErrorMessage(e) }, 500)
   }
 })
