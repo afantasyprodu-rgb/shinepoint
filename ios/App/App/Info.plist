@@ -48,6 +48,22 @@
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
 
+	<!-- App-Bound Domains (see capacitor.config.ts -> ios.limitsNavigations…).
+	     The webview is served local content under shinepoint.app; supabase.co
+	     is included for any in-webview Supabase calls. Remove a domain here and
+	     the matching navigation is blocked. -->
+	<key>WKAppBoundDomains</key>
+	<array>
+		<string>shinepoint.app</string>
+		<string>supabase.co</string>
+	</array>
+
+	<!-- Uses only standard OS-provided cryptography (TLS/ATS, Keychain); no
+	     proprietary or export-restricted crypto, so the App Store Connect
+	     export-compliance question resolves without a prompt per upload. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+
 	<!-- Google/Supabase OAuth redirects back into the app via this custom
 	     scheme — Android equivalent is the intent-filter in
 	     android/app/src/main/AndroidManifest.xml. See docs/android-capacitor.md

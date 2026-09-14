@@ -33,6 +33,16 @@ const config: CapacitorConfig = {
     hostname: 'shinepoint.app',
     androidScheme: 'https',
   },
+  // iOS: lock the WKWebView to app-bound domains. The app serves bundled local
+  // content under https://shinepoint.app and never navigates the webview to a
+  // third-party site (OAuth opens the system browser via the custom scheme —
+  // see NativeBridge), so this only removes an unused navigation surface.
+  // Requires the WKAppBoundDomains list in Info.plist. TEST ON A DEVICE before
+  // shipping: enabling this on an app that navigates externally breaks those
+  // navigations, and the failure is silent in a simulator.
+  ios: {
+    limitsNavigationsToAppBoundDomains: true,
+  },
   plugins: {
     SplashScreen: {
       launchShowDuration: 1200,

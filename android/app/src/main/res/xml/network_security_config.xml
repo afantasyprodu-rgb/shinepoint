@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Network security policy for the ShinePoint Android shell.
+  - Cleartext (HTTP) is denied everywhere, so a misconfigured URL or a
+    downgrade attempt fails instead of silently sending data in the clear.
+  - The app's own domains are listed explicitly (defence in depth / future
+    pinning hook); the WebView only ever talks to these plus Supabase.
+  - Debug builds additionally trust user-installed CAs (proxy debugging).
+    debug-overrides only accepts trust-anchors, so cleartext stays denied
+    in debug too; add a localhost domain-config if live reload needs http.
+  Pinning is intentionally NOT enabled yet: the backend TLS cert rotates
+  (Supabase/managed edge), and a wrong pin bricks every installed app. Add a
+  <pin-set> per domain only once you control cert rotation and expiry.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">shinepoint.app</domain>
+        <domain includeSubdomains="true">supabase.co</domain>
+        <domain includeSubdomains="true">basemaps.cartocdn.com</domain>
+        <domain includeSubdomains="true">tiles.stadiamaps.com</domain>
+        <domain includeSubdomains="true">api.open-meteo.com</domain>
+    </domain-config>
+
+    <debug-overrides>
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </debug-overrides>
+</network-security-config>

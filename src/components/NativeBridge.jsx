@@ -60,8 +60,12 @@ export default function NativeBridge() {
           return
         }
 
-        // Only react to the OAuth return deep link.
-        if (!url.includes('auth/callback') && !url.includes('code=')) return
+        // OAuth return deep link. Match scheme + host EXACTLY
+        // (shinepoint://auth/...), not by substring — `url.includes('auth/callback')`
+        // would also accept a hostile `shinepoint://auth.evil.com/callback?code=…`.
+        // The `code` still can't be redeemed without this app's PKCE verifier,
+        // but there's no reason to process a URL that isn't ours.
+        if (!parsed || parsed.protocol !== 'shinepoint:' || parsed.host !== 'auth') return
 
         // Close the system browser tab that did the OAuth dance.
         try {

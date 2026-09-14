@@ -7,6 +7,7 @@ import { useAuth } from './AuthContext'
 import { MILESTONES } from '../data/milestones'
 import { useRealtimeChannel } from '../hooks/useRealtimeChannel'
 import { downscaleImage } from '../lib/imageUtils'
+import { signStorageUrl, toCanonicalStorageUrl } from '../lib/storage'
 import {
   fetchDetailers,
   fetchFavoriteDetailerIds,
@@ -247,6 +248,32 @@ export function StoreProvider({ children }) {
   const detailerProfileRef = useRef(detailerProfile)
   useEffect(() => { detailerProfileRef.current = detailerProfile }, [detailerProfile])
 
+  // `vehicles` is a private storage bucket (migration 089), so the canonical
+  // URLs stored on the profile row 403 until signed. Resolve signed display
+  // URLs whenever the stored paths change; avatars/gallery pass through
+  // untouched (see src/lib/storage.js).
+  const [signedVehiclePhoto, setSignedVehiclePhoto] = useState(null)
+  const [signedVehicles, setSignedVehicles] = useState(null)
+  useEffect(() => {
+    if (isDemo) return
+    let alive = true
+    const rawPhoto = customerProfile?.vehicle_photo ?? null
+    const rawVehicles = customerProfile?.vehicles ?? []
+    ;(async () => {
+      const photo = rawPhoto ? await signStorageUrl(rawPhoto) : null
+      const vehicles = rawVehicles.length
+        ? await Promise.all(
+            rawVehicles.map(async (v) => (v?.photo ? { ...v, photo: await signStorageUrl(v.photo) } : v))
+          )
+        : rawVehicles
+      if (alive) {
+        setSignedVehiclePhoto(photo)
+        setSignedVehicles(vehicles)
+      }
+    })()
+    return () => { alive = false }
+  }, [isDemo, customerProfile?.vehicle_photo, customerProfile?.vehicles])
+
   useRealtimeChannel((supabase) => {
     if (isDemo || !profile?.id) return null
     return supabase
@@ -429,14 +456,14 @@ export function StoreProvider({ children }) {
             make: customerProfile?.vehicle_make ?? '',
             model: customerProfile?.vehicle_model ?? '',
             type: customerProfile?.vehicle_type ?? '',
-            photo: customerProfile?.vehicle_photo ?? null,
+            photo: signedVehiclePhoto ?? customerProfile?.vehicle_photo ?? null,
             // Model year, customer-confirmed or read off the onboarding
             // photo scan (071) — paint color lives in PaintContext
             // (device-local, not this DB row; see its own header comment).
             year: customerProfile?.vehicle_year ?? null,
           },
           // Additional cars beyond the primary one (013_customer_vehicles.sql).
-          vehicles: customerProfile?.vehicles ?? [],
+          vehicles: signedVehicles ?? customerProfile?.vehicles ?? [],
           referralCode: customerProfile?.referral_code ?? '',
           referralCredits: Number(customerProfile?.referral_credit ?? 0),
           // Gates filing a 2nd+ dispute (043) — 'unverified'|'pending'|'verified'|'failed'.
@@ -619,10 +646,15 @@ export function StoreProvider({ children }) {
           cols.vehicle_make = patch.vehicle.make ?? ''
           cols.vehicle_model = patch.vehicle.model ?? ''
           cols.vehicle_type = patch.vehicle.type ?? ''
-          if ('photo' in patch.vehicle) cols.vehicle_photo = patch.vehicle.photo
+          // Store the canonical (unsigned) path, never a signed display URL.
+          if ('photo' in patch.vehicle) cols.vehicle_photo = toCanonicalStorageUrl(patch.vehicle.photo)
           if ('year' in patch.vehicle) cols.vehicle_year = patch.vehicle.year || null
         }
-        if (patch.vehicles) cols.vehicles = patch.vehicles
+        if (patch.vehicles) {
+          cols.vehicles = patch.vehicles.map((v) =>
+            v?.photo ? { ...v, photo: toCanonicalStorageUrl(v.photo) } : v
+          )
+        }
         if (Object.keys(cols).length) {
           await updateCustomerProfile(profile.id, cols)
           setCustomerProfile((cp) => ({ ...(cp ?? {}), ...cols }))
@@ -1294,6 +1326,7 @@ export function StoreProvider({ children }) {
     demoDetailers, demoBookings, demoMessages, demoCustomer, demoAdmin,
     realBookings, loyalty,
     customerProfile, detailerProfile, customerProfileLoaded,
+    signedVehiclePhoto, signedVehicles,
     favoriteIds,
     profile, user,
     notifications, realNotifications, realAdmin,

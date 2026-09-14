@@ -1,6 +1,7 @@
 import { supabase, invokeFn } from './supabase'
 import { fuzzyPinForZip } from './fuzzyPin'
 import { enqueue, registerHandler } from './offlineQueue'
+import { signStorageUrl, signStorageUrls } from './storage'
 
 // '' / null / undefined -> null ("not set"); anything else -> a number.
 // Used for optional priced fields (vehicle upcharges) where blank must never
@@ -611,7 +612,10 @@ export async function uploadProfileImage(userId, bucket, file) {
     throw error
   }
   const { data } = supabase.storage.from(bucket).getPublicUrl(path)
-  return data.publicUrl
+  // 'avatars'/'gallery' are public (portfolio) — returned as-is. 'vehicles'
+  // is private (089), so return a signed URL for immediate display; callers
+  // persist the canonical form via toCanonicalStorageUrl.
+  return signStorageUrl(data.publicUrl)
 }
 
 // Upload one booking photo to the public 'job-photos' bucket and record it in
@@ -626,17 +630,21 @@ export async function uploadBookingPhoto(userId, bookingId, file, photoType, are
   if (upErr) { console.error('uploadBookingPhoto storage:', upErr.message); throw upErr }
 
   const { data: pub } = supabase.storage.from('job-photos').getPublicUrl(path)
-  const url = pub.publicUrl
+  // Persist the canonical (public-format) URL as a stable path identifier;
+  // `job-photos` is private, so reads sign it — see src/lib/storage.js.
+  const canonical = pub.publicUrl
 
   const { error: rowErr } = await supabase.from('photos').insert({
     booking_id: bookingId,
     uploaded_by: userId,
     photo_type: photoType,
-    url,
+    url: canonical,
     area_label: areaLabel ?? null,
   })
   if (rowErr) { console.error('uploadBookingPhoto row:', rowErr.message); throw rowErr }
 
+  // Return a signed URL so the just-uploaded shot renders immediately.
+  const url = await signStorageUrl(canonical)
   return { url, area_label: areaLabel ?? null }
 }
 
@@ -662,6 +670,22 @@ export async function setDamageReportFlags(bookingId, { submitted, acknowledged 
     console.error('setDamageReportFlags failed, queued for retry:', e.message)
     enqueue('bookingStatus', { bookingId, dbPatch: patch })
   }
+}
+
+// Rewrite every `row.photos[].url` on the fetched rows from its canonical
+// (public-format) URL to a short-lived signed URL. `job-photos` is private
+// since migration 089 — see src/lib/storage.js. Mutates in place; safe to
+// call on an empty/undefined list.
+async function signBookingPhotoRows(rows) {
+  const list = rows ?? []
+  await Promise.all(
+    list.map(async (row) => {
+      const photos = row.photos ?? []
+      if (!photos.length) return
+      const signed = await signStorageUrls(photos.map((p) => p.url))
+      photos.forEach((p, i) => { p.url = signed[i] })
+    })
+  )
 }
 
 // Shape a booking row's nested `photos` into the app's photo fields. Damage
@@ -878,6 +902,7 @@ export async function fetchBookingsForCustomer(customerProfileId) {
     console.error('fetchBookingsForCustomer:', error.message)
     return []
   }
+  await signBookingPhotoRows(data)
   return (data ?? []).map(normalizeCustomerBooking)
 }
 
@@ -916,6 +941,7 @@ export async function fetchBookingsForDetailer(detailerProfileId) {
     console.error('fetchBookingsForDetailer:', error.message)
     return []
   }
+  await signBookingPhotoRows(data)
   return (data ?? []).map(normalizeDetailerBooking)
 }
 

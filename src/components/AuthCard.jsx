@@ -5,7 +5,7 @@ import { supabase, recoveryClient } from '../lib/supabase'
 import { isGoogleIdentityConfigured, requestGoogleIdToken } from '../lib/googleIdentity'
 import { isNative } from '../lib/native'
 import { homePathForRole, signupHomePath } from '../context/AuthContext'
-import { needsMfaChallenge } from '../lib/mfa'
+import { needsMfaChallenge, hasVerifiedFactor } from '../lib/mfa'
 import { markArrival } from '../lib/transition'
 import { captureException } from '../lib/sentry'
 import Logo from './Logo'
@@ -112,6 +112,14 @@ export default function AuthCard({ defaultMode = 'login', role = 'customer', onA
       if (await needsMfaChallenge()) {
         setBusy(false)
         navigate('/mfa-challenge', { state: { next: homePath } })
+        return
+      }
+      // is_admin() (migration 090) requires aal2 for every admin session, so an
+      // admin without a verified factor can't reach the console at all. Send
+      // them straight to enrollment instead of a locked-out /admin.
+      if (userRow?.role === 'admin' && !(await hasVerifiedFactor())) {
+        setBusy(false)
+        navigate('/mfa-setup', { state: { next: homePath } })
         return
       }
       setBusy(false)
