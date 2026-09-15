@@ -51,6 +51,12 @@ verify_jwt = false
 site_url = "https://shinepoint.app/"
 additional_redirect_urls = ["https://shinepoint.app/auth/callback", "https://detailing-marketplace.vercel.app/auth/callback", "http://localhost:5180/auth/callback"]
 
+# Rejects disposable/temp-mail signups (091). Mirrors the dashboard setting
+# (Authentication → Hooks) so a config push doesn't switch it back off.
+[auth.hook.before_user_created]
+enabled = true
+uri = "pg-functions://postgres/public/hook_block_disposable_email"
+
 [auth.mfa.totp]
 enroll_enabled = true
 verify_enabled = true
