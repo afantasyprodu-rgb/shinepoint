@@ -39,6 +39,11 @@ The whole app reads through two providers — understand the split before touchi
   functions: keep EVERY existing guarded column, add yours to BOTH the guard and
   `scripts/check-booking-guards.mjs`, and run `supabase/tests/060_guard_regression.sql`
   against staging. Never rewrite a guard from scratch — extend it.
+- **`detailer_profiles` uses column-level SELECT grants** (019). A new column is unreadable
+  until you `grant select (col) on public.detailer_profiles to anon, authenticated;` — and
+  one ungranted column in a client `.select()` empties the whole query (086 blanked the map).
+  `scripts/check-column-grants.mjs` (part of `check:guards`) fails CI on a missing grant;
+  deliberately private columns go in its `PRIVATE` list.
 
 ## Running it
 - Dev: `npm run dev`. **Gotcha:** the space in `Cloud stuff` breaks some launchers, and

@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
-    "check:guards": "node scripts/check-booking-guards.mjs",
+    "check:guards": "node scripts/check-booking-guards.mjs && node scripts/check-column-grants.mjs",
     "smoke:agent-api": "node scripts/smoke-agent-api.mjs",
     "mcp": "node scripts/run-mcp.mjs",
     "cap:sync": "npm run build && cap sync",
