@@ -26,6 +26,8 @@ function notificationHref(role, n) {
   // No booking exists behind this one (082) — it's a lead, not a job, so
   // it routes to the requests list rather than a booking detail page.
   if (n.kind === 'time_request' && role === 'detailer') return '/detailer/time-requests'
+  // New-account alerts (092) land on the People list.
+  if (role === 'admin' && /signup$/i.test(n.title ?? '')) return '/admin/people'
   if (!n.bookingId) return null
   if (role === 'customer') {
     return n.stage ? `/bookings/${n.bookingId}?stage=${n.stage}` : `/bookings/${n.bookingId}`
@@ -52,7 +54,9 @@ function formatNotifTime(iso, t) {
   return then.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
-function NotificationBell({ role }) {
+// panelClass: where the dropdown opens. Right-aligned under a header bell by
+// default; the admin sidebar bell sits at the left edge, so it opens rightward.
+export function NotificationBell({ role, panelClass = 'right-0 top-11' }) {
   const { notifications, markNotificationsRead } = useStore()
   const [open, setOpen] = useState(false)
   const panelRef = useRef(null)
@@ -126,7 +130,7 @@ function NotificationBell({ role }) {
             // same root stacking context — 30 lost, so the dropdown opened
             // behind the map. Comfortably above that and Leaflet's own
             // internal panes (popups top out around z-700).
-            className="absolute right-0 top-11 z-[1000] w-80 rounded-2xl border border-brand-100 bg-white p-2 shadow-xl dark:border-white/10 dark:bg-[#1E1730] dark:shadow-black/40"
+            className={`absolute ${panelClass} z-[1000] w-80 max-w-[calc(100vw-2rem)] rounded-2xl border border-brand-100 bg-white p-2 shadow-xl dark:border-white/10 dark:bg-[#1E1730] dark:shadow-black/40`}
           >
             <h2 className="px-3 pt-2 font-display text-sm font-semibold text-slate-900 dark:text-slate-100">
               {t('notifications')}

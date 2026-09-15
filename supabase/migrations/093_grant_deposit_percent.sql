@@ -1,0 +1,13 @@
+-- ============================================================
+-- 093: Grant SELECT on detailer_profiles.deposit_percent.
+--
+-- detailer_profiles uses column-level SELECT grants, so a new column is
+-- unreadable until granted. 086 added deposit_percent without one, and
+-- fetchDetailers selects it — so the whole query failed with "permission
+-- denied" and NO detailers loaded anywhere (customer map, search, admin
+-- People → Detailers). Same trap as blackout_hours (070).
+--
+-- Deposit % is shown to customers at booking time, so it's public like the
+-- rest of the pricing columns.
+-- ============================================================
+grant select (deposit_percent) on public.detailer_profiles to anon, authenticated;

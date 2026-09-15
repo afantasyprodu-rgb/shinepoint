@@ -4,6 +4,7 @@ import Logo from './Logo'
 import BottomTabBar from './ui/BottomTabBar'
 import ThemeToggle from './ThemeToggle'
 import LanguageToggle from './LanguageToggle'
+import { NotificationBell } from './AppShell'
 import { GridIcon, UsersIcon, AlertTriangleIcon, CreditCardIcon, PieChartIcon, MessageCircleIcon } from './icons'
 import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
@@ -86,6 +87,9 @@ export default function AdminShell({ children }) {
             <ThemeToggle />
           </div>
         </div>
+        <div className="mt-4">
+          <NotificationBell role="admin" panelClass="left-0 top-11" />
+        </div>
         <nav aria-label={t('adminNavAria')} className="mt-8 flex flex-col gap-1">
           {LINKS.map(({ to, label, end, badge }) => (
             <NavLink
@@ -119,6 +123,7 @@ export default function AdminShell({ children }) {
         <header className="flex items-center justify-between px-4 py-3 pt-[max(env(safe-area-inset-top),2.75rem)] sm:hidden">
           <Logo />
           <div className="flex items-center gap-1">
+            <NotificationBell role="admin" />
             <LanguageToggle />
             <ThemeToggle />
             <button onClick={handleSignOut} className="btn btn-outline h-9 px-3 text-sm">
