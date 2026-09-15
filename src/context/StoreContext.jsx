@@ -336,6 +336,7 @@ export function StoreProvider({ children }) {
                   {
                     id: n.id,
                     audience: profile.role,
+                    kind: n.kind,
                     title: n.title,
                     body: n.body ?? '',
                     bookingId: n.booking_id,
