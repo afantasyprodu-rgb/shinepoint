@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
     if (!row.sms_opt_in) return json({ error: 'SMS is not opted in on this account.' }, 409)
     if (!row.phone) return json({ error: 'No phone number on file.' }, 409)
 
-    await sendSms({ to: row.phone, body: optInConfirmationSms() })
+    await sendSms({ to: row.phone, ...optInConfirmationSms() })
 
     return json({ ok: true })
   } catch (e) {

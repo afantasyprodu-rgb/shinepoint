@@ -680,7 +680,7 @@ async function runAdminTool(
       return { output: JSON.stringify({ error: 'Rate limit reached -- too many recruit texts sent this hour.' }) }
     }
     try {
-      const result = await sendSms({ to: phone, body: detailerRecruitSms() })
+      const result = await sendSms({ to: phone, ...detailerRecruitSms() })
       return { output: JSON.stringify({ ok: true, ...result }) }
     } catch (e) {
       return { output: JSON.stringify({ error: (e as Error).message }) }

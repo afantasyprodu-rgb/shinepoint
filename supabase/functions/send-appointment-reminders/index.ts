@@ -76,7 +76,7 @@ Deno.serve(async (req) => {
       if (wantsSms) {
         await sendSms({
           to: customer.phone,
-          body: appointmentReminderSms({
+          ...appointmentReminderSms({
             customerName: customer.full_name ?? 'there',
             detailerName: detailer?.full_name ?? 'Your detailer',
             service,
