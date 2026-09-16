@@ -341,7 +341,12 @@ export default function DetailerProfileEditor() {
         <form onSubmit={save} className="mt-4 space-y-4">
           {activeTab === 'profile' && (
           <div className="space-y-4">
-          <div ref={tiltRef} className="relative mt-6">
+          {/* mt-16, not mt-6 — same notch-card avatar treatment as
+              CustomerSettings.jsx, but this page has a full tab row above
+              the card (CustomerSettings only has the page heading), so it
+              needs the same clearance CustomerSettings gives it or the
+              avatar's peek-above-the-card overlaps the tabs. */}
+          <div ref={tiltRef} className="relative mt-16">
             <div className="nx-card-notch-shadow absolute inset-0 rounded-[2rem]" aria-hidden="true" />
             <div
               className="nx-card-notch-bg absolute inset-0 rounded-[2rem]"
