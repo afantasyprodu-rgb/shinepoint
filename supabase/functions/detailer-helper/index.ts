@@ -25,7 +25,7 @@
 //     what to query and is never given a tool of its own here.
 //
 // Deploy: supabase functions deploy detailer-helper
-import { createClient } from 'npm:@supabase/supabase-js@^2'
+import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@^2'
 import { corsHeaders, json } from '../_shared/cors.ts'
 import { captureException } from '../_shared/sentry.ts'
 import { withinRateLimit, tooManyRequests } from '../_shared/rateLimit.ts'
@@ -36,7 +36,7 @@ import { appointmentReminderSms } from '../_shared/sms-templates.ts'
 import { isUuid, cleanText, isOneOf } from '../_shared/validate.ts'
 
 type Ctx = {
-  admin: ReturnType<typeof createClient>
+  admin: SupabaseClient
   detailerProfileId: string
   userId: string
 }
@@ -80,7 +80,7 @@ const HELP_TEXT: Record<string, Record<'en' | 'es', string>> = {
   },
 }
 
-async function getDetailerContext(admin: ReturnType<typeof createClient>, userId: string) {
+async function getDetailerContext(admin: SupabaseClient, userId: string) {
   const { data, error } = await admin
     .from('detailer_profiles')
     .select('id, average_rating, total_reviews, is_probation, probation_jobs_remaining')

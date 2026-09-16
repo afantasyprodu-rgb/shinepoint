@@ -575,7 +575,7 @@ async function runDetailerTool(
   userId: string,
   name: string,
   input: Record<string, unknown>,
-): Promise<{ output: string; navResult?: NavResult }> {
+): Promise<{ output: string; searchResult?: unknown; navResult?: NavResult }> {
   if (name === 'submit_feature_idea') return submitFeatureIdea(ctx.admin, userId, input)
   if (name === 'reschedule_booking') return rescheduleBooking(ctx, input)
   if (name === 'navigate_to') {
