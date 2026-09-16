@@ -161,6 +161,7 @@ export function StoreProvider({ children }) {
   // this fetch was in flight.
   const [customerProfileLoaded, setCustomerProfileLoaded] = useState(false)
   const [detailerProfile, setDetailerProfile] = useState(null)  // { id, status, ... }
+  const [detailerProfileLoaded, setDetailerProfileLoaded] = useState(false)
   const [realNotifications, setRealNotifications] = useState([])
   const [realAdmin, setRealAdmin] = useState(null)  // built from live moderation queries
 
@@ -228,13 +229,21 @@ export function StoreProvider({ children }) {
         }
       })
     } else if (profile.role === 'detailer') {
+      setDetailerProfileLoaded(false)
       fetchDetailerProfileRow(profile.id).then((dp) => {
         if (cancelled) return
         setDetailerProfile(dp)
+        setDetailerProfileLoaded(true)
         if (dp) {
           fetchBookingsForDetailer(dp.id).then((bs) => {
             if (!cancelled) setRealBookings(bs)
           })
+        }
+      }).catch((err) => {
+        console.error('fetchDetailerProfileRow:', err?.message ?? err)
+        if (!cancelled) {
+          setDetailerProfile(null)
+          setDetailerProfileLoaded(true)
         }
       })
     }
@@ -572,6 +581,10 @@ export function StoreProvider({ children }) {
       // or once the real profile fetch above has resolved — see that
       // state's own comment for why this exists.
       customerProfileLoaded: isDemo || customerProfileLoaded,
+      // Same pattern as customerProfileLoaded: false until the detailer
+      // profile fetch settles, so Client Book does not treat a pending
+      // null id as an empty CRM.
+      detailerProfileLoaded: isDemo || detailerProfileLoaded,
       // Pre-load shape for a real admin: everything empty/zero, never the
       // demo seed — a blank dashboard is honest, seeded revenue is not.
       admin: isDemo

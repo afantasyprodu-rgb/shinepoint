@@ -42,6 +42,8 @@ const NAV_LABEL_KEYS = {
   tools_pricing: 'goToolsPricing',
   tools_time: 'goToolsTime',
   tools_cheatsheet: 'goToolsCheatsheet',
+  clients: 'goClients',
+  client: 'goClient',
 }
 
 // Same cap useFileUpload enforces on every other picker in the app. Kept

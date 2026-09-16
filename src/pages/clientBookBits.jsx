@@ -24,3 +24,11 @@ export function PhoneIcon({ className = 'h-3.5 w-3.5' }) {
     </svg>
   )
 }
+
+export function ChatIcon({ className = 'h-3.5 w-3.5' }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 6.75A2.25 2.25 0 0 1 6.75 4.5h10.5A2.25 2.25 0 0 1 19.5 6.75v7.5A2.25 2.25 0 0 1 17.25 16.5H9l-4.5 3v-3.75A2.25 2.25 0 0 1 4.5 14.25v-7.5Z" />
+    </svg>
+  )
+}

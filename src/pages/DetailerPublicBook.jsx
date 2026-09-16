@@ -1,19 +1,37 @@
-import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Sparkle } from './clientBookBits'
-import { fetchPublicDetailerBySlug } from '../lib/detailerClients'
+import { fetchPublicDetailerBySlug, phoneSmsHref } from '../lib/detailerClients'
 import { useAuth } from '../context/AuthContext'
 import styles from '../styles/clientBook.module.css'
 
-/** Public book-me landing — /d/:slug — no login required to view packages. */
+/** Public book-me landing — /d/:slug — no login required to view packages.
+ *  CRM Rebook appends ?crm=1&name=&phone=&customer_id=&vehicle=&photo= which
+ *  we forward into BookingWizard as location.state.crmPrefill.
+ */
 export default function DetailerPublicBook() {
   const { slug } = useParams()
+  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const { session, profile } = useAuth()
   const [data, setData] = useState(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState([])
+  const [copied, setCopied] = useState(false)
+
+  const crmPrefill = useMemo(() => {
+    if (searchParams.get('crm') !== '1' && !searchParams.get('name') && !searchParams.get('phone')) {
+      return null
+    }
+    return {
+      name: searchParams.get('name') || '',
+      phone: searchParams.get('phone') || '',
+      customerId: searchParams.get('customer_id') || '',
+      vehicle: searchParams.get('vehicle') || '',
+      photo: searchParams.get('photo') || '',
+    }
+  }, [searchParams])
 
   useEffect(() => {
     let cancelled = false
@@ -40,22 +58,47 @@ export default function DetailerPublicBook() {
     setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
   }
 
+  function bookState() {
+    const state = {}
+    if (selected.length) state.preselectedServiceIds = selected
+    if (crmPrefill) state.crmPrefill = crmPrefill
+    return Object.keys(state).length ? state : undefined
+  }
+
   function startBook() {
     if (!data?.id) return
-    const state = selected.length ? { preselectedServiceIds: selected } : undefined
+    const state = bookState()
     const dest = `/book/${data.id}?source=direct`
     if (!session) {
       navigate('/login', { state: { from: dest, bookState: state } })
       return
     }
     if (profile?.role && profile.role !== 'customer') {
-      setError('Switch to a customer account to book.')
+      // Detailer opened Rebook — keep them on the public page with share actions.
+      setError('You’re signed in as a detailer. Share the book-me link with your client (or open it in a customer session) to finish booking.')
       return
     }
     navigate(dest, { state })
   }
 
+  async function copyShareLink() {
+    const url = window.location.href
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 2000)
+    } catch {
+      setError('Couldn’t copy — select the URL bar instead.')
+    }
+  }
+
   const services = Array.isArray(data?.services) ? data.services : []
+  const smsShare = crmPrefill?.phone
+    ? phoneSmsHref(
+      crmPrefill.phone,
+      `Hi${crmPrefill.name ? ` ${crmPrefill.name.split(' ')[0]}` : ''} — book your next detail here: ${typeof window !== 'undefined' ? window.location.href : ''}`,
+    )
+    : ''
 
   return (
     <div className={styles.shell} style={{ minHeight: '100dvh' }}>
@@ -91,6 +134,28 @@ export default function DetailerPublicBook() {
               </div>
             </div>
             {data.bio && <p className={`${styles.tag} mt-3`}>{data.bio}</p>}
+
+            {crmPrefill && (crmPrefill.name || crmPrefill.vehicle) && (
+              <div className={styles.notesPanel} style={{ marginTop: '1rem' }}>
+                <h2 className={styles.notesTitle}>~ Rebook ~</h2>
+                <p className={styles.notesBody}>
+                  {[crmPrefill.name, crmPrefill.vehicle].filter(Boolean).join(' · ')}
+                </p>
+                {crmPrefill.phone && (
+                  <p className={`${styles.metaPink} mt-2 mb-0`}>{crmPrefill.phone}</p>
+                )}
+                <div className={styles.quickActions} style={{ marginTop: '0.75rem' }}>
+                  <button type="button" className={styles.iconBtn} onClick={copyShareLink}>
+                    {copied ? 'Copied' : 'Copy link'}
+                  </button>
+                  {smsShare && (
+                    <a href={smsShare} className={styles.iconBtn}>
+                      Text link
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
 
             <h2 className={styles.notesTitle} style={{ marginTop: '1.25rem' }}>Packages</h2>
             <div className="mt-2 space-y-2">

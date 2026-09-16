@@ -632,3 +632,488 @@
   place-items: center;
   font-size: 0.7rem;
 }
+
+
+/* Car cubby — small shelf for the client's vehicle photo */
+.cubby {
+  width: 3.35rem;
+  height: 3.35rem;
+  border-radius: 0.9rem;
+  background: var(--cb-pink-soft);
+  border: 2px solid #fff;
+  box-shadow: 0 5px 0 rgba(244, 63, 140, 0.18);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--cb-pink);
+  flex-shrink: 0;
+}
+:global(.dark) .cubby {
+  border-color: rgba(255,255,255,0.12);
+  box-shadow: 0 5px 0 rgba(0,0,0,0.25);
+}
+.cubby img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.cubbyLg {
+  width: 100%;
+  height: 9.5rem;
+  border-radius: 1.25rem 1.25rem 0.75rem 1.25rem;
+  background: var(--cb-pink-soft);
+  border: 2px solid rgba(26, 18, 32, 0.08);
+  box-shadow: 0 8px 0 rgba(26, 18, 32, 0.05);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--cb-pink);
+  margin: 0.75rem 0 0.25rem;
+}
+:global(.dark) .cubbyLg {
+  border-color: rgba(255,255,255,0.08);
+  background: var(--cb-pink-soft);
+}
+.cubbyLg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.historyCard {
+  background: #fff;
+  border: 2px solid rgba(26, 18, 32, 0.08);
+  border-radius: 18px 22px 12px 18px;
+  padding: 0.75rem 0.9rem;
+  margin-bottom: 0.55rem;
+  box-shadow: 0 6px 0 rgba(26, 18, 32, 0.04);
+}
+:global(.dark) .historyCard {
+  background: #2a2030;
+  border-color: rgba(255,255,255,0.08);
+}
+.badgeApp {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cb-pink);
+  background: var(--cb-pink-soft);
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+}
+.photoField {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin: 0.35rem 0 0.85rem;
+}
+.photoFieldHint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--cb-muted);
+  line-height: 1.35;
+}
+
+.cardRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.cubbyEmpty {
+  width: 3.6rem;
+  height: 3.6rem;
+  border-radius: 0.9rem;
+  background: var(--cb-cream);
+  border: 2px dashed var(--cb-pink);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--cb-pink);
+  flex-shrink: 0;
+  gap: 0.05rem;
+  text-align: center;
+}
+.cubbyEmptyPlus {
+  font-size: 0.95rem;
+  font-weight: 800;
+  line-height: 1;
+}
+.cubbyEmptyLabel {
+  font-size: 0.5rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  line-height: 1;
+}
+
+.vehicleHero {
+  width: 100%;
+  margin: 0.15rem 0 0.85rem;
+  background: #fff;
+  border: 2px solid rgba(26, 18, 32, 0.08);
+  border-radius: 1.25rem;
+  overflow: hidden;
+  box-shadow: 0 8px 0 rgba(26, 18, 32, 0.05);
+}
+:global(.dark) .vehicleHero {
+  background: #2a2030;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+.vehicleHeroPhoto {
+  width: 100%;
+  height: 11.75rem;
+  background: var(--cb-pink-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--cb-pink);
+}
+.vehicleHeroPhoto img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.vehicleHeroCaption {
+  padding: 0.75rem 0.9rem 0.9rem;
+}
+.vehicleHeroTitle {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--cb-ink);
+}
+.vehicleHeroSub {
+  margin: 0.15rem 0 0;
+  font-size: 0.8rem;
+  color: var(--cb-muted);
+}
+
+.specGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+  margin: 0 0 0.85rem;
+}
+.specCell {
+  background: var(--cb-cream-deep);
+  border-radius: 0.85rem;
+  padding: 0.55rem 0.7rem;
+  border: 1.5px solid rgba(244, 63, 140, 0.12);
+}
+.specLabel {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cb-pink);
+}
+.specValue {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--cb-ink);
+}
+
+
+/* Due filter + Call/Text quick actions (money-useful CRM) */
+.filterChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.35rem 0 0.85rem;
+}
+.chip,
+.chipActive {
+  appearance: none;
+  border: 1.5px solid rgba(244, 63, 140, 0.35);
+  background: #fff;
+  color: var(--cb-pink);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.chipActive {
+  background: var(--cb-pink);
+  border-color: var(--cb-pink);
+  color: #fff;
+}
+:global(.dark) .chip {
+  background: #2a2030;
+}
+.quickActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.55rem;
+}
+.iconBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  border: 1.5px solid rgba(244, 63, 140, 0.4);
+  background: var(--cb-pink-soft, #FFE4F0);
+  color: var(--cb-pink);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-decoration: none;
+  cursor: pointer;
+}
+.iconBtn:active {
+  transform: translateY(1px);
+}
+
+/* ---- Cars & history: multi-vehicle garage + before/after shelf ---- */
+.garageList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin: 0.35rem 0 0.85rem;
+}
+.garageCard {
+  background: #fff;
+  border: 2px solid rgba(26, 18, 32, 0.08);
+  border-radius: 16px 20px 12px 16px;
+  padding: 0.7rem 0.8rem;
+  box-shadow: 0 5px 0 rgba(26, 18, 32, 0.04);
+}
+:global(.dark) .garageCard {
+  background: #2a2030;
+  border-color: rgba(255,255,255,0.08);
+}
+.garageCardActive {
+  border-color: rgba(244, 63, 140, 0.55);
+  box-shadow: 0 5px 0 rgba(244, 63, 140, 0.12);
+}
+.garageCardTop {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+.garageThumb {
+  width: 2.85rem;
+  height: 2.85rem;
+  border-radius: 0.75rem;
+  background: var(--cb-pink-soft);
+  border: 1.5px solid #fff;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--cb-pink);
+  flex-shrink: 0;
+}
+.garageThumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.garageMeta {
+  min-width: 0;
+  flex: 1;
+}
+.garageName {
+  display: block;
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: var(--cb-ink);
+}
+.garageSub {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--cb-muted);
+  margin-top: 0.1rem;
+}
+.garageActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.55rem;
+}
+.garageEdit {
+  margin-top: 0.65rem;
+  display: grid;
+  gap: 0.45rem;
+}
+.garageEdit .field {
+  margin: 0;
+}
+.miniBtn,
+.miniBtnDanger {
+  appearance: none;
+  border: 1.5px solid rgba(244, 63, 140, 0.4);
+  background: var(--cb-pink-soft);
+  color: var(--cb-pink);
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.miniBtnDanger {
+  border-color: rgba(180, 40, 80, 0.35);
+  background: #fff;
+  color: #b42850;
+}
+:global(.dark) .miniBtnDanger {
+  background: #2a2030;
+}
+
+.baShelfWrap {
+  margin: 0.5rem 0 1rem;
+}
+.baShelf {
+  display: flex;
+  gap: 0.65rem;
+  overflow-x: auto;
+  padding: 0.15rem 0.1rem 0.55rem;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+.baTile {
+  flex: 0 0 auto;
+  width: 9.5rem;
+  scroll-snap-align: start;
+  background: #fff;
+  border: 2px solid rgba(26, 18, 32, 0.08);
+  border-radius: 14px 16px 10px 14px;
+  padding: 0.45rem;
+  box-shadow: 0 5px 0 rgba(26, 18, 32, 0.04);
+}
+:global(.dark) .baTile {
+  background: #2a2030;
+  border-color: rgba(255,255,255,0.08);
+}
+.baPair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.3rem;
+}
+.baFrame {
+  aspect-ratio: 1;
+  border-radius: 0.55rem;
+  overflow: hidden;
+  background: var(--cb-cream-deep);
+  border: 1.5px solid rgba(244, 63, 140, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--cb-pink);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-align: center;
+  padding: 0.2rem;
+}
+.baFrame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.baCaption {
+  margin: 0.4rem 0 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--cb-muted);
+  line-height: 1.25;
+}
+.baCaption strong {
+  display: block;
+  color: var(--cb-ink);
+  font-size: 0.72rem;
+}
+.baNote {
+  margin: 0.25rem 0 0;
+  font-size: 0.72rem;
+  color: var(--cb-muted);
+}
+
+.addrRow {
+  display: grid;
+  grid-template-columns: 1fr 5.5rem;
+  gap: 0.5rem;
+}
+@media (max-width: 360px) {
+  .addrRow {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* —— Autopilot (overdue SMS drafts) —— */
+.autopilotCard {
+  display: block;
+  cursor: default;
+  text-decoration: none;
+  color: inherit;
+}
+.autopilotCard:active {
+  transform: none;
+}
+.autopilotDraft {
+  margin: 0.75rem 0 0;
+  padding: 0.75rem 0.85rem;
+  border-radius: 14px;
+  background: var(--cb-cream-deep);
+  border: 1px solid var(--cb-pink-soft);
+  color: var(--cb-ink);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+.autopilotActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.85rem;
+  align-items: center;
+}
+.autopilotActions .btnPink,
+.autopilotActions .btnOutline,
+.autopilotActions .btnGhost {
+  flex: 1 1 auto;
+  min-width: 5.5rem;
+  text-align: center;
+}
+.btnGhost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.55rem 0.9rem;
+  border-radius: 999px;
+  border: 1px dashed var(--cb-muted);
+  background: transparent;
+  color: var(--cb-muted);
+  font-weight: 600;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+.btnGhost:hover {
+  color: var(--cb-ink);
+  border-color: var(--cb-pink);
+}
+.btnGhost:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btnGhost:focus-visible {
+  outline: 2px solid var(--cb-pink);
+  outline-offset: 2px;
+}

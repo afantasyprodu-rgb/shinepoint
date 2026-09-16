@@ -10,7 +10,10 @@ import {
   normalizePhone,
   fetchDetailerClients,
   insertDetailerClientsBulk,
+  updateDetailerClient,
+  fetchClientMarketplaceHistory,
   formatPhoneDisplay,
+  vehiclePhoto,
 } from '../lib/detailerClients'
 import { Sparkle } from './clientBookBits'
 import styles from '../styles/clientBook.module.css'
@@ -21,6 +24,7 @@ const FIELD_KEYS = [
   { key: 'email', label: 'Email' },
   { key: 'notes', label: 'Notes' },
   { key: 'vehicle', label: 'Vehicle' },
+  { key: 'photo', label: 'Photo URL' },
 ]
 
 export default function DetailerClientImport() {
@@ -31,7 +35,7 @@ export default function DetailerClientImport() {
   const [headers, setHeaders] = useState([])
   const [records, setRecords] = useState([])
   const [mapping, setMapping] = useState({
-    full_name: '', phone: '', email: '', notes: '', vehicle: '',
+    full_name: '', phone: '', email: '', notes: '', vehicle: '', photo: '',
   })
   const [fileName, setFileName] = useState('')
   const [error, setError] = useState('')
@@ -78,7 +82,7 @@ export default function DetailerClientImport() {
       return
     }
     if (isDemo) {
-      setResult({ inserted: preview.filter((p) => p.mapped.full_name).length, skipped: 0, dupes: 0 })
+      setResult({ inserted: preview.filter((p) => p.mapped.full_name).length, skipped: 0, dupes: 0, linked: 0 })
       return
     }
     if (!detailerId) {
@@ -123,13 +127,29 @@ export default function DetailerClientImport() {
 
       // Chunk inserts to avoid payload limits
       let inserted = 0
+      let linked = 0
       const CHUNK = 100
+      const insertedRows = []
       for (let i = 0; i < toInsert.length; i += CHUNK) {
         const chunk = toInsert.slice(i, i + CHUNK)
         const rows = await insertDetailerClientsBulk(chunk)
         inserted += rows.length
+        insertedRows.push(...rows)
       }
-      setResult({ inserted, skipped, dupes })
+      // Best-effort marketplace link by phone (never blocks import).
+      for (const row of insertedRows) {
+        if (!row?.phone || row.linked_customer_id) continue
+        try {
+          const hist = await fetchClientMarketplaceHistory(detailerId, { phone: row.phone })
+          if (hist.linkedCustomerId) {
+            await updateDetailerClient(row.id, { linked_customer_id: hist.linkedCustomerId })
+            linked += 1
+          }
+        } catch {
+          /* ignore — RLS may block users.phone */
+        }
+      }
+      setResult({ inserted, skipped, dupes, linked })
       if (inserted > 0) {
         window.setTimeout(() => navigate('/detailer/clients'), 1200)
       }
@@ -167,13 +187,14 @@ export default function DetailerClientImport() {
           </div>
 
           <h1 className={styles.title}>Import clients</h1>
-          <p className={styles.tag}>Upload a CSV (Square export works). Map columns, preview, then import.</p>
+          <p className={styles.tag}>Upload any CSV. Map columns (including an optional photo URL), preview, then import.</p>
           <div className={styles.wave} aria-hidden="true" />
 
           {error && <div className={styles.error} role="alert">{error}</div>}
           {result && (
             <div className={styles.success} role="status">
               Imported {result.inserted}. Skipped empty name: {result.skipped}. Phone dupes skipped: {result.dupes}.
+              {result.linked != null ? ` Linked to app customers: ${result.linked}.` : null}
             </div>
           )}
           {isDemo && (
@@ -214,6 +235,7 @@ export default function DetailerClientImport() {
                     <tr>
                       <th>Name</th>
                       <th>Phone</th>
+                      <th>Photo</th>
                       <th>Flags</th>
                     </tr>
                   </thead>
@@ -225,6 +247,11 @@ export default function DetailerClientImport() {
                         <tr key={idx}>
                           <td>{mapped.full_name || <em className={styles.dupe}>missing</em>}</td>
                           <td>{mapped.phone ? formatPhoneDisplay(mapped.phone) : '—'}</td>
+                          <td>
+                            {(mapped.photo || vehiclePhoto(mapped.vehicles))
+                              ? <span className={styles.meta}>mapped</span>
+                              : '—'}
+                          </td>
                           <td>
                             {dupeInFile && <span className={styles.dupe}>dupe phone</span>}
                             {!mapped.full_name && <span className={styles.dupe}> skip</span>}

@@ -1,40 +1,85 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import AppShell from '../components/AppShell'
 import { AnimatedPage } from '../components/ui/Motion'
 import { useStore } from '../context/StoreContext'
-import { fetchDetailerClient, initials } from '../lib/detailerClients'
+import {
+  fetchDetailerClient,
+  fetchClientMarketplaceHistory,
+  formatLastDetailedShort,
+  initials,
+} from '../lib/detailerClients'
 import { invokeFn } from '../lib/supabase'
 import { Sparkle } from './clientBookBits'
 import styles from '../styles/clientBook.module.css'
 
 const DEMO = {
-  'demo-1': { id: 'demo-1', full_name: 'Priya Sharma', phone: '5551234567', sms_opt_in: true },
+  'demo-1': { id: 'demo-1', full_name: 'Priya Sharma', phone: '5551234567', sms_opt_in: true, linked_customer_id: 'demo-cust-1' },
   'demo-2': { id: 'demo-2', full_name: 'Jacob Miller', phone: '5559876543', sms_opt_in: false },
   'demo-3': { id: 'demo-3', full_name: 'Aisha Thompson', phone: '5554567890', sms_opt_in: false },
 }
 
-/** D3 remind flow: draft → edit → Send/Discard (structural show-before-send). */
+const CADENCE = [
+  { days: 30, label: '30 days' },
+  { days: 60, label: '60 days' },
+  { days: 90, label: '90 days' },
+]
+
+function cadenceMessage(clientName, days, lastDetailedAt) {
+  const first = (clientName || 'there').split(' ')[0]
+  const when = formatLastDetailedShort(lastDetailedAt)
+  const lastBit = when ? ` We last detailed you around ${when}.` : ''
+  return (
+    `ShinePoint: Hi ${first}, you're due for another detail ` +
+    `(about every ${days} days).${lastBit} ` +
+    `Reply to book a time — or reply STOP to opt out.`
+  )
+}
+
+/** D3 remind flow: cadence presets + draft → edit → Send/Discard. */
 export default function DetailerClientRemind() {
   const { id } = useParams()
-  const { isDemo } = useStore()
+  const location = useLocation()
+  const { isDemo, detailerProfile } = useStore()
+  const detailerId = detailerProfile?.id
   const [client, setClient] = useState(null)
   const [draft, setDraft] = useState('')
   const [phoneMasked, setPhoneMasked] = useState('')
+  const [lastDetailedAt, setLastDetailedAt] = useState(location.state?.lastDetailedAt || null)
   const [error, setError] = useState('')
   const [status, setStatus] = useState('')
   const [busy, setBusy] = useState(false)
   const [phase, setPhase] = useState('idle') // idle | drafted | sent
+  const [cadenceDays, setCadenceDays] = useState(null)
 
   useEffect(() => {
     let cancelled = false
     async function load() {
       try {
         if (isDemo) {
-          if (!cancelled) setClient(DEMO[id] ?? { id, full_name: 'Client', sms_opt_in: false })
+          const row = DEMO[id] ?? { id, full_name: 'Client', sms_opt_in: false }
+          if (!cancelled) {
+            setClient(row)
+            setLastDetailedAt((prev) => prev || (row.linked_customer_id
+              ? new Date(Date.now() - 45 * 86400000).toISOString()
+              : null))
+          }
         } else {
           const row = await fetchDetailerClient(id)
           if (!cancelled) setClient(row)
+          if (detailerId && row) {
+            try {
+              const hist = await fetchClientMarketplaceHistory(detailerId, {
+                linkedCustomerId: row.linked_customer_id,
+                phone: row.phone,
+              })
+              if (!cancelled && hist.lastDetailedAt) {
+                setLastDetailedAt((prev) => prev || hist.lastDetailedAt)
+              }
+            } catch {
+              /* non-fatal */
+            }
+          }
         }
       } catch (err) {
         if (!cancelled) setError(err.message ?? String(err))
@@ -42,12 +87,25 @@ export default function DetailerClientRemind() {
     }
     load()
     return () => { cancelled = true }
-  }, [id, isDemo])
+  }, [id, isDemo, detailerId])
+
+  function applyCadence(days) {
+    setCadenceDays(days)
+    setError('')
+    setStatus('')
+    const name = client?.full_name || location.state?.clientName || 'there'
+    setDraft(cadenceMessage(name, days, lastDetailedAt))
+    if (client?.phone) {
+      setPhoneMasked('••••' + String(client.phone).replace(/\D/g, '').slice(-4))
+    }
+    setPhase('drafted')
+  }
 
   async function makeDraft() {
     setError('')
     setStatus('')
     setBusy(true)
+    setCadenceDays(null)
     try {
       if (isDemo) {
         if (!client?.sms_opt_in) {
@@ -103,6 +161,7 @@ export default function DetailerClientRemind() {
     setDraft('')
     setPhase('idle')
     setStatus('')
+    setCadenceDays(null)
   }
 
   return (
@@ -135,20 +194,55 @@ export default function DetailerClientRemind() {
             </div>
           )}
 
+          {lastDetailedAt && (
+            <p className={`${styles.metaPink} mt-1`}>
+              Last detailed · {formatLastDetailedShort(lastDetailedAt)}
+            </p>
+          )}
+
           {phase === 'idle' && (
-            <button
-              type="button"
-              className={styles.btnPink}
-              style={{ width: '100%' }}
-              onClick={makeDraft}
-              disabled={busy}
-            >
-              {busy ? 'Drafting…' : 'Draft reminder'}
-            </button>
+            <>
+              <p className={styles.sectionTitle} style={{ marginTop: '1rem' }}>Due for another detail</p>
+              <div className={styles.filterChips} role="group" aria-label="Remind cadence">
+                {CADENCE.map((c) => (
+                  <button
+                    key={c.days}
+                    type="button"
+                    className={styles.chip}
+                    onClick={() => applyCadence(c.days)}
+                    disabled={busy || !client}
+                  >
+                    {c.label}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                className={styles.btnPink}
+                style={{ width: '100%', marginTop: '0.85rem' }}
+                onClick={makeDraft}
+                disabled={busy}
+              >
+                {busy ? 'Drafting…' : 'Draft reminder'}
+              </button>
+            </>
           )}
 
           {phase === 'drafted' && (
             <>
+              <div className={styles.filterChips} role="group" aria-label="Remind cadence">
+                {CADENCE.map((c) => (
+                  <button
+                    key={c.days}
+                    type="button"
+                    className={cadenceDays === c.days ? styles.chipActive : styles.chip}
+                    onClick={() => applyCadence(c.days)}
+                    disabled={busy}
+                  >
+                    {c.label}
+                  </button>
+                ))}
+              </div>
               {phoneMasked && (
                 <p className={`${styles.tag} mt-2`}>Will send to {phoneMasked}</p>
               )}

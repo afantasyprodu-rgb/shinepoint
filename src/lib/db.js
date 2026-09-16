@@ -1025,7 +1025,7 @@ export async function createBookingInDB({
 // pays (the real enforcement is migration 053's insert guard; this is just
 // a friendlier "pick another time" instead of a failed payment). Returns
 // "HH:MM" strings in the customer's local time, since that's what TimePicker
-// and the day strip work in.
+// and the day strip work in. Also merges active Client Book deposit holds (092).
 export async function fetchDetailerBusyTimes(detailerId, dateKey) {
   const { data, error } = await supabase.rpc('get_detailer_busy_times', {
     p_detailer_id: detailerId,
@@ -1033,12 +1033,19 @@ export async function fetchDetailerBusyTimes(detailerId, dateKey) {
   })
   if (error) {
     console.error('fetchDetailerBusyTimes:', error.message)
-    return []
   }
-  return (data ?? []).map(({ scheduled_time }) => {
+  const fromBookings = (data ?? []).map(({ scheduled_time }) => {
     const d = new Date(scheduled_time)
     return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
   })
+  let fromDeposits = []
+  try {
+    const { fetchDetailerDepositHoldTimes } = await import('./detailerClients')
+    fromDeposits = await fetchDetailerDepositHoldTimes(detailerId, dateKey)
+  } catch (e) {
+    console.warn('fetchDetailerBusyTimes deposits:', e?.message || e)
+  }
+  return Array.from(new Set([...fromBookings, ...fromDeposits])).sort()
 }
 
 // Persist a booking patch. This is a WHITELIST: any app-shaped key not

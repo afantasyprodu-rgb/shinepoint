@@ -65,21 +65,6 @@ export const resolveDisputeWithRefund = (disputeId, resolution, refundAmount = 0
 export const declineBookingWithRefund = (bookingId, suggestedTime, reason) =>
   invokeFn('decline-booking', { bookingId, suggestedTime, reason })
 
-// Customer cancelling their own booking — same rule as the decline above,
-// for the same reason: a plain status patch left a paying customer charged
-// with nothing refunded. Only cancellable while nothing has been performed
-// (pending/accepted/en_route/arrived); cancel-booking/index.ts enforces
-// that and issues the Stripe refund.
-export const cancelBookingWithRefund = (bookingId, reason) =>
-  invokeFn('cancel-booking', { bookingId, reason })
-
-// Captures the outstanding balance on a deposit booking (086), off-session
-// against the card saved at booking. Callable by either side of the job.
-// Throws on a decline — the caller must surface that, because by then the
-// work is already done and the money is genuinely outstanding.
-export const chargeBookingBalance = (bookingId) =>
-  invokeFn('charge-balance', { bookingId })
-
 // Detailer confirming the time a customer countered with on a reschedule
 // offer — see confirm-reschedule-pick/index.ts for why this isn't automatic.
 export const confirmReschedulePick = (bookingId) =>
@@ -98,10 +83,23 @@ export const getRescheduleToken = (bookingId) =>
 
 
 // Client Book D2: standalone charge/deposit link (not a booking PI).
-export const createDetailerChargeIntent = ({ amount, label, clientId }) =>
+// Optional deposit slot hold (092): pass chargeKind:'deposit' + holdStartsAt ISO.
+export const createDetailerChargeIntent = ({
+  amount,
+  label,
+  clientId,
+  chargeKind,
+  holdStartsAt,
+  holdEndsAt,
+  holdHours,
+} = {}) =>
   invokeFn('create-detailer-charge-intent', {
     amount: Number(amount),
     label,
     clientId,
+    chargeKind: chargeKind === 'deposit' ? 'deposit' : 'charge',
+    holdStartsAt: holdStartsAt || undefined,
+    holdEndsAt: holdEndsAt || undefined,
+    holdHours: holdHours != null ? Number(holdHours) : undefined,
     origin: typeof window !== 'undefined' ? window.location.origin : undefined,
   })
