@@ -1341,19 +1341,15 @@
   position: relative;
 }
 .nx-tab-drop-puddle::after {
-  /* box-shadow, not filter: blur() — a blurred layer nested inside this
-     element's ancestor transform chain (squash/lean/puddle all apply
-     scale/rotate above this) hits a WebKit bug on iOS Safari where the
-     blur's compositited layer bounds are miscalculated, rendering the glow
-     several times larger than its actual box — the droplet appearing
-     "stuck huge" that detailers reported, on iPhone specifically, not
-     reproducible in Chromium. box-shadow's blur is computed against the
-     element's own border box and stays correctly bounded under transforms. */
   content: "";
   position: absolute;
-  inset: 0;
+  left: -6px;
+  right: -6px;
+  bottom: -4px;
+  top: -4px;
   border-radius: 50%;
-  box-shadow: 0 0 8px 4px color-mix(in srgb, var(--color-brand-700) 30%, transparent);
+  background: color-mix(in srgb, var(--color-brand-700) 30%, transparent);
+  filter: blur(6px);
   z-index: -1;
 }
 
