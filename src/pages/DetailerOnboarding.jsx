@@ -11,7 +11,7 @@ import { useTheme } from '../context/ThemeContext'
 import { CheckIcon, ShieldCheckIcon, CreditCardIcon, ClipboardCheckIcon, UsersIcon, PlusIcon, XIcon, LightbulbIcon, ClockIcon, StarIcon, SparklesIcon, CameraIcon, ImageIcon, FileTextIcon, TagIcon } from '../components/icons'
 import { InfoPopover } from '../components/ui/bits'
 import { startIdentityVerification, startConnectOnboarding, isStripeConfigured, stripePromise } from '../lib/stripe'
-import { fetchMyPayoutStatus, extractFlyerPrices } from '../lib/db'
+import { fetchMyPayoutStatus, extractFlyerPrices, submitInsuranceDocument } from '../lib/db'
 import { readServicesDraft, writeServicesDraft, clearServicesDraft } from '../lib/onboardingDraft'
 import { useT } from '../i18n/useT'
 
@@ -78,6 +78,15 @@ export default function DetailerOnboarding() {
   const [insurance, setInsurance] = useState(null) // insured | none
   const [noInsuranceAck, setNoInsuranceAck] = useState(false)
   const [confirmNoInsurance, setConfirmNoInsurance] = useState(false)
+  // Insurance document upload + AI genuineness check (094). 'idle' before a
+  // file's picked, 'checking' while check-insurance-document runs, 'ok' once
+  // it's saved and the AI didn't flag it, 'flagged' once it's saved but the
+  // AI thinks the photo doesn't look like a genuine insurance document
+  // (soft check -- already saved either way, this just nudges a re-take),
+  // 'error' on a hard failure (bad file, rate limit, not configured).
+  const [insuranceDocStatus, setInsuranceDocStatus] = useState('idle')
+  const [insuranceDocNote, setInsuranceDocNote] = useState('')
+  const [insuranceDocBusy, setInsuranceDocBusy] = useState(false)
   const [bio, setBio] = useState('')
   const [zip, setZip] = useState('')
   const [vehicles] = useState(['Sedan', 'SUV'])
@@ -174,6 +183,33 @@ export default function DetailerOnboarding() {
       setFlyerError(err.message || t('flyerExtractFailed'))
     } finally {
       setFlyerBusy(false)
+    }
+  }
+
+  async function handleInsuranceUpload(e) {
+    const file = e.target.files?.[0]
+    e.target.value = '' // allow re-picking the same file after a flagged/failed attempt
+    if (!file) return
+    if (!file.type.startsWith('image/')) { setInsuranceDocStatus('error'); setInsuranceDocNote(t('insuranceDocNotImage')); return }
+    if (isDemo) {
+      // Demo has no real backend to check/store against — just mark it done
+      // so the wizard reads the same as a real successful upload.
+      setInsuranceDocStatus('ok')
+      setInsuranceDocNote('')
+      return
+    }
+    setInsuranceDocBusy(true)
+    setInsuranceDocStatus('checking')
+    setInsuranceDocNote('')
+    try {
+      const result = await submitInsuranceDocument(file)
+      setInsuranceDocStatus(result.aiFlagged ? 'flagged' : 'ok')
+      setInsuranceDocNote(result.aiNote || '')
+    } catch (err) {
+      setInsuranceDocStatus('error')
+      setInsuranceDocNote(err.message || t('insuranceDocFailed'))
+    } finally {
+      setInsuranceDocBusy(false)
     }
   }
 
@@ -352,7 +388,12 @@ export default function DetailerOnboarding() {
     // Continue itself stays disabled until they've actually taken one of
     // the two explicit actions (Upload ID & selfie, or Skip for now).
     idStatus !== 'idle',
-    insurance === 'insured' || (insurance === 'none' && noInsuranceAck),
+    // 094: an "insured" pick isn't complete until the document has actually
+    // gone through (saved either 'ok' or 'flagged' -- a soft check never
+    // blocks the save itself, so "flagged" still counts as done here; only
+    // 'idle'/'checking'/'error' hold up Continue).
+    (insurance === 'insured' && (insuranceDocStatus === 'ok' || insuranceDocStatus === 'flagged')) ||
+      (insurance === 'none' && noInsuranceAck),
     zip.length === 5, // Bio is optional — the zip is what places their map pin.
     yearsExperience !== null,
     Object.keys(services).length > 0,
@@ -573,8 +614,38 @@ export default function DetailerOnboarding() {
                 {insurance === 'insured' && (
                   <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="card !p-5">
                     <label className="label" htmlFor="cert">{t('certUploadLabel')}</label>
-                    <input id="cert" type="file" className="text-sm text-slate-600 file:btn file:btn-outline file:mr-3 file:h-9 file:px-3 file:text-xs dark:text-slate-400" />
+                    <input
+                      id="cert"
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      disabled={insuranceDocBusy}
+                      onChange={handleInsuranceUpload}
+                      className="text-sm text-slate-600 file:btn file:btn-outline file:mr-3 file:h-9 file:px-3 file:text-xs disabled:opacity-50 dark:text-slate-400"
+                    />
                     <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">{t('certUploadHint')}</p>
+                    {insuranceDocStatus === 'checking' && (
+                      <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">{t('insuranceDocChecking')}</p>
+                    )}
+                    {insuranceDocStatus === 'ok' && (
+                      <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-3 flex items-center gap-1.5 text-sm font-medium text-cta-700 dark:text-cta-400">
+                        <CheckIcon className="h-4 w-4 shrink-0" /> {t('insuranceDocOk')}
+                      </motion.p>
+                    )}
+                    {insuranceDocStatus === 'flagged' && (
+                      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 dark:border-amber-500/30 dark:bg-amber-500/10">
+                        <p className="text-sm font-medium text-amber-800 dark:text-amber-300">{t('insuranceDocFlagged')}</p>
+                        {insuranceDocNote && (
+                          <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">{insuranceDocNote}</p>
+                        )}
+                        <p className="mt-1.5 text-xs text-amber-700 dark:text-amber-400">{t('insuranceDocFlaggedHint')}</p>
+                      </motion.div>
+                    )}
+                    {insuranceDocStatus === 'error' && (
+                      <p role="alert" className="mt-3 text-sm font-medium text-red-600 dark:text-red-400">
+                        {insuranceDocNote || t('insuranceDocFailed')}
+                      </p>
+                    )}
                   </motion.div>
                 )}
                 {insurance === 'none' && noInsuranceAck && (

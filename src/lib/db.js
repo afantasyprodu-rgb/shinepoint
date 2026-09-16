@@ -1187,6 +1187,51 @@ export async function extractVehiclePhoto(file) {
   })
 }
 
+// Reads a detailer's insurance card/declarations photo, sends it to the
+// check-insurance-document edge function, which runs an AI genuineness
+// check AND (regardless of that check's result) uploads it to the private
+// insurance-docs bucket and saves it via submit_insurance_document (094) --
+// so this one call is the whole "upload my insurance" action, not a
+// separate upload step. Returns { ok, docUrl, aiFlagged, aiNote,
+// confidence, provider, policyNumber, expiry } -- aiFlagged is a SOFT
+// signal (see that function's header): the document is already saved
+// either way, this just tells the caller whether to show a "this doesn't
+// look right, try a clearer photo" nudge. Throws with a friendly message on
+// any hard failure (bad file, rate limit, not configured).
+export async function submitInsuranceDocument(file) {
+  const base64 = await new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result).split(',')[1] ?? '')
+    reader.onerror = () => reject(new Error('Could not read that image.'))
+    reader.readAsDataURL(file)
+  })
+  return invokeFn('check-insurance-document', {
+    imageBase64: base64,
+    mediaType: file.type,
+  })
+}
+
+// Admin-only: the insurance document + AI check result for one applicant,
+// via admin_get_insurance_document (094) -- the ONLY read path for these
+// columns (detailer_profiles' column grants deliberately withhold them; see
+// that RPC's comment). Signs the storage URL before returning it, same as
+// every other private-bucket photo in the app (src/lib/storage.js).
+export async function fetchInsuranceDocumentForAdmin(detailerId) {
+  const { data, error } = await supabase.rpc('admin_get_insurance_document', { p_detailer_id: detailerId })
+  if (error) { console.error('fetchInsuranceDocumentForAdmin:', error.message); throw error }
+  const row = Array.isArray(data) ? data[0] : data
+  if (!row) return null
+  return {
+    docUrl: row.doc_url ? await signStorageUrl(row.doc_url) : null,
+    provider: row.provider,
+    policyNumber: row.policy_number,
+    expiry: row.expiry,
+    aiFlagged: row.ai_flagged,
+    aiNote: row.ai_note,
+    uploadedAt: row.uploaded_at,
+  }
+}
+
 // Reads 1-3 Files (photos the customer takes of their car's mess/condition,
 // from Driplee's in-app "Take a photo -> estimate" quick action -- multiple
 // shots let the model weigh several angles instead of guessing off one) as

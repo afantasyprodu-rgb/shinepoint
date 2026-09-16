@@ -15,7 +15,7 @@ import {
   TrashIcon,
 } from '../../components/icons'
 import { useStore } from '../../context/StoreContext'
-import { fetchAllUsersForAdmin, adminDeleteUser, fetchAccountDeletionFeedback, sendDetailerRecruitSms } from '../../lib/db'
+import { fetchAllUsersForAdmin, adminDeleteUser, fetchAccountDeletionFeedback, sendDetailerRecruitSms, fetchInsuranceDocumentForAdmin } from '../../lib/db'
 import { captureException } from '../../lib/sentry'
 import { useT } from '../../i18n/useT'
 
@@ -65,9 +65,28 @@ function riskFlags(a, t) {
 
 function ApplicationCard({ app, onApprove, onReject }) {
   const [open, setOpen] = useState(false)
+  // Insurance document review (094) — lazy-loaded on demand rather than
+  // bundled into the applications list fetch, since it's a per-detailer
+  // signed Storage URL that most applications in the queue are never
+  // actually opened for. 'idle' | 'loading' | 'loaded' | 'error'.
+  const [docState, setDocState] = useState('idle')
+  const [doc, setDoc] = useState(null)
+  const { isDemo } = useStore()
   const t = useT('adminPeople')
   const flags = riskFlags(app, t)
   const hasHighRisk = flags.some((f) => f.level === 'high')
+
+  async function loadInsuranceDoc() {
+    if (isDemo) return // no real backend to fetch against
+    setDocState('loading')
+    try {
+      const result = await fetchInsuranceDocumentForAdmin(app.id)
+      setDoc(result)
+      setDocState('loaded')
+    } catch {
+      setDocState('error')
+    }
+  }
 
   return (
     <motion.div
@@ -153,6 +172,63 @@ function ApplicationCard({ app, onApprove, onReject }) {
                       </span>
                     )}
                   </dd>
+                  {/* 094: the document itself + its AI genuineness check —
+                      lazy-loaded, not bundled into the list fetch (see
+                      loadInsuranceDoc). Only offered once insurance was
+                      claimed at all; "none" has nothing to view. */}
+                  {app.insurance !== 'none' && !isDemo && (
+                    <div className="mt-1.5">
+                      {docState === 'idle' && (
+                        <button
+                          type="button"
+                          onClick={loadInsuranceDoc}
+                          className="text-xs font-semibold text-brand-700 hover:underline dark:text-brand-300"
+                        >
+                          {t('viewInsuranceDoc')}
+                        </button>
+                      )}
+                      {docState === 'loading' && (
+                        <p className="text-xs text-slate-400 dark:text-slate-500">{t('loadingInsuranceDoc')}</p>
+                      )}
+                      {docState === 'error' && (
+                        <p className="text-xs font-medium text-red-600 dark:text-red-400">{t('insuranceDocLoadFailed')}</p>
+                      )}
+                      {docState === 'loaded' && !doc?.docUrl && (
+                        <p className="text-xs text-slate-400 dark:text-slate-500">{t('noInsuranceDocOnFile')}</p>
+                      )}
+                      {docState === 'loaded' && doc?.docUrl && (
+                        <div className="mt-2 max-w-xs rounded-xl border border-brand-100 p-2.5 dark:border-white/10">
+                          <a href={doc.docUrl} target="_blank" rel="noreferrer">
+                            <img
+                              src={doc.docUrl}
+                              alt={t('insuranceDocAlt')}
+                              className="max-h-48 w-full rounded-lg object-contain"
+                            />
+                          </a>
+                          {doc.aiFlagged != null && (
+                            <div
+                              className={`mt-2 flex items-start gap-1.5 rounded-lg px-2 py-1.5 text-xs ${
+                                doc.aiFlagged
+                                  ? 'bg-amber-50 text-amber-800 dark:bg-amber-500/10 dark:text-amber-300'
+                                  : 'bg-emerald-50 text-emerald-800 dark:bg-cta-500/10 dark:text-cta-300'
+                              }`}
+                            >
+                              <AlertTriangleIcon className="mt-0.5 h-3 w-3 shrink-0" />
+                              <span>
+                                <strong>{doc.aiFlagged ? t('aiFlaggedLabel') : t('aiOkLabel')}</strong>
+                                {doc.aiNote ? ` — ${doc.aiNote}` : ''}
+                              </span>
+                            </div>
+                          )}
+                          {(doc.provider || doc.policyNumber || doc.expiry) && (
+                            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                              {[doc.provider, doc.policyNumber, doc.expiry].filter(Boolean).join(' · ')}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <dt className="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">{t('idCheck')}</dt>
