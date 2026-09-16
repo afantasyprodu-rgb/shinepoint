@@ -60,7 +60,7 @@ export default function Drawer({ open, onClose, title, children, side = 'right' 
               fromLeft
                 ? 'left-0 border-r border-brand-100 dark:border-white/10'
                 : 'right-0 border-l border-brand-100 dark:border-white/10'
-            } bg-[var(--neu-bg)]`}
+            } bg-[var(--neu-bg)] pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]`}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-brand-100 bg-[var(--neu-bg)]/95 px-5 py-4 backdrop-blur dark:border-white/10">

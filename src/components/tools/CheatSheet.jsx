@@ -1,8 +1,7 @@
+﻿import { useState } from 'react'
 import { useT } from '../../i18n/useT'
+import { Segmented } from './ToolControls'
 
-// Condensed, no-input reference — the numbers already used as defaults in
-// the dilution/time/pricing calculators, just laid out for a fast glance
-// instead of a calculation.
 const RATIOS = [
   { name: 'All-Purpose Cleaner (heavy)', ratio: '1:4' },
   { name: 'All-Purpose Cleaner (light)', ratio: '1:10' },
@@ -36,32 +35,43 @@ const PRICES = [
   { name: 'Headlight Restoration', price: '$65' },
 ]
 
-function Section({ title, rows, valueClass }) {
-  return (
-    <div className="card !p-5">
-      <p className="font-display text-sm font-bold text-slate-900 dark:text-slate-100">{title}</p>
-      <ul className="mt-2 divide-y divide-brand-100 dark:divide-white/10">
-        {rows.map((r) => (
-          <li key={r.name} className="flex items-center justify-between gap-3 py-2 text-sm">
-            <span className="text-slate-600 dark:text-slate-400">{r.name}</span>
-            <span className={`shrink-0 font-display font-bold tabular-nums ${valueClass}`}>
-              {r.ratio ?? r.time ?? r.price}
-            </span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  )
+const TABS = {
+  ratios: { rows: RATIOS, valueClass: 'text-brand-700 dark:text-brand-300', pick: (r) => r.ratio },
+  times: { rows: TIMES, valueClass: 'text-amber-700 dark:text-amber-400', pick: (r) => r.time },
+  prices: { rows: PRICES, valueClass: 'text-cta-700 dark:text-cta-500', pick: (r) => r.price },
 }
 
 export default function CheatSheet() {
   const t = useT('detailerTools')
+  const [tab, setTab] = useState('ratios')
+  const active = TABS[tab]
 
   return (
     <div className="space-y-4">
-      <Section title={t('cheatRatios')} rows={RATIOS} valueClass="text-brand-700 dark:text-brand-300" />
-      <Section title={t('cheatTimes')} rows={TIMES} valueClass="text-amber-700 dark:text-amber-400" />
-      <Section title={t('cheatPrices')} rows={PRICES} valueClass="text-cta-700 dark:text-cta-500" />
+      <Segmented
+        ariaLabel={t('cheatTitle')}
+        value={tab}
+        onChange={setTab}
+        options={[
+          { value: 'ratios', label: t('cheatTabRatios') },
+          { value: 'times', label: t('cheatTabTimes') },
+          { value: 'prices', label: t('cheatTabPrices') },
+        ]}
+      />
+
+      <div className="card !p-5">
+        <ul className="mt-0 divide-y divide-brand-100 dark:divide-white/10">
+          {active.rows.map((r) => (
+            <li key={r.name} className="flex items-center justify-between gap-3 py-2.5 text-sm">
+              <span className="text-slate-600 dark:text-slate-400">{r.name}</span>
+              <span className={`shrink-0 font-display font-bold tabular-nums ${active.valueClass}`}>
+                {active.pick(r)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
       <p className="px-1 text-xs text-slate-400 dark:text-slate-500">{t('cheatDisclaimer')}</p>
     </div>
   )

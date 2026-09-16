@@ -1,4 +1,4 @@
-import { loadStripe } from '@stripe/stripe-js'
+﻿import { loadStripe } from '@stripe/stripe-js'
 import { invokeFn } from './supabase'
 
 const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
@@ -29,20 +29,20 @@ export async function startIdentityVerification() {
 
 // Opens the logged-in detailer's Stripe Express dashboard in a new tab,
 // where their available balance (money already transferred to them past
-// the 48-hour hold) can be withdrawn on demand — the account's payout
+// the 48-hour hold) can be withdrawn on demand â€” the account's payout
 // schedule is manual, so nothing leaves automatically.
 export async function openDetailerDashboard() {
   const { url } = await invokeFn('detailer-dashboard-link')
   window.open(url, '_blank', 'noopener,noreferrer')
 }
 
-// The logged-in detailer's real Stripe balance in dollars — the
+// The logged-in detailer's real Stripe balance in dollars â€” the
 // authoritative "how much can I withdraw right now" figure.
 export const getDetailerBalance = () => invokeFn('get-balance')
 
 // Withdraws an arbitrary dollar amount from the detailer's available Stripe
 // balance to their bank. The server re-validates the amount against a fresh
-// balance read — this is just the request, not the source of truth.
+// balance read â€” this is just the request, not the source of truth.
 export const requestPayout = (amount) => invokeFn('request-payout', { amount, idempotencyKey: crypto.randomUUID() })
 
 // Charge a post-job tip against the card saved from the booking payment.
@@ -57,7 +57,7 @@ export const resolveDisputeWithRefund = (disputeId, resolution, refundAmount = 0
   invokeFn('resolve-dispute', { disputeId, resolution, refundAmount, resolutionNotes })
 
 // Detailer declining a 'pending' request goes through the edge function,
-// never a plain status patch — if the customer already paid, only the
+// never a plain status patch â€” if the customer already paid, only the
 // edge function (service-role Stripe key) can actually refund them. See
 // decline-booking/index.ts for why the client can't do this itself.
 // suggestedTime is optional: pass it to offer a reschedule instead of an
@@ -65,12 +65,23 @@ export const resolveDisputeWithRefund = (disputeId, resolution, refundAmount = 0
 export const declineBookingWithRefund = (bookingId, suggestedTime, reason) =>
   invokeFn('decline-booking', { bookingId, suggestedTime, reason })
 
+// Customer cancel — same rule as declineBookingWithRefund: never a plain
+// status patch when money may need to move. Optional reason is saved on the
+// booking when provided (cancel-booking/index.ts).
+export const cancelBookingWithRefund = (bookingId, reason) =>
+  invokeFn('cancel-booking', { bookingId, reason })
+
+// Deposit remainder (086): capture what's still owed after the job.
+export const chargeBookingBalance = (bookingId) =>
+  invokeFn('charge-balance', { bookingId })
+
+
 // Detailer confirming the time a customer countered with on a reschedule
-// offer — see confirm-reschedule-pick/index.ts for why this isn't automatic.
+// offer â€” see confirm-reschedule-pick/index.ts for why this isn't automatic.
 export const confirmReschedulePick = (bookingId) =>
   invokeFn('confirm-reschedule-pick', { bookingId })
 
-// Public, token-gated — no Supabase auth, works for guest and logged-in
+// Public, token-gated â€” no Supabase auth, works for guest and logged-in
 // customers alike. action omitted (or 'view') just reads the offer back.
 export const respondToReschedule = (token, action, pickedTime) =>
   invokeFn('respond-to-reschedule', { token, action, pickedTime })

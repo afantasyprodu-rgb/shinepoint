@@ -3,11 +3,13 @@ import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import Logo from './Logo'
 import ThemeToggle from './ThemeToggle'
+import BrandThemePicker from './BrandThemePicker'
 import SfxToggle from './SfxToggle'
 import SyncPendingBadge from './SyncPendingBadge'
 import LanguageToggle from './LanguageToggle'
 import ToolsSidebar from './ToolsSidebar'
-import { BellIcon, ClipboardCheckIcon, TrendingUpIcon, UsersIcon, UserIcon, PieChartIcon, MapPinIcon, MoreIcon, ChevronDownIcon, AlertTriangleIcon, MessageCircleIcon } from './icons'
+import ToolsEdgeTab from './ToolsEdgeTab'
+import { BellIcon, ClipboardCheckIcon, TrendingUpIcon, UsersIcon, UserIcon, PieChartIcon, MapPinIcon, ChevronDownIcon, AlertTriangleIcon, MessageCircleIcon } from './icons'
 import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
 import BottomTabBar from './ui/BottomTabBar'
@@ -219,6 +221,7 @@ export default function AppShell({ role, children, collapsibleBottomNav = false,
   // the same character twice on one screen. Suppressed only on that route;
   // every other screen keeps the launcher exactly as before.
   const onAssistantPage = location.pathname === '/assistant' || location.pathname === '/detailer/assistant'
+  const onToolsPage = location.pathname.startsWith('/detailer/tools')
   const nav = (NAVS[role] ?? []).map((item) => ({ ...item, label: t(item.labelKey) }))
   const [toolsOpen, setToolsOpen] = useState(false)
   // Starts VISIBLE even on a collapsible-nav screen (the map) — it used to
@@ -309,6 +312,7 @@ export default function AppShell({ role, children, collapsibleBottomNav = false,
             {!locked && !isDemo && <SyncPendingBadge className="hidden sm:inline-flex" />}
             {!locked && role === 'detailer' && !onAssistantPage && <DrewLauncher />}
             {!locked && role === 'customer' && !onAssistantPage && <CustomerHelper />}
+            <BrandThemePicker />
             <ThemeToggle />
             {!locked && <SfxToggle />}
             <LanguageToggle />
@@ -355,26 +359,19 @@ export default function AppShell({ role, children, collapsibleBottomNav = false,
       )}
       {!locked && role === 'detailer' && (
         <>
-          {/* Fixed (not inside <header>, which scrolls away with the page)
-              so this stays reachable from anywhere on any detailer screen —
-              a floating "more" launcher for Tools instead of competing for
-              space in the header row or the bottom tab bar. */}
-          <button
-            onClick={() => setToolsOpen(true)}
-            aria-label={t('tools')}
-            // z-[650]: above the header's z-[600] (it sits well within the
-            // header's own vertical span up top, so a lower z-index left it
-            // visually and functionally buried under the header — "Exit
-            // demo" et al. were eating its clicks) and below Drawer's
-            // z-[700] so the open drawer still layers over it correctly.
-            className="fixed left-3 z-[650] flex h-12 w-12 cursor-pointer items-center justify-center rounded-full bg-white/90 text-slate-700 shadow-[0_4px_14px_-2px_rgba(30,41,59,0.35)] backdrop-blur transition-transform duration-200 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:bg-[#1E1730]/90 dark:text-slate-200"
-            style={{ top: 'max(env(safe-area-inset-top), 2.25rem)' }}
-          >
-            <MoreIcon className="h-5 w-5" />
-          </button>
+          {/* Left-edge Tools tab — peeking grab handle (not a floating bubble).
+              Hidden while the drawer is open so it doesn't sit under/over the panel. */}
+          {!toolsOpen && !onToolsPage && (
+            <ToolsEdgeTab
+              ariaLabel={t('tools')}
+              label={t('tools')}
+              onOpen={() => setToolsOpen(true)}
+            />
+          )}
           <ToolsSidebar open={toolsOpen} onClose={() => setToolsOpen(false)} />
         </>
       )}
     </div>
   )
 }
+

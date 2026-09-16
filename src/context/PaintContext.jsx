@@ -27,8 +27,6 @@ export const PAINTS = [
   { hex: '#6e2430', name: 'Cherry Maroon' },
 ]
 
-// Relative luminance (WCAG) — used to clamp near-white/near-black paints so
-// text and chrome contrast never breaks on the personal surfaces.
 function luminance(hex) {
   const n = parseInt(hex.slice(1), 16)
   const rgb = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((c) => {
@@ -38,13 +36,10 @@ function luminance(hex) {
   return 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]
 }
 
-// Keep the accent inside a usable lightness band. Very light paints (white,
-// silver) get nudged toward the brand ramp so white text still reads; very
-// dark paints get lifted off pure black.
 function clampAccent(hex) {
   const lum = luminance(hex)
-  if (lum > 0.6) return '#f40076' // white/silver -> brand pink
-  if (lum < 0.02) return '#2a2d34' // pure black -> lifted charcoal
+  if (lum > 0.6) return '#f40076'
+  if (lum < 0.02) return '#2a2d34'
   return hex
 }
 
@@ -60,17 +55,21 @@ export function PaintProvider({ children }) {
     document.documentElement.style.setProperty('--accent', safeAccent)
   }, [safeAccent])
 
-  // Only an explicit pick persists — the DEFAULT_ACCENT seed above is purely
-  // a visual fallback for car-paint UI (--accent) on a fresh visit. Writing
-  // it to storage unconditionally on mount would make ThemeContext read it
-  // back as "the user chose blue" and derive the app-wide brand hue from it,
-  // stomping the purple default before anyone touched anything.
+  // Brand theme picker clears paint storage so app color sticks; reset the
+  // decorative --accent fallback without re-persisting a "user chose paint".
+  useEffect(() => {
+    function onPaintChanged(e) {
+      if (e?.detail?.cleared) {
+        setAccentRaw(DEFAULT_ACCENT)
+      }
+    }
+    window.addEventListener('shinepoint:paint-changed', onPaintChanged)
+    return () => window.removeEventListener('shinepoint:paint-changed', onPaintChanged)
+  }, [])
+
   const setAccent = (hex) => {
     setAccentRaw(hex)
-    // iOS Safari Private Browsing throws on localStorage writes instead of
-    // no-op'ing — swallow so it degrades to "doesn't persist" not a crash.
-    try { localStorage.setItem(STORAGE_KEY, hex) } catch { /* private mode, ignore */ }
-    // Dispatch custom event for ThemeContext to listen to (real-time, same-tab)
+    try { localStorage.setItem(STORAGE_KEY, hex) } catch { /* private mode */ }
     window.dispatchEvent(new CustomEvent('shinepoint:paint-changed', { detail: { hex } }))
   }
 

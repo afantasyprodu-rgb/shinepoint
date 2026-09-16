@@ -1,11 +1,9 @@
-import { useMemo, useState } from 'react'
+﻿import { useMemo, useState } from 'react'
 import { FadeIn } from '../ui/Motion'
 import { detailerShare } from '../../lib/fees'
 import { useT } from '../../i18n/useT'
+import { KeyTile, Segmented, ResultHero, SectionLabel } from './ToolControls'
 
-// Suggested SoCal-market base prices at "Sedan" — starting points (see the
-// disclaimer), same spirit as the dilution/time tools: a sane default a
-// detailer can override, not a fixed rule.
 const SERVICES = [
   { name: 'Exterior Wash', price: 45 },
   { name: 'Interior Deep Clean', price: 95 },
@@ -55,124 +53,110 @@ export default function PricingCalculator() {
   const fee = Number(travelFee) || 0
   const servicePrice = subtotal * (1 + adjPct / 100)
   const total = servicePrice + fee
-  // Matches the platform's real cut — see docs/payments-deploy.md and
-  // supabase/functions/_shared/fees.ts: tiered by service price (mileage
-  // passes through to the detailer untouched, same as server-side).
   const takeHome = servicePrice * detailerShare(servicePrice) + fee
+  const sharePct = Math.round(detailerShare(servicePrice) * 100)
 
   return (
-    <div>
+    <div className="space-y-4">
       <FadeIn>
-        <div className="card space-y-4 !p-5">
+        <div className="card space-y-5 !p-5">
           <div>
-            <p className="label mb-2">{t('servicesLabel')}</p>
-            <div className="flex flex-wrap gap-1.5">
+            <SectionLabel>{t('servicesLabel')}</SectionLabel>
+            <div className="flex flex-wrap gap-2">
               {SERVICES.map((s) => (
-                <button
+                <KeyTile
                   key={s.name}
-                  type="button"
-                  aria-pressed={selected.includes(s.name)}
+                  selected={selected.includes(s.name)}
                   onClick={() => toggleService(s.name)}
-                  className={`chip cursor-pointer border transition-colors duration-150 ${
-                    selected.includes(s.name)
-                      ? 'border-brand-600 bg-brand-600 text-white'
-                      : 'border-brand-100 bg-white text-slate-700 hover:border-brand-300 dark:border-white/10 dark:bg-white/5 dark:text-slate-300'
-                  }`}
-                >
-                  {s.name} · {money(s.price)}
-                </button>
+                  title={s.name}
+                  meta={money(s.price)}
+                  className="!min-w-[9rem] !flex-none"
+                />
               ))}
             </div>
-            <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">{t('priceDisclaimer')}</p>
+            <p className="mt-3 text-xs text-slate-400 dark:text-slate-500">{t('priceDisclaimer')}</p>
           </div>
 
           <div>
-            <p className="label mb-2">{t('vehicleSizeLabel')}</p>
-            <div className="flex flex-wrap gap-1.5">
-              {VEHICLES.map((v) => (
-                <button
-                  key={v.name}
-                  type="button"
-                  aria-pressed={vehicle === v.name}
-                  onClick={() => setVehicle(v.name)}
-                  className={`chip cursor-pointer border transition-colors duration-150 ${
-                    vehicle === v.name
-                      ? 'border-brand-600 bg-brand-600 text-white'
-                      : 'border-brand-100 bg-white text-slate-700 hover:border-brand-300 dark:border-white/10 dark:bg-white/5 dark:text-slate-300'
-                  }`}
-                >
-                  {v.name}
-                </button>
-              ))}
-            </div>
+            <SectionLabel>{t('vehicleSizeLabel')}</SectionLabel>
+            <Segmented
+              ariaLabel={t('vehicleSizeLabel')}
+              value={vehicle}
+              onChange={setVehicle}
+              options={VEHICLES.map((v) => ({ value: v.name, label: v.name }))}
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="label" htmlFor="pc-travel">{t('travelFeeLabel')}</label>
-              <input
-                id="pc-travel"
-                type="number"
-                min="0"
-                step="1"
-                inputMode="decimal"
-                value={travelFee}
-                onChange={(e) => setTravelFee(e.target.value)}
-                className="input h-11 w-full"
-              />
+              <SectionLabel htmlFor="pc-travel">{t('travelFeeLabel')}</SectionLabel>
+              <div className="relative">
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-400">$</span>
+                <input
+                  id="pc-travel"
+                  type="number"
+                  min="0"
+                  step="1"
+                  inputMode="decimal"
+                  value={travelFee}
+                  onChange={(e) => setTravelFee(e.target.value)}
+                  className="input h-11 w-full pl-7"
+                />
+              </div>
             </div>
             <div>
-              <label className="label" htmlFor="pc-adjust">{t('adjustmentLabel')}</label>
-              <input
-                id="pc-adjust"
-                type="number"
-                step="1"
-                inputMode="decimal"
-                value={adjustment}
-                onChange={(e) => setAdjustment(e.target.value)}
-                className="input h-11 w-full"
-              />
+              <SectionLabel htmlFor="pc-adjust">{t('adjustmentLabel')}</SectionLabel>
+              <div className="relative">
+                <input
+                  id="pc-adjust"
+                  type="number"
+                  step="1"
+                  inputMode="decimal"
+                  value={adjustment}
+                  onChange={(e) => setAdjustment(e.target.value)}
+                  className="input h-11 w-full pr-8"
+                />
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-400">%</span>
+              </div>
             </div>
           </div>
         </div>
       </FadeIn>
 
       <FadeIn delay={0.05}>
-        <div className="card mt-4 !p-5">
+        <div className="card !p-5">
           {breakdown.length === 0 ? (
             <p className="text-sm text-slate-500 dark:text-slate-400">{t('selectServicesHint')}</p>
           ) : (
             <>
-              <div className="space-y-2">
+              <ResultHero eyebrow={t('totalLabel')} value={money(total)} />
+
+              <ul className="mt-5 space-y-0 divide-y divide-brand-100 border-t border-brand-100 dark:divide-white/10 dark:border-white/10">
                 {breakdown.map((s) => (
-                  <div key={s.name} className="flex items-center justify-between text-sm">
+                  <li key={s.name} className="flex items-center justify-between gap-3 py-3 text-sm">
                     <span className="text-slate-600 dark:text-slate-400">{s.name}</span>
-                    <span className="font-semibold text-slate-900 dark:text-slate-100">{money(s.adjusted)}</span>
-                  </div>
+                    <span className="font-display font-bold tabular-nums text-slate-900 dark:text-slate-100">{money(s.adjusted)}</span>
+                  </li>
                 ))}
                 {fee > 0 && (
-                  <div className="flex items-center justify-between text-sm">
+                  <li className="flex items-center justify-between gap-3 py-3 text-sm">
                     <span className="text-slate-600 dark:text-slate-400">{t('travelFeeLabel')}</span>
-                    <span className="font-semibold text-slate-900 dark:text-slate-100">{money(fee)}</span>
-                  </div>
+                    <span className="font-display font-bold tabular-nums text-slate-900 dark:text-slate-100">{money(fee)}</span>
+                  </li>
                 )}
                 {adjPct !== 0 && (
-                  <div className="flex items-center justify-between text-sm">
+                  <li className="flex items-center justify-between gap-3 py-3 text-sm">
                     <span className="text-slate-600 dark:text-slate-400">
                       {t('adjustmentLabel')} ({adjPct > 0 ? '+' : ''}{adjPct}%)
                     </span>
-                    <span className="font-semibold text-slate-900 dark:text-slate-100">{money(subtotal * (adjPct / 100))}</span>
-                  </div>
+                    <span className="font-display font-bold tabular-nums text-slate-900 dark:text-slate-100">{money(subtotal * (adjPct / 100))}</span>
+                  </li>
                 )}
-              </div>
+              </ul>
 
-              <div className="mt-4 flex items-center justify-between border-t border-brand-100 pt-4 dark:border-white/10">
-                <span className="font-display text-lg font-bold text-slate-900 dark:text-slate-100">{t('totalLabel')}</span>
-                <span className="font-display text-2xl font-bold text-brand-700 dark:text-brand-300">{money(total)}</span>
-              </div>
-
-              <div className="mt-3 rounded-xl bg-cta-500/10 px-4 py-3 text-sm text-cta-800 dark:text-cta-500">
-                {t('takeHomeLabel', { pct: Math.round(detailerShare(servicePrice) * 100) })}: <strong>{money(takeHome)}</strong>
+              <div className="mt-4 rounded-2xl bg-cta-500/10 px-4 py-3.5 text-sm text-cta-800 dark:text-cta-500">
+                {t('takeHomeLabel', { pct: sharePct })}:{' '}
+                <strong className="font-display text-base">{money(takeHome)}</strong>
               </div>
             </>
           )}

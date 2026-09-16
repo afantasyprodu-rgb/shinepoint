@@ -1,9 +1,8 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+﻿import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 
 const ThemeContext = createContext(null)
 const PAINT_STORAGE_KEY = 'shinepoint-paint'
 
-// Extract HSL hue (0-360) from hex color. Used to derive brand hue from car paint.
 function hexToHue(hex) {
   const n = parseInt(hex.slice(1), 16)
   const r = ((n >> 16) & 255) / 255
@@ -28,40 +27,41 @@ function hexToHue(hex) {
   return Math.round(h * 360)
 }
 
-// iOS Safari Private Browsing (and some locked-down webviews) throws on
-// localStorage writes instead of just no-op'ing — swallow that so it
-// degrades to "preference doesn't persist" instead of crashing the app.
 function safeSetItem(key, value) {
   try { localStorage.setItem(key, value) } catch { /* private mode, ignore */ }
+}
+
+function safeRemoveItem(key) {
+  try { localStorage.removeItem(key) } catch { /* private mode, ignore */ }
 }
 
 const STORAGE_KEY = 'shinepoint-theme'
 const hueKey = (mode) => `shinepoint-hue-${mode}`
 const hueIndexKey = (mode) => `shinepoint-hue-index-${mode}`
 
-// Preset hue cycles: each toggle cycles to next hue in this array.
-// All hues stay in the purple->pink->blue arc (208-356°) so brand always
-// reads as "the brand"; triadic CTA relationship is maintained via ctaHueFor().
-// Pink (356 — "a little lighter than watermelon" per the user) leads the
-// cycle as the primary brand color; the other two stay as toggle variety,
-// matching index.css's --brand-h default.
-const HUE_CYCLE = [356, 262, 200]
+// Preset brand themes users can pick (soap-film arc). CTA stays leafy green.
+export const BRAND_THEMES = [
+  { id: 'pink', hue: 356, labelKey: 'brandPink' },
+  { id: 'purple', hue: 262, labelKey: 'brandPurple' },
+  { id: 'blue', hue: 200, labelKey: 'brandBlue' },
+]
+
+const HUE_CYCLE = BRAND_THEMES.map((t) => t.hue)
 const DEFAULT_HUE = HUE_CYCLE[0]
+const CTA_GREEN = 142
 
 function ctaHueFor(brandHue) {
-  // Warm/pink hues' plain triadic offset lands in blue/cyan (356-120=236),
-  // which breaks the "CTA is always green" rule (see the 60-30-10 comment
-  // block in index.css) — pin the brand hue to true green explicitly. The
-  // other cycle hues already land in a green-ish range via the plain
-  // offset, so leave those alone.
-  if (brandHue === 356) return 142
+  if (brandHue === 356 || brandHue === 200) return CTA_GREEN
   return (brandHue - 120 + 360) % 360
 }
 
-function storedHue(mode) {
-  const paintHue = paintDerivedHue()
-  if (paintHue !== null) return paintHue
+function paintDerivedHue() {
+  if (typeof window === 'undefined') return null
+  const paintHex = localStorage.getItem(PAINT_STORAGE_KEY)
+  return paintHex ? hexToHue(paintHex) : null
+}
 
+function readStoredHue(mode) {
   const v = Number(localStorage.getItem(hueKey(mode)))
   return Number.isFinite(v) && v ? v : DEFAULT_HUE
 }
@@ -71,27 +71,11 @@ function storedHueIndex(mode) {
   return Number.isFinite(v) ? v : 0
 }
 
-// PAINT_STORAGE_KEY is only ever written by an explicit swatch click in
-// CustomerSettings (PaintContext.setAccent) — never on mount, never from
-// the picker's DEFAULT_ACCENT seed — so this is null (-> DEFAULT_HUE,
-// purple) until the user actually picks a car color, then follows it.
-function paintDerivedHue() {
-  if (typeof window === 'undefined') return null
-  const paintHex = localStorage.getItem(PAINT_STORAGE_KEY)
-  return paintHex ? hexToHue(paintHex) : null
-}
-
-// Cycle to next hue in preset array. Advances index, wraps at end.
-// Skipped if paint-derived hue is active — a chosen car color wins over
-// the toggle's own cycling until the user clears/changes it.
-function nextHueFor(mode) {
-  const paintHue = paintDerivedHue()
-  if (paintHue !== null) return paintHue
-
-  const currentIndex = storedHueIndex(mode)
-  const nextIndex = (currentIndex + 1) % HUE_CYCLE.length
-  safeSetItem(hueIndexKey(mode), String(nextIndex))
-  return HUE_CYCLE[nextIndex]
+function persistHueBoth(hue, index) {
+  for (const mode of ['light', 'dark']) {
+    safeSetItem(hueKey(mode), String(hue))
+    if (index != null) safeSetItem(hueIndexKey(mode), String(index))
+  }
 }
 
 function applyHue(hue) {
@@ -100,15 +84,12 @@ function applyHue(hue) {
   root.style.setProperty('--cta-h', ctaHueFor(hue))
 }
 
-// Resolve the initial theme the same way the inline seed in index.html does,
-// so React's first render matches what's already painted (no flash, no
-// hydration mismatch).
-//
-// Android/iOS native (adaptive platform): the app is expected to follow the
-// system appearance by default — a user who set their phone to dark mode gets
-// a dark ShinePoint on first launch. The in-app toggle still overrides it and
-// persists, so the manual choice always wins once made. On the web, light
-// stays the default (existing behavior) and the toggle opts in.
+function resolveBrandHue(theme) {
+  const paintHue = paintDerivedHue()
+  if (paintHue !== null) return paintHue
+  return readStoredHue(theme)
+}
+
 function systemPrefersDark() {
   if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false
   try { return window.matchMedia('(prefers-color-scheme: dark)').matches } catch { return false }
@@ -118,14 +99,15 @@ function initialTheme() {
   if (typeof window === 'undefined') return 'light'
   const stored = localStorage.getItem(STORAGE_KEY)
   if (stored === 'dark' || stored === 'light') return stored
-  // No stored choice: follow the OS on native (Capacitor WebView surfaces the
-  // system appearance via matchMedia), keep light as the web default.
   return systemPrefersDark() ? 'dark' : 'light'
 }
 
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(initialTheme)
   const [paintVersion, setPaintVersion] = useState(0)
+  const [brandHue, setBrandHueState] = useState(() =>
+    typeof window === 'undefined' ? DEFAULT_HUE : resolveBrandHue(initialTheme())
+  )
 
   useEffect(() => {
     const root = document.documentElement
@@ -133,20 +115,16 @@ export function ThemeProvider({ children }) {
     safeSetItem(STORAGE_KEY, theme)
   }, [theme])
 
-  // Resuming a mode (page load, or a role's own theme reads) applies its
-  // last-rotated hue as-is — only an actual toggle press rolls a new one.
-  // Purple by default: paintDerivedHue() is null until the user explicitly
-  // picks a car color (see its comment above), so a first-time visitor
-  // always gets DEFAULT_HUE regardless of this branch. If car paint changes,
-  // re-derive hue from it.
   useEffect(() => {
     const paintHue = paintDerivedHue()
-    const hue = paintHue !== null ? paintHue : storedHue(theme)
+    const hue = paintHue !== null ? paintHue : readStoredHue(theme)
+    if (paintHue === null) {
+      persistHueBoth(hue, storedHueIndex(theme))
+    }
     applyHue(hue)
+    setBrandHueState(hue)
   }, [theme, paintVersion])
 
-  // Listen for paint changes (custom event from PaintContext).
-  // Real-time re-apply when user clicks a color swatch.
   useEffect(() => {
     const handlePaintChange = () => {
       setPaintVersion((v) => v + 1)
@@ -155,21 +133,37 @@ export function ThemeProvider({ children }) {
     return () => window.removeEventListener('shinepoint:paint-changed', handlePaintChange)
   }, [])
 
-  // Rolls a new hue for the mode being entered — persisted immediately, so
-  // it survives past this one animated switch — then flips the mode. The
-  // hue is applied before setTheme so ThemeToggle's view-transition capture
-  // (which runs synchronously right after toggle() returns) already sees
-  // the new color as the "new" state it reveals.
   const toggle = () => {
     const next = theme === 'dark' ? 'light' : 'dark'
-    const hue = nextHueFor(next)
-    safeSetItem(hueKey(next), String(hue))
+    const paintHue = paintDerivedHue()
+    const hue = paintHue !== null ? paintHue : readStoredHue(theme)
+    if (paintHue === null) persistHueBoth(hue, storedHueIndex(theme))
     applyHue(hue)
+    setBrandHueState(hue)
     setTheme(next)
   }
 
+  // Explicit brand theme pick (Pink / Purple / Blue). Clears car-paint
+  // override so the chosen theme actually sticks app-wide; PaintContext
+  // hears the clear event and resets its decorative --accent fallback.
+  const setBrandHue = useCallback((hue) => {
+    const next = Number(hue)
+    if (!Number.isFinite(next)) return
+    safeRemoveItem(PAINT_STORAGE_KEY)
+    window.dispatchEvent(new CustomEvent('shinepoint:paint-changed', { detail: { cleared: true } }))
+    const idx = HUE_CYCLE.indexOf(next)
+    persistHueBoth(next, idx >= 0 ? idx : 0)
+    applyHue(next)
+    setBrandHueState(next)
+  }, [])
+
+  const value = useMemo(
+    () => ({ theme, setTheme, toggle, brandHue, setBrandHue, brandThemes: BRAND_THEMES }),
+    [theme, toggle, brandHue, setBrandHue]
+  )
+
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, toggle }}>
+    <ThemeContext.Provider value={value}>
       {children}
     </ThemeContext.Provider>
   )

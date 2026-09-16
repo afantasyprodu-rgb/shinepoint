@@ -1,9 +1,8 @@
-import { useMemo, useState } from 'react'
+﻿import { useMemo, useState } from 'react'
 import { FadeIn } from '../ui/Motion'
 import { useT } from '../../i18n/useT'
+import { KeyTile, Segmented, ResultHero, SectionLabel } from './ToolControls'
 
-// Base minutes at "Sedan, average condition" for one detailer working alone —
-// starting points to plan a day around, not a guarantee (see the disclaimer).
 const SERVICES = [
   { name: 'Exterior Wash', minutes: 30 },
   { name: 'Interior Deep Clean', minutes: 60 },
@@ -65,96 +64,71 @@ export default function JobTimeEstimator() {
   const blockMinutes = totalMinutes > 0 ? totalMinutes + SETUP_BUFFER_MIN : 0
 
   return (
-    <div>
+    <div className="space-y-4">
       <FadeIn>
-        <div className="card space-y-4 !p-5">
+        <div className="card space-y-5 !p-5">
           <div>
-            <p className="label mb-2">{t('servicesLabel')}</p>
-            <div className="flex flex-wrap gap-1.5">
+            <SectionLabel>{t('servicesLabel')}</SectionLabel>
+            <div className="flex flex-wrap gap-2">
               {SERVICES.map((s) => (
-                <button
+                <KeyTile
                   key={s.name}
-                  type="button"
-                  aria-pressed={selected.includes(s.name)}
+                  selected={selected.includes(s.name)}
                   onClick={() => toggleService(s.name)}
-                  className={`chip cursor-pointer border transition-colors duration-150 ${
-                    selected.includes(s.name)
-                      ? 'border-brand-600 bg-brand-600 text-white'
-                      : 'border-brand-100 bg-white text-slate-700 hover:border-brand-300 dark:border-white/10 dark:bg-white/5 dark:text-slate-300'
-                  }`}
-                >
-                  {s.name}
-                </button>
+                  title={s.name}
+                  meta={`${s.minutes}m`}
+                  className="!min-w-[9rem] !flex-none"
+                />
               ))}
             </div>
           </div>
 
           <div>
-            <p className="label mb-2">{t('vehicleSizeLabel')}</p>
-            <div className="flex flex-wrap gap-1.5">
-              {VEHICLES.map((v) => (
-                <button
-                  key={v.name}
-                  type="button"
-                  aria-pressed={vehicle === v.name}
-                  onClick={() => setVehicle(v.name)}
-                  className={`chip cursor-pointer border transition-colors duration-150 ${
-                    vehicle === v.name
-                      ? 'border-brand-600 bg-brand-600 text-white'
-                      : 'border-brand-100 bg-white text-slate-700 hover:border-brand-300 dark:border-white/10 dark:bg-white/5 dark:text-slate-300'
-                  }`}
-                >
-                  {v.name}
-                </button>
-              ))}
-            </div>
+            <SectionLabel>{t('vehicleSizeLabel')}</SectionLabel>
+            <Segmented
+              ariaLabel={t('vehicleSizeLabel')}
+              value={vehicle}
+              onChange={setVehicle}
+              options={VEHICLES.map((v) => ({ value: v.name, label: v.name }))}
+            />
           </div>
 
           <div>
-            <p className="label mb-2">{t('conditionLabel')}</p>
-            <div className="flex flex-wrap gap-1.5">
-              {CONDITIONS.map((c) => (
-                <button
-                  key={c.key}
-                  type="button"
-                  aria-pressed={condition === c.key}
-                  onClick={() => setCondition(c.key)}
-                  className={`chip cursor-pointer border transition-colors duration-150 ${
-                    condition === c.key
-                      ? 'border-brand-600 bg-brand-600 text-white'
-                      : 'border-brand-100 bg-white text-slate-700 hover:border-brand-300 dark:border-white/10 dark:bg-white/5 dark:text-slate-300'
-                  }`}
-                >
-                  {t(`condition_${c.key}`)}
-                </button>
-              ))}
-            </div>
+            <SectionLabel>{t('conditionLabel')}</SectionLabel>
+            <Segmented
+              ariaLabel={t('conditionLabel')}
+              value={condition}
+              onChange={setCondition}
+              options={CONDITIONS.map((c) => ({ value: c.key, label: t(`condition_${c.key}`) }))}
+            />
           </div>
         </div>
       </FadeIn>
 
       <FadeIn delay={0.05}>
-        <div className="card mt-4 !p-5">
+        <div className="card !p-5">
           {breakdown.length === 0 ? (
             <p className="text-sm text-slate-500 dark:text-slate-400">{t('selectServicesHint')}</p>
           ) : (
             <>
-              <div className="text-center">
-                <p className="label !mb-1">{t('estimatedTime')}</p>
-                <p className="font-display text-4xl font-bold text-brand-700 dark:text-brand-300">{fmtDuration(totalMinutes)}</p>
-              </div>
+              <ResultHero eyebrow={t('estimatedTime')} value={fmtDuration(totalMinutes)} />
 
-              <div className="mt-4 space-y-2 border-t border-brand-100 pt-4 dark:border-white/10">
+              <ul className="mt-5 space-y-0 divide-y divide-brand-100 border-t border-brand-100 dark:divide-white/10 dark:border-white/10">
                 {breakdown.map((s) => (
-                  <div key={s.name} className="flex items-center justify-between text-sm">
+                  <li key={s.name} className="flex items-center justify-between gap-3 py-3 text-sm">
                     <span className="text-slate-600 dark:text-slate-400">{s.name}</span>
-                    <span className="font-semibold text-slate-900 dark:text-slate-100">{fmtDuration(s.adjusted)}</span>
-                  </div>
+                    <span className="font-display font-bold tabular-nums text-slate-900 dark:text-slate-100">{fmtDuration(s.adjusted)}</span>
+                  </li>
                 ))}
-              </div>
+              </ul>
 
-              <div className="mt-4 rounded-xl bg-brand-50 px-4 py-3 text-sm text-brand-800 dark:bg-brand-500/10 dark:text-brand-200">
-                {t('suggestedBlock')}: <strong>{fmtDuration(blockMinutes)}</strong>
+              <div className="mt-4 rounded-2xl bg-brand-50 px-4 py-3.5 dark:bg-brand-500/10">
+                <p className="text-sm text-brand-800 dark:text-brand-200">
+                  {t('suggestedBlock')}: <strong className="font-display text-base">{fmtDuration(blockMinutes)}</strong>
+                </p>
+                <p className="mt-1 text-xs text-brand-700/80 dark:text-brand-300/80">
+                  {t('setupBufferIncluded', { mins: SETUP_BUFFER_MIN })}
+                </p>
               </div>
             </>
           )}

@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import Logo from './Logo'
 import BottomTabBar from './ui/BottomTabBar'
 import ThemeToggle from './ThemeToggle'
+import BrandThemePicker from './BrandThemePicker'
 import LanguageToggle from './LanguageToggle'
 import { NotificationBell } from './AppShell'
 import { GridIcon, UsersIcon, AlertTriangleIcon, CreditCardIcon, PieChartIcon, MessageCircleIcon } from './icons'
@@ -84,6 +85,7 @@ export default function AdminShell({ children }) {
           </Link>
           <div className="flex items-center gap-1">
             <LanguageToggle />
+            <BrandThemePicker />
             <ThemeToggle />
           </div>
         </div>
@@ -125,6 +127,7 @@ export default function AdminShell({ children }) {
           <div className="flex items-center gap-1">
             <NotificationBell role="admin" />
             <LanguageToggle />
+            <BrandThemePicker />
             <ThemeToggle />
             <button onClick={handleSignOut} className="btn btn-outline h-9 px-3 text-sm">
               {isDemo ? t('exit') : t('signOut')}
@@ -139,3 +142,4 @@ export default function AdminShell({ children }) {
     </div>
   )
 }
+

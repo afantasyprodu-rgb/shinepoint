@@ -264,6 +264,11 @@ export const STRINGS = {
       demoAs: 'Demo · {name}',
       showNavBar: 'Show navigation bar',
       hideNavBar: 'Hide navigation bar',
+      brandColor: 'App color',
+      brandColorHint: 'Buttons and accents stay green.',
+      brandPink: 'Pink',
+      brandPurple: 'Purple',
+      brandBlue: 'Blue',
     },
     assistantChat: {
       title: 'Driplee',
@@ -2091,6 +2096,11 @@ export const STRINGS = {
       demoAs: 'Demo · {name}',
       showNavBar: 'Mostrar barra de navegación',
       hideNavBar: 'Ocultar barra de navegación',
+      brandColor: 'Color de la app',
+      brandColorHint: 'Los botones y acentos siguen en verde.',
+      brandPink: 'Rosa',
+      brandPurple: 'Morado',
+      brandBlue: 'Azul',
     },
     assistantChat: {
       title: 'Driplee',
