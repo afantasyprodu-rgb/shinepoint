@@ -42,7 +42,13 @@ function formatHour(h) {
   return `${hour12} ${period}`
 }
 
-const STEP_KEYS = ['stepIdentity', 'stepInsurance', 'stepProfile', 'stepSurvey', 'stepServices', 'stepSchedule', 'stepPayout']
+// Identity verification (Stripe Identity) and payout/bank connection
+// (Stripe Connect) used to be two separate steps at opposite ends of the
+// wizard, even though both are just "the Stripe stuff" from a detailer's
+// point of view. Merged into one step (still keyed stepIdentity for
+// translation continuity) so every Stripe-touching action lives in one
+// place — see step === 0 below for both blocks rendered together.
+const STEP_KEYS = ['stepIdentity', 'stepInsurance', 'stepProfile', 'stepSurvey', 'stepServices', 'stepSchedule']
 
 const YEARS_EXPERIENCE_OPTIONS = ['0-1', '1-3', '3-5', '5+']
 const CERT_OPTIONS = ['ida_certified', 'manufacturer_trained']
@@ -387,7 +393,12 @@ export default function DetailerOnboarding() {
     // payout on it later, so it doesn't need to block the wizard too — but
     // Continue itself stays disabled until they've actually taken one of
     // the two explicit actions (Upload ID & selfie, or Skip for now).
-    idStatus !== 'idle',
+    // Real payout connection is a redirect-away Stripe flow, not something
+    // that can gate synchronous submission — the wizard doesn't send `bank`
+    // to the backend at all (submit_detailer_onboarding never takes it).
+    // Demo keeps the fake digits gate so the simulated flow still feels
+    // real. Both live on this one combined step now — see STEP_KEYS.
+    (idStatus !== 'idle') && (isDemo ? bank.length >= 4 : true),
     // 094: an "insured" pick isn't complete until the document has actually
     // gone through (saved either 'ok' or 'flagged' -- a soft check never
     // blocks the save itself, so "flagged" still counts as done here; only
@@ -398,11 +409,6 @@ export default function DetailerOnboarding() {
     yearsExperience !== null,
     Object.keys(services).length > 0,
     days.length > 0,
-    // Real payout connection is a redirect-away Stripe flow, not something
-    // that can gate synchronous submission — the wizard doesn't send `bank`
-    // to the backend at all (submit_detailer_onboarding never takes it).
-    // Demo keeps the fake digits gate so the simulated flow still feels real.
-    isDemo ? bank.length >= 4 : true,
   ][step]
 
   if (submitted) {
@@ -570,6 +576,101 @@ export default function DetailerOnboarding() {
                     <p className="mt-2 font-semibold text-cta-700 dark:text-cta-400">{t('verified')}</p>
                   </motion.div>
                 )}
+                </div>
+
+                {/* Payout/bank connection used to be its own step at the
+                    end of the wizard — merged in here since both this and
+                    identity verification above are "the Stripe stuff", not
+                    two separate concerns. */}
+                <div className="card space-y-4">
+                <div className="flex items-center gap-3">
+                  <CreditCardIcon className="h-8 w-8 text-brand-600 dark:text-brand-300" />
+                  <div>
+                    <h2 className="flex items-center gap-1.5 font-display font-semibold text-slate-900 dark:text-slate-100">
+                      {t('payoutSetup')}
+                      <InfoPopover label={t('whyTaxInfoLabel')}>
+                        {t('whyTaxInfoBody')}
+                      </InfoPopover>
+                    </h2>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">{t('payoutSetupBlurb')}</p>
+                  </div>
+                </div>
+                {isDemo ? (
+                  <>
+                    <div>
+                      <label htmlFor="ob-bank" className="label">{t('bankLabel')}</label>
+                      <input id="ob-bank" inputMode="numeric" maxLength={4} value={bank} onChange={(e) => setBank(e.target.value.replace(/\D/g, ''))} className="input w-32" placeholder="4242" />
+                    </div>
+                    <p className="text-xs text-slate-400 dark:text-slate-500">
+                      {t('payoutRealFlow')}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    {!isStripeConfigured ? (
+                      <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
+                        {t('idNotConfigured')}
+                      </p>
+                    ) : payoutStatus?.stripe_charges_enabled ? (
+                      <p className="flex items-center gap-2 text-sm font-medium text-cta-700 dark:text-cta-400">
+                        <CheckIcon className="h-4 w-4" /> {t('bankConnected')}
+                      </p>
+                    ) : (
+                      <>
+                        <button type="button" onClick={handleConnectBank} disabled={connectingBank} className="btn btn-brand">
+                          {connectingBank
+                            ? <span className="inline-flex items-center gap-2"><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />{t('connecting')}</span>
+                            : t('connectBank')}
+                        </button>
+                        {payoutStatus?.stripe_account_id && (
+                          <p className="text-xs text-amber-600 dark:text-amber-400">{t('bankPending')}</p>
+                        )}
+                      </>
+                    )}
+                    {connectError && (
+                      <p role="alert" className="text-sm text-red-600 dark:text-red-400">{connectError}</p>
+                    )}
+                    <p className="text-xs text-slate-400 dark:text-slate-500">
+                      {t('payoutRealFlow')}
+                    </p>
+                  </>
+                )}
+                </div>
+
+                {/* 086. Own card, separate from bank connection — this is a
+                    pricing choice, not a Stripe requirement, and doesn't
+                    block the rest of onboarding either way. */}
+                <div className="card space-y-2">
+                  <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">
+                    {t('depositSetupLabel')}
+                  </h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">{t('depositSetupHint')}</p>
+                  <div className="mt-2 flex items-center justify-between gap-3">
+                    <label htmlFor="ob-deposit" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                      {t('depositPercentLabel')}
+                    </label>
+                    <div className="flex items-center gap-1">
+                      <input
+                        id="ob-deposit"
+                        type="number" min={0} max={100} step={5} inputMode="numeric"
+                        value={depositPercent}
+                        onChange={(e) => setDepositPercent(e.target.value)}
+                        onBlur={saveDepositPercent}
+                        placeholder="0"
+                        className="input h-10 w-24"
+                      />
+                      <span className="text-slate-500 dark:text-slate-400">%</span>
+                    </div>
+                  </div>
+                  {Number(depositPercent) > 0 && (
+                    <p className="rounded-xl bg-brand-50/60 p-2 text-xs text-slate-600 dark:bg-white/5 dark:text-slate-400">
+                      {t('depositExample', {
+                        pct: Math.min(100, Math.max(0, Number(depositPercent) || 0)),
+                        deposit: (200 * Math.min(100, Math.max(0, Number(depositPercent) || 0)) / 100).toFixed(0),
+                        balance: (200 - 200 * Math.min(100, Math.max(0, Number(depositPercent) || 0)) / 100).toFixed(0),
+                      })}
+                    </p>
+                  )}
                 </div>
               </div>
             )}
@@ -1088,104 +1189,6 @@ export default function DetailerOnboarding() {
                       </div>
                     </div>
                   ))}
-                </div>
-              </div>
-            )}
-
-            {step === 6 && (
-              <div className="space-y-4">
-                <MarketingTip title={t('tipPayoutTitle')}>
-                  {t('tipPayoutBody')}
-                </MarketingTip>
-                <div className="card space-y-4">
-                <div className="flex items-center gap-3">
-                  <CreditCardIcon className="h-8 w-8 text-brand-600 dark:text-brand-300" />
-                  <div>
-                    <h2 className="flex items-center gap-1.5 font-display font-semibold text-slate-900 dark:text-slate-100">
-                      {t('payoutSetup')}
-                      <InfoPopover label={t('whyTaxInfoLabel')}>
-                        {t('whyTaxInfoBody')}
-                      </InfoPopover>
-                    </h2>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">{t('payoutSetupBlurb')}</p>
-                  </div>
-                </div>
-                {isDemo ? (
-                  <>
-                    <div>
-                      <label htmlFor="ob-bank" className="label">{t('bankLabel')}</label>
-                      <input id="ob-bank" inputMode="numeric" maxLength={4} value={bank} onChange={(e) => setBank(e.target.value.replace(/\D/g, ''))} className="input w-32" placeholder="4242" />
-                    </div>
-                    <p className="text-xs text-slate-400 dark:text-slate-500">
-                      {t('payoutRealFlow')}
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    {!isStripeConfigured ? (
-                      <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
-                        {t('idNotConfigured')}
-                      </p>
-                    ) : payoutStatus?.stripe_charges_enabled ? (
-                      <p className="flex items-center gap-2 text-sm font-medium text-cta-700 dark:text-cta-400">
-                        <CheckIcon className="h-4 w-4" /> {t('bankConnected')}
-                      </p>
-                    ) : (
-                      <>
-                        <button type="button" onClick={handleConnectBank} disabled={connectingBank} className="btn btn-brand">
-                          {connectingBank
-                            ? <span className="inline-flex items-center gap-2"><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />{t('connecting')}</span>
-                            : t('connectBank')}
-                        </button>
-                        {payoutStatus?.stripe_account_id && (
-                          <p className="text-xs text-amber-600 dark:text-amber-400">{t('bankPending')}</p>
-                        )}
-                      </>
-                    )}
-                    {connectError && (
-                      <p role="alert" className="text-sm text-red-600 dark:text-red-400">{connectError}</p>
-                    )}
-                    <p className="text-xs text-slate-400 dark:text-slate-500">
-                      {t('payoutRealFlow')}
-                    </p>
-                  </>
-                )}
-                </div>
-
-                {/* 086. Own card, separate from bank connection — this is a
-                    pricing choice, not a Stripe requirement, and doesn't
-                    block the rest of onboarding either way. */}
-                <div className="card space-y-2">
-                  <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">
-                    {t('depositSetupLabel')}
-                  </h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">{t('depositSetupHint')}</p>
-                  <div className="mt-2 flex items-center justify-between gap-3">
-                    <label htmlFor="ob-deposit" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                      {t('depositPercentLabel')}
-                    </label>
-                    <div className="flex items-center gap-1">
-                      <input
-                        id="ob-deposit"
-                        type="number" min={0} max={100} step={5} inputMode="numeric"
-                        value={depositPercent}
-                        onChange={(e) => setDepositPercent(e.target.value)}
-                        onBlur={saveDepositPercent}
-                        placeholder="0"
-                        className="input h-10 w-24"
-                      />
-                      <span className="text-slate-500 dark:text-slate-400">%</span>
-                    </div>
-                  </div>
-                  {Number(depositPercent) > 0 && (
-                    <p className="rounded-xl bg-brand-50/60 p-2 text-xs text-slate-600 dark:bg-white/5 dark:text-slate-400">
-                      {t('depositExample', {
-                        pct: Math.min(100, Math.max(0, Number(depositPercent) || 0)),
-                        deposit: (200 * Math.min(100, Math.max(0, Number(depositPercent) || 0)) / 100).toFixed(0),
-                        balance: (200 - 200 * Math.min(100, Math.max(0, Number(depositPercent) || 0)) / 100).toFixed(0),
-                      })}
-                    </p>
-                  )}
                 </div>
               </div>
             )}
