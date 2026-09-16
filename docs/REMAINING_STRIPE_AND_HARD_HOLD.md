@@ -11,7 +11,7 @@
 
 | Step | Status |
 |------|--------|
-| Apply `092_*.sql` in Supabase SQL editor (or db push when ready) | **Required** for holds + columns |
+| Apply `096_*.sql` in Supabase SQL editor (or db push when ready) | **Required** for holds + columns |
 | `supabase functions deploy create-detailer-charge-intent` | **Required** for live Stripe deposit+hold in one call |
 | Redeploy `get-detailer-charge-intent` / `stripe-webhook` | Optional — paid flow already marks `detailer_charges.paid`; no schema change needed for webhook |
 | Patch `src/lib/db.js` `fetchDetailerBusyTimes` | **Required** for book-me soft block |

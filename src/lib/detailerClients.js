@@ -469,7 +469,7 @@ export async function updateDetailerClient(clientId, patch) {
     payload = stripAddressFields(patch)
     // If the only fields were address cols, skip rather than no-op update error
     if (!Object.keys(payload).length) {
-      console.warn('updateDetailerClient: service_address columns missing — apply 091 migration')
+      console.warn('updateDetailerClient: service_address columns missing — apply 095 migration')
       return fetchDetailerClient(clientId)
     }
     ;({ data, error } = await supabase

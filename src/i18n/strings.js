@@ -1272,6 +1272,15 @@ export const STRINGS = {
       certificationsBody: 'Ceramic coating courses, IDA certification — anything that improves your trade.',
     },
     detailerTools: {
+      cheatTabRatios: 'Ratios',
+      cheatTabTimes: 'Times',
+      cheatTabPrices: 'Prices',
+      mixRecipe: 'Mix',
+      ratioProductPart: 'Product',
+      ratioWaterPart: 'Water',
+      waterLabel: 'Water',
+      safetyLabel: 'Safety',
+      setupBufferIncluded: 'Includes {mins} min setup and pack-up.',
       title: 'Tools',
       dilutionTitle: 'Dilution calculator',
       dilutionSubtitle: "Figure out how much product vs. water for any container size and mix ratio — pick a common product below or set your own.",
@@ -1487,6 +1496,7 @@ export const STRINGS = {
       gateCompleteCta: 'Mark job complete',
     },
     detailerDashboard: {
+      viewDetails: 'View full details',
       welcomeBack: 'Welcome back{name}',
       underReviewTitle: 'Your application is under review',
       finishSetupTitle: 'Finish setting up your account',
@@ -1550,6 +1560,7 @@ export const STRINGS = {
       rescheduleFailed: "Couldn't move this job. Please try a different day.",
     },
     authCallback: {
+      detailerClaimError: 'Could not finish setting up your detailer account. Please try signing up again.',
       signinError: 'Could not complete sign-in. Please try again.',
       accountUnavailable: 'This account is not available. Contact support.',
       finishingSignin: 'Finishing sign-in…',
@@ -3087,6 +3098,15 @@ export const STRINGS = {
       certificationsBody: 'Cursos de recubrimiento cerámico, certificación IDA — cualquier cosa que mejore tu oficio.',
     },
     detailerTools: {
+      cheatTabRatios: 'Proporciones',
+      cheatTabTimes: 'Tiempos',
+      cheatTabPrices: 'Precios',
+      mixRecipe: 'Mezcla',
+      ratioProductPart: 'Producto',
+      ratioWaterPart: 'Agua',
+      waterLabel: 'Agua',
+      safetyLabel: 'Seguridad',
+      setupBufferIncluded: 'Incluye {mins} min de preparación y recogida.',
       title: 'Herramientas',
       dilutionTitle: 'Calculadora de dilución',
       dilutionSubtitle: 'Calcula cuánto producto y agua necesitas según el tamaño del recipiente y la proporción — elige un producto común o define la tuya.',
@@ -3301,6 +3321,7 @@ export const STRINGS = {
       gateCompleteCta: 'Marcar trabajo completo',
     },
     detailerDashboard: {
+      viewDetails: 'Ver todos los detalles',
       welcomeBack: 'Bienvenido de nuevo{name}',
       underReviewTitle: 'Tu solicitud está en revisión',
       finishSetupTitle: 'Termina de configurar tu cuenta',
@@ -3364,6 +3385,7 @@ export const STRINGS = {
       rescheduleFailed: 'No se pudo mover este trabajo. Prueba otro día.',
     },
     authCallback: {
+      detailerClaimError: 'No pudimos terminar de configurar tu cuenta de detailer. Intenta registrarte de nuevo.',
       signinError: 'No se pudo completar el inicio de sesión. Inténtalo de nuevo.',
       accountUnavailable: 'Esta cuenta no está disponible. Contacta a soporte.',
       finishingSignin: 'Finalizando inicio de sesión…',
