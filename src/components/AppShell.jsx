@@ -200,7 +200,16 @@ const NAVS = {
 // background (the "pink wall") is the visual signal that this isn't a
 // normal screen with chrome that happens to be hidden — there's nowhere to
 // tap to escape it.
-export default function AppShell({ role, children, collapsibleBottomNav = false, locked = false }) {
+// `fillHeight` caps the shell to exactly one viewport (h-dvh, not min-h-dvh)
+// and lets the children slot shrink to whatever's actually left after the
+// header and the bottom-bar's reserved padding, instead of growing to fit
+// its content. For a page whose own content should internally scroll with a
+// pinned footer (AssistantChat's message list + input) rather than the
+// whole page scrolling — that page still has to size itself to `h-full`,
+// not redo this math with its own guessed rem constant: a flat guess can't
+// track env(safe-area-inset-*), which is exactly what left Driplee's input
+// bar unreachable without a page scroll on notched/home-indicator devices.
+export default function AppShell({ role, children, collapsibleBottomNav = false, locked = false, fillHeight = false }) {
   const { signOut, isDemo, profile } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -228,7 +237,11 @@ export default function AppShell({ role, children, collapsibleBottomNav = false,
   }
 
   return (
-    <div className={`relative flex min-h-dvh flex-col ${locked ? 'overflow-hidden bg-white dark:bg-[#141026]' : ''}`}>
+    <div
+      className={`relative flex flex-col ${locked || fillHeight ? 'h-dvh overflow-hidden' : 'min-h-dvh'} ${
+        locked ? 'bg-white dark:bg-[#141026]' : ''
+      }`}
+    >
       {/* Same soft blurred-blob treatment as the public landing page
           (Welcome.jsx) rather than a solid fill — a wall of saturated
           brand-600 read as overwhelming for a whole onboarding flow. */}
@@ -308,7 +321,13 @@ export default function AppShell({ role, children, collapsibleBottomNav = false,
       </header>
       {/* pb-16 plus the same safe-area inset the bar itself now reserves,
           so content never sits underneath the taller notch-device bar. */}
-      <div className={`flex-1 pb-[calc(4rem+env(safe-area-inset-bottom))] sm:pb-0 ${locked ? 'relative z-10' : ''}`}>{children}</div>
+      <div
+        className={`flex-1 pb-[calc(4rem+env(safe-area-inset-bottom))] sm:pb-0 ${fillHeight ? 'min-h-0 overflow-hidden' : ''} ${
+          locked ? 'relative z-10' : ''
+        }`}
+      >
+        {children}
+      </div>
       {!locked && <BottomTabBar items={nav} hidden={collapsibleBottomNav && navHidden} />}
       {!locked && collapsibleBottomNav && (
         <button
