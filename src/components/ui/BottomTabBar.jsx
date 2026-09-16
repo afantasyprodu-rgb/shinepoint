@@ -257,7 +257,12 @@ function startSquashLoop() {
     const rate = sqK + sqC
     const target = (sqK / rate) * velIn
     springV = target + (springV - target) * Math.exp(-rate * dt)
-    const s = Math.min(Math.abs(springV) / 1000, 1.4)
+    // Capped at 0.9, not the original 1.4 — the far-right Account tab is the
+    // single longest hop the bar has (farthest from every other tab), so it
+    // hit this cap hardest and most often; 1.4 pushed scaleX to ~1.7x, which
+    // combined with the puddle glow (see .nx-tab-drop-puddle::after) is what
+    // read as an oversized, "stuck" droplet on iOS Safari.
+    const s = Math.min(Math.abs(springV) / 1000, 0.9)
     scaleX.set(1 + 0.72 * s)
     scaleY.set(1 - 0.48 * s)
     rotate.set((Math.sign(springV) || 1) * 16 * s * -1)
