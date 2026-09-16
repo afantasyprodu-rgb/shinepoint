@@ -1296,6 +1296,7 @@ export const STRINGS = {
       tabDilution: 'Dilution',
       tabTimeEstimate: 'Time estimate',
       tabChemicalGuide: 'Chemical guide',
+      tabCheatSheet: 'Cheat sheet',
       // Job time estimator
       timeTitle: 'Job time estimator',
       timeSubtitle: 'Estimate how long a job will take so you can schedule your day realistically.',
@@ -3122,6 +3123,7 @@ export const STRINGS = {
       tabDilution: 'Dilución',
       tabTimeEstimate: 'Tiempo estimado',
       tabChemicalGuide: 'Guía química',
+      tabCheatSheet: 'Chuleta',
       // Estimador de tiempo de trabajo
       timeTitle: 'Estimador de tiempo de trabajo',
       timeSubtitle: 'Calcula cuánto durará un trabajo para planear tu día de forma realista.',
