@@ -264,9 +264,15 @@ export default function AssistantChat({ role }) {
   // keystroke and drops focus out of the input.
   const body = (
     <>
+      {/* AdminShell doesn't offer a fillHeight-capped children slot the way
+          AppShell (below) now does, so the admin branch still sizes itself
+          off a guessed dvh constant — unlike the customer/detailer branch,
+          admin has no bottom tab bar height to guess at (AdminShell's
+          sidebar is desktop-only), so there's no env(safe-area-inset-*)
+          term this constant needs to track. */}
       <AnimatedPage
-        className={`mx-auto flex flex-col px-4 pt-4 sm:px-6 ${
-          isAdmin ? 'h-[calc(100dvh-4rem)] max-w-3xl' : 'h-[calc(100dvh-8.5rem)] max-w-xl'
+        className={`mx-auto flex min-h-0 flex-col px-4 pt-4 sm:px-6 ${
+          isAdmin ? 'h-[calc(100dvh-4rem)] max-w-3xl' : 'h-full max-w-xl'
         }`}
       >
         <div className="flex items-center gap-3 pb-3">
@@ -285,7 +291,7 @@ export default function AssistantChat({ role }) {
           )}
         </div>
 
-        <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto pb-3">
+        <div ref={scrollRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto pb-3">
           {isDemo && (
             <div className="rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
               {t('demoNotice')}
@@ -442,7 +448,7 @@ export default function AssistantChat({ role }) {
     </>
   )
 
-  return isAdmin ? <AdminShell>{body}</AdminShell> : <AppShell role={role}>{body}</AppShell>
+  return isAdmin ? <AdminShell>{body}</AdminShell> : <AppShell role={role} fillHeight>{body}</AppShell>
 }
 
 function MessageBubble({ message, results, nav, onViewDetailer, onNavigate, t, showAvatar }) {
