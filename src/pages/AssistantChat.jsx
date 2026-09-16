@@ -6,7 +6,7 @@ import AdminShell from '../components/AdminShell'
 import Modal from '../components/ui/Modal'
 import DrewBlob from '../components/ui/DrewBlob'
 import { AnimatedPage } from '../components/ui/Motion'
-import { SendIcon, UserIcon, ArrowRightIcon, CameraIcon, XIcon } from '../components/icons'
+import { SendIcon, UserIcon, ArrowRightIcon, CameraIcon, XIcon, MicIcon, MicOffIcon } from '../components/icons'
 import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
 import { useT } from '../i18n/useT'
@@ -54,6 +54,15 @@ const MAX_PHOTO_BYTES = 5 * 1024 * 1024
 // in place of an image that was never saved.
 const PHOTO_MARKER = '[photo]'
 
+// Web Speech API's recognition constructor, feature-detected once at module
+// load rather than per-render — it's either there or it isn't for the life
+// of the tab. Chrome/Edge/Safari carry it (Safari and older Chrome only
+// under the webkit-prefixed name); Firefox has none, so the mic button
+// below simply doesn't render there rather than showing a control that
+// silently fails on click.
+const SpeechRecognitionCtor =
+  typeof window !== 'undefined' ? window.SpeechRecognition || window.webkitSpeechRecognition : null
+
 /**
  * Driplee's own full-page section — persisted, free-text conversation,
  * reachable from its own bottom-nav tab on both the customer and detailer
@@ -81,9 +90,51 @@ export default function AssistantChat({ role }) {
   const [confirmClear, setConfirmClear] = useState(false)
   const [resultsByIndex, setResultsByIndex] = useState({})
   const [navByIndex, setNavByIndex] = useState({})
+  const [listening, setListening] = useState(false)
   const scrollRef = useRef(null)
   const inputRef = useRef(null)
   const photoInputRef = useRef(null)
+  const recognitionRef = useRef(null)
+
+  // Stop any live recognition on unmount — leaving it running would keep
+  // the mic indicator lit and go on transcribing into a draft nobody sees.
+  useEffect(() => () => recognitionRef.current?.stop(), [])
+
+  function toggleListening() {
+    if (listening) {
+      recognitionRef.current?.stop()
+      return
+    }
+    if (!SpeechRecognitionCtor || isDemo || sending) return
+    const recognition = new SpeechRecognitionCtor()
+    // Spanish speech recognition only kicks in when the tag says so —
+    // matching the app's own language toggle rather than the browser's,
+    // since a bilingual user's OS locale doesn't always agree with which
+    // language they picked inside ShinePoint.
+    recognition.lang = lang === 'es' ? 'es-US' : 'en-US'
+    recognition.interimResults = true
+    recognition.continuous = false
+    recognition.maxAlternatives = 1
+    recognition.onresult = (event) => {
+      let transcript = ''
+      for (let i = 0; i < event.results.length; i++) transcript += event.results[i][0].transcript
+      setDraft(transcript)
+    }
+    recognition.onerror = (event) => {
+      if (event.error === 'not-allowed' || event.error === 'service-not-allowed') setError(t('voiceNotAllowed'))
+      else if (event.error === 'no-speech') setError(t('voiceNoSpeech'))
+      else if (event.error !== 'aborted') setError(t('voiceError'))
+    }
+    recognition.onend = () => {
+      setListening(false)
+      recognitionRef.current = null
+      inputRef.current?.focus()
+    }
+    recognitionRef.current = recognition
+    setError(null)
+    setListening(true)
+    recognition.start()
+  }
 
   useEffect(() => {
     if (isDemo || !user?.id) {
@@ -337,12 +388,28 @@ export default function AssistantChat({ role }) {
             >
               <CameraIcon className="h-5 w-5" />
             </button>
+            {SpeechRecognitionCtor && (
+              <button
+                type="button"
+                onClick={toggleListening}
+                disabled={isDemo || sending}
+                aria-label={listening ? t('voiceStop') : t('voiceStart')}
+                aria-pressed={listening}
+                className={`press-spring flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 disabled:opacity-40 ${
+                  listening
+                    ? 'animate-pulse bg-red-500 text-white hover:bg-red-600'
+                    : 'bg-brand-50 text-brand-600 hover:bg-brand-100 dark:bg-white/5 dark:text-brand-300 dark:hover:bg-white/10'
+                }`}
+              >
+                {listening ? <MicOffIcon className="h-5 w-5" /> : <MicIcon className="h-5 w-5" />}
+              </button>
+            )}
             <input
               ref={inputRef}
               type="text"
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
-              placeholder={photo ? t('placeholderPhoto') : t('placeholder')}
+              placeholder={listening ? t('placeholderListening') : photo ? t('placeholderPhoto') : t('placeholder')}
               disabled={isDemo || sending}
               className="input flex-1"
             />
