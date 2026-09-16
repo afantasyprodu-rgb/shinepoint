@@ -3,7 +3,7 @@
 ## What this pack ships (works after local apply)
 
 1. **UI** — Request payment: Full charge vs Deposit (holds slot); date/time; 12/24/48/72h unpaid hold window; cream/pink patterns.
-2. **Data model** — migration `092_detailer_charge_slot_holds.sql` extends `detailer_charges`.
+2. **Data model** — migration `096_detailer_charge_slot_holds.sql` extends `detailer_charges`.
 3. **Soft availability** — RPC `get_detailer_deposit_hold_times` + `fetchDetailerBusyTimes` merge (after db.js patch).
 4. **Pay links** — live path extends `create-detailer-charge-intent`; offline path inserts pending deposit stub (`/pay/:id` URL).
 

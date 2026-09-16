@@ -4,7 +4,7 @@
 // (no Connect transfer_data), same philosophy as create-payment-intent;
 // detailer cut is recorded and released later by release-payouts.
 //
-// Optional slot hold (092): charge_kind=deposit + hold_starts_at holds the
+// Optional slot hold (096): charge_kind=deposit + hold_starts_at holds the
 // proposed time for book-me soft conflict checks until pay-link expiry
 // (pending) or slot end / release (paid).
 //
@@ -17,6 +17,7 @@ import { captureException } from '../_shared/sentry.ts'
 import { isUuid, isFiniteNumber, cleanText, safeOrigin } from '../_shared/validate.ts'
 import { withinRateLimit, tooManyRequests } from '../_shared/rateLimit.ts'
 import { platformFeePercent } from '../_shared/fees.ts'
+import { publicErrorMessage } from '../_shared/errors.ts'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
   apiVersion: '2026-05-27.dahlia' as Stripe.LatestApiVersion,
@@ -171,10 +172,12 @@ Deno.serve(async (req) => {
       if (chargeKind === 'deposit' && insertErr?.message?.match(/charge_kind|hold_/i)) {
         return json({
           error:
-            'Deposit slot holds need migration 092_detailer_charge_slot_holds.sql applied first.',
+            'Deposit slot holds need migration 096_detailer_charge_slot_holds.sql applied first.',
         }, 409)
       }
-      return json({ error: insertErr?.message ?? 'Could not create charge' }, 500)
+      // Raw Postgres errors leak schema detail — log, return a flat message.
+      console.error('create-detailer-charge-intent insert:', insertErr?.message)
+      return json({ error: 'Could not create charge' }, 500)
     }
 
     const intent = await stripe.paymentIntents.create(
@@ -220,6 +223,6 @@ Deno.serve(async (req) => {
   } catch (e) {
     console.error('create-detailer-charge-intent:', e)
     await captureException(e, 'create-detailer-charge-intent')
-    return json({ error: (e as Error).message }, 500)
+    return json({ error: publicErrorMessage(e) }, 500)
   }
 })

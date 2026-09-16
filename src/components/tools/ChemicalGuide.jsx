@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { FadeIn, Stagger, StaggerItem } from '../ui/Motion'
 import { AlertTriangleIcon, ChevronLeftIcon } from '../icons'
 import { useT } from '../../i18n/useT'

@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { useT } from '../../i18n/useT'
 import { Segmented } from './ToolControls'
 

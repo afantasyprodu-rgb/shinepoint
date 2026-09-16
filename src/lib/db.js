@@ -1025,7 +1025,7 @@ export async function createBookingInDB({
 // pays (the real enforcement is migration 053's insert guard; this is just
 // a friendlier "pick another time" instead of a failed payment). Returns
 // "HH:MM" strings in the customer's local time, since that's what TimePicker
-// and the day strip work in. Also merges active Client Book deposit holds (092).
+// and the day strip work in. Also merges active Client Book deposit holds (096).
 export async function fetchDetailerBusyTimes(detailerId, dateKey) {
   const { data, error } = await supabase.rpc('get_detailer_busy_times', {
     p_detailer_id: detailerId,

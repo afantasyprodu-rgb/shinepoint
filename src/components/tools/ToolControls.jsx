@@ -1,4 +1,4 @@
-﻿import { useId } from 'react'
+import { useId } from 'react'
 
 /** Selectable tile key — title + optional meta (ratio, mins, $). */
 export function KeyTile({ selected, onClick, title, meta, className = '' }) {

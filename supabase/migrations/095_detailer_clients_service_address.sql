@@ -1,5 +1,5 @@
 -- ============================================================
--- 091: Preferred service address on Client Book contacts.
+-- 095: Preferred service address on Client Book contacts.
 -- Local file only — do NOT db push unless schema is ready.
 -- ============================================================
 

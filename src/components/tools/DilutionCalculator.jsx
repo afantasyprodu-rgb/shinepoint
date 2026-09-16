@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { FadeIn } from '../ui/Motion'
 import { useT } from '../../i18n/useT'
 import { KeyTile, Segmented, SectionLabel } from './ToolControls'

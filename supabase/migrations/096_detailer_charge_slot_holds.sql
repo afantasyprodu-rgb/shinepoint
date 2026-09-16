@@ -1,5 +1,5 @@
 -- ============================================================
--- 092: Client Book deposits that hold a calendar slot.
+-- 096: Client Book deposits that hold a calendar slot.
 -- Extends detailer_charges (077) — no parallel payment table.
 -- Soft hold via SECURITY DEFINER RPC (customers cannot SELECT
 -- detailer_charges under RLS). Hard insert-guard (053) follow-up.

@@ -433,7 +433,7 @@ export default function DetailerClientRequestPayment() {
                     : ''}
                   {lastHoldMeta.stub
                     ? '. Stub hold is in the database; live card capture needs Stripe function deploy + PI on this charge.'
-                    : '. Soft-blocks book-me via deposit-hold RPC once migration 092 is applied.'}
+                    : '. Soft-blocks book-me via deposit-hold RPC once migration 096 is applied.'}
                 </p>
               )}
               {!lastHoldMeta?.slotHeld && (

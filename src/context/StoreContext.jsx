@@ -1341,7 +1341,7 @@ export function StoreProvider({ children }) {
     allDetailers,
     demoDetailers, demoBookings, demoMessages, demoCustomer, demoAdmin,
     realBookings, loyalty,
-    customerProfile, detailerProfile, customerProfileLoaded,
+    customerProfile, detailerProfile, customerProfileLoaded, detailerProfileLoaded,
     signedVehiclePhoto, signedVehicles,
     favoriteIds,
     profile, user,

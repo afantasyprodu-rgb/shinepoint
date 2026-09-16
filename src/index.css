@@ -1,4 +1,4 @@
-﻿/* Google Fonts moved to index.html as <link rel="preconnect"> + a regular
+/* Google Fonts moved to index.html as <link rel="preconnect"> + a regular
    stylesheet link -- a CSS @import here was strictly sequential (fetch this
    file -> discover the import -> fetch Google's CSS -> discover the woff2
    URLs -> fetch those), render-blocking the whole page behind a 3-hop chain
@@ -11,13 +11,13 @@
    inline in index.html so there's no flash. */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Design tokens â€” see design-system/shinepoint/MASTER.md
+/* Design tokens — see design-system/shinepoint/MASTER.md
 
-   â”€â”€ 60-30-10 Color Distribution â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-   â€¢ 60% Neutral: Neumorphic putty surfaces (--neu-bg), body backgrounds
-   â€¢ 30% Brand: Pink ramp (headers, cards, navigation, text hierarchy)
-   â€¢ 10% CTA: Green ramp (buttons, success states, CTAs only)
-   â€¢ Accent: Teal for charts/analytics only (never UI chrome)
+   ── 60-30-10 Color Distribution ──────────────────────────
+   • 60% Neutral: Neumorphic putty surfaces (--neu-bg), body backgrounds
+   • 30% Brand: Pink ramp (headers, cards, navigation, text hierarchy)
+   • 10% CTA: Green ramp (buttons, success states, CTAs only)
+   • Accent: Teal for charts/analytics only (never UI chrome)
 
    Never violate this ratio; it ensures visual hierarchy and accessibility.
    Apply this strictly when adding new components or colors. */
@@ -28,10 +28,10 @@
   /* Brand/cta ramps are generated from --brand-h/--cta-h (defined below)
      via relative-color syntax: each step keeps the lightness of its
      original hex (so the ramp's shape is unchanged) but takes its hue from
-     the live variable. Brand chroma is boosted 50% ("Bloom Bold" â€” picked
+     the live variable. Brand chroma is boosted 50% ("Bloom Bold" — picked
      from a swatch comparison against the 15%-boost baseline still used by
      cta below) so the settled result reads vividly rather than flat.
-     ThemeContext.jsx rotates the hue â€” see the comment above the :root
+     ThemeContext.jsx rotates the hue — see the comment above the :root
      block below for why. */
   --color-brand-50: oklch(from #faf5ff L calc(C * 1.5) var(--brand-h));
   --color-brand-100: oklch(from #f3e8ff L calc(C * 1.5) var(--brand-h));
@@ -49,29 +49,29 @@
   --color-cta-700: oklch(from #15803d L calc(C * 1.15) var(--cta-h));
   --color-cta-800: oklch(from #166534 L calc(C * 1.15) var(--cta-h));
 
-  /* Third analytics accent â€” donut/chart segments beyond brand+cta (revenue
+  /* Third analytics accent — donut/chart segments beyond brand+cta (revenue
      and earnings breakdowns need a 3rd hue that isn't a full extra ramp).
      NEVER use teal in UI chrome (buttons, links, nav); reserve for charts only. */
   --color-accent-teal: #2dd4bf;
 
-  /* â”€â”€ Accessibility Notes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  /* ── Accessibility Notes ──────────────────────────────────
      All colors validated for:
-     â€¢ WCAG AA contrast (4.5:1 normal text, 3:1 large/UI)
-     â€¢ Color-blind safe: Never red-green-only differentiation
+     • WCAG AA contrast (4.5:1 normal text, 3:1 large/UI)
+     • Color-blind safe: Never red-green-only differentiation
        (deuteranopia/protanopia ~8% of men)
-     â€¢ All text on brand/cta colors is white or high-contrast (no exceptions)
-     â€¢ Icons + text always accompany color signals (never color alone)
+     • All text on brand/cta colors is white or high-contrast (no exceptions)
+     • Icons + text always accompany color signals (never color alone)
      Remember: OKLCH lightness (L) is the primary contrast driver. */
 
-  /* Bouncy overshoot easing â€” the app-wide "fun" press feel */
+  /* Bouncy overshoot easing — the app-wide "fun" press feel */
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* Rotating brand hue â€” every time the user flips light<->dark, ThemeContext
+/* Rotating brand hue — every time the user flips light<->dark, ThemeContext
    picks a new hue for the mode being entered (never the one that mode had
    last time) and writes it here, so the whole brand-600/cta-600/etc. ramp
    above recomputes and the new color persists (not just for the switch
-   animation). --cta-h is a fixed triadic partner of --brand-h (-120Â°) so
+   animation). --cta-h is a fixed triadic partner of --brand-h (-120°) so
    accent and "positive action" green stay in a coherent relationship as
    both rotate. Defaults below match the original fixed purple/green and
    are only overridden once the user actually toggles (see localStorage
@@ -81,7 +81,7 @@
   --cta-h: 142;
 }
 
-/* Neumorphic surface â€” the putty base + its dual shadow pair. Light and
+/* Neumorphic surface — the putty base + its dual shadow pair. Light and
    dark get their own tuned values (not just inverted lightness) so the
    dual shadow reads soft in both. Everything outside the auth shell
    (which is a deliberately fixed-dark surface, see .auth-card-shell)
@@ -91,7 +91,7 @@
   --neu-sd: rgba(15, 23, 42, 0.2);
   --neu-sl: rgba(255, 255, 255, 0);
 }
-/* :root.dark (not :where(.dark)) â€” :where() zeroes specificity, which would
+/* :root.dark (not :where(.dark)) — :where() zeroes specificity, which would
    lose to the plain :root rule above regardless of source order. */
 :root.dark {
   --neu-bg: #1a2029;
@@ -100,7 +100,7 @@
 }
 
 /* --neu-sd is now a semi-transparent dark color (pronounced drop shadow on
-   flat white cards/buttons) rather than a solid light gray â€” great at card
+   flat white cards/buttons) rather than a solid light gray — great at card
    scale, but an *inset* shadow of it fills a whole small input with a muddy
    wash instead of reading as a crisp white field. Light mode only: give
    inputs a plain border instead of inheriting that inset shadow. Dark
@@ -117,7 +117,7 @@
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-cta-600) 35%, transparent);
 }
 
-/* Soap-sheen hue arc â€” bounded purpleâ†’pinkâ†’blueâ†’purple (real soap-film
+/* Soap-sheen hue arc — bounded purple→pink→blue→purple (real soap-film
    interference stays in one band, never a full rainbow). Registered once,
    globally, so any surface can ride it via hsl(var(--iri-h) ...) and pick
    up smooth interpolation instead of a hard jump between keyframe steps. */
@@ -135,11 +135,11 @@
 @layer base {
   html {
     scroll-behavior: smooth;
-    /* No global overflow-x guard existed at all â€” any element even
+    /* No global overflow-x guard existed at all — any element even
        slightly wider than the viewport (a carousel row, a fixed-width
        chip strip, a stray negative margin) made the ENTIRE page
        side-scrollable with no clipping anywhere in the chain. This is a
-       standard safety net, not a fix for a specific offender â€” individual
+       standard safety net, not a fix for a specific offender — individual
        horizontally-scrolling components (the map's snap carousels, etc.)
        keep working since they scroll internally, this only stops that
        overflow from leaking out to the page itself. */
@@ -189,7 +189,7 @@
     transform: scale(0.94);
   }
 
-  /* Money-moving actions (pay, book, create account) stay solid-filled â€”
+  /* Money-moving actions (pay, book, create account) stay solid-filled —
      visibility matters more than the neumorphic idiom here. Everything
      else (.btn-brand, .btn-outline) gets the neutral raised/pressed
      treatment so the CTA is the one thing that visually pops. */
@@ -210,7 +210,7 @@
     box-shadow: inset 3px 3px 7px var(--neu-sd), inset -3px -3px 7px var(--neu-sl);
   }
 
-  /* Gradient fills â€” oklch keeps the blend clean. */
+  /* Gradient fills — oklch keeps the blend clean. */
   .btn-brand-gradient {
     background-image: linear-gradient(135deg in oklch, var(--color-brand-700), var(--color-brand-600));
     @apply text-white focus-visible:ring-brand-600;
@@ -228,8 +228,8 @@
   }
 
   /* Has its own label text ("Exit demo" etc.) rather than being a field to
-     type into, so it reads as a little raised button â€” outward by default,
-     like .btn-brand â€” not a pressed-in well. The gradient is a glass/plastic
+     type into, so it reads as a little raised button — outward by default,
+     like .btn-brand — not a pressed-in well. The gradient is a glass/plastic
      sheen (lighter top edge, darker bottom) over the same --neu-bg any
      neumorphic surface uses. On press it dips inward AND flashes a glow in
      whatever hue --color-brand-* currently resolves to (the app's live
@@ -277,7 +277,7 @@
       0 0 0 3px color-mix(in srgb, var(--color-cta-600) 35%, transparent);
   }
 
-  /* Flat variant â€” same shape/type as .input, no inset neumorphic depth.
+  /* Flat variant — same shape/type as .input, no inset neumorphic depth.
      A solid tinted fill instead (color-mixed off --neu-bg, darker in light
      mode / lighter in dark mode) so it still reads as a distinct field
      against the card behind it, just flush rather than pressed-in. */
@@ -294,11 +294,11 @@
     @apply mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300;
   }
 
-  /* Auto-scrolling one-liner (see MarqueeText.jsx) â€” only applied once JS
+  /* Auto-scrolling one-liner (see MarqueeText.jsx) — only applied once JS
      measures real overflow, so text that already fits never animates.
      Single direction, constant slow speed (--marquee-duration scales with
      distance in JS): dwells at the start, scrolls left once, dwells at the
-     full-scrolled end, then the loop resets straight to the start â€” no
+     full-scrolled end, then the loop resets straight to the start — no
      animated return trip. prefers-reduced-motion is handled globally above. */
   .marquee-text {
     display: inline-block;
@@ -326,7 +326,7 @@
     box-shadow: 10px 10px 22px var(--neu-sd), -10px -10px 22px var(--neu-sl);
   }
 
-  /* Premium Full Detail â€” gradient glow surrounding the card.
+  /* Premium Full Detail — gradient glow surrounding the card.
      Wraps the .card so the card's own neumorphic surface stays intact
      while the wrapper provides the border + outer aura. Shadow now
      MOVES too via a blurred ::before that drifts the same gradient. */
@@ -374,10 +374,10 @@
     @apply border border-white/20 bg-white/10 backdrop-blur-md;
   }
 
-  /* â”€â”€ Glass layer (map overlays only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  /* ── Glass layer (map overlays only) ─────────────────────
      Light frosted panel for anything floating over Mapbox tiles.
      The >=60% white fill + heavy blur keeps dark text at 4.5:1
-     over any tile. Labels and numbers only â€” never body text. */
+     over any tile. Labels and numbers only — never body text. */
   .glass-panel {
     background: rgba(255, 255, 255, 0.62);
     -webkit-backdrop-filter: blur(16px) saturate(1.5);
@@ -391,7 +391,7 @@
     @apply border-white/12 text-slate-100 shadow-black/40;
   }
 
-  /* â”€â”€ Clay layer (Rewards + gamified surfaces only) â”€â”€â”€â”€â”€â”€â”€
+  /* ── Clay layer (Rewards + gamified surfaces only) ───────
      Soft-extruded cards: outer drop + double inset (light top,
      brand-tint bottom) reads as pressed clay. Keep type dark
      purple on the pastel surfaces for contrast. */
@@ -463,7 +463,7 @@
       inset 0 -3px 6px rgba(0, 0, 0, 0.3);
   }
 
-  /* â”€â”€ Bento layer (earnings + admin cockpits) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  /* ── Bento layer (earnings + admin cockpits) ─────────────
      Weighted tiles; mixed sizes carry the hierarchy. One accent
      action tile max per grid. */
   .bento-tile {
@@ -505,7 +505,7 @@
      math. Add .rounded-concentric-uniform instead (mirrors SwiftUI's
      isUniform: true) when asymmetric corners would look inconsistent next
      to something else round on the same row (e.g. a pill button beside a
-     popover arrow) â€” it uses the single tightest edge for all four
+     popover arrow) — it uses the single tightest edge for all four
      corners so nothing looks more round than its most-constrained side. */
   .rounded-concentric {
     --ct: var(--concentric-inset-top, var(--concentric-inset, 2rem));
@@ -527,7 +527,7 @@
     border-radius: max(var(--concentric-min, 12px), calc(var(--concentric-outer, 1.5rem) - max(var(--ct), var(--cr), var(--cb), var(--cl)))) !important;
   }
 
-  /* â”€â”€ Skeleton bones â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  /* ── Skeleton bones ──────────────────────────────────────
      Purple-tinted shimmer; bones must match the loaded card's
      dimensions 1:1 so the swap never shifts layout. */
   .skeleton-bone {
@@ -545,9 +545,9 @@
     @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold;
   }
 
-  /* â”€â”€ Auth card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ── Auth card ──────────────────────────────────────────── */
   /* The form itself (buttons, labels, error text below) is SHARED between
-     two very different homes: this standalone full-page shell (mobile â€”
+     two very different homes: this standalone full-page shell (mobile —
      now a white background with floating HeroBubbles, per the "make it
      match the mobile welcome screen" ask), and embedded read-only inside
      DesktopLanding's own dark panel (standalone=false, no .auth-card-shell
@@ -556,7 +556,7 @@
      exactly what the embedded desktop context gets by default) that this
      shell alone overrides to a light palette. This is why the rules below
      use var(--auth-x, <dark default>) instead of plain Tailwind color
-     utilities â€” a plain `text-white` can't be un-done per-context, a CSS
+     utilities — a plain `text-white` can't be un-done per-context, a CSS
      variable can. */
   :root {
     --auth-text: #fff;
@@ -596,24 +596,24 @@
     @apply relative isolate flex min-h-dvh items-center justify-center overflow-hidden px-4 py-12;
   }
 
-  /* No card bg â€” content floats directly on the shell (the HeroBubbles
-     canvas, mounted in AuthCard.jsx, is what actually renders the drift â€”
+  /* No card bg — content floats directly on the shell (the HeroBubbles
+     canvas, mounted in AuthCard.jsx, is what actually renders the drift —
      see Welcome.jsx's hero for the same pattern this was copied from). */
   .auth-card {
     @apply relative z-10 w-full max-w-sm px-6 pt-10 pb-8 flex flex-col;
   }
 
   /* Glass card surface for the standalone mobile shell only (DesktopLanding's
-     embedded use never applies this class â€” see AuthCard.jsx). MethodButton
+     embedded use never applies this class — see AuthCard.jsx). MethodButton
      loses its own border/shadow when nested in here (.auth-card-surface
-     .auth-method-btn below) â€” this card is the one depth layer, not a card
+     .auth-method-btn below) — this card is the one depth layer, not a card
      holding cards. */
   .auth-card-surface {
     @apply rounded-3xl border border-white/60 bg-white/70 shadow-xl shadow-brand-900/5 backdrop-blur-md;
   }
   /* !important: MethodButton's own border/bg/shadow ride in via Tailwind
      utility classes on the element, which live in Tailwind's utilities
-     layer â€” that layer always wins over @layer components regardless of
+     layer — that layer always wins over @layer components regardless of
      selector specificity, so a plain override here would silently no-op. */
   .auth-card-surface .auth-method-btn {
     border-color: transparent !important;
@@ -634,7 +634,7 @@
     @apply text-xs tracking-wide;
   }
 
-  /* mode toggle â€” big pill, bottom of primary nav zone */
+  /* mode toggle — big pill, bottom of primary nav zone */
   .auth-toggle {
     @apply flex gap-1 rounded-2xl bg-slate-100 p-1 mb-2;
   }
@@ -651,7 +651,7 @@
     @apply text-slate-500 hover:text-slate-700;
   }
 
-  /* method tabs â€” smaller, tight below mode toggle */
+  /* method tabs — smaller, tight below mode toggle */
   .auth-method-tabs {
     @apply flex gap-1 rounded-xl bg-slate-100 p-1 mb-5;
   }
@@ -679,7 +679,7 @@
     background: var(--auth-bg, #1a2029);
     color: var(--auth-text, #fff);
     /* text-base, not text-sm: iOS Safari auto-zooms the page on focus of
-       any input under 16px, and doesn't reset it back â€” every login was
+       any input under 16px, and doesn't reset it back — every login was
        triggering an unwanted pinch-zoom that stuck around. */
     @apply h-11 w-full rounded-xl px-3.5 text-base transition-all duration-150 focus:outline-none;
     box-shadow: inset 3px 3px 7px var(--auth-sd, #0e1218), inset -3px -3px 7px var(--auth-sl, #262e3a);
@@ -758,7 +758,7 @@
 
 @layer utilities {
   /* Hides the scrollbar on a scrollable container without disabling scroll
-     â€” used by wheel-style pickers (TimePicker) where a visible scrollbar
+     — used by wheel-style pickers (TimePicker) where a visible scrollbar
      would break the illusion of a spinning dial. */
   .no-scrollbar {
     scrollbar-width: none;
@@ -795,7 +795,7 @@
 
   /* Dynamic paint theming: the customer's car color lives in --accent
      (set by PaintContext). --accent-ink is a contrast-safe text color the
-     component picks. Only personal surfaces read these â€” never chrome. */
+     component picks. Only personal surfaces read these — never chrome. */
   .paint-surface {
     background: linear-gradient(150deg, var(--accent, #7c3aed), color-mix(in oklab, var(--accent, #7c3aed), black 38%));
     color: #fff;
@@ -842,7 +842,7 @@
     animation: shimmer 5s linear infinite;
   }
 
-  /* â”€â”€ Slow color drift â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  /* ── Slow color drift ─────────────────────────────────────────────────────
      Starts purple, drifts through the hue spectrum so slowly the shift is
      imperceptible frame-to-frame (only obvious if you compare over minutes).
      hue-rotate is GPU-accelerated, cheap, mobile-safe.
@@ -865,7 +865,7 @@
     @apply mb-2 inline-block text-xs font-semibold uppercase tracking-[0.2em] text-brand-600;
   }
 
-  /* â”€â”€ Job progress: 3D ball tracker â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  /* ── Job progress: 3D ball tracker ───────────────────────────────────────
      Glossy sphere that rides a pill track and pops above it (ball diameter
      > track height). .job-progress-fill covers real progress (stageIdx);
      the ball follows the preview cursor (shownStage), which can lead or
@@ -884,13 +884,13 @@
     background: linear-gradient(90deg, var(--color-cta-600), var(--color-cta-500));
     transform-origin: left center;
   }
-  /* 2.75rem (44px) hit area â€” the 1.75rem track height only drove the old
+  /* 2.75rem (44px) hit area — the 1.75rem track height only drove the old
      visible size, not the tap target, so it silently shipped below the
      product's own 44px minimum. Background stays transparent, so the
      bigger hit area doesn't change how the track looks, only how forgiving
      it is to tap. Text color is set per-state from JSX (filled vs upcoming)
      instead of mix-blend-mode, which produced a different composited color
-     depending on what's beneath each tick â€” impossible to verify contrast
+     depending on what's beneath each tick — impossible to verify contrast
      on statically. */
   .job-progress-tick {
     position: absolute;
@@ -935,10 +935,10 @@
       inset 3px 4px 6px rgba(255, 255, 255, 0.65);
   }
 
-  /* â”€â”€ Ambient glow â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  /* ── Ambient glow ─────────────────────────────────────────────────────────
      Soft radial halo behind important elements. The glow lives on a blurred
      ::before so only opacity/transform animate (GPU-cheap, mobile-safe).
-     Usage: <button class="btn btn-cta glow-cta glow-pulse">â€¦</button>
+     Usage: <button class="btn btn-cta glow-cta glow-pulse">…</button>
      The host needs a stacking context; .glow-* sets position + isolation. */
   .glow-brand,
   .glow-cta {
@@ -972,9 +972,9 @@
     50%      { opacity: 0.7; transform: scale(1.06); }
   }
 
-  /* â”€â”€ OTP segmented input â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  /* ── OTP segmented input ──────────────────────────────────────────────────
      Neumorphic: pressed-in boxes carved from the same dark asphalt surface
-     as the shell â€” no border, contrast comes from the dual inset shadow.
+     as the shell — no border, contrast comes from the dual inset shadow.
      Cyan ring on focus/fill, red ring only on a real mismatch. */
   .otp-box {
     border: none;
@@ -1004,7 +1004,7 @@
       0 0 0 3px rgba(248, 113, 113, 0.5);
     animation: otp-shake 0.3s ease-in-out;
   }
-  /* Pulsing lock badge above the OTP boxes â€” pressed-in circle, cyan icon,
+  /* Pulsing lock badge above the OTP boxes — pressed-in circle, cyan icon,
      soft blurred glow behind it (reuses glow-pulse's keyframe). */
   .otp-lock-badge {
     border: none;
@@ -1041,7 +1041,7 @@
   }
 }
 
-/* â”€â”€ Invoice print â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+/* ── Invoice print ──────────────────────────────────────────────────────────
    The printable invoice lives in the DOM (id="invoice-print") but is hidden on
    screen via the .invoice-print-host class. When printing, hide everything else
    and reveal only the invoice so "Save as PDF" produces a clean document. */
@@ -1067,9 +1067,9 @@
   }
 }
 
-/* â”€â”€ Invoice receipt â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+/* ── Invoice receipt ──────────────────────────────────────────────────────
    On-screen-only "ticket sliding out of a slot" view (InvoiceReceipt).
-   Printing still uses the plain InvoicePrintable doc above â€” this is purely
+   Printing still uses the plain InvoicePrintable doc above — this is purely
    the delightful on-screen presentation. Neumorphic: the slot is a deep
    brand-purple holder, the ticket itself reads through --neu-bg/shadow like
    every other surface, light and dark. */
@@ -1108,7 +1108,7 @@
 .receipt-title::before { top: 0; }
 .receipt-title::after { bottom: 0; }
 
-/* â”€â”€ Admin claymorphism â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+/* ── Admin claymorphism ─────────────────────────────────────────────────────
    Scoped to .admin-clay (set once on AdminShell's root) so customer/detailer
    UI is untouched. Puffy pastel surfaces: soft dual shadows instead of hard
    borders, bigger radii, inputs read as pressed-in rather than outlined. */
@@ -1218,11 +1218,11 @@
     inset -2px -2px 5px rgba(255, 255, 255, 0.25);
 }
 
-/* â”€â”€ Analytics: neumorphism â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+/* ── Analytics: neumorphism ────────────────────────────────────────────────
    Admin + detailer Analytics cards, built on the same shared --neu-* tokens
    as every other raised surface in the app (.bento-tile, .card, ...) so they
    follow the light/dark toggle like everything else instead of staying
-   fixed-dark â€” unlike .auth-card-shell, this isn't a deliberately separate
+   fixed-dark — unlike .auth-card-shell, this isn't a deliberately separate
    world, it's a dashboard people expect to match their theme. */
 .nx-card {
   background: var(--neu-bg);
@@ -1254,7 +1254,7 @@
   color: var(--color-cta-500);
 }
 
-/* â”€â”€ Bottom tab bar: sliding notch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+/* ── Bottom tab bar: sliding notch ────────────────────────────────────────
    Shared by every role's mobile bottom bar (BottomTabBar.jsx). A circular
    cutout slides to the active tab via a radial-gradient mask keyed to
    --tab-notch-x (registered with @property so the browser can animate it
@@ -1264,7 +1264,7 @@
    manual class toggling.
 
    The mask lives on .bottom-tabbar-bg, a separate absolutely-positioned
-   layer behind the real <nav> â€” NOT on the nav itself. mask-image cuts a
+   layer behind the real <nav> — NOT on the nav itself. mask-image cuts a
    hole through an element's entire painted subtree, so masking the nav
    directly was erasing the bubble too (it's a child of the nav), leaving a
    dim, semi-transparent dip right where the bubble was supposed to read as
@@ -1281,7 +1281,7 @@
   mask-image: radial-gradient(circle 22px at var(--tab-notch-x) -4px, transparent 98%, black 100%);
 }
 
-/* Water-droplet tab bubble: classic pin/teardrop recipe â€” three round
+/* Water-droplet tab bubble: classic pin/teardrop recipe — three round
    corners and one sharp corner, then rotated -45deg so the sharp corner
    points straight down into the notch (icon sits unrotated on top, it's a
    sibling, not nested inside this shape). */
@@ -1289,16 +1289,16 @@
    re-colors with the mode-toggle rotation) instead of the old
    same-as-background neumorphic surface, which was only visible via its
    drop shadow and read as barely-there. */
-/* â”€â”€ Profile identity card: notched avatar cutout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+/* ── Profile identity card: notched avatar cutout ─────────────────────────
    Same mask-a-separate-background-layer trick as the bottom tab bar above,
    applied to DetailerProfileEditor's identity card: instead of the avatar
    just floating on top of an intact card edge, the card's top edge is
-   carved into a circular notch that the avatar sits straddling â€” half
-   above the card, half inside the cutout â€” like the tab bubble popping
+   carved into a circular notch that the avatar sits straddling — half
+   above the card, half inside the cutout — like the tab bubble popping
    through its notch.
 
    Split across two stacked layers, not one: mask-image suppresses an
-   element's own box-shadow entirely in this engine (verified â€” a masked
+   element's own box-shadow entirely in this engine (verified — a masked
    box's shadow doesn't render at all, even on the sides nowhere near the
    cutout), so .nx-card-notch-shadow (unmasked, casts the drop shadow) sits
    behind .nx-card-notch-bg (masked, carries the fill + cutout, no shadow
@@ -1310,7 +1310,7 @@
    --tilt-x/--tilt-y are set on the .relative ancestor by useTiltShadow() from
    the phone's live orientation (they're inherited custom properties, hence no
    fallback needed here beyond the hook's own `var(x, 0px)` default on desktop
-   where the hook never runs) â€” tilting the phone shifts both shadow layers so
+   where the hook never runs) — tilting the phone shifts both shadow layers so
    the card reads as catching light from a fixed overhead source. */
 .nx-card-notch-shadow {
   box-shadow:
@@ -1333,7 +1333,7 @@
     inset -2px -3px 6px rgba(255, 255, 255, 0.12);
 }
 
-/* Puddle wrapper â€” the droplet spreads flat on press and casts a wider,
+/* Puddle wrapper — the droplet spreads flat on press and casts a wider,
    wetter pool of shadow onto the bar. A separate pseudo-element carries the
    splat shadow so it can scale with the puddle without clipping against the
    droplet's own box-shadow above. */
@@ -1353,19 +1353,19 @@
   z-index: -1;
 }
 
-/* Idle wobble â€” surface tension holding a blob together in freefall, where
+/* Idle wobble — surface tension holding a blob together in freefall, where
     nothing pulls it into a fixed shape so it keeps redistributing. Only the
     three ROUND corners drift; the fourth stays a hard 4px point, because
     that point (rotated -45deg by the element) is what makes this read as a
     droplet rather than a circle. Border-radius doesn't trigger layout, and
     the element's transform is left untouched so BottomTabBar's velocity
     physics can own it without fighting this.
-    This CSS wobble was never the twitch users kept reporting â€” it's a fixed,
+    This CSS wobble was never the twitch users kept reporting — it's a fixed,
     bounded keyframe loop, always smooth. The real cause was a numerically
     unstable integration in BottomTabBar.jsx's squash-follower rAF loop
     (explicit Euler on a stiff filter, unstable at a 60Hz frame step) that
     blew up to a permanently maxed-out, frame-alternating squash+tilt on top
-    of this animation â€” see the fix there. With that fixed, this keyframe
+    of this animation — see the fix there. With that fixed, this keyframe
     stays a deliberately lively "never fully settled" blob. */
 @keyframes nx-drop-idle {
   0%,
@@ -1391,7 +1391,7 @@
   }
 }
 /* The slow vertical drift is lifted from the parallel implementation this
-    replaced (b722b2e) â€” the shape wobble alone left it feeling pinned to the
+    replaced (b722b2e) — the shape wobble alone left it feeling pinned to the
     bar, and a couple of pixels of float is what makes it read as suspended.
     Deliberately a different period from the shape morph (2.1s vs 3.4s) so the
     two never sync into an obvious loop. Runs on the wrapper, not the droplet
@@ -1418,7 +1418,7 @@
   animation: nx-drop-float 5s ease-in-out infinite;
 }
 
-/* Active-icon warp â€” the glyph rides INSIDE the droplet and squishes and
+/* Active-icon warp — the glyph rides INSIDE the droplet and squishes and
    stretches in lockstep with the blob's idle morph (same duration +
    percentages as nx-drop-idle) so it feels part of the liquid body.
    Scale-only, no skew: the refraction/shear was dropped deliberately so the
@@ -1474,7 +1474,7 @@
 }
 
 /* Driplee's face, riding inside a live .nx-tab-drop blob the same way the nav
-   icon does (see .nx-tab-drop-icon above) â€” counter-rotated +45deg so the
+   icon does (see .nx-tab-drop-icon above) — counter-rotated +45deg so the
    eyes stay level while the body wobbles, sized off --drew-size so one
    component works at any scale (top-bar icon vs. centered panel avatar). */
 .drew-eyes {
@@ -1489,7 +1489,7 @@
   pointer-events: none;
 }
 /* Two nested elements per eye so "look around" (translate, on the outer
-   wrapper) and "blink" (scaleY, on the inner dot) can animate at once â€”
+   wrapper) and "blink" (scaleY, on the inner dot) can animate at once —
    both set `transform`, and CSS animations targeting the same property on
    ONE element replace rather than compose, so they have to live on
    different elements to actually combine. */
@@ -1517,7 +1517,7 @@
   95% { transform: scaleY(0.08); }
   97% { transform: scaleY(1); }
 }
-/* "Looking around" â€” a small lateral+vertical drift, holding each glance
+/* "Looking around" — a small lateral+vertical drift, holding each glance
    briefly before drifting on, rather than a smooth continuous orbit. */
 @keyframes drew-look {
   0%, 100% { transform: translate(0, 0); }
@@ -1536,7 +1536,7 @@
   }
 }
 
-/* Muted Driplee â€” for a past chat message once a newer reply has taken over
+/* Muted Driplee — for a past chat message once a newer reply has taken over
    as "the" active mascot. Same blob body/wobble, desaturated to slate and
    eyes hidden, so only the most recent reply reads as the "live" character
    and a long conversation doesn't turn into a wall of identical pink faces. */
@@ -1548,7 +1548,7 @@
     inset -2px -3px 6px rgba(255, 255, 255, 0.08);
 }
 
-/* Bo (formerly Bobly) â€” the public-site concierge mascot (BoBlob.jsx),
+/* Bo (formerly Bobly) — the public-site concierge mascot (BoBlob.jsx),
    replacing Driplee on the marketing-site widget; Driplee stays the in-app
    character (DrewLauncher.jsx). Same idea as .nx-tab-drop above (live blob
    body + eyes riding inside it, sized off one custom property) but a
@@ -1571,7 +1571,7 @@
     inset -4px -6px 12px color-mix(in srgb, var(--color-brand-700) 12%, transparent);
 }
 
-/* Gentle squash/stretch "breathing" instead of the droplet's corner morph â€”
+/* Gentle squash/stretch "breathing" instead of the droplet's corner morph —
    a sphere has no point to hold onto, so the idle life comes from scale
    alone, staying a circle the whole time. */
 @keyframes nx-bo-idle {
@@ -1594,7 +1594,7 @@
   }
 }
 
-/* Bo's eyes â€” same two-layer look/blink recipe as .drew-eye above (reuses
+/* Bo's eyes — same two-layer look/blink recipe as .drew-eye above (reuses
    drew-look/drew-blink directly), just rounded-rectangle instead of full
    ovals, and sized off --bo-size instead of --drew-size so one component
    works at any scale (launcher FAB vs. in-chat avatar). No counter-rotation
@@ -1618,7 +1618,7 @@
 .bo-eye-look + .bo-eye-look {
   animation-delay: -1.6s;
 }
-/* Finger/cursor gaze â€” pause idle wander while tracking; blink stays on. */
+/* Finger/cursor gaze — pause idle wander while tracking; blink stays on. */
 .nx-bo-looking .bo-eye-look {
   animation: none;
 }
@@ -1642,7 +1642,7 @@
   }
 }
 
-/* Bo tuxedo â€” bottom-quarter wrap only (still a circle, not a human body).
+/* Bo tuxedo — bottom-quarter wrap only (still a circle, not a human body).
    Soft black jacket mass at the south pole; lapels/shirt/bow sit inside that
    ~25% band so most of the pink soap-bubble stays visible above. */
 .bo-suit {
@@ -1727,7 +1727,7 @@
 }
 
 
-/* Bo sparkles â€” tiny 4-point diamonds around the live bubble (not muted).
+/* Bo sparkles — tiny 4-point diamonds around the live bubble (not muted).
    Sized off --bo-size so FAB (64) and chat avatar (28/44) scale together.
    Positions sit ABOVE the tuxedo bottom-quarter so they don't fight the suit. */
 .bo-sparkle {
@@ -1767,7 +1767,7 @@
   animation-delay: -1.1s;
 }
 .bo-sparkle-bl {
-  /* above tuxedo (~25% band) â€” mid-lower left */
+  /* above tuxedo (~25% band) — mid-lower left */
   top: 58%;
   left: 4%;
   width: calc(var(--bo-size, 44px) * 0.06);
@@ -1795,7 +1795,7 @@
   }
 }
 
-/* Muted Bo â€” same treatment as .nx-tab-drop-muted, for a past chat message
+/* Muted Bo — same treatment as .nx-tab-drop-muted, for a past chat message
    once a newer reply has taken over as "the" active mascot. */
 .nx-bo-bubble-muted {
   background:
@@ -1808,30 +1808,30 @@
     inset -2px -3px 6px rgba(255, 255, 255, 0.08);
 }
 
-/* â”€â”€ Leaflet map: pins, user location, grow-in popups â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+/* ── Leaflet map: pins, user location, grow-in popups ─────────────────────
    The discovery map (DetailerMap) is Leaflet + OpenStreetMap. Pins and the
    user-location dot are divIcons styled here; the native popup grows in with
    a springy scale (transform-origin bottom, so it appears to pop out of the
    pin). Leaflet positions .leaflet-popup via transform, so the grow animates
    the inner wrapper/tip instead to avoid fighting that. */
 /* Leaflet's own default is a hardcoded light grey (#ddd), which briefly
-   flashes through on slow connections before tiles finish loading â€” reads
+   flashes through on slow connections before tiles finish loading — reads
    as "wrong theme" against a dark UI. Match it to --neu-bg so the loading
    flash is at least the right shade regardless of network speed. */
 .leaflet-container {
   background: var(--neu-bg);
 }
 
-/* Abstract-poster map skin â€” real street tiles still drive panning/zoom/
+/* Abstract-poster map skin — real street tiles still drive panning/zoom/
    pin placement, but the tile pane itself (never the marker/popup panes,
    so pins stay crisp) runs through an SVG filter (#nx-map-abstract,
    defined in DetailerMap.jsx) that boosts saturation then posterizes each
    channel to a handful of flat steps. Smooth photographic gradients and
-   fiddly street detail collapse into big, bold color zones â€” reads as a
+   fiddly street detail collapse into big, bold color zones — reads as a
    graphic illustration rather than a literal readable street map, in both
    themes, whatever the underlying tile provider's actual palette is.
    Gated to iOS only (.nx-map-native class name kept as-is, see DetailerMap.jsx
-   isIOS check) â€” Android WebView and desktop Chrome/Firefox/Edge all clip or
+   isIOS check) — Android WebView and desktop Chrome/Firefox/Edge all clip or
    over-expose this posterize+saturate combo instead of producing the flat
    color zones it renders correctly on iOS Safari/WKWebView. */
 .nx-map-native .leaflet-tile-pane {
@@ -1861,7 +1861,7 @@
 .nx-map-pin:hover {
   transform: scale(1.15);
 }
-/* A detailer promoting a service gets a gold ring on their map pin â€” same
+/* A detailer promoting a service gets a gold ring on their map pin — same
    gold as the "Promote this" outline on the onboarding/profile-editor card,
    so the visual language matches wherever it shows up. */
 .nx-map-pin--promoted {
@@ -1869,7 +1869,7 @@
   box-shadow: 0 0 0 2px #f5b942, 0 1px 4px rgba(0, 0, 0, 0.4);
 }
 
-/* Cluster pill â€” replaces a tight group of pins at low zoom with one
+/* Cluster pill — replaces a tight group of pins at low zoom with one
    marker showing how many detailers are in that spot. Same solid-circle +
    white-ring + drop-shadow language as .nx-map-pin (not the app's
    neumorphic chrome) so it still reads as "a map marker," just for a
@@ -1900,7 +1900,7 @@
   box-shadow: 0 0 0 2px #f5b942, 0 2px 8px rgba(0, 0, 0, 0.35);
 }
 
-/* "You are here" â€” the ripple carries the soap-sheen hue arc (same
+/* "You are here" — the ripple carries the soap-sheen hue arc (same
    @property --iri-h as the Soft System toggle) since a pulsing ring
    reads naturally as a bubble; the solid center dot stays put on one
    hue so the marker itself is still legible at a glance. */
@@ -1930,7 +1930,7 @@
   75%, 100% { transform: scale(2.6); opacity: 0; }
 }
 
-/* Free-travel-radius "radar" ring â€” the fixed geo-accurate circle (drawn by
+/* Free-travel-radius "radar" ring — the fixed geo-accurate circle (drawn by
    Leaflet as an <svg> path in DetailerMap.jsx) gets a breathing fill/stroke
    pulse layered on top so it reads as an active radar sweep rather than a
    static boundary line. Animating opacity/stroke instead of transform:scale
@@ -1943,10 +1943,10 @@
   50% { stroke-opacity: 0.35; fill-opacity: 0.14; }
 }
 
-/* En-route live map (EnRouteTracker.jsx) â€” the detailer's chosen vehicle
+/* En-route live map (EnRouteTracker.jsx) — the detailer's chosen vehicle
    emoji as a moving marker, and a plain pin for the destination (the
    customer's address). Both intentionally skip the abstract-poster filter
-   (.nx-map-plain, applied by EnRouteTracker) â€” a real street map reads
+   (.nx-map-plain, applied by EnRouteTracker) — a real street map reads
    better than the illustration skin at this small a size. */
 .nx-vehicle-marker {
   display: flex;
@@ -2054,7 +2054,7 @@
 .dark .nx-pop-services { border-top-color: rgba(255, 255, 255, 0.1); }
 .dark .nx-pop-services li { color: #cbd5e1; }
 
-/* â”€â”€ Neumorphic map chrome â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+/* ── Neumorphic map chrome ─────────────────────────────────────────────────
    Same raised/pressed --neu-* language as the rest of the app (buttons,
    inputs, cards) instead of the liquid-glass look, for the filter chips and
    locate-me button floating over the map. The search bar itself just uses
@@ -2071,7 +2071,7 @@
     inset -2px -2px 5px rgba(76, 29, 149, 0.4);
 }
 
-/* â”€â”€ Theme toggle: wave wipe â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+/* ── Theme toggle: wave wipe ───────────────────────────────────────────────
    ThemeToggle.jsx starts a View Transition and stamps the click point into
    --theme-wave-*; the new-theme snapshot is clipped to a growing circle
    anchored there so the theme change visibly washes across the screen from
@@ -2099,8 +2099,8 @@
 /* The incoming theme starts visibly hue-rotated (a random point on the arc,
    set by ThemeToggle.jsx via --theme-wave-hue) and settles to its true
    colors as the wipe finishes, so the reveal itself carries a passing
-   iridescent sheen â€” same soap-film idea as the login wipe and the map's
-   "you are here" pulse â€” instead of swapping flatly to the new palette.
+   iridescent sheen — same soap-film idea as the login wipe and the map's
+   "you are here" pulse — instead of swapping flatly to the new palette.
    Lives on ::view-transition-new(root) rather than a regular element
    because view-transition pseudo-elements paint in the browser's top
    layer, above all normal DOM (including high z-index fixed elements). */
@@ -2110,7 +2110,7 @@
 }
 
 /* Booking wizard day-strip weather glyphs (WeatherGlyph in
-   BookingWizard.jsx) â€” the sun "breathes" hotter/faster the higher the
+   BookingWizard.jsx) — the sun "breathes" hotter/faster the higher the
    forecast temp, the snowflake spins faster the colder. Duration is set
    inline per-instance (scaled by how extreme the temp is); these keyframes
    just define the motion shape. */

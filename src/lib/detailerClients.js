@@ -739,7 +739,7 @@ export async function fetchDetailerChargesForClient(clientId) {
     .select(CHARGE_COLS)
     .eq('client_id', clientId)
     .order('created_at', { ascending: false })
-  // Graceful if migration 092 not applied yet.
+  // Graceful if migration 096 not applied yet.
   if (error && /charge_kind|hold_/i.test(error.message || '')) {
     ;({ data, error } = await supabase
       .from('detailer_charges')
@@ -833,7 +833,7 @@ export async function fetchDetailerDepositHoldTimes(detailerId, dateKey) {
 /**
  * Offline / pre-Stripe stub: insert a pending deposit row that holds the slot.
  * Pay URL matches /pay/:chargeId; PayCharge needs a Stripe PI (live path) to collect.
- * Requires migration 092 + detailer JWT insert policy on detailer_charges.
+ * Requires migration 096 + detailer JWT insert policy on detailer_charges.
  */
 export async function createPendingDepositHoldStub({
   detailerId,
@@ -867,7 +867,7 @@ export async function createPendingDepositHoldStub({
     .single()
   if (error) {
     if (/charge_kind|hold_/i.test(error.message || '')) {
-      throw new Error('Deposit slot holds need migration 092 applied first.')
+      throw new Error('Deposit slot holds need migration 096 applied first.')
     }
     throw error
   }

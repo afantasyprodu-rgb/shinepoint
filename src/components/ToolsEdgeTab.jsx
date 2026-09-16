@@ -14,7 +14,7 @@ export default function ToolsEdgeTab({ onOpen, ariaLabel, label }) {
   const openedByGesture = useRef(false)
 
   const DISTANCE_PX = 50
-  const VELOCITY = 0.45 // px/ms â‰ˆ 450px/s
+  const VELOCITY = 0.45 // px/ms ≈ 450px/s
 
   function open() {
     onOpen?.()
@@ -64,7 +64,7 @@ export default function ToolsEdgeTab({ onOpen, ariaLabel, label }) {
       open()
       return
     }
-    // Tap / short press â€” treat as open (also covered by onClick).
+    // Tap / short press — treat as open (also covered by onClick).
     if (wasTracking && Math.hypot(dx, dy) < 12) {
       open()
     }
