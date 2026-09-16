@@ -175,6 +175,16 @@ let lastSlotW = 0
 // entirely while still tracking genuine target changes (an actual tab
 // switch) exactly as before.
 let lastTargetX = null
+// The tab COUNT that produced lastSlotW. A role/page change can swap in a
+// bar with a different item count (e.g. leaving a page that hides the bar
+// entirely, or a role with a different tab set) — reusing lastSlotW across
+// a count change put the droplet at a stale, wrong-scaled x on the very
+// first paint of the new bar (observed clipped off the left edge: a
+// slotW meant for more tabs is too narrow for fewer, or vice versa).
+// window.innerWidth / count is a same-frame, proportionally-correct
+// estimate for THIS bar until the ResizeObserver below measures the real
+// value a moment later.
+let lastCount = 0
 
 // Squash follower at module scope too. useVelocity/useSpring/useTransform are
 // hooks that rebuild on every remount; if we left them component-scoped, the
@@ -307,6 +317,7 @@ function WaterDroplet({ activeIndex, count, activeIcon: ActiveIcon, pressed }) {
     const measure = () => {
       setSlotW(el.offsetWidth / count)
       lastSlotW = el.offsetWidth / count
+      lastCount = count
     }
     measure()
     const ro = new ResizeObserver(measure)
@@ -314,7 +325,7 @@ function WaterDroplet({ activeIndex, count, activeIcon: ActiveIcon, pressed }) {
     return () => ro.disconnect()
   }, [count])
 
-  const slotW_ = slotW || lastSlotW
+  const slotW_ = slotW || (lastCount === count ? lastSlotW : (typeof window !== 'undefined' ? window.innerWidth / count : 0))
   const targetX = slotW_ * (activeIndex + 0.5)
 
   // Drive the droplet toward the active tab. Because dropX + travelControls

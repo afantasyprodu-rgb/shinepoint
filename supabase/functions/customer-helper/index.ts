@@ -20,14 +20,14 @@
 //     only restate the JSON it's given.
 //
 // Deploy: supabase functions deploy customer-helper
-import { createClient } from 'npm:@supabase/supabase-js@^2'
+import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@^2'
 import { corsHeaders, json } from '../_shared/cors.ts'
 import { captureException } from '../_shared/sentry.ts'
 import { withinRateLimit, tooManyRequests } from '../_shared/rateLimit.ts'
 import { callChat, chatConfigured } from '../_shared/chatProvider.ts'
 
 type Ctx = {
-  admin: ReturnType<typeof createClient>
+  admin: SupabaseClient
   userId: string
 }
 

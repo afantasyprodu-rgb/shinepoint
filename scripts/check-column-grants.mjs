@@ -26,6 +26,14 @@ const PRIVATE = {
     'certifications',
     'team_size',
     'referral_source',
+    // 094: insurance document AI-check result — read only via the
+    // admin_get_insurance_document RPC (SECURITY DEFINER, admin-checked),
+    // never a direct column grant; row-level SELECT on this table is `true`
+    // for every authenticated user, so granting these would let any
+    // logged-in user read any OTHER detailer's insurance document/AI note.
+    'insurance_ai_flagged',
+    'insurance_ai_note',
+    'insurance_uploaded_at',
   ],
 }
 

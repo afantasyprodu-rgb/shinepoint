@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
       return tooManyRequests(3600)
     }
 
-    const result = await sendSms({ to: phone, body: detailerRecruitSms() })
+    const result = await sendSms({ to: phone, ...detailerRecruitSms() })
 
     return json({ ok: true, ...result })
   } catch (e) {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import AppShell from '../components/AppShell'
 import ChatThread from '../components/ChatThread'
@@ -33,6 +33,7 @@ import { detailerPayoutEstimate } from '../lib/fees'
 // in progress → after photos → complete. Photos are mandatory gates.
 export default function DetailerJob() {
   const { id } = useParams()
+  const [searchParams] = useSearchParams()
   const { getBooking, getDetailer, patchBooking, rateCustomer, addBookingPhotos, submitDamageReport, markNoDamage, respondToDispute, isDemo } = useStore()
   const [custRating, setCustRating] = useState(0)
   const [hardToHandle, setHardToHandle] = useState(false)
@@ -46,6 +47,19 @@ export default function DetailerJob() {
   const [confirmPickError, setConfirmPickError] = useState('')
   const b = getBooking(id)
   const t = useT('detailerJob')
+
+  // Deep-link from Driplee's navigate_to (job destination + ?open=invoice) —
+  // opens straight into the invoice builder instead of just the job page,
+  // for "create an invoice for this job" asked from chat. Runs once on
+  // mount; the drawer/tab stay under normal state after that so closing and
+  // reopening the menu doesn't keep snapping back to the invoice.
+  useEffect(() => {
+    if (searchParams.get('open') === 'invoice') {
+      setMenuOpen(true)
+      setShowInvoice(true)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const addonNames = b?.detailerId
     ? (b.addonServiceIds ?? [])
         .map((aid) => getDetailer(b.detailerId)?.services?.find((s) => s.id === aid)?.name)

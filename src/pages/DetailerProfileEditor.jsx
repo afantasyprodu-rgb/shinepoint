@@ -552,6 +552,75 @@ export default function DetailerProfileEditor() {
             <p className="mb-3 mt-1 text-xs text-slate-400 dark:text-slate-500">{t('portfolioBlurb')}</p>
             <GalleryGrid gallery={gallery} setGallery={setGallery} onAdd={addGalleryPhoto} />
           </div>
+
+          {/* Vehicle-size upcharges — optional, applied automatically at
+              booking time from the customer's saved vehicle type. Blank
+              means "not set", not $0 — same convention as onboarding. Lives
+              on the services/pricing tab, not schedule, since both this and
+              the deposit below are "what the customer is charged". */}
+          <div className="card">
+            <div className="flex items-center gap-1.5">
+              <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t('vehicleUpchargesLabel')}</h2>
+              <span className="rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-500 dark:bg-white/5 dark:text-slate-400">
+                {t('optionalTag')}
+              </span>
+            </div>
+            <p className="mb-4 mt-1 text-xs text-slate-400 dark:text-slate-500">{t('vehicleUpchargesHint')}</p>
+            {[
+              { key: 'suv', label: t('vehicleTypeSuv'), value: upchargeSuv, set: setUpchargeSuv },
+              { key: 'truck', label: t('vehicleTypeTruck'), value: upchargeTruck, set: setUpchargeTruck },
+              { key: 'van', label: t('vehicleTypeVan'), value: upchargeVan, set: setUpchargeVan },
+            ].map(({ key, label, value, set }, i) => (
+              <div key={key} className={`flex items-center justify-between gap-3 ${i > 0 ? 'mt-3' : ''}`}>
+                <label htmlFor={`pe-upcharge-${key}`} className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  {label}
+                </label>
+                <div className="flex items-center gap-1">
+                  <span className="text-slate-500 dark:text-slate-400">$</span>
+                  <input
+                    id={`pe-upcharge-${key}`}
+                    type="number" min={0} step={1} inputMode="decimal"
+                    value={value}
+                    onChange={(e) => set(e.target.value)}
+                    placeholder="0"
+                    className="input h-10 w-24"
+                  />
+                </div>
+              </div>
+            ))}
+
+            {/* Deposit (086). Lives with the upcharges because both are
+                "what the customer is charged", and both are optional. 0 is
+                the default and means the old behaviour: full price at
+                booking. */}
+            <h2 className="mt-6 text-sm font-semibold text-slate-700 dark:text-slate-300">{t('depositLabel')}</h2>
+            <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">{t('depositHint')}</p>
+            <div className="mt-3 flex items-center justify-between gap-3">
+              <label htmlFor="pe-deposit" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                {t('depositPercentLabel')}
+              </label>
+              <div className="flex items-center gap-1">
+                <input
+                  id="pe-deposit"
+                  type="number" min={0} max={100} step={5} inputMode="numeric"
+                  value={depositPercent}
+                  onChange={(e) => setDepositPercent(e.target.value)}
+                  placeholder="0"
+                  className="input h-10 w-24"
+                />
+                <span className="text-slate-500 dark:text-slate-400">%</span>
+              </div>
+            </div>
+            {Number(depositPercent) > 0 && (
+              <p className="mt-2 rounded-xl bg-brand-50/60 p-2 text-xs text-slate-600 dark:bg-white/5 dark:text-slate-400">
+                {t('depositExample', {
+                  pct: Math.min(100, Math.max(0, Number(depositPercent) || 0)),
+                  deposit: (200 * Math.min(100, Math.max(0, Number(depositPercent) || 0)) / 100).toFixed(0),
+                  balance: (200 - 200 * Math.min(100, Math.max(0, Number(depositPercent) || 0)) / 100).toFixed(0),
+                })}
+              </p>
+            )}
+          </div>
           </div>
           )}
           {activeTab === 'schedule' && (
@@ -868,72 +937,6 @@ export default function DetailerProfileEditor() {
             })()}
           </Drawer>
 
-          {/* Vehicle-size upcharges — optional, applied automatically at
-              booking time from the customer's saved vehicle type. Blank
-              means "not set", not $0 — same convention as onboarding. */}
-          <div className="card">
-            <div className="flex items-center gap-1.5">
-              <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t('vehicleUpchargesLabel')}</h2>
-              <span className="rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-500 dark:bg-white/5 dark:text-slate-400">
-                {t('optionalTag')}
-              </span>
-            </div>
-            <p className="mb-4 mt-1 text-xs text-slate-400 dark:text-slate-500">{t('vehicleUpchargesHint')}</p>
-            {[
-              { key: 'suv', label: t('vehicleTypeSuv'), value: upchargeSuv, set: setUpchargeSuv },
-              { key: 'truck', label: t('vehicleTypeTruck'), value: upchargeTruck, set: setUpchargeTruck },
-              { key: 'van', label: t('vehicleTypeVan'), value: upchargeVan, set: setUpchargeVan },
-            ].map(({ key, label, value, set }, i) => (
-              <div key={key} className={`flex items-center justify-between gap-3 ${i > 0 ? 'mt-3' : ''}`}>
-                <label htmlFor={`pe-upcharge-${key}`} className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  {label}
-                </label>
-                <div className="flex items-center gap-1">
-                  <span className="text-slate-500 dark:text-slate-400">$</span>
-                  <input
-                    id={`pe-upcharge-${key}`}
-                    type="number" min={0} step={1} inputMode="decimal"
-                    value={value}
-                    onChange={(e) => set(e.target.value)}
-                    placeholder="0"
-                    className="input h-10 w-24"
-                  />
-                </div>
-              </div>
-            ))}
-
-            {/* Deposit (086). Lives with the upcharges because both are
-                "what the customer is charged", and both are optional. 0 is
-                the default and means the old behaviour: full price at
-                booking. */}
-            <h2 className="mt-6 text-sm font-semibold text-slate-700 dark:text-slate-300">{t('depositLabel')}</h2>
-            <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">{t('depositHint')}</p>
-            <div className="mt-3 flex items-center justify-between gap-3">
-              <label htmlFor="pe-deposit" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                {t('depositPercentLabel')}
-              </label>
-              <div className="flex items-center gap-1">
-                <input
-                  id="pe-deposit"
-                  type="number" min={0} max={100} step={5} inputMode="numeric"
-                  value={depositPercent}
-                  onChange={(e) => setDepositPercent(e.target.value)}
-                  placeholder="0"
-                  className="input h-10 w-24"
-                />
-                <span className="text-slate-500 dark:text-slate-400">%</span>
-              </div>
-            </div>
-            {Number(depositPercent) > 0 && (
-              <p className="mt-2 rounded-xl bg-brand-50/60 p-2 text-xs text-slate-600 dark:bg-white/5 dark:text-slate-400">
-                {t('depositExample', {
-                  pct: Math.min(100, Math.max(0, Number(depositPercent) || 0)),
-                  deposit: (200 * Math.min(100, Math.max(0, Number(depositPercent) || 0)) / 100).toFixed(0),
-                  balance: (200 - 200 * Math.min(100, Math.max(0, Number(depositPercent) || 0)) / 100).toFixed(0),
-                })}
-              </p>
-            )}
-          </div>
           </div>
           )}
           <div className="relative">

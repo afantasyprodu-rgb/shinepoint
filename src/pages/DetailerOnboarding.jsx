@@ -11,7 +11,7 @@ import { useTheme } from '../context/ThemeContext'
 import { CheckIcon, ShieldCheckIcon, CreditCardIcon, ClipboardCheckIcon, UsersIcon, PlusIcon, XIcon, LightbulbIcon, ClockIcon, StarIcon, SparklesIcon, CameraIcon, ImageIcon, FileTextIcon, TagIcon } from '../components/icons'
 import { InfoPopover } from '../components/ui/bits'
 import { startIdentityVerification, startConnectOnboarding, isStripeConfigured, stripePromise } from '../lib/stripe'
-import { fetchMyPayoutStatus, extractFlyerPrices } from '../lib/db'
+import { fetchMyPayoutStatus, extractFlyerPrices, submitInsuranceDocument } from '../lib/db'
 import { readServicesDraft, writeServicesDraft, clearServicesDraft } from '../lib/onboardingDraft'
 import { useT } from '../i18n/useT'
 
@@ -42,7 +42,13 @@ function formatHour(h) {
   return `${hour12} ${period}`
 }
 
-const STEP_KEYS = ['stepIdentity', 'stepInsurance', 'stepProfile', 'stepSurvey', 'stepServices', 'stepSchedule', 'stepPayout']
+// Identity verification (Stripe Identity) and payout/bank connection
+// (Stripe Connect) used to be two separate steps at opposite ends of the
+// wizard, even though both are just "the Stripe stuff" from a detailer's
+// point of view. Merged into one step (still keyed stepIdentity for
+// translation continuity) so every Stripe-touching action lives in one
+// place — see step === 0 below for both blocks rendered together.
+const STEP_KEYS = ['stepIdentity', 'stepInsurance', 'stepProfile', 'stepSurvey', 'stepServices', 'stepSchedule']
 
 const YEARS_EXPERIENCE_OPTIONS = ['0-1', '1-3', '3-5', '5+']
 const CERT_OPTIONS = ['ida_certified', 'manufacturer_trained']
@@ -78,6 +84,15 @@ export default function DetailerOnboarding() {
   const [insurance, setInsurance] = useState(null) // insured | none
   const [noInsuranceAck, setNoInsuranceAck] = useState(false)
   const [confirmNoInsurance, setConfirmNoInsurance] = useState(false)
+  // Insurance document upload + AI genuineness check (094). 'idle' before a
+  // file's picked, 'checking' while check-insurance-document runs, 'ok' once
+  // it's saved and the AI didn't flag it, 'flagged' once it's saved but the
+  // AI thinks the photo doesn't look like a genuine insurance document
+  // (soft check -- already saved either way, this just nudges a re-take),
+  // 'error' on a hard failure (bad file, rate limit, not configured).
+  const [insuranceDocStatus, setInsuranceDocStatus] = useState('idle')
+  const [insuranceDocNote, setInsuranceDocNote] = useState('')
+  const [insuranceDocBusy, setInsuranceDocBusy] = useState(false)
   const [bio, setBio] = useState('')
   const [zip, setZip] = useState('')
   const [vehicles] = useState(['Sedan', 'SUV'])
@@ -174,6 +189,33 @@ export default function DetailerOnboarding() {
       setFlyerError(err.message || t('flyerExtractFailed'))
     } finally {
       setFlyerBusy(false)
+    }
+  }
+
+  async function handleInsuranceUpload(e) {
+    const file = e.target.files?.[0]
+    e.target.value = '' // allow re-picking the same file after a flagged/failed attempt
+    if (!file) return
+    if (!file.type.startsWith('image/')) { setInsuranceDocStatus('error'); setInsuranceDocNote(t('insuranceDocNotImage')); return }
+    if (isDemo) {
+      // Demo has no real backend to check/store against — just mark it done
+      // so the wizard reads the same as a real successful upload.
+      setInsuranceDocStatus('ok')
+      setInsuranceDocNote('')
+      return
+    }
+    setInsuranceDocBusy(true)
+    setInsuranceDocStatus('checking')
+    setInsuranceDocNote('')
+    try {
+      const result = await submitInsuranceDocument(file)
+      setInsuranceDocStatus(result.aiFlagged ? 'flagged' : 'ok')
+      setInsuranceDocNote(result.aiNote || '')
+    } catch (err) {
+      setInsuranceDocStatus('error')
+      setInsuranceDocNote(err.message || t('insuranceDocFailed'))
+    } finally {
+      setInsuranceDocBusy(false)
     }
   }
 
@@ -351,17 +393,22 @@ export default function DetailerOnboarding() {
     // payout on it later, so it doesn't need to block the wizard too — but
     // Continue itself stays disabled until they've actually taken one of
     // the two explicit actions (Upload ID & selfie, or Skip for now).
-    idStatus !== 'idle',
-    insurance === 'insured' || (insurance === 'none' && noInsuranceAck),
+    // Real payout connection is a redirect-away Stripe flow, not something
+    // that can gate synchronous submission — the wizard doesn't send `bank`
+    // to the backend at all (submit_detailer_onboarding never takes it).
+    // Demo keeps the fake digits gate so the simulated flow still feels
+    // real. Both live on this one combined step now — see STEP_KEYS.
+    (idStatus !== 'idle') && (isDemo ? bank.length >= 4 : true),
+    // 094: an "insured" pick isn't complete until the document has actually
+    // gone through (saved either 'ok' or 'flagged' -- a soft check never
+    // blocks the save itself, so "flagged" still counts as done here; only
+    // 'idle'/'checking'/'error' hold up Continue).
+    (insurance === 'insured' && (insuranceDocStatus === 'ok' || insuranceDocStatus === 'flagged')) ||
+      (insurance === 'none' && noInsuranceAck),
     zip.length === 5, // Bio is optional — the zip is what places their map pin.
     yearsExperience !== null,
     Object.keys(services).length > 0,
     days.length > 0,
-    // Real payout connection is a redirect-away Stripe flow, not something
-    // that can gate synchronous submission — the wizard doesn't send `bank`
-    // to the backend at all (submit_detailer_onboarding never takes it).
-    // Demo keeps the fake digits gate so the simulated flow still feels real.
-    isDemo ? bank.length >= 4 : true,
   ][step]
 
   if (submitted) {
@@ -530,6 +577,101 @@ export default function DetailerOnboarding() {
                   </motion.div>
                 )}
                 </div>
+
+                {/* Payout/bank connection used to be its own step at the
+                    end of the wizard — merged in here since both this and
+                    identity verification above are "the Stripe stuff", not
+                    two separate concerns. */}
+                <div className="card space-y-4">
+                <div className="flex items-center gap-3">
+                  <CreditCardIcon className="h-8 w-8 text-brand-600 dark:text-brand-300" />
+                  <div>
+                    <h2 className="flex items-center gap-1.5 font-display font-semibold text-slate-900 dark:text-slate-100">
+                      {t('payoutSetup')}
+                      <InfoPopover label={t('whyTaxInfoLabel')}>
+                        {t('whyTaxInfoBody')}
+                      </InfoPopover>
+                    </h2>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">{t('payoutSetupBlurb')}</p>
+                  </div>
+                </div>
+                {isDemo ? (
+                  <>
+                    <div>
+                      <label htmlFor="ob-bank" className="label">{t('bankLabel')}</label>
+                      <input id="ob-bank" inputMode="numeric" maxLength={4} value={bank} onChange={(e) => setBank(e.target.value.replace(/\D/g, ''))} className="input w-32" placeholder="4242" />
+                    </div>
+                    <p className="text-xs text-slate-400 dark:text-slate-500">
+                      {t('payoutRealFlow')}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    {!isStripeConfigured ? (
+                      <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
+                        {t('idNotConfigured')}
+                      </p>
+                    ) : payoutStatus?.stripe_charges_enabled ? (
+                      <p className="flex items-center gap-2 text-sm font-medium text-cta-700 dark:text-cta-400">
+                        <CheckIcon className="h-4 w-4" /> {t('bankConnected')}
+                      </p>
+                    ) : (
+                      <>
+                        <button type="button" onClick={handleConnectBank} disabled={connectingBank} className="btn btn-brand">
+                          {connectingBank
+                            ? <span className="inline-flex items-center gap-2"><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />{t('connecting')}</span>
+                            : t('connectBank')}
+                        </button>
+                        {payoutStatus?.stripe_account_id && (
+                          <p className="text-xs text-amber-600 dark:text-amber-400">{t('bankPending')}</p>
+                        )}
+                      </>
+                    )}
+                    {connectError && (
+                      <p role="alert" className="text-sm text-red-600 dark:text-red-400">{connectError}</p>
+                    )}
+                    <p className="text-xs text-slate-400 dark:text-slate-500">
+                      {t('payoutRealFlow')}
+                    </p>
+                  </>
+                )}
+                </div>
+
+                {/* 086. Own card, separate from bank connection — this is a
+                    pricing choice, not a Stripe requirement, and doesn't
+                    block the rest of onboarding either way. */}
+                <div className="card space-y-2">
+                  <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">
+                    {t('depositSetupLabel')}
+                  </h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">{t('depositSetupHint')}</p>
+                  <div className="mt-2 flex items-center justify-between gap-3">
+                    <label htmlFor="ob-deposit" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                      {t('depositPercentLabel')}
+                    </label>
+                    <div className="flex items-center gap-1">
+                      <input
+                        id="ob-deposit"
+                        type="number" min={0} max={100} step={5} inputMode="numeric"
+                        value={depositPercent}
+                        onChange={(e) => setDepositPercent(e.target.value)}
+                        onBlur={saveDepositPercent}
+                        placeholder="0"
+                        className="input h-10 w-24"
+                      />
+                      <span className="text-slate-500 dark:text-slate-400">%</span>
+                    </div>
+                  </div>
+                  {Number(depositPercent) > 0 && (
+                    <p className="rounded-xl bg-brand-50/60 p-2 text-xs text-slate-600 dark:bg-white/5 dark:text-slate-400">
+                      {t('depositExample', {
+                        pct: Math.min(100, Math.max(0, Number(depositPercent) || 0)),
+                        deposit: (200 * Math.min(100, Math.max(0, Number(depositPercent) || 0)) / 100).toFixed(0),
+                        balance: (200 - 200 * Math.min(100, Math.max(0, Number(depositPercent) || 0)) / 100).toFixed(0),
+                      })}
+                    </p>
+                  )}
+                </div>
               </div>
             )}
 
@@ -573,8 +715,38 @@ export default function DetailerOnboarding() {
                 {insurance === 'insured' && (
                   <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="card !p-5">
                     <label className="label" htmlFor="cert">{t('certUploadLabel')}</label>
-                    <input id="cert" type="file" className="text-sm text-slate-600 file:btn file:btn-outline file:mr-3 file:h-9 file:px-3 file:text-xs dark:text-slate-400" />
+                    <input
+                      id="cert"
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      disabled={insuranceDocBusy}
+                      onChange={handleInsuranceUpload}
+                      className="text-sm text-slate-600 file:btn file:btn-outline file:mr-3 file:h-9 file:px-3 file:text-xs disabled:opacity-50 dark:text-slate-400"
+                    />
                     <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">{t('certUploadHint')}</p>
+                    {insuranceDocStatus === 'checking' && (
+                      <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">{t('insuranceDocChecking')}</p>
+                    )}
+                    {insuranceDocStatus === 'ok' && (
+                      <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-3 flex items-center gap-1.5 text-sm font-medium text-cta-700 dark:text-cta-400">
+                        <CheckIcon className="h-4 w-4 shrink-0" /> {t('insuranceDocOk')}
+                      </motion.p>
+                    )}
+                    {insuranceDocStatus === 'flagged' && (
+                      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 dark:border-amber-500/30 dark:bg-amber-500/10">
+                        <p className="text-sm font-medium text-amber-800 dark:text-amber-300">{t('insuranceDocFlagged')}</p>
+                        {insuranceDocNote && (
+                          <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">{insuranceDocNote}</p>
+                        )}
+                        <p className="mt-1.5 text-xs text-amber-700 dark:text-amber-400">{t('insuranceDocFlaggedHint')}</p>
+                      </motion.div>
+                    )}
+                    {insuranceDocStatus === 'error' && (
+                      <p role="alert" className="mt-3 text-sm font-medium text-red-600 dark:text-red-400">
+                        {insuranceDocNote || t('insuranceDocFailed')}
+                      </p>
+                    )}
                   </motion.div>
                 )}
                 {insurance === 'none' && noInsuranceAck && (
@@ -1017,104 +1189,6 @@ export default function DetailerOnboarding() {
                       </div>
                     </div>
                   ))}
-                </div>
-              </div>
-            )}
-
-            {step === 6 && (
-              <div className="space-y-4">
-                <MarketingTip title={t('tipPayoutTitle')}>
-                  {t('tipPayoutBody')}
-                </MarketingTip>
-                <div className="card space-y-4">
-                <div className="flex items-center gap-3">
-                  <CreditCardIcon className="h-8 w-8 text-brand-600 dark:text-brand-300" />
-                  <div>
-                    <h2 className="flex items-center gap-1.5 font-display font-semibold text-slate-900 dark:text-slate-100">
-                      {t('payoutSetup')}
-                      <InfoPopover label={t('whyTaxInfoLabel')}>
-                        {t('whyTaxInfoBody')}
-                      </InfoPopover>
-                    </h2>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">{t('payoutSetupBlurb')}</p>
-                  </div>
-                </div>
-                {isDemo ? (
-                  <>
-                    <div>
-                      <label htmlFor="ob-bank" className="label">{t('bankLabel')}</label>
-                      <input id="ob-bank" inputMode="numeric" maxLength={4} value={bank} onChange={(e) => setBank(e.target.value.replace(/\D/g, ''))} className="input w-32" placeholder="4242" />
-                    </div>
-                    <p className="text-xs text-slate-400 dark:text-slate-500">
-                      {t('payoutRealFlow')}
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    {!isStripeConfigured ? (
-                      <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
-                        {t('idNotConfigured')}
-                      </p>
-                    ) : payoutStatus?.stripe_charges_enabled ? (
-                      <p className="flex items-center gap-2 text-sm font-medium text-cta-700 dark:text-cta-400">
-                        <CheckIcon className="h-4 w-4" /> {t('bankConnected')}
-                      </p>
-                    ) : (
-                      <>
-                        <button type="button" onClick={handleConnectBank} disabled={connectingBank} className="btn btn-brand">
-                          {connectingBank
-                            ? <span className="inline-flex items-center gap-2"><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />{t('connecting')}</span>
-                            : t('connectBank')}
-                        </button>
-                        {payoutStatus?.stripe_account_id && (
-                          <p className="text-xs text-amber-600 dark:text-amber-400">{t('bankPending')}</p>
-                        )}
-                      </>
-                    )}
-                    {connectError && (
-                      <p role="alert" className="text-sm text-red-600 dark:text-red-400">{connectError}</p>
-                    )}
-                    <p className="text-xs text-slate-400 dark:text-slate-500">
-                      {t('payoutRealFlow')}
-                    </p>
-                  </>
-                )}
-                </div>
-
-                {/* 086. Own card, separate from bank connection — this is a
-                    pricing choice, not a Stripe requirement, and doesn't
-                    block the rest of onboarding either way. */}
-                <div className="card space-y-2">
-                  <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">
-                    {t('depositSetupLabel')}
-                  </h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">{t('depositSetupHint')}</p>
-                  <div className="mt-2 flex items-center justify-between gap-3">
-                    <label htmlFor="ob-deposit" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                      {t('depositPercentLabel')}
-                    </label>
-                    <div className="flex items-center gap-1">
-                      <input
-                        id="ob-deposit"
-                        type="number" min={0} max={100} step={5} inputMode="numeric"
-                        value={depositPercent}
-                        onChange={(e) => setDepositPercent(e.target.value)}
-                        onBlur={saveDepositPercent}
-                        placeholder="0"
-                        className="input h-10 w-24"
-                      />
-                      <span className="text-slate-500 dark:text-slate-400">%</span>
-                    </div>
-                  </div>
-                  {Number(depositPercent) > 0 && (
-                    <p className="rounded-xl bg-brand-50/60 p-2 text-xs text-slate-600 dark:bg-white/5 dark:text-slate-400">
-                      {t('depositExample', {
-                        pct: Math.min(100, Math.max(0, Number(depositPercent) || 0)),
-                        deposit: (200 * Math.min(100, Math.max(0, Number(depositPercent) || 0)) / 100).toFixed(0),
-                        balance: (200 - 200 * Math.min(100, Math.max(0, Number(depositPercent) || 0)) / 100).toFixed(0),
-                      })}
-                    </p>
-                  )}
                 </div>
               </div>
             )}

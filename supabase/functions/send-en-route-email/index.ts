@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
       try {
         smsResult = await sendSms({
           to: customer.phone,
-          body: enRouteSms({
+          ...enRouteSms({
             customerName: customer.full_name ?? 'there',
             detailerName: detailer?.full_name ?? 'Your detailer',
             trackingUrl,

@@ -1,9 +1,10 @@
 // Signed-URL helpers for PRIVATE storage buckets.
 //
 // `job-photos` (before/after/damage shots) and `vehicles` (customer car
-// photos) hold customer PII and are private since migration 089. Their
-// objects can no longer be fetched from a plain public URL — the app stores
-// the canonical *public-format* URL (a deterministic path identifier,
+// photos) hold customer PII and are private since migration 089.
+// `insurance-docs` (094) is private for the same reason from the start.
+// Their objects can no longer be fetched from a plain public URL — the app
+// stores the canonical *public-format* URL (a deterministic path identifier,
 // `<ref>/storage/v1/object/public/<bucket>/<path>`) and this module turns it
 // into a short-lived signed URL at read time.
 //
@@ -11,7 +12,7 @@
 // are passed through untouched.
 import { supabase } from './supabase'
 
-const PRIVATE_BUCKETS = new Set(['job-photos', 'vehicles'])
+const PRIVATE_BUCKETS = new Set(['job-photos', 'vehicles', 'insurance-docs'])
 
 // url -> { signed, exp } so a grid of photos doesn't re-sign on every render.
 const cache = new Map()

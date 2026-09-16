@@ -129,7 +129,7 @@ Deno.serve(async (req) => {
       if (wantsSms) {
         await sendSms({
           to: customer.phone,
-          body: rescheduleOfferSms({
+          ...rescheduleOfferSms({
             customerName: customer.full_name ?? 'there',
             detailerName: detailer?.full_name ?? 'Your detailer',
             respondUrl,
