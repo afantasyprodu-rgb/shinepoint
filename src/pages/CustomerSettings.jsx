@@ -6,6 +6,8 @@ import 'leaflet/dist/leaflet.css'
 import AppShell from '../components/AppShell'
 import AccountDangerZone from '../components/AccountDangerZone'
 import ChangePassword from '../components/ChangePassword'
+import LanguageSetting from '../components/LanguageSetting'
+import BrandThemeSetting from '../components/BrandThemeSetting'
 import AvatarUpload from '../components/AvatarUpload'
 import CarPhotoUpload from '../components/CarPhotoUpload'
 import Combobox from '../components/ui/Combobox'
@@ -651,6 +653,10 @@ export default function CustomerSettings() {
           </span>
           <ArrowRightIcon className="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-500" />
         </Link>
+
+        <LanguageSetting />
+
+        <BrandThemeSetting />
 
         <ChangePassword />
 

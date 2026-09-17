@@ -4,6 +4,8 @@ import { AnimatePresence, motion } from 'motion/react'
 import AppShell from '../components/AppShell'
 import AccountDangerZone from '../components/AccountDangerZone'
 import ChangePassword from '../components/ChangePassword'
+import LanguageSetting from '../components/LanguageSetting'
+import BrandThemeSetting from '../components/BrandThemeSetting'
 import AvatarUpload from '../components/AvatarUpload'
 import { GalleryGrid } from './ProfileSetup'
 import { AnimatedPage } from '../components/ui/Motion'
@@ -991,6 +993,10 @@ export default function DetailerProfileEditor() {
           </span>
           <ArrowRightIcon className="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-500" />
         </Link>
+
+        <LanguageSetting />
+
+        <BrandThemeSetting />
 
         <ChangePassword />
 
