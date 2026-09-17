@@ -17,7 +17,6 @@ import { usePaint, PAINTS } from '../context/PaintContext'
 import { CA_ZIP_CENTROIDS, closestDetailer } from '../lib/fuzzyPin'
 import { CAR_MAKES, CAR_MODELS, MODEL_TO_TYPE } from '../lib/vehicleData'
 import { extractVehiclePhoto } from '../lib/db'
-import { useTiltShadow } from '../hooks/useTiltShadow'
 import { useT } from '../i18n/useT'
 import { TILES } from '../components/DetailerMap'
 
@@ -148,7 +147,6 @@ function ColorSwatches() {
 
 export default function CustomerSettings() {
   const { customer, uploadImage, updateCustomer, detailers, isDemo } = useStore()
-  const tiltRef = useTiltShadow()
   const t = useT('customerSettings')
   const { accent } = usePaint()
 
@@ -291,7 +289,7 @@ export default function CustomerSettings() {
 
         {/* Identity card — avatar straddles a notch carved into the card's
             top edge, same treatment as the detailer profile editor. */}
-        <div ref={tiltRef} className="relative mt-16">
+        <div className="relative mt-16">
           <div className="nx-card-notch-shadow absolute inset-0 rounded-[2rem]" aria-hidden="true" />
           <div
             className="nx-card-notch-bg absolute inset-0 rounded-[2rem]"

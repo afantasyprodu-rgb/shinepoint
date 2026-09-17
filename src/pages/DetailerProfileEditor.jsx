@@ -16,7 +16,6 @@ import { useStore } from '../context/StoreContext'
 import { fetchMyPayoutStatus, fetchVacations, addVacation, removeVacation, bookingsInRange } from '../lib/db'
 import { backOnKey, formatDateKey, todayKey } from '../lib/vacations'
 import { openDetailerDashboard, isStripeConfigured } from '../lib/stripe'
-import { useTiltShadow } from '../hooks/useTiltShadow'
 import { useT } from '../i18n/useT'
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
@@ -79,7 +78,6 @@ function PayoutManagement() {
 export default function DetailerProfileEditor() {
   const { myDetailer, setAvailability, uploadImage, updateDetailerMe, updateMyServices, addLocation, deleteLocation, isDemo: storeIsDemo } = useStore()
   const me = myDetailer ?? {}
-  const tiltRef = useTiltShadow()
   const t = useT('detailerProfileEditor')
 
   const [photo, setPhoto] = useState(me.photo ?? null)
@@ -346,7 +344,7 @@ export default function DetailerProfileEditor() {
               the card (CustomerSettings only has the page heading), so it
               needs the same clearance CustomerSettings gives it or the
               avatar's peek-above-the-card overlaps the tabs. */}
-          <div ref={tiltRef} className="relative mt-16">
+          <div className="relative mt-16">
             <div className="nx-card-notch-shadow absolute inset-0 rounded-[2rem]" aria-hidden="true" />
             <div
               className="nx-card-notch-bg absolute inset-0 rounded-[2rem]"
