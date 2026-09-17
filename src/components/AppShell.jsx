@@ -4,9 +4,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import Logo from './Logo'
 import ThemeToggle from './ThemeToggle'
 import BrandThemePicker from './BrandThemePicker'
-import SfxToggle from './SfxToggle'
 import SyncPendingBadge from './SyncPendingBadge'
-import LanguageToggle from './LanguageToggle'
 import ToolsSidebar from './ToolsSidebar'
 import ToolsEdgeTab from './ToolsEdgeTab'
 import { BellIcon, ClipboardCheckIcon, TrendingUpIcon, UsersIcon, UserIcon, PieChartIcon, MapPinIcon, ChevronDownIcon, AlertTriangleIcon, MessageCircleIcon } from './icons'
@@ -270,7 +268,7 @@ export default function AppShell({ role, children, collapsibleBottomNav = false,
           status bar (Dynamic Island); env() only pushes it further if a
           future device genuinely needs more. */}
       <header className="relative z-[600] border-b border-brand-100 bg-white/90 pt-[max(env(safe-area-inset-top),2.75rem)] backdrop-blur dark:border-white/10 dark:bg-[#1A1430]/90">
-        <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6">
+        <div className="flex items-center justify-between gap-2 px-3 py-3 sm:gap-3 sm:px-6">
           <div className="flex items-center gap-4">
             {locked ? (
               <Logo />
@@ -303,7 +301,7 @@ export default function AppShell({ role, children, collapsibleBottomNav = false,
               </nav>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             {!locked && isDemo && (
               <span className="chip hidden bg-amber-500/15 text-amber-700 dark:text-amber-300 sm:inline-flex">
                 {t('demoAs', { name: profile?.full_name })}
@@ -312,10 +310,13 @@ export default function AppShell({ role, children, collapsibleBottomNav = false,
             {!locked && !isDemo && <SyncPendingBadge className="hidden sm:inline-flex" />}
             {!locked && role === 'detailer' && !onAssistantPage && <DrewLauncher />}
             {!locked && role === 'customer' && !onAssistantPage && <CustomerHelper />}
-            <BrandThemePicker />
+            {/* Desktop only — on mobile this plus every other header icon
+                overflowed past the sign-out button (unreachable without a
+                horizontal scroll nobody expects a header to need). Moved to
+                the Account tab (BrandThemeSetting) for phone-width access,
+                same move as LanguageSetting just above it in that tab. */}
+            <BrandThemePicker className="hidden sm:flex" />
             <ThemeToggle />
-            {!locked && <SfxToggle />}
-            <LanguageToggle />
             {!locked && <NotificationBell role={role} />}
             <button onClick={handleSignOut} className="btn btn-outline h-9 px-3 text-sm">
               {isDemo ? t('exitDemo') : t('signOut')}

@@ -14,6 +14,14 @@ export const STRINGS = {
       dismiss: 'Not now',
       ariaClose: 'Dismiss',
     },
+    languageSetting: {
+      title: 'Language',
+      body: 'Switch the app between English and Spanish.',
+    },
+    brandThemeSetting: {
+      title: 'App color',
+      body: 'Pick the accent color used throughout the app.',
+    },
     welcome: {
       nearbyChip: 'nearby pros',
       badge: 'Mobile detailing · Southern California',
@@ -1857,6 +1865,14 @@ export const STRINGS = {
       step3: 'Toca “Agregar” para confirmar',
       dismiss: 'Ahora no',
       ariaClose: 'Cerrar',
+    },
+    languageSetting: {
+      title: 'Idioma',
+      body: 'Cambia la app entre inglés y español.',
+    },
+    brandThemeSetting: {
+      title: 'Color de la app',
+      body: 'Elige el color de acento que se usa en toda la app.',
     },
     welcome: {
       nearbyChip: 'profesionales cerca',

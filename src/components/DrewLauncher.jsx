@@ -1,6 +1,7 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useLocation, useParams } from 'react-router-dom'
-import { AnimatePresence, motion } from 'motion/react'
+import { motion } from 'motion/react'
 import { invokeFn } from '../lib/supabase'
 import { actionsForPath, altActionsForPath, panelStrings } from '../lib/detailerHelperActions'
 import DrewBlob from './ui/DrewBlob'
@@ -138,8 +139,20 @@ export default function DrewLauncher() {
         </motion.button>
       )}
 
-      <AnimatePresence>
-        {open && (
+      {/* Portaled to document.body, not rendered in place — this button
+          lives inside AppShell's header, which has backdrop-blur. Per spec
+          (and every current browser), backdrop-filter establishes a
+          containing block for fixed-position descendants, so a plain
+          `fixed inset-0` here would size itself to the HEADER's small box
+          instead of the viewport — the panel rendered squashed into a
+          ~110px strip at the top with content spilling out below it,
+          reported as Driplee "going off screen" when opened. Same fix
+          CustomerHelper.jsx already uses for its own popup panel — and, like
+          there, AnimatePresence can't wrap a createPortal'd child (it never
+          rendered at all with one around it, no console error), so this
+          drops the panel's exit fade the same way CustomerHelper's does. */}
+      {open &&
+        createPortal(
           <div className="fixed inset-0 z-[900] flex items-center justify-center px-4">
             <motion.div
               initial={{ opacity: 0 }}
@@ -241,9 +254,9 @@ export default function DrewLauncher() {
                 {t.showOtherOptions}
               </button>
             </motion.div>
-          </div>
+          </div>,
+          document.body
         )}
-      </AnimatePresence>
     </>
   )
 }
