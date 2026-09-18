@@ -46,7 +46,7 @@ function previewConditionInfo(kind) {
     }
   }
 
-  if (kind === 'finish' || kind === 'condition-complete' || kind === 'finish-rated') {
+  if (kind === 'finish' || kind === 'condition-complete' || kind === 'finish-rated' || kind === 'finish-tipped' || kind === 'finish-no-card') {
     return {
       ...base,
       status: 'complete',
@@ -65,7 +65,10 @@ function previewConditionInfo(kind) {
         { label: 'Exterior', locked: true },
       ],
       finishTotalCount: 6,
-      detailerRating: kind === 'finish-rated' ? 5 : null,
+      detailerRating: kind === 'finish-rated' || kind === 'finish-tipped' ? 5 : null,
+      hasSavedCard: kind !== 'finish-no-card',
+      tipPaid: kind === 'finish-tipped',
+      tipAmount: kind === 'finish-tipped' ? 15 : null,
     }
   }
 
@@ -279,6 +282,10 @@ function TrackingBody({ info, bookingId, onInfoPatch }) {
           detailerRating={info.detailerRating}
           onAcknowledged={onInfoPatch}
           onRated={(rating) => onInfoPatch({ detailerRating: rating })}
+          hasSavedCard={info.hasSavedCard}
+          tipPaid={info.tipPaid}
+          tipAmount={info.tipAmount}
+          onTipped={(amount) => onInfoPatch({ tipPaid: true, tipAmount: amount })}
           finishPairs={info.finishPairs}
           finishTotalCount={info.finishTotalCount}
           enRouteBody={enRouteBody}

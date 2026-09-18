@@ -22,6 +22,10 @@ export default function ConditionTimeline({
   detailerRating,
   onAcknowledged,
   onRated,
+  hasSavedCard,
+  tipPaid,
+  tipAmount,
+  onTipped,
   finishPairs,
   finishTotalCount,
   enRouteBody,
@@ -223,6 +227,10 @@ export default function ConditionTimeline({
             detailerName={detailerName}
             initialRating={detailerRating}
             onRated={onRated}
+            hasSavedCard={hasSavedCard}
+            tipPaid={tipPaid}
+            tipAmount={tipAmount}
+            onTipped={onTipped}
           />
         </>
       )}
