@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { CameraIcon, CheckIcon, XIcon } from './icons'
 import { useT } from '../i18n/useT'
+import { downscaleImage } from '../lib/imageUtils'
 
 const ANGLES = ['Front', 'Rear', 'Left', 'Right', 'Interior']
 
@@ -20,7 +21,19 @@ export default function PhotoCapture({ label = 'before', onSubmit }) {
   const fileObjs = useRef({}) // { angle: File } — kept for real uploads
   const t = useT('photoCapture')
 
-  function readOne(angle, file) {
+  // Downscaled to ~1280px/JPEG before it ever lands in state — camera shots
+  // otherwise run 8-20MB and get uploaded as-is over the detailer's mobile data.
+  async function readOne(angle, file) {
+    try {
+      const { file: optimized, dataUrl } = await downscaleImage(file)
+      fileObjs.current[angle] = optimized || file
+      if (dataUrl) {
+        setPhotos((prev) => ({ ...prev, [angle]: dataUrl }))
+        return
+      }
+    } catch {
+      // fall through to raw file below
+    }
     fileObjs.current[angle] = file
     const reader = new FileReader()
     reader.onload = (e) => setPhotos((prev) => ({ ...prev, [angle]: e.target.result }))
