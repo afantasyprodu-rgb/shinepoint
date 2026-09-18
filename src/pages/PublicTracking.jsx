@@ -506,7 +506,7 @@ function WeatherCard({ zip, destination, compact = false }) {
         <div className="min-w-0">
           <p className="truncate text-xs font-semibold text-slate-800">
             {weather.label}
-            {weather.tempF != null ? ` - ${weather.tempF}F` : ''}
+            {weather.tempF != null ? ` · ${weather.tempF}°` : ''}
           </p>
         </div>
       </div>
@@ -521,7 +521,7 @@ function WeatherCard({ zip, destination, compact = false }) {
       <div className="min-w-0">
         <p className="text-sm font-semibold text-slate-800">
           {weather.label}
-          {weather.tempF != null ? ` - ${weather.tempF}F` : ''}
+          {weather.tempF != null ? ` · ${weather.tempF}°` : ''}
         </p>
         <p className="text-[10px] text-slate-500">
           {weather.source === 'open-meteo' ? t('weatherNearJob') : t('weatherApprox')}

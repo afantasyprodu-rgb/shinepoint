@@ -39,13 +39,11 @@ export default function ConditionTimeline({
             ? 'review'
             : 'approved'
 
-  const arrivedDone = true
   const conditionDone = phase === 'approved' || phase === 'working' || phase === 'complete'
   const conditionActive = phase === 'documenting' || phase === 'review'
   const beginDone = phase === 'working' || phase === 'complete'
   const beginActive = phase === 'approved'
   const completeDone = phase === 'complete'
-  const completeActive = false
 
   async function approve() {
     setBusy(true)
