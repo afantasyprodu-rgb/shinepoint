@@ -1,13 +1,15 @@
 import { useState } from 'react'
 import { CheckIcon, CameraIcon, LockIcon, ClockIcon, SparklesIcon } from './icons'
-import { Avatar } from './ui/bits'
 import { acknowledgePublicConditionReport } from '../lib/db'
 import FinishGallery from './FinishGallery'
+import DetailerRating from './DetailerRating'
 import { useT } from '../i18n/useT'
 
 /**
- * Style C — Timeline for post-Arrived on the public SMS track page.
- * Arrived → Document / Review+Approve → Begin → Complete
+ * The public SMS track page's full-journey timeline, mounted for the whole
+ * booking lifecycle (not just post-arrival): En route → Condition report →
+ * Begin work → Complete. Step 1's body is handed in by the caller (map/ETA/
+ * weather/tips live in PublicTracking.jsx, which owns the geo computation).
  */
 export default function ConditionTimeline({
   bookingId,
@@ -17,10 +19,12 @@ export default function ConditionTimeline({
   photos,
   beforeCount = 0,
   detailerName,
-  detailerPhoto,
+  detailerRating,
   onAcknowledged,
+  onRated,
   finishPairs,
   finishTotalCount,
+  enRouteBody,
 }) {
   const t = useT('publicTrack')
   const [busy, setBusy] = useState(false)
@@ -30,17 +34,21 @@ export default function ConditionTimeline({
     (p) => p.type === 'damage_report' || p.type === 'before' || !p.type,
   )
 
-  // documenting | review | approved | working | complete
+  const isArrivedOrBeyond = ['arrived', 'in_progress', 'complete'].includes(status)
+
+  // preArrival | documenting | review | approved | working | complete
   const phase =
-    status === 'complete'
-      ? 'complete'
-      : status === 'in_progress'
-        ? 'working'
-        : !submitted
-          ? 'documenting'
-          : !acknowledged
-            ? 'review'
-            : 'approved'
+    !isArrivedOrBeyond
+      ? 'preArrival'
+      : status === 'complete'
+        ? 'complete'
+        : status === 'in_progress'
+          ? 'working'
+          : !submitted
+            ? 'documenting'
+            : !acknowledged
+              ? 'review'
+              : 'approved'
 
   const conditionDone = phase === 'approved' || phase === 'working' || phase === 'complete'
   const conditionActive = phase === 'documenting' || phase === 'review'
@@ -70,43 +78,25 @@ export default function ConditionTimeline({
           ? t('timelineTipApproved')
           : phase === 'working'
             ? t('timelineTipWorking')
-            : t('timelineTipComplete')
+            : phase === 'complete'
+              ? t('timelineTipComplete')
+              : ''
 
   return (
     <div className="space-y-4">
-      {/* Arrived banner */}
-      {phase !== 'complete' && (
-      <div className="pt-v2-glass pt-v2-squircle flex items-center gap-3 rounded-[28px] px-3.5 py-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white shadow-sm">
-          <CheckIcon className="h-5 w-5" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="font-semibold text-emerald-700">{t('timelineArrivedBadge')}</p>
-          <p className="truncate text-sm text-slate-600">{t('timelineArrivedSub')}</p>
-        </div>
-        <div className="flex shrink-0 items-center gap-2 border-l border-slate-200/80 pl-3">
-          <Avatar name={detailerName} photo={detailerPhoto} size="sm" />
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-slate-900">
-              {detailerName || t('shinepointDetailer')}
-            </p>
-            <p className="text-[11px] text-slate-500">{t('timelineDetailerRole')}</p>
-          </div>
-        </div>
-      </div>
-      )}
-
       {/* Vertical timeline */}
       <div className="pt-v2-glass pt-v2-squircle rounded-[28px] px-3.5 py-4">
         <ol className="space-y-0" aria-label={t('conditionProgressAria')}>
-          {/* 1 Arrived */}
+          {/* 1 En route */}
           <TimelineStep
-            state="done"
-            title={t('timelineStepArrived')}
-            connector="done"
+            state={isArrivedOrBeyond ? 'done' : 'active'}
+            title={t('timelineStepEnRoute')}
+            connector={isArrivedOrBeyond ? 'done' : 'active'}
           >
-            {phase === 'complete' && (
-              <p className="mt-0.5 text-xs text-slate-500">{t('finishStepArrivedSub')}</p>
+            {isArrivedOrBeyond ? (
+              <p className="mt-0.5 text-xs text-slate-500">{t('timelineArrivedSub')}</p>
+            ) : (
+              <div className="mt-2">{enRouteBody}</div>
             )}
           </TimelineStep>
 
@@ -118,6 +108,9 @@ export default function ConditionTimeline({
             connector={conditionDone ? 'done' : conditionActive ? 'active' : 'locked'}
             last={false}
           >
+            {!isArrivedOrBeyond && (
+              <p className="mt-1 text-xs text-slate-400">{t('timelineConditionLocked')}</p>
+            )}
             {phase === 'documenting' && (
               <div className="mt-2 space-y-2">
                 <p className="font-display text-base font-semibold text-slate-900">
@@ -212,8 +205,8 @@ export default function ConditionTimeline({
         </ol>
       </div>
 
-      {/* Tip bar — hidden on complete; FinishGallery CTA replaces it */}
-      {phase !== 'complete' && (
+      {/* Tip bar — only once arrived (step 1's own body covers en-route tips) */}
+      {isArrivedOrBeyond && phase !== 'complete' && (
       <div className="pt-v2-glass flex items-center gap-2 rounded-2xl px-3.5 py-2.5">
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-500/15 text-brand-700">
           <SparklesIcon className="h-4 w-4" />
@@ -223,7 +216,15 @@ export default function ConditionTimeline({
       )}
 
       {phase === 'complete' && (
-        <FinishGallery pairs={finishPairs} totalCount={finishTotalCount} />
+        <>
+          <FinishGallery pairs={finishPairs} totalCount={finishTotalCount} />
+          <DetailerRating
+            bookingId={bookingId}
+            detailerName={detailerName}
+            initialRating={detailerRating}
+            onRated={onRated}
+          />
+        </>
       )}
     </div>
   )
