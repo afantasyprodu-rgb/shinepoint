@@ -905,6 +905,9 @@ export async function fetchPublicTracking(bookingId) {
     finishPairs,
     finishTotalCount,
     detailerRating: row.detailer_rating ?? null,
+    hasSavedCard: !!row.has_saved_card,
+    tipPaid: !!row.tip_paid,
+    tipAmount: row.tip_amount != null ? Number(row.tip_amount) : null,
     pings: (pings ?? []).map((p) => ({ lat: p.lat, lng: p.lng, recorded_at: p.recorded_at })),
   }
 }
@@ -935,6 +938,14 @@ export async function submitPublicDetailerReview(bookingId, rating) {
   }
   return !!data
 }
+
+// Anonymous customer tips the detailer from the public tracking page's
+// finish step, without ever signing in — reuses the card saved from the
+// booking payment via the charge-public-tip edge function (a real Stripe
+// charge, so this can fail: declined card, no saved card, etc.). Same
+// capability model as the RPCs above: the booking id is the token.
+export const submitPublicTip = (bookingId, amount) =>
+  invokeFn('charge-public-tip', { bookingId, amount })
 
 
 export async function fetchDetailerProfileRow(userId) {

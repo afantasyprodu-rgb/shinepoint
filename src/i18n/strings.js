@@ -1973,9 +1973,15 @@ export const STRINGS = {
       ratingThanksTitle: 'Thanks for your feedback!',
       ratingError: "Couldn't submit your rating — please try again.",
       timelineStepEnRoute: 'On the way',
-
-
-
+      tipTitle: 'Add a tip',
+      tipBody: '100% goes directly to {name}.',
+      customAmount: 'Custom amount',
+      sendTip: 'Send ${amount} tip 🙌',
+      addTip: 'Add tip',
+      sendingTip: 'Sending…',
+      tipFailed: "Tip couldn't be charged — please try again.",
+      tipThanksTitle: 'Thanks for the ${amount} tip!',
+      noCardForTip: 'No saved card on this booking to tip with.',
     },
   },
   es: {
@@ -3925,7 +3931,15 @@ publicTrack: {
       ratingThanksTitle: '¡Gracias por tu opinion!',
       ratingError: 'No se pudo enviar tu calificacion — intenta de nuevo.',
       timelineStepEnRoute: 'En camino',
-
+      tipTitle: 'Agregar propina',
+      tipBody: 'El 100% va directo a {name}.',
+      customAmount: 'Monto personalizado',
+      sendTip: 'Enviar propina de ${amount} 🙌',
+      addTip: 'Agregar propina',
+      sendingTip: 'Enviando…',
+      tipFailed: 'No se pudo cobrar la propina — intenta de nuevo.',
+      tipThanksTitle: '¡Gracias por la propina de ${amount}!',
+      noCardForTip: 'No hay tarjeta guardada en esta reserva para propina.',
 
 
     },
