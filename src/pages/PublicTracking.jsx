@@ -13,10 +13,10 @@ const POLL_MS = 12_000
 const TIP_ROTATE_MS = 4500
 const ASSUMED_TRIP_MI = 8 // single-ping progress heuristic baseline
 
-// Public, no-login tracking page — what the "detailer is on the way" SMS
-// links to (058). Deliberately outside ProtectedRoute: the booking id in
-// the URL is the capability. Shows only public RPC fields — never the
-// customer's name, phone, or exact address.
+// Public, no-login tracking page — SMS "on the way" link (058).
+// Outside ProtectedRoute: booking id in the URL is the capability.
+// Shows only public RPC fields — never customer name/phone/exact address.
+// Light glassmorphism + Style B stacking; ETA circular progress; weather on map.
 export default function PublicTracking() {
   const { id } = useParams()
   const t = useT('publicTrack')
@@ -43,18 +43,27 @@ export default function PublicTracking() {
   }, [id])
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-brand-50 via-white to-cta-50/40 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900">
-      <div className="mx-auto max-w-md px-4 py-8 sm:px-6">
-        <Logo />
-        <div className="card mt-6 !p-5">
-          {notFound ? (
-            <p className="text-sm text-slate-500 dark:text-slate-400">{t('notFound')}</p>
-          ) : !info ? (
-            <div className="h-40 animate-pulse rounded-xl bg-brand-100 dark:bg-brand-500/15" />
-          ) : (
-            <TrackingBody info={info} />
-          )}
-        </div>
+    <div className="pt-v2 relative min-h-screen overflow-x-hidden">
+      <div className="pt-v2-wallpaper" aria-hidden="true">
+        <span className="pt-v2-blob pt-v2-blob-a" />
+        <span className="pt-v2-blob pt-v2-blob-b" />
+        <span className="pt-v2-blob pt-v2-blob-c" />
+      </div>
+
+      <div className="relative z-10 mx-auto max-w-md px-4 py-6 sm:px-6">
+        {notFound ? (
+          <div className="pt-v2-glass rounded-2xl p-5">
+            <Logo tone="dark" size="lg" />
+            <p className="mt-4 text-sm text-slate-600">{t('notFound')}</p>
+          </div>
+        ) : !info ? (
+          <div className="pt-v2-glass rounded-2xl p-5">
+            <Logo tone="dark" size="lg" />
+            <div className="mt-4 h-40 animate-pulse rounded-xl bg-white/50" />
+          </div>
+        ) : (
+          <TrackingBody info={info} />
+        )}
       </div>
     </div>
   )
@@ -91,8 +100,8 @@ function TrackingBody({ info }) {
     etaMin = Math.max(1, Math.round((milesLeft / mph) * 60))
   }
 
-  // Baseline miles for fill bar: first ping of this en_route session, or
-  // a moderate assumed trip length when only one ping exists.
+  // Baseline miles for fill bar: first ping distance, or heuristic when
+  // only one ping exists. Never shrink below current remaining (GPS noise).
   const [baselineMi, setBaselineMi] = useState(null)
   useEffect(() => {
     if (!isEnRoute) {
@@ -100,20 +109,19 @@ function TrackingBody({ info }) {
       return
     }
     if (milesLeft == null) return
-    setBaselineMi((prev) => {
-      if (prev == null) {
+    setBaselineMi((prevBase) => {
+      if (prevBase == null) {
         const first = info.pings?.[0]
         if (first && destination && info.pings.length > 1) {
           return Math.max(milesBetween(first, destination), milesLeft, 0.5)
         }
-        // Single ping: invent a gentle baseline so the bar isn't empty/full.
         return Math.max(milesLeft * 1.35, ASSUMED_TRIP_MI, milesLeft + 1)
       }
-      // Never shrink baseline below current remaining (GPS noise).
-      return Math.max(prev, milesLeft)
+      return Math.max(prevBase, milesLeft)
     })
   }, [isEnRoute, isArrivedOrBeyond, milesLeft, info.pings, destination])
 
+  // progress = clamp(1 - milesLeft/baseline, 0, 1); full when arrived+
   const progress = useMemo(() => {
     if (isArrivedOrBeyond) return 1
     if (!isEnRoute || milesLeft == null) return 0
@@ -123,95 +131,87 @@ function TrackingBody({ info }) {
 
   const showEtaHero = isEnRoute && etaMin != null
   const showMap = isEnRoute && latest && destination
+  const progressPct = Math.round(progress * 100)
 
   return (
     <div className="space-y-4">
-      {/* 1. ETA hero */}
-      <div className="flex items-center gap-4">
-        <div className="min-w-0 flex-1">
-          {showEtaHero ? (
-            <>
-              <p className="font-display text-5xl font-bold leading-none tracking-tight text-slate-900 dark:text-slate-50">
-                {etaMin}
-              </p>
-              <p className="mt-1 text-base font-medium text-slate-600 dark:text-slate-300">
-                {t('minAway')}
-              </p>
-              {milesLeft != null && (
-                <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                  {t('milesLeft', { n: milesLeft.toFixed(1) })}
-                </p>
-              )}
-            </>
-          ) : (
-            <>
-              <p className="font-display text-xl font-semibold text-slate-900 dark:text-slate-100">
-                {statusHeadline(info.status, t)}
-              </p>
-              <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
-                {t('shinepointDetailer')}
-              </p>
-            </>
-          )}
-        </div>
-        <div className="flex shrink-0 flex-col items-center gap-1.5 text-center">
-          <Avatar name={info.detailerName} photo={info.detailerPhoto} size="lg" />
-          <div className="max-w-[7.5rem]">
-            <p className="truncate text-xs font-semibold text-slate-900 dark:text-slate-100">
-              {info.detailerName}
-            </p>
-            <p className="truncate text-[10px] text-slate-500 dark:text-slate-400">
-              {t('shinepointDetailer')}
-            </p>
-          </div>
-        </div>
+      {/* 1. ShinePoint alone — top left, no glass */}
+      <div className="pt-v2-brand flex items-center justify-start px-0.5">
+        <Logo tone="dark" size="lg" />
       </div>
 
-      {/* 2. Weather card — Open-Meteo (free, no key) when zip centroid known */}
-      <WeatherCard zip={info.zip} destination={destination} />
+      {/* 2. ETA floating alone — no glass card behind it */}
+      <div className="flex flex-col items-center py-1">
+        {showEtaHero ? (
+          <EtaRing
+            minutes={etaMin}
+            progressPct={progressPct}
+            minAwayLabel={t('minAway')}
+            milesLabel={milesLeft != null ? t('milesLeft', { n: milesLeft.toFixed(1) }) : null}
+            progressLabel={t('distanceProgress')}
+          />
+        ) : (
+          <div className="py-3 text-center">
+            <p className="font-display text-2xl font-semibold text-slate-900">
+              {statusHeadline(info.status, t)}
+            </p>
+            <p className="mt-1 text-sm text-slate-500">{t('shinepointDetailer')}</p>
+          </div>
+        )}
+      </div>
 
-      {/* 3. Tips carousel — no safety/share/help row */}
-      <TipsCarousel />
+      {/* 3. Detailer + tips merged into one card */}
+      <DetailerTipsCard
+        name={info.detailerName}
+        photo={info.detailerPhoto}
+        showEnRoute={isEnRoute}
+      />
 
-      {/* 4. Map */}
+      {/* 4. Tall map with weather overlay top-left */}
       {showMap && (
-        <div className="overflow-hidden rounded-2xl border border-brand-100 dark:border-white/10">
+        <div className="pt-v2-map-shell pt-v2-glass pt-v2-squircle relative overflow-hidden rounded-[28px]">
           <EnRouteMiniMap position={latest} destination={destination} emoji={info.vehicleEmoji} />
+          <div className="pt-v2-weather-overlay pointer-events-none absolute left-2.5 top-2.5 max-w-[72%]">
+            <WeatherCard zip={info.zip} destination={destination} compact />
+          </div>
         </div>
       )}
 
+      {!showMap && (
+        <WeatherCard zip={info.zip} destination={destination} />
+      )}
+
       {isEnRoute && !latest && (
-        <p className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
+        <p className="pt-v2-glass flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm text-slate-600">
           <ClockIcon className="h-4 w-4 shrink-0" /> {t('waitingForLocation')}
         </p>
       )}
 
-      {/* 5–6. Status stepper + distance fill under En route → Arrived */}
+      {/* 5. Status stepper */}
       {info.status !== 'cancelled' && (
-        <StatusStepper currentStep={currentStep} progress={progress} showFill={isEnRoute || isArrivedOrBeyond} />
+        <StatusStepper currentStep={currentStep} />
       )}
 
-      {/* Status messages */}
       {['pending', 'accepted'].includes(info.status) && (
-        <p className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
+        <p className="pt-v2-glass flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm text-slate-600">
           <ClockIcon className="h-4 w-4 shrink-0" /> {t('notLeftYet')}
         </p>
       )}
 
       {['arrived', 'in_progress'].includes(info.status) && (
-        <p className="flex items-center gap-1.5 text-sm text-slate-700 dark:text-slate-200">
-          <CheckIcon className="h-4 w-4 shrink-0 text-cta-600" /> {t('arrivedWorking')}
+        <p className="pt-v2-glass flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm text-slate-700">
+          <CheckIcon className="h-4 w-4 shrink-0 text-brand-600" /> {t('arrivedWorking')}
         </p>
       )}
 
       {info.status === 'complete' && (
-        <p className="flex items-center gap-1.5 text-sm text-slate-700 dark:text-slate-200">
-          <CheckIcon className="h-4 w-4 shrink-0 text-cta-600" /> {t('jobComplete')}
+        <p className="pt-v2-glass flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm text-slate-700">
+          <CheckIcon className="h-4 w-4 shrink-0 text-brand-600" /> {t('jobComplete')}
         </p>
       )}
 
       {info.status === 'cancelled' && (
-        <p className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
+        <p className="pt-v2-glass flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm text-slate-500">
           <AlertTriangleIcon className="h-4 w-4 shrink-0" /> {t('cancelled')}
         </p>
       )}
@@ -228,12 +228,75 @@ function statusHeadline(status, t) {
   return t('headlineDefault')
 }
 
-function StatusStepper({ currentStep, progress, showFill }) {
+function EtaRing({ minutes, progressPct, minAwayLabel, milesLabel, progressLabel }) {
+  const size = 188
+  const stroke = 10
+  const r = (size - stroke) / 2
+  const c = 2 * Math.PI * r
+  const offset = c * (1 - Math.min(100, Math.max(0, progressPct)) / 100)
+
+  return (
+    <div className="pt-v2-eta-flat flex w-full flex-col items-center">
+      <div
+        className="pt-v2-eta-disc"
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={progressPct}
+        aria-label={progressLabel}
+        style={{ width: size, height: size }}
+      >
+        <svg width={size} height={size} className="-rotate-90" aria-hidden="true">
+          <defs>
+            <linearGradient id="pt-eta-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#f9a8d4" />
+              <stop offset="55%" stopColor="#ec4899" />
+              <stop offset="100%" stopColor="#db2777" />
+            </linearGradient>
+          </defs>
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={r}
+            fill="none"
+            stroke="rgb(255 255 255 / 0.45)"
+            strokeWidth={stroke}
+          />
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={r}
+            fill="none"
+            stroke="url(#pt-eta-grad)"
+            strokeWidth={stroke}
+            strokeLinecap="round"
+            strokeDasharray={c}
+            strokeDashoffset={offset}
+            className="pt-v2-eta-ring"
+          />
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center px-3 text-center">
+          <p className="font-display text-5xl font-bold leading-none tracking-tight text-slate-900">
+            {minutes}
+          </p>
+          <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-slate-600">
+            {minAwayLabel}
+          </p>
+        </div>
+      </div>
+      {milesLabel && (
+        <p className="mt-2.5 text-center text-sm font-medium text-slate-600">{milesLabel}</p>
+      )}
+    </div>
+  )
+}
+
+function StatusStepper({ currentStep }) {
   const t = useT('publicTrack')
   const labels = [t('stepPending'), t('stepAccepted'), t('stepEnRoute'), t('stepArrived')]
 
   return (
-    <div className="rounded-2xl border border-brand-100 bg-brand-50/40 p-3 dark:border-white/10 dark:bg-white/5">
+    <div className="pt-v2-glass pt-v2-squircle rounded-[28px] p-3.5">
       <ol className="flex items-start justify-between gap-1">
         {labels.map((label, i) => {
           const done = currentStep > i
@@ -244,8 +307,8 @@ function StatusStepper({ currentStep, progress, showFill }) {
                 className={[
                   'flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-colors',
                   done || active
-                    ? 'bg-cta-600 text-white'
-                    : 'bg-white text-slate-400 ring-1 ring-slate-200 dark:bg-slate-800 dark:ring-white/10',
+                    ? 'bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-sm'
+                    : 'bg-white/70 text-slate-400 ring-1 ring-white/50',
                 ].join(' ')}
                 aria-current={active ? 'step' : undefined}
               >
@@ -254,7 +317,7 @@ function StatusStepper({ currentStep, progress, showFill }) {
               <span
                 className={[
                   'text-[10px] font-medium leading-tight',
-                  active || done ? 'text-slate-800 dark:text-slate-100' : 'text-slate-400',
+                  active || done ? 'text-slate-800' : 'text-slate-400',
                 ].join(' ')}
               >
                 {label}
@@ -263,35 +326,13 @@ function StatusStepper({ currentStep, progress, showFill }) {
           )
         })}
       </ol>
-
-      {showFill && (
-        <div className="mt-3">
-          <div className="mb-1 flex justify-between text-[10px] font-medium text-slate-500 dark:text-slate-400">
-            <span>{t('stepEnRoute')}</span>
-            <span>{t('stepArrived')}</span>
-          </div>
-          <div
-            role="progressbar"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={Math.round(progress * 100)}
-            aria-label={t('distanceProgress')}
-            className="h-2.5 overflow-hidden rounded-full bg-white ring-1 ring-brand-100 dark:bg-slate-800 dark:ring-white/10"
-          >
-            <div
-              className="h-full rounded-full bg-cta-600 transition-[width] duration-700 ease-out"
-              style={{ width: `${Math.round(progress * 100)}%` }}
-            />
-          </div>
-        </div>
-      )}
     </div>
   )
 }
 
 const TIP_KEYS = ['tipDriveway', 'tipGate', 'tipPets', 'tipKeys', 'tipWater', 'tipQuiet']
 
-function TipsCarousel() {
+function DetailerTipsCard({ name, photo, showEnRoute }) {
   const t = useT('publicTrack')
   const [idx, setIdx] = useState(0)
   const tips = TIP_KEYS.map((k) => t(k))
@@ -306,41 +347,58 @@ function TipsCarousel() {
   }
 
   return (
-    <button
-      type="button"
-      onClick={advance}
-      className="w-full cursor-pointer rounded-2xl border border-brand-100 bg-white p-3.5 text-left transition-colors hover:border-brand-200 dark:border-white/10 dark:bg-white/5 dark:hover:border-white/20"
-      aria-label={t('tipsAria')}
-    >
-      <div className="flex items-start gap-2.5">
-        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-brand-700 dark:bg-brand-500/20 dark:text-brand-300">
-          <LightbulbIcon className="h-4 w-4" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-600 dark:text-brand-300">
+    <div className="grid grid-cols-2 gap-2.5">
+      {/* Left — detailer */}
+      <div className="pt-v2-glass pt-v2-squircle flex flex-col items-center justify-center gap-2 px-3 py-3.5 text-center">
+        <Avatar name={name} photo={photo} size="lg" />
+        <div className="min-w-0 w-full">
+          <p className="truncate text-sm font-semibold text-slate-900">{name}</p>
+          <p className="truncate text-[10px] text-slate-500">{t('shinepointDetailer')}</p>
+        </div>
+        {showEnRoute && (
+          <span className="pt-v2-chip rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-brand-700">
+            {t('stepEnRoute')}
+          </span>
+        )}
+      </div>
+
+      {/* Right — tips */}
+      <button
+        type="button"
+        onClick={advance}
+        className="pt-v2-glass pt-v2-tips-card pt-v2-squircle flex cursor-pointer flex-col justify-between px-3 py-3.5 text-left"
+        aria-label={t('tipsAria')}
+      >
+        <div>
+          <span className="mb-2 flex h-8 w-8 items-center justify-center rounded-xl bg-brand-500/15 text-brand-700">
+            <LightbulbIcon className="h-4 w-4" />
+          </span>
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-700">
             {t('tipsTitle')}
           </p>
-          <p className="mt-0.5 text-sm font-medium text-slate-800 dark:text-slate-100">{tips[idx]}</p>
+          <p className="mt-1 text-sm font-medium leading-snug text-slate-800">{tips[idx]}</p>
         </div>
-      </div>
-      <div className="mt-3 flex justify-center gap-1.5" aria-hidden="true">
-        {tips.map((_, i) => (
-          <span
-            key={i}
-            className={[
-              'h-1.5 rounded-full transition-all',
-              i === idx ? 'w-4 bg-cta-600' : 'w-1.5 bg-slate-300 dark:bg-slate-600',
-            ].join(' ')}
-          />
-        ))}
-      </div>
-    </button>
+        <div className="mt-3 flex gap-1" aria-hidden="true">
+          {tips.map((_, i) => (
+            <span
+              key={i}
+              className={[
+                'h-1.5 rounded-full transition-all',
+                i === idx ? 'w-3.5 bg-brand-600' : 'w-1.5 bg-slate-300/80',
+              ].join(' ')}
+            />
+          ))}
+        </div>
+      </button>
+    </div>
   )
 }
 
+
+
 // Open-Meteo is free and needs no API key / env secret.
 // Falls back to a tasteful hour-of-day stub if fetch fails or no coords.
-function WeatherCard({ zip, destination }) {
+function WeatherCard({ zip, destination, compact = false }) {
   const t = useT('publicTrack')
   const [weather, setWeather] = useState(() => stubWeatherFromHour())
 
@@ -380,17 +438,33 @@ function WeatherCard({ zip, destination }) {
 
   const Icon = weather.night ? MoonIcon : SunIcon
 
+  if (compact) {
+    return (
+      <div className="pt-v2-glass pt-v2-weather-pill pointer-events-auto flex items-center gap-2 rounded-2xl px-2.5 py-1.5 shadow-md">
+        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-100/95 text-amber-500">
+          <Icon className="h-4 w-4" />
+        </span>
+        <div className="min-w-0">
+          <p className="truncate text-xs font-semibold text-slate-800">
+            {weather.label}
+            {weather.tempF != null ? ` · ${weather.tempF}°` : ''}
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-brand-100 bg-gradient-to-r from-sky-50 to-brand-50/60 px-3.5 py-2.5 dark:border-white/10 dark:from-slate-800/80 dark:to-slate-800/40">
-      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/80 text-amber-500 shadow-sm dark:bg-slate-900/60 dark:text-amber-300">
+    <div className="pt-v2-glass pt-v2-weather-card flex items-center gap-3 rounded-2xl px-3.5 py-2.5">
+      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-100/90 text-amber-500 shadow-sm">
         <Icon className="h-5 w-5" />
       </span>
       <div className="min-w-0">
-        <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+        <p className="text-sm font-semibold text-slate-800">
           {weather.label}
           {weather.tempF != null ? ` · ${weather.tempF}°` : ''}
         </p>
-        <p className="text-[10px] text-slate-500 dark:text-slate-400">
+        <p className="text-[10px] text-slate-500">
           {weather.source === 'open-meteo' ? t('weatherNearJob') : t('weatherApprox')}
         </p>
       </div>
@@ -404,7 +478,6 @@ function isNightish() {
 }
 
 function stubWeatherFromHour(t) {
-  // TODO: replace stub path by always using Open-Meteo when zip→centroid works.
   const h = new Date().getHours()
   const night = h < 6 || h >= 20
   const label = night
@@ -414,7 +487,6 @@ function stubWeatherFromHour(t) {
       : h < 17
         ? (t?.('weatherPartlyCloudy') ?? 'Partly cloudy')
         : (t?.('weatherClear') ?? 'Clear')
-  // Mild SoCal-ish placeholder temp by hour — not a real forecast.
   const tempF = night ? 58 : h < 11 ? 68 : h < 17 ? 76 : 70
   return { label, tempF, night, source: 'stub' }
 }
