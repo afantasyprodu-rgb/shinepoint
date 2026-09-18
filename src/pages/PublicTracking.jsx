@@ -355,32 +355,50 @@ function StatusStepper({ currentStep }) {
   const labels = [t('stepPending'), t('stepAccepted'), t('stepEnRoute'), t('stepArrived')]
 
   return (
-    <div className="pt-v2-glass pt-v2-squircle rounded-[28px] p-3.5">
-      <ol className="flex items-start justify-between gap-1">
+    <div className="pt-v2-glass pt-v2-squircle rounded-[28px] px-3.5 py-4">
+      <ol className="space-y-0" aria-label={t('bookingProgressAria')}>
         {labels.map((label, i) => {
           const done = currentStep > i
           const active = currentStep === i
+          const last = i === labels.length - 1
           return (
-            <li key={label} className="flex flex-1 flex-col items-center gap-1.5 text-center">
-              <span
-                className={[
-                  'flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-colors',
-                  done || active
-                    ? 'bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-sm'
-                    : 'bg-white/70 text-slate-400 ring-1 ring-white/50',
-                ].join(' ')}
-                aria-current={active ? 'step' : undefined}
-              >
-                {done ? <CheckIcon className="h-3.5 w-3.5" /> : i + 1}
-              </span>
-              <span
-                className={[
-                  'text-[10px] font-medium leading-tight',
-                  active || done ? 'text-slate-800' : 'text-slate-400',
-                ].join(' ')}
-              >
-                {label}
-              </span>
+            <li key={label} className="relative flex gap-3 pb-5 last:pb-0">
+              {!last && (
+                <span
+                  className={[
+                    'absolute left-[13px] top-7 w-0.5 bottom-0',
+                    done ? 'bg-emerald-400' : active ? 'bg-gradient-to-b from-brand-400 to-slate-200' : 'bg-slate-200',
+                  ].join(' ')}
+                  aria-hidden="true"
+                />
+              )}
+              <div className="relative z-[1] shrink-0">
+                {done ? (
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500 text-white shadow-sm">
+                    <CheckIcon className="h-3.5 w-3.5" />
+                  </span>
+                ) : active ? (
+                  <span className="relative flex h-7 w-7 items-center justify-center">
+                    <span className="absolute inset-0 rounded-full bg-brand-500/25" />
+                    <span className="relative h-3 w-3 rounded-full bg-brand-600 ring-4 ring-brand-200" />
+                  </span>
+                ) : (
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-400">
+                    {i + 1}
+                  </span>
+                )}
+              </div>
+              <div className="min-w-0 flex-1 pt-0.5">
+                <p
+                  className={[
+                    'text-sm font-semibold',
+                    active ? 'text-slate-900' : done ? 'text-slate-800' : 'text-slate-400',
+                  ].join(' ')}
+                  aria-current={active ? 'step' : undefined}
+                >
+                  {label}
+                </p>
+              </div>
             </li>
           )
         })}
