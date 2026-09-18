@@ -60,13 +60,6 @@ export default function PublicTracking() {
   )
 }
 
-const STEPS = [
-  { key: 'pending', statuses: ['pending'] },
-  { key: 'accepted', statuses: ['accepted'] },
-  { key: 'en_route', statuses: ['en_route'] },
-  { key: 'arrived', statuses: ['arrived', 'in_progress', 'complete'] },
-]
-
 function stepIndexForStatus(status) {
   if (status === 'cancelled') return -1
   if (['arrived', 'in_progress', 'complete'].includes(status)) return 3
