@@ -904,6 +904,7 @@ export async function fetchPublicTracking(bookingId) {
     conditionPhotos,
     finishPairs,
     finishTotalCount,
+    detailerRating: row.detailer_rating ?? null,
     pings: (pings ?? []).map((p) => ({ lat: p.lat, lng: p.lng, recorded_at: p.recorded_at })),
   }
 }
@@ -914,6 +915,22 @@ export async function acknowledgePublicConditionReport(bookingId) {
   })
   if (error) {
     console.error('acknowledgePublicConditionReport:', error.message)
+    throw error
+  }
+  return !!data
+}
+
+// Anonymous customer rates the detailer from the public tracking page's
+// finish step. Same capability model as acknowledgePublicConditionReport —
+// the booking id is the token; the RPC looks up customer_id/detailer_id
+// itself and only accepts a rating once the job is 'complete'.
+export async function submitPublicDetailerReview(bookingId, rating) {
+  const { data, error } = await supabase.rpc('submit_public_detailer_review', {
+    p_booking_id: bookingId,
+    p_rating: rating,
+  })
+  if (error) {
+    console.error('submitPublicDetailerReview:', error.message)
     throw error
   }
   return !!data

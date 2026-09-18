@@ -1939,6 +1939,7 @@ export const STRINGS = {
       timelineStepComplete: 'Complete',
       timelineApprovedBadge: 'Approved',
       timelineBeginLocked: 'Waiting on condition report',
+      timelineConditionLocked: 'Waiting for your detailer to arrive',
       timelineTipDocumenting: 'Hang tight - this usually takes a minute.',
       timelineTipReview: 'Look over the photos, then approve to unlock work.',
       timelineTipApproved: "You're all set on your side.",
@@ -1965,6 +1966,13 @@ export const STRINGS = {
       finishStepArrivedSub: 'Vehicle arrived on site',
       finishStepConditionSub: 'Photos & notes recorded',
       finishStepBeginSub: 'Service in progress',
+      ratingTitle: 'Rate your detailer',
+      ratingBody: 'How did {name} do?',
+      ratingSr: 'Rating',
+      starLabel: '{n} star{s}',
+      ratingThanksTitle: 'Thanks for your feedback!',
+      ratingError: "Couldn't submit your rating — please try again.",
+      timelineStepEnRoute: 'On the way',
 
 
 
@@ -3883,6 +3891,7 @@ publicTrack: {
       timelineStepComplete: 'Completo',
       timelineApprovedBadge: 'Aprobado',
       timelineBeginLocked: 'Esperando el reporte de condicion',
+      timelineConditionLocked: 'Esperando a que llegue tu detallista',
       timelineTipDocumenting: 'Un momento - esto suele tomar un minuto.',
       timelineTipReview: 'Revisa las fotos y aprueba para desbloquear el trabajo.',
       timelineTipApproved: 'Listo de tu lado.',
@@ -3909,6 +3918,13 @@ publicTrack: {
       finishStepArrivedSub: 'Vehiculo llego al sitio',
       finishStepConditionSub: 'Fotos y notas registradas',
       finishStepBeginSub: 'Servicio en progreso',
+      ratingTitle: 'Califica a tu detallista',
+      ratingBody: '¿Como lo hizo {name}?',
+      ratingSr: 'Calificacion',
+      starLabel: '{n} estrella{s}',
+      ratingThanksTitle: '¡Gracias por tu opinion!',
+      ratingError: 'No se pudo enviar tu calificacion — intenta de nuevo.',
+      timelineStepEnRoute: 'En camino',
 
 
 

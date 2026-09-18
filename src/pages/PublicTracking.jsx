@@ -46,7 +46,7 @@ function previewConditionInfo(kind) {
     }
   }
 
-  if (kind === 'finish' || kind === 'condition-complete') {
+  if (kind === 'finish' || kind === 'condition-complete' || kind === 'finish-rated') {
     return {
       ...base,
       status: 'complete',
@@ -65,7 +65,12 @@ function previewConditionInfo(kind) {
         { label: 'Exterior', locked: true },
       ],
       finishTotalCount: 6,
+      detailerRating: kind === 'finish-rated' ? 5 : null,
     }
+  }
+
+  if (kind === 'en-route-preview') {
+    return { ...base, status: 'en_route' }
   }
 
   if (kind === 'condition-approved') {
@@ -92,7 +97,7 @@ export default function PublicTracking() {
   const previewKind = import.meta.env.DEV ? searchParams.get('preview') : null
 
   useEffect(() => {
-    if (previewKind && (previewKind.startsWith('condition-') || previewKind === 'finish')) {
+    if (previewKind) {
       const mock = previewConditionInfo(previewKind)
       if (mock) {
         setNotFound(false)
@@ -145,21 +150,11 @@ export default function PublicTracking() {
   )
 }
 
-function stepIndexForStatus(status) {
-  if (status === 'cancelled') return -1
-  if (['arrived', 'in_progress', 'complete'].includes(status)) return 3
-  if (status === 'en_route') return 2
-  if (status === 'accepted') return 1
-  if (status === 'pending') return 0
-  return 0
-}
-
 function TrackingBody({ info, bookingId, onInfoPatch }) {
   const t = useT('publicTrack')
   const destination = approxCentroidForZip(info.zip)
   const latest = info.pings?.[info.pings.length - 1] ?? null
   const prev = info.pings?.length > 1 ? info.pings[0] : null
-  const currentStep = stepIndexForStatus(info.status)
   const isEnRoute = info.status === 'en_route'
   const isArrivedOrBeyond = ['arrived', 'in_progress', 'complete'].includes(info.status)
   const isComplete = info.status === 'complete'
@@ -210,9 +205,58 @@ function TrackingBody({ info, bookingId, onInfoPatch }) {
   const showMap = isEnRoute && latest && destination
   const progressPct = Math.round(progress * 100)
 
+  // Step 1's body ("On the way") on the unified timeline — everything the
+  // customer sees before the detailer arrives: ETA/headline, driver+tips,
+  // map+weather, and the two "hasn't left yet" waiting states.
+  const enRouteBody = (
+    <div className="space-y-3">
+      {showEtaHero ? (
+        <EtaRing
+          minutes={etaMin}
+          progressPct={progressPct}
+          minAwayLabel={t('minAway')}
+          milesLabel={milesLeft != null ? t('milesLeft', { n: milesLeft.toFixed(1) }) : null}
+          progressLabel={t('distanceProgress')}
+        />
+      ) : (
+        <div className="py-1 text-center">
+          <p className="font-display text-xl font-semibold text-slate-900">
+            {statusHeadline(info.status, t)}
+          </p>
+          <p className="mt-1 text-sm text-slate-500">{t('shinepointDetailer')}</p>
+        </div>
+      )}
+
+      <DetailerTipsCard name={info.detailerName} photo={info.detailerPhoto} showEnRoute={isEnRoute} />
+
+      {showMap ? (
+        <div className="pt-v2-map-shell pt-v2-glass pt-v2-squircle relative overflow-hidden rounded-[28px]">
+          <EnRouteMiniMap position={latest} destination={destination} emoji={info.vehicleEmoji} />
+          <div className="pt-v2-weather-overlay pointer-events-none absolute left-2.5 top-2.5 max-w-[72%]">
+            <WeatherCard zip={info.zip} destination={destination} compact />
+          </div>
+        </div>
+      ) : (
+        <WeatherCard zip={info.zip} destination={destination} />
+      )}
+
+      {isEnRoute && !latest && (
+        <p className="pt-v2-glass flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm text-slate-600">
+          <ClockIcon className="h-4 w-4 shrink-0" /> {t('waitingForLocation')}
+        </p>
+      )}
+
+      {['pending', 'accepted'].includes(info.status) && (
+        <p className="pt-v2-glass flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm text-slate-600">
+          <ClockIcon className="h-4 w-4 shrink-0" /> {t('notLeftYet')}
+        </p>
+      )}
+    </div>
+  )
+
   return (
     <div className="space-y-4">
-      {/* 1. ShinePoint — Complete badge on finish */}
+      {/* ShinePoint — Complete badge on finish */}
       <div className="pt-v2-brand flex items-center justify-between gap-3 px-0.5">
         <Logo tone="dark" size="lg" />
         {isComplete && (
@@ -223,69 +267,7 @@ function TrackingBody({ info, bookingId, onInfoPatch }) {
         )}
       </div>
 
-      {/* 2. ETA / status hero — hidden on complete (timeline carries it) */}
-      {!isComplete && (
-      <div className="flex flex-col items-center py-1">
-        {showEtaHero ? (
-          <EtaRing
-            minutes={etaMin}
-            progressPct={progressPct}
-            minAwayLabel={t('minAway')}
-            milesLabel={milesLeft != null ? t('milesLeft', { n: milesLeft.toFixed(1) }) : null}
-            progressLabel={t('distanceProgress')}
-          />
-        ) : (
-          <div className="py-3 text-center">
-            <p className="font-display text-2xl font-semibold text-slate-900">
-              {statusHeadline(info.status, t)}
-            </p>
-            <p className="mt-1 text-sm text-slate-500">{t('shinepointDetailer')}</p>
-          </div>
-        )}
-      </div>
-      )}
-
-      {/* 3. Detailer + tips merged into one card */}
-      {!isArrivedOrBeyond && (
-        <DetailerTipsCard
-        name={info.detailerName}
-        photo={info.detailerPhoto}
-        showEnRoute={isEnRoute}
-      />
-      )}
-
-      {/* 4. Tall map with weather overlay top-left */}
-      {showMap && (
-        <div className="pt-v2-map-shell pt-v2-glass pt-v2-squircle relative overflow-hidden rounded-[28px]">
-          <EnRouteMiniMap position={latest} destination={destination} emoji={info.vehicleEmoji} />
-          <div className="pt-v2-weather-overlay pointer-events-none absolute left-2.5 top-2.5 max-w-[72%]">
-            <WeatherCard zip={info.zip} destination={destination} compact />
-          </div>
-        </div>
-      )}
-
-      {!showMap && !isComplete && (
-        <WeatherCard zip={info.zip} destination={destination} />
-      )}
-
-      {isEnRoute && !latest && (
-        <p className="pt-v2-glass flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm text-slate-600">
-          <ClockIcon className="h-4 w-4 shrink-0" /> {t('waitingForLocation')}
-        </p>
-      )}
-
-      {/* 5. Status stepper */}
-      {info.status !== 'cancelled' && !isArrivedOrBeyond && (
-        <StatusStepper currentStep={currentStep} />
-      )}
-
-      {['pending', 'accepted'].includes(info.status) && (
-        <p className="pt-v2-glass flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm text-slate-600">
-          <ClockIcon className="h-4 w-4 shrink-0" /> {t('notLeftYet')}
-        </p>
-      )}
-
-      {isArrivedOrBeyond && (
+      {info.status !== 'cancelled' && (
         <ConditionTimeline
           bookingId={bookingId}
           status={info.status}
@@ -294,14 +276,14 @@ function TrackingBody({ info, bookingId, onInfoPatch }) {
           photos={info.conditionPhotos}
           beforeCount={info.beforePhotoCount}
           detailerName={info.detailerName}
-          detailerPhoto={info.detailerPhoto}
+          detailerRating={info.detailerRating}
           onAcknowledged={onInfoPatch}
+          onRated={(rating) => onInfoPatch({ detailerRating: rating })}
           finishPairs={info.finishPairs}
           finishTotalCount={info.finishTotalCount}
+          enRouteBody={enRouteBody}
         />
       )}
-
-      {/* complete state shown inside ConditionTimeline */}
 
       {info.status === 'cancelled' && (
         <p className="pt-v2-glass flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm text-slate-500">
@@ -380,63 +362,6 @@ function EtaRing({ minutes, progressPct, minAwayLabel, milesLabel, progressLabel
       {milesLabel && (
         <p className="mt-2.5 text-center text-sm font-medium text-slate-600">{milesLabel}</p>
       )}
-    </div>
-  )
-}
-
-function StatusStepper({ currentStep }) {
-  const t = useT('publicTrack')
-  const labels = [t('stepPending'), t('stepAccepted'), t('stepEnRoute'), t('stepArrived')]
-
-  return (
-    <div className="pt-v2-glass pt-v2-squircle rounded-[28px] px-3.5 py-4">
-      <ol className="space-y-0" aria-label={t('bookingProgressAria')}>
-        {labels.map((label, i) => {
-          const done = currentStep > i
-          const active = currentStep === i
-          const last = i === labels.length - 1
-          return (
-            <li key={label} className="relative flex gap-3 pb-5 last:pb-0">
-              {!last && (
-                <span
-                  className={[
-                    'absolute left-[13px] top-7 w-0.5 bottom-0',
-                    done ? 'bg-emerald-400' : active ? 'bg-gradient-to-b from-brand-400 to-slate-200' : 'bg-slate-200',
-                  ].join(' ')}
-                  aria-hidden="true"
-                />
-              )}
-              <div className="relative z-[1] shrink-0">
-                {done ? (
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500 text-white shadow-sm">
-                    <CheckIcon className="h-3.5 w-3.5" />
-                  </span>
-                ) : active ? (
-                  <span className="relative flex h-7 w-7 items-center justify-center">
-                    <span className="absolute inset-0 rounded-full bg-brand-500/25" />
-                    <span className="relative h-3 w-3 rounded-full bg-brand-600 ring-4 ring-brand-200" />
-                  </span>
-                ) : (
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-400">
-                    {i + 1}
-                  </span>
-                )}
-              </div>
-              <div className="min-w-0 flex-1 pt-0.5">
-                <p
-                  className={[
-                    'text-sm font-semibold',
-                    active ? 'text-slate-900' : done ? 'text-slate-800' : 'text-slate-400',
-                  ].join(' ')}
-                  aria-current={active ? 'step' : undefined}
-                >
-                  {label}
-                </p>
-              </div>
-            </li>
-          )
-        })}
-      </ol>
     </div>
   )
 }
