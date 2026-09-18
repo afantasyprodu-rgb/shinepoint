@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { CameraIcon, PlusIcon, TrashIcon, CheckIcon } from './icons'
 import { useT } from '../i18n/useT'
+import { downscaleImage } from '../lib/imageUtils'
 
 function newItem() {
   return { id: crypto.randomUUID(), area: '', note: '', photo: null }
@@ -20,8 +21,19 @@ export default function DamageInspection({ booking: _booking, onSubmit, onNoDama
     setItems((prev) => prev.filter((it) => it.id !== id))
   }
 
-  function handleFile(id, file) {
+  // Downscaled to ~1280px/JPEG before it lands in state — these are the same
+  // shots the customer's public tracking page loads over their own data.
+  async function handleFile(id, file) {
     if (!file) return
+    try {
+      const { file: optimized, dataUrl } = await downscaleImage(file)
+      if (dataUrl) {
+        update(id, { photo: dataUrl, file: optimized || file })
+        return
+      }
+    } catch {
+      // fall through to raw file below
+    }
     const reader = new FileReader()
     reader.onload = (e) => update(id, { photo: e.target.result, file })
     reader.readAsDataURL(file)
