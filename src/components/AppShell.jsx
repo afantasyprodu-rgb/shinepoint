@@ -209,6 +209,11 @@ const NAVS = {
 // not redo this math with its own guessed rem constant: a flat guess can't
 // track env(safe-area-inset-*), which is exactly what left Driplee's input
 // bar unreachable without a page scroll on notched/home-indicator devices.
+// NOT the same knob as `locked`: locked's own overflow-hidden below is only
+// there to clip the decorative background blobs, and relies on min-h-dvh
+// (a floor, not a cap) so a tall wizard step still grows the page and
+// scrolls normally. Folding locked into this h-dvh cap once clipped a real
+// onboarding step's Continue button off-screen with no way to reach it.
 export default function AppShell({ role, children, collapsibleBottomNav = false, locked = false, fillHeight = false }) {
   const { signOut, isDemo, profile } = useAuth()
   const navigate = useNavigate()
@@ -239,8 +244,8 @@ export default function AppShell({ role, children, collapsibleBottomNav = false,
 
   return (
     <div
-      className={`relative flex flex-col ${locked || fillHeight ? 'h-dvh overflow-hidden' : 'min-h-dvh'} ${
-        locked ? 'bg-white dark:bg-[#141026]' : ''
+      className={`relative flex flex-col ${fillHeight ? 'h-dvh overflow-hidden' : 'min-h-dvh'} ${
+        locked ? 'overflow-hidden bg-white dark:bg-[#141026]' : ''
       }`}
     >
       {/* Same soft blurred-blob treatment as the public landing page
