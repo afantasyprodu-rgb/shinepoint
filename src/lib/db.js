@@ -840,6 +840,10 @@ export async function saveServices(userId, services, locationId = null) {
 // capability token (a random UUID), same trust model as a Stripe checkout
 // URL. Both RPCs are security-definer and granted to anon, so this works
 // for a signed-out visitor who just tapped the link from a text.
+// Public, no-login tracking page (058 / 098) — the booking id itself is the
+// capability token (a random UUID), same trust model as a Stripe checkout
+// URL. Both RPCs are security-definer and granted to anon, so this works
+// for a signed-out visitor who just tapped the link from a text.
 export async function fetchPublicTracking(bookingId) {
   const [{ data: info, error: infoErr }, { data: pings, error: pingsErr }] = await Promise.all([
     supabase.rpc('get_public_tracking_info', { p_booking_id: bookingId }),
@@ -849,6 +853,22 @@ export async function fetchPublicTracking(bookingId) {
   if (pingsErr) console.error('fetchPublicTracking pings:', pingsErr.message)
   const row = info?.[0]
   if (!row) return null
+
+  let conditionPhotos = []
+  if (row.damage_report_submitted) {
+    const { data: photos, error: photoErr } = await supabase.rpc('get_public_condition_photos', {
+      p_booking_id: bookingId,
+    })
+    if (photoErr) console.error('fetchPublicTracking photos:', photoErr.message)
+    const urls = (photos ?? []).map((p) => p.url)
+    const signed = await signStorageUrls(urls)
+    conditionPhotos = (photos ?? []).map((p, i) => ({
+      type: p.photo_type,
+      url: signed[i] ?? p.url,
+      area: p.area_label ?? '',
+    }))
+  }
+
   return {
     status: row.status,
     scheduledTime: row.scheduled_time,
@@ -856,9 +876,25 @@ export async function fetchPublicTracking(bookingId) {
     detailerName: row.detailer_name ?? 'Your detailer',
     detailerPhoto: row.detailer_photo ?? null,
     vehicleEmoji: row.vehicle_emoji || '🚗',
+    damageReportSubmitted: !!row.damage_report_submitted,
+    damageReportAcknowledged: !!row.damage_report_acknowledged,
+    beforePhotoCount: Number(row.before_photo_count) || 0,
+    conditionPhotos,
     pings: (pings ?? []).map((p) => ({ lat: p.lat, lng: p.lng, recorded_at: p.recorded_at })),
   }
 }
+
+export async function acknowledgePublicConditionReport(bookingId) {
+  const { data, error } = await supabase.rpc('acknowledge_public_condition_report', {
+    p_booking_id: bookingId,
+  })
+  if (error) {
+    console.error('acknowledgePublicConditionReport:', error.message)
+    throw error
+  }
+  return !!data
+}
+
 
 export async function fetchDetailerProfileRow(userId) {
   const { data, error } = await supabase

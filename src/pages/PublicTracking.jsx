@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useSearchParams } from 'react-router-dom'
 import Logo from '../components/Logo'
 import { EnRouteMiniMap } from '../components/EnRouteTracker'
 import { Avatar } from '../components/ui/bits'
 import { ClockIcon, CheckIcon, AlertTriangleIcon, SunIcon, MoonIcon, LightbulbIcon } from '../components/icons'
+import ConditionTimeline from '../components/ConditionTimeline'
 import { fetchPublicTracking } from '../lib/db'
 import { approxCentroidForZip, milesBetween } from '../lib/fuzzyPin'
 import { useT } from '../i18n/useT'
@@ -13,17 +14,69 @@ const POLL_MS = 12_000
 const TIP_ROTATE_MS = 4500
 const ASSUMED_TRIP_MI = 8 // single-ping progress heuristic baseline
 
-// Public, no-login tracking page — SMS "on the way" link (058).
+// Public, no-login tracking page - SMS "on the way" link (058).
 // Outside ProtectedRoute: booking id in the URL is the capability.
-// Shows only public RPC fields — never customer name/phone/exact address.
+// Shows only public RPC fields - never customer name/phone/exact address.
 // Light glassmorphism + Style B stacking; ETA circular progress; weather on map.
+
+function previewConditionInfo(kind) {
+  const base = {
+    status: 'arrived',
+    scheduledTime: new Date().toISOString(),
+    zip: '90044',
+    detailerName: 'Alex Rivera',
+    detailerPhoto: null,
+    vehicleEmoji: 'car',
+    damageReportSubmitted: false,
+    damageReportAcknowledged: false,
+    beforePhotoCount: 0,
+    conditionPhotos: [],
+    pings: [],
+  }
+  if (kind === 'condition-doc') return base
+  if (kind === 'condition-review') {
+    return {
+      ...base,
+      damageReportSubmitted: true,
+      beforePhotoCount: 2,
+      conditionPhotos: [
+        { type: 'damage_report', url: '', area: 'Driver door' },
+        { type: 'damage_report', url: '', area: 'Rear bumper' },
+      ],
+    }
+  }
+  if (kind === 'condition-approved') {
+    return {
+      ...base,
+      damageReportSubmitted: true,
+      damageReportAcknowledged: true,
+      beforePhotoCount: 2,
+      conditionPhotos: [
+        { type: 'damage_report', url: '', area: 'Driver door' },
+        { type: 'before', url: '', area: 'Front' },
+      ],
+    }
+  }
+  return null
+}
+
 export default function PublicTracking() {
   const { id } = useParams()
+  const [searchParams] = useSearchParams()
   const t = useT('publicTrack')
   const [info, setInfo] = useState(null)
   const [notFound, setNotFound] = useState(false)
+  const previewKind = import.meta.env.DEV ? searchParams.get('preview') : null
 
   useEffect(() => {
+    if (previewKind && previewKind.startsWith('condition-')) {
+      const mock = previewConditionInfo(previewKind)
+      if (mock) {
+        setNotFound(false)
+        setInfo(mock)
+        return undefined
+      }
+    }
     let cancelled = false
     async function load() {
       const data = await fetchPublicTracking(id)
@@ -40,7 +93,7 @@ export default function PublicTracking() {
       cancelled = true
       clearInterval(poll)
     }
-  }, [id])
+  }, [id, previewKind])
 
   return (
     <div className="pt-v2 relative min-h-screen overflow-x-hidden">
@@ -62,7 +115,7 @@ export default function PublicTracking() {
             <div className="mt-4 h-40 animate-pulse rounded-xl bg-white/50" />
           </div>
         ) : (
-          <TrackingBody info={info} />
+          <TrackingBody info={info} bookingId={id} onInfoPatch={(patch) => setInfo((prev) => ({ ...prev, ...patch }))} />
         )}
       </div>
     </div>
@@ -78,7 +131,7 @@ function stepIndexForStatus(status) {
   return 0
 }
 
-function TrackingBody({ info }) {
+function TrackingBody({ info, bookingId, onInfoPatch }) {
   const t = useT('publicTrack')
   const destination = approxCentroidForZip(info.zip)
   const latest = info.pings?.[info.pings.length - 1] ?? null
@@ -135,12 +188,12 @@ function TrackingBody({ info }) {
 
   return (
     <div className="space-y-4">
-      {/* 1. ShinePoint alone — top left, no glass */}
+      {/* 1. ShinePoint alone - top left, no glass */}
       <div className="pt-v2-brand flex items-center justify-start px-0.5">
         <Logo tone="dark" size="lg" />
       </div>
 
-      {/* 2. ETA floating alone — no glass card behind it */}
+      {/* 2. ETA floating alone - no glass card behind it */}
       <div className="flex flex-col items-center py-1">
         {showEtaHero ? (
           <EtaRing
@@ -161,11 +214,13 @@ function TrackingBody({ info }) {
       </div>
 
       {/* 3. Detailer + tips merged into one card */}
-      <DetailerTipsCard
+      {!isArrivedOrBeyond && (
+        <DetailerTipsCard
         name={info.detailerName}
         photo={info.detailerPhoto}
         showEnRoute={isEnRoute}
       />
+      )}
 
       {/* 4. Tall map with weather overlay top-left */}
       {showMap && (
@@ -188,7 +243,7 @@ function TrackingBody({ info }) {
       )}
 
       {/* 5. Status stepper */}
-      {info.status !== 'cancelled' && (
+      {info.status !== 'cancelled' && !isArrivedOrBeyond && (
         <StatusStepper currentStep={currentStep} />
       )}
 
@@ -198,17 +253,21 @@ function TrackingBody({ info }) {
         </p>
       )}
 
-      {['arrived', 'in_progress'].includes(info.status) && (
-        <p className="pt-v2-glass flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm text-slate-700">
-          <CheckIcon className="h-4 w-4 shrink-0 text-brand-600" /> {t('arrivedWorking')}
-        </p>
+      {isArrivedOrBeyond && (
+        <ConditionTimeline
+          bookingId={bookingId}
+          status={info.status}
+          submitted={!!info.damageReportSubmitted}
+          acknowledged={!!info.damageReportAcknowledged}
+          photos={info.conditionPhotos}
+          beforeCount={info.beforePhotoCount}
+          detailerName={info.detailerName}
+          detailerPhoto={info.detailerPhoto}
+          onAcknowledged={onInfoPatch}
+        />
       )}
 
-      {info.status === 'complete' && (
-        <p className="pt-v2-glass flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm text-slate-700">
-          <CheckIcon className="h-4 w-4 shrink-0 text-brand-600" /> {t('jobComplete')}
-        </p>
-      )}
+      {/* complete state shown inside ConditionTimeline */}
 
       {info.status === 'cancelled' && (
         <p className="pt-v2-glass flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm text-slate-500">
@@ -348,7 +407,7 @@ function DetailerTipsCard({ name, photo, showEnRoute }) {
 
   return (
     <div className="grid grid-cols-2 gap-2.5">
-      {/* Left — detailer */}
+      {/* Left - detailer */}
       <div className="pt-v2-glass pt-v2-squircle flex flex-col items-center justify-center gap-2 px-3 py-3.5 text-center">
         <Avatar name={name} photo={photo} size="lg" />
         <div className="min-w-0 w-full">
@@ -362,7 +421,7 @@ function DetailerTipsCard({ name, photo, showEnRoute }) {
         )}
       </div>
 
-      {/* Right — tips */}
+      {/* Right - tips */}
       <button
         type="button"
         onClick={advance}
@@ -447,7 +506,7 @@ function WeatherCard({ zip, destination, compact = false }) {
         <div className="min-w-0">
           <p className="truncate text-xs font-semibold text-slate-800">
             {weather.label}
-            {weather.tempF != null ? ` · ${weather.tempF}°` : ''}
+            {weather.tempF != null ? ` - ${weather.tempF}F` : ''}
           </p>
         </div>
       </div>
@@ -462,7 +521,7 @@ function WeatherCard({ zip, destination, compact = false }) {
       <div className="min-w-0">
         <p className="text-sm font-semibold text-slate-800">
           {weather.label}
-          {weather.tempF != null ? ` · ${weather.tempF}°` : ''}
+          {weather.tempF != null ? ` - ${weather.tempF}F` : ''}
         </p>
         <p className="text-[10px] text-slate-500">
           {weather.source === 'open-meteo' ? t('weatherNearJob') : t('weatherApprox')}
@@ -502,3 +561,4 @@ function wmoLabel(code, t) {
   if (code >= 95) return t('weatherStorm')
   return t('weatherCloudy')
 }
+
