@@ -8,8 +8,10 @@ export default function FinishGallery({ pairs, totalCount }) {
   const t = useT('publicTrack')
   const [dismissed, setDismissed] = useState(false)
   const items = pairs?.length ? pairs : placeholderPairs()
-  const unlocked = items.filter((p) => !p.locked).length
-  const total = totalCount || Math.max(unlocked + 2, 6)
+  const shown = items
+    .filter((p) => !p.locked)
+    .reduce((n, p) => n + (p.beforeUrl ? 1 : 0) + (p.afterUrl ? 1 : 0), 0)
+  const total = totalCount || Math.max(shown + 2, 6)
 
   return (
     <div className="space-y-3">
@@ -69,6 +71,9 @@ export default function FinishGallery({ pairs, totalCount }) {
             </li>
           ))}
         </ul>
+        <p className="px-3.5 pb-3 text-[11px] text-slate-500">
+          {t('finishShownCount', { shown, total })}
+        </p>
       </div>
 
       {!dismissed && (
@@ -102,10 +107,18 @@ export default function FinishGallery({ pairs, totalCount }) {
 }
 
 function TeaserShot({ url, label, tone, tint, alt }) {
+  const [failed, setFailed] = useState(false)
   return (
     <div className="relative h-[128px] overflow-hidden bg-slate-100">
-      {url ? (
-        <img src={url} alt={alt} className="h-full w-full object-cover" loading="lazy" decoding="async" />
+      {url && !failed ? (
+        <img
+          src={url}
+          alt={alt}
+          className="h-full w-full object-cover"
+          loading="lazy"
+          decoding="async"
+          onError={() => setFailed(true)}
+        />
       ) : (
         <div className={`h-full w-full bg-gradient-to-br ${tint}`} />
       )}
