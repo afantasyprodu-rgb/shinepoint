@@ -869,6 +869,28 @@ export async function fetchPublicTracking(bookingId) {
     }))
   }
 
+  // Finish gallery (Style B): pair before/after shots by area once the job
+  // is done. First 2 areas ride free as teasers; anything past that is one
+  // summary "locked" card, matching FinishGallery's sign-in-to-unlock copy.
+  let finishPairs
+  let finishTotalCount
+  if (row.status === 'complete') {
+    const byArea = new Map()
+    for (const p of conditionPhotos) {
+      if (p.type !== 'before' && p.type !== 'after') continue
+      const key = p.area || ''
+      const entry = byArea.get(key) ?? { label: p.area || '', beforeUrl: '', afterUrl: '' }
+      if (p.type === 'before') entry.beforeUrl = p.url
+      else entry.afterUrl = p.url
+      byArea.set(key, entry)
+    }
+    const areas = Array.from(byArea.values())
+    const UNLOCKED = 2
+    finishPairs = areas.slice(0, UNLOCKED).map((a) => ({ ...a, locked: false }))
+    if (areas.length > UNLOCKED) finishPairs.push({ locked: true })
+    finishTotalCount = conditionPhotos.filter((p) => p.type === 'before' || p.type === 'after').length
+  }
+
   return {
     status: row.status,
     scheduledTime: row.scheduled_time,
@@ -880,6 +902,8 @@ export async function fetchPublicTracking(bookingId) {
     damageReportAcknowledged: !!row.damage_report_acknowledged,
     beforePhotoCount: Number(row.before_photo_count) || 0,
     conditionPhotos,
+    finishPairs,
+    finishTotalCount,
     pings: (pings ?? []).map((p) => ({ lat: p.lat, lng: p.lng, recorded_at: p.recorded_at })),
   }
 }
