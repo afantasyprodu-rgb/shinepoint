@@ -13,7 +13,7 @@
     "check:guards": "node scripts/check-booking-guards.mjs && node scripts/check-column-grants.mjs",
     "smoke:agent-api": "node scripts/smoke-agent-api.mjs",
     "mcp": "node scripts/run-mcp.mjs",
-    "cap:sync": "npm run build && cap sync",
+    "cap:sync": "npm run build && cap sync && node scripts/fix-ios-swift-paths.mjs",
     "cap:android": "cap open android",
     "cap:ios": "cap open ios"
   },
