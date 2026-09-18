@@ -253,24 +253,12 @@ function PhotoGrid({ photos, beforeCount, t, compact = false }) {
               compact ? 'h-16 w-20 shrink-0' : '',
             ].join(' ')}
           >
-            {p.url ? (
-              <img
-                src={p.url}
-                alt={p.area || t('conditionPhotoAlt', { n: i + 1 })}
-                className={compact ? 'h-16 w-20 object-cover' : 'h-28 w-full object-cover'}
-                loading="lazy"
-                decoding="async"
-              />
-            ) : (
-              <div
-                className={[
-                  'flex items-center justify-center text-[10px] text-slate-400',
-                  compact ? 'h-16 w-20' : 'h-28',
-                ].join(' ')}
-              >
-                {t('conditionNoPhoto')}
-              </div>
-            )}
+            <PhotoGridImage
+              url={p.url}
+              alt={p.area || t('conditionPhotoAlt', { n: i + 1 })}
+              fallback={t('conditionNoPhoto')}
+              compact={compact}
+            />
             {!compact && p.area ? (
               <p className="truncate px-2 py-1 text-[11px] font-medium text-slate-700">{p.area}</p>
             ) : null}
@@ -281,6 +269,35 @@ function PhotoGrid({ photos, beforeCount, t, compact = false }) {
         <p className="text-xs text-slate-500">{t('conditionBeforeCount', { n: beforeCount })}</p>
       ) : null}
     </div>
+  )
+}
+
+// Falls back to the same placeholder as a missing url when the image
+// actually fails to load — a bare <img alt> on a broken src otherwise
+// renders unclipped text that spills past the rounded thumbnail.
+function PhotoGridImage({ url, alt, fallback, compact }) {
+  const [failed, setFailed] = useState(false)
+  if (!url || failed) {
+    return (
+      <div
+        className={[
+          'flex items-center justify-center text-[10px] text-slate-400',
+          compact ? 'h-16 w-20' : 'h-28',
+        ].join(' ')}
+      >
+        {fallback}
+      </div>
+    )
+  }
+  return (
+    <img
+      src={url}
+      alt={alt}
+      className={compact ? 'h-16 w-20 object-cover' : 'h-28 w-full object-cover'}
+      loading="lazy"
+      decoding="async"
+      onError={() => setFailed(true)}
+    />
   )
 }
 
