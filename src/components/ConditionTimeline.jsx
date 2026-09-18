@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { CheckIcon, CameraIcon, LockIcon, ClockIcon, SparklesIcon } from './icons'
 import { Avatar } from './ui/bits'
 import { acknowledgePublicConditionReport } from '../lib/db'
+import FinishGallery from './FinishGallery'
 import { useT } from '../i18n/useT'
 
 /**
@@ -18,6 +19,8 @@ export default function ConditionTimeline({
   detailerName,
   detailerPhoto,
   onAcknowledged,
+  finishPairs,
+  finishTotalCount,
 }) {
   const t = useT('publicTrack')
   const [busy, setBusy] = useState(false)
@@ -72,6 +75,7 @@ export default function ConditionTimeline({
   return (
     <div className="space-y-4">
       {/* Arrived banner */}
+      {phase !== 'complete' && (
       <div className="pt-v2-glass pt-v2-squircle flex items-center gap-3 rounded-[28px] px-3.5 py-3">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white shadow-sm">
           <CheckIcon className="h-5 w-5" />
@@ -90,6 +94,7 @@ export default function ConditionTimeline({
           </div>
         </div>
       </div>
+      )}
 
       {/* Vertical timeline */}
       <div className="pt-v2-glass pt-v2-squircle rounded-[28px] px-3.5 py-4">
@@ -99,7 +104,11 @@ export default function ConditionTimeline({
             state="done"
             title={t('timelineStepArrived')}
             connector="done"
-          />
+          >
+            {phase === 'complete' && (
+              <p className="mt-0.5 text-xs text-slate-500">{t('finishStepArrivedSub')}</p>
+            )}
+          </TimelineStep>
 
           {/* 2 Condition */}
           <TimelineStep
@@ -143,7 +152,10 @@ export default function ConditionTimeline({
               </div>
             )}
 
-            {conditionDone && (
+            {phase === 'complete' && (
+              <p className="mt-0.5 text-xs text-slate-500">{t('finishStepConditionSub')}</p>
+            )}
+            {conditionDone && phase !== 'complete' && (
               <div className="mt-2 space-y-2">
                 {damagePhotos.length > 0 && (
                   <PhotoGrid photos={damagePhotos} beforeCount={beforeCount} t={t} compact />
@@ -173,6 +185,9 @@ export default function ConditionTimeline({
             {phase === 'working' && (
               <p className="mt-2 text-sm text-slate-600">{t('conditionWorkingBody')}</p>
             )}
+            {phase === 'complete' && (
+              <p className="mt-0.5 text-xs text-slate-500">{t('finishStepBeginSub')}</p>
+            )}
             {!beginDone && !beginActive && (
               <p className="mt-1 text-xs text-slate-400">{t('timelineBeginLocked')}</p>
             )}
@@ -182,23 +197,34 @@ export default function ConditionTimeline({
           <TimelineStep
             state={completeDone ? 'done' : 'locked'}
             title={t('timelineStepComplete')}
+            titleClassName={completeDone ? 'text-emerald-700' : undefined}
             connector={null}
             last
+            glow={completeDone}
           >
             {completeDone && (
-              <p className="mt-1 text-sm text-slate-600">{t('jobComplete')}</p>
+              <p className="mt-1 text-sm text-emerald-700/90">{t('finishCompleteSub')}</p>
+            )}
+            {!completeDone && !beginDone && (
+              <p className="mt-1 text-xs text-slate-400">{t('timelineBeginLocked')}</p>
             )}
           </TimelineStep>
         </ol>
       </div>
 
-      {/* Tip bar */}
+      {/* Tip bar — hidden on complete; FinishGallery CTA replaces it */}
+      {phase !== 'complete' && (
       <div className="pt-v2-glass flex items-center gap-2 rounded-2xl px-3.5 py-2.5">
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-500/15 text-brand-700">
           <SparklesIcon className="h-4 w-4" />
         </span>
         <p className="text-sm text-slate-700">{tip}</p>
       </div>
+      )}
+
+      {phase === 'complete' && (
+        <FinishGallery pairs={finishPairs} totalCount={finishTotalCount} />
+      )}
     </div>
   )
 }
@@ -273,7 +299,7 @@ function PhotoGrid({ photos, beforeCount, t, compact = false }) {
 }
 
 // Falls back to the same placeholder as a missing url when the image
-// actually fails to load — a bare <img alt> on a broken src otherwise
+// actually fails to load - a bare <img alt> on a broken src otherwise
 // renders unclipped text that spills past the rounded thumbnail.
 function PhotoGridImage({ url, alt, fallback, compact }) {
   const [failed, setFailed] = useState(false)
@@ -301,10 +327,10 @@ function PhotoGridImage({ url, alt, fallback, compact }) {
   )
 }
 
-function TimelineStep({ state, title, titleClassName, connector, last = false, children }) {
+function TimelineStep({ state, title, titleClassName, connector, last = false, glow = false, children }) {
   const icon =
     state === 'done' ? (
-      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500 text-white shadow-sm">
+      <span className={['flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500 text-white shadow-sm', glow ? 'ring-4 ring-emerald-400/40' : ''].join(' ')}>
         <CheckIcon className="h-3.5 w-3.5" />
       </span>
     ) : state === 'active' ? (

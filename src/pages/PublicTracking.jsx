@@ -45,6 +45,29 @@ function previewConditionInfo(kind) {
       ],
     }
   }
+
+  if (kind === 'finish' || kind === 'condition-complete') {
+    return {
+      ...base,
+      status: 'complete',
+      damageReportSubmitted: true,
+      damageReportAcknowledged: true,
+      beforePhotoCount: 4,
+      conditionPhotos: [
+        { type: 'before', url: '', area: 'Interior' },
+        { type: 'after', url: '', area: 'Interior' },
+        { type: 'before', url: '', area: 'Wheel' },
+        { type: 'after', url: '', area: 'Wheel' },
+      ],
+      finishPairs: [
+        { label: 'Interior', beforeUrl: '', afterUrl: '', locked: false },
+        { label: 'Wheel', beforeUrl: '', afterUrl: '', locked: false },
+        { label: 'Exterior', locked: true },
+      ],
+      finishTotalCount: 6,
+    }
+  }
+
   if (kind === 'condition-approved') {
     return {
       ...base,
@@ -69,7 +92,7 @@ export default function PublicTracking() {
   const previewKind = import.meta.env.DEV ? searchParams.get('preview') : null
 
   useEffect(() => {
-    if (previewKind && previewKind.startsWith('condition-')) {
+    if (previewKind && (previewKind.startsWith('condition-') || previewKind === 'finish')) {
       const mock = previewConditionInfo(previewKind)
       if (mock) {
         setNotFound(false)
@@ -139,6 +162,7 @@ function TrackingBody({ info, bookingId, onInfoPatch }) {
   const currentStep = stepIndexForStatus(info.status)
   const isEnRoute = info.status === 'en_route'
   const isArrivedOrBeyond = ['arrived', 'in_progress', 'complete'].includes(info.status)
+  const isComplete = info.status === 'complete'
 
   let etaMin = null
   let milesLeft = null
@@ -188,12 +212,19 @@ function TrackingBody({ info, bookingId, onInfoPatch }) {
 
   return (
     <div className="space-y-4">
-      {/* 1. ShinePoint alone - top left, no glass */}
-      <div className="pt-v2-brand flex items-center justify-start px-0.5">
+      {/* 1. ShinePoint — Complete badge on finish */}
+      <div className="pt-v2-brand flex items-center justify-between gap-3 px-0.5">
         <Logo tone="dark" size="lg" />
+        {isComplete && (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500 px-3 py-1 text-xs font-semibold text-white shadow-sm shadow-emerald-500/30">
+            <CheckIcon className="h-3.5 w-3.5" />
+            {t('finishCompleteBadge')}
+          </span>
+        )}
       </div>
 
-      {/* 2. ETA floating alone - no glass card behind it */}
+      {/* 2. ETA / status hero — hidden on complete (timeline carries it) */}
+      {!isComplete && (
       <div className="flex flex-col items-center py-1">
         {showEtaHero ? (
           <EtaRing
@@ -212,6 +243,7 @@ function TrackingBody({ info, bookingId, onInfoPatch }) {
           </div>
         )}
       </div>
+      )}
 
       {/* 3. Detailer + tips merged into one card */}
       {!isArrivedOrBeyond && (
@@ -232,7 +264,7 @@ function TrackingBody({ info, bookingId, onInfoPatch }) {
         </div>
       )}
 
-      {!showMap && (
+      {!showMap && !isComplete && (
         <WeatherCard zip={info.zip} destination={destination} />
       )}
 
@@ -264,6 +296,8 @@ function TrackingBody({ info, bookingId, onInfoPatch }) {
           detailerName={info.detailerName}
           detailerPhoto={info.detailerPhoto}
           onAcknowledged={onInfoPatch}
+          finishPairs={info.finishPairs}
+          finishTotalCount={info.finishTotalCount}
         />
       )}
 
