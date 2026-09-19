@@ -1,6 +1,9 @@
-// Charges a post-job tip from the public, no-login /track/:id page — the
-// booking id is the capability, same trust model as
-// acknowledge_public_condition_report / submit_public_detailer_review.
+// Charges a post-job tip from the public, no-login /track/:id page. Unlike
+// the other /track actions (acknowledge_public_condition_report,
+// submit_public_detailer_review), the booking id is NOT the capability
+// here: this moves money, and the detailer knows every booking id. It
+// requires the signed `t` token from the customer's SMS link instead — see
+// _shared/trackToken.ts.
 // Reuses the card saved when the booking was paid for, exactly like
 // charge-tip (the in-app version), just without a Supabase session: the
 // booking's own customer_id resolves the Stripe customer instead of an
@@ -10,7 +13,7 @@
 // adds the tip on top of detailer_payout once tip_paid_at is set.
 //
 // Deploy: supabase functions deploy charge-public-tip --no-verify-jwt
-// Secrets: STRIPE_SECRET_KEY (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY are
+// Secrets: STRIPE_SECRET_KEY, TRACK_LINK_SECRET (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY are
 // injected automatically).
 import Stripe from 'npm:stripe@^18'
 import { createClient } from 'npm:@supabase/supabase-js@^2'
@@ -20,6 +23,7 @@ import { captureException } from '../_shared/sentry.ts'
 import { isUuid, isFiniteNumber } from '../_shared/validate.ts'
 import { withinRateLimit, tooManyRequests, clientIp } from '../_shared/rateLimit.ts'
 import { publicErrorMessage } from '../_shared/errors.ts'
+import { verifyTrackToken } from '../_shared/trackToken.ts'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
   apiVersion: '2026-05-27.dahlia' as Stripe.LatestApiVersion,
@@ -31,8 +35,17 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
-    const { bookingId, amount } = await req.json().catch(() => ({}))
+    const { bookingId, amount, token } = await req.json().catch(() => ({}))
     if (!isUuid(bookingId)) return json({ error: 'bookingId required' }, 400)
+
+    // The booking id alone is NOT enough to charge a card — the detailer
+    // knows every booking id for their own jobs. Require the signed token
+    // that only the customer's en-route SMS carries (_shared/trackToken.ts).
+    // Checked BEFORE the rate limiter so someone without a token can't burn
+    // the booking's tip bucket and lock the real customer out.
+    if (!(await verifyTrackToken(bookingId, token))) {
+      return json({ error: 'Open the tracking link from your text message to leave a tip.' }, 403)
+    }
     // isFiniteNumber, not typeof — Infinity passes `> 0` and would reach
     // Stripe as an amount.
     if (!isFiniteNumber(amount) || !(amount > 0)) {

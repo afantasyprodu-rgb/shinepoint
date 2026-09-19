@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { StarIcon, CheckIcon } from './icons'
 import { submitPublicDetailerReview, submitPublicTip } from '../lib/db'
@@ -34,6 +35,18 @@ export default function DetailerRating({
   const [tipErr, setTipErr] = useState(null)
   const [tipDone, setTipDone] = useState(tipPaid ? tipAmount : null)
 
+  // Tipping charges the customer's saved card, so the server demands the
+  // signed `t` token that only their en-route SMS link carries — a bare
+  // /track/:id (which the detailer can build from their own job) can't tip.
+  // No token -> don't offer a picker that would only fail. The dev-only
+  // ?preview mock has no real booking and never charges, so it still shows
+  // the picker for design review.
+  const [searchParams] = useSearchParams()
+  const tipToken = searchParams.get('t')
+  const isPreview = import.meta.env.DEV && !!searchParams.get('preview')
+  const canPickTip = hasSavedCard && (!!tipToken || isPreview)
+  const showTipSection = tipDone != null || !hasSavedCard || canPickTip
+
   async function submit(n) {
     setRating(n)
     setBusy(true)
@@ -56,7 +69,7 @@ export default function DetailerRating({
     setTipBusy(true)
     setTipErr(null)
     try {
-      await submitPublicTip(bookingId, amount)
+      await submitPublicTip(bookingId, amount, tipToken)
       setTipDone(amount)
       onTipped?.(amount)
     } catch (e) {
@@ -118,9 +131,11 @@ export default function DetailerRating({
         </div>
       )}
 
+      {/* Tip — hidden entirely when there's nothing to show (saved card,
+          not yet tipped, but no signed token in the link). */}
+      {showTipSection && (<>
       <div className="border-t border-slate-200/70" />
 
-      {/* Tip */}
       {tipDone != null ? (
         <div className="flex items-center gap-3">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white shadow-sm">
@@ -185,6 +200,7 @@ export default function DetailerRating({
           {tipErr ? <p className="text-center text-xs text-red-600">{tipErr}</p> : null}
         </div>
       )}
+      </>)}
     </div>
   )
 }

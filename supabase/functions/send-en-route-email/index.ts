@@ -7,7 +7,8 @@
 // from the client (DetailerJob's "On my way" gate, real bookings only).
 //
 // Deploy: supabase functions deploy send-en-route-email
-// Secrets: RESEND_API_KEY (optional — send is skipped, not fatal, if unset).
+// Secrets: RESEND_API_KEY (optional — send is skipped, not fatal, if unset),
+// TRACK_LINK_SECRET (signs the tip token in the SMS link; see _shared/trackToken.ts).
 import { createClient } from 'npm:@supabase/supabase-js@^2'
 import { corsHeaders, json } from '../_shared/cors.ts'
 import { captureException } from '../_shared/sentry.ts'
@@ -18,6 +19,7 @@ import { sendSms } from '../_shared/sentdm.ts'
 import { enRouteEmail } from '../_shared/email-templates.ts'
 import { enRouteSms } from '../_shared/sms-templates.ts'
 import { publicErrorMessage } from '../_shared/errors.ts'
+import { signTrackToken } from '../_shared/trackToken.ts'
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
@@ -70,7 +72,23 @@ Deno.serve(async (req) => {
     // (ProtectedRoute-gated, so a reviewer without a session hit a login
     // wall). The email link above stays as-is: it's already read from an
     // authenticated inbox context and links to the fuller in-app view.
-    const trackingUrl = `${origin}/track/${booking.id}`
+    // `t` is the signed capability charge-public-tip requires (see
+    // _shared/trackToken.ts). It rides ONLY in the SMS to the customer's
+    // phone; this function's response returns just the SMS id, so the
+    // detailer who triggers it never sees the token. Never return
+    // trackingUrl (or the SMS body) from this function.
+    //
+    // If the secret is missing, send the plain link rather than failing:
+    // the customer still gets their "on my way" text and can track and rate,
+    // and tipping fails closed (no token -> the tip picker isn't offered).
+    let tipToken: string | null = null
+    try {
+      tipToken = await signTrackToken(booking.id)
+    } catch (e) {
+      console.error('send-en-route-email: could not sign tip token:', (e as Error).message)
+      await captureException(e, 'send-en-route-email:track-token')
+    }
+    const trackingUrl = `${origin}/track/${booking.id}${tipToken ? `?t=${encodeURIComponent(tipToken)}` : ''}`
 
     // One send per trip in practice — capped so a stuck retry loop can't
     // spam the customer.

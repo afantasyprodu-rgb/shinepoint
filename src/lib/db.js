@@ -953,8 +953,11 @@ export async function submitPublicDetailerReview(bookingId, rating) {
 // booking payment via the charge-public-tip edge function (a real Stripe
 // charge, so this can fail: declined card, no saved card, etc.). Same
 // capability model as the RPCs above: the booking id is the token.
-export async function submitPublicTip(bookingId, amount) {
-  const res = await invokeFn('charge-public-tip', { bookingId, amount })
+// `token` is the signed `t` query param from the customer's en-route SMS
+// link — the server refuses the charge without it (see
+// supabase/functions/_shared/trackToken.ts for why a booking id isn't enough).
+export async function submitPublicTip(bookingId, amount, token) {
+  const res = await invokeFn('charge-public-tip', { bookingId, amount, token })
   // A 3-D Secure card comes back `requires_action` with nothing charged yet;
   // finishTipCharge presents the challenge and throws if it isn't completed,
   // so the caller never renders "thanks" over an uncollected tip. Imported
