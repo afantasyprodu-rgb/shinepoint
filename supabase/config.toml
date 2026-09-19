@@ -126,6 +126,13 @@ enable_confirmations = false
 [auth.sms.twilio]
 enabled = false
 
+# Public, no-login tipping from /track/:id — the booking id is the
+# capability, same as the other public tracking endpoints. Pinned here
+# (rather than relying on the --no-verify-jwt deploy flag alone) so a
+# `supabase config push` can't silently flip it and break tipping.
+[functions.charge-public-tip]
+verify_jwt = false
+
 [functions.charge-tip]
 verify_jwt = true
 

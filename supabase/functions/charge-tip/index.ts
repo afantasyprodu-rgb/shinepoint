@@ -115,12 +115,21 @@ Deno.serve(async (req) => {
         kind: 'tip',
       },
     }, {
-      // Deterministic idempotency key: one tip charge per booking, ever.
+      // Deterministic idempotency key, scoped to booking AND amount.
       // Closes the check-then-act race where two concurrent requests both
-      // saw tip_paid_at null above and both confirmed a charge — with this,
-      // Stripe replays the first request's intent for the duplicate instead
-      // of creating a second one. Also makes client retries safe.
-      idempotencyKey: `tip-${booking.id}`,
+      // saw tip_paid_at null above and both confirmed a charge — a repeat of
+      // the SAME tip (double-tap, client retry, two in-flight copies of one
+      // submit) hits this same key, so Stripe replays the first intent
+      // instead of creating a second one.
+      //
+      // The amount is part of the key deliberately: Stripe rejects a key
+      // reused with different parameters, so a booking-only key meant that
+      // once a $5 tip was declined, retrying at $10 failed with an
+      // idempotency error for 24h and the customer could never tip at all.
+      // Two DIFFERENT amounts racing concurrently isn't reachable from the
+      // UI (one form, one amount per submit); a declined card being retried
+      // at a new amount is the common case, and this is what unblocks it.
+      idempotencyKey: `tip-${booking.id}-${Math.round(amount * 100)}`,
     })
 
     // The webhook stamps tip_paid_at on payment_intent.succeeded, but write

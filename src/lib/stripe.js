@@ -45,10 +45,39 @@ export const getDetailerBalance = () => invokeFn('get-balance')
 // balance read — this is just the request, not the source of truth.
 export const requestPayout = (amount) => invokeFn('request-payout', { amount, idempotencyKey: crypto.randomUUID() })
 
+// Tips reuse the card saved at booking time, so the server creates the
+// PaymentIntent already confirmed. A card that demands 3-D Secure comes back
+// `requires_action` rather than `succeeded` — meaning NO money has moved yet
+// and the shopper still has a challenge to complete. Both tip paths used to
+// treat that 200 as success and render "thanks for the tip" over a charge
+// that never happened (the customer believed they tipped, the detailer was
+// never paid). handleNextAction presents the challenge; only Stripe's final
+// status decides what the caller is told.
+//
+// Shared by chargeTip (in-app) and submitPublicTip (public /track page) —
+// both hit the same server shape, so both need the same follow-through.
+export async function finishTipCharge(res) {
+  if (!res?.requiresAction) return res
+  if (!res.clientSecret) throw new Error('That card needs verification before the tip can go through.')
+
+  const stripe = await stripePromise
+  if (!stripe) throw new Error('Card verification is unavailable right now.')
+
+  const { error, paymentIntent } = await stripe.handleNextAction({ clientSecret: res.clientSecret })
+  if (error) throw new Error(error.message)
+  // Anything short of 'succeeded' (abandoned challenge, failed check) means
+  // the tip was not collected — say so instead of silently congratulating.
+  if (paymentIntent?.status !== 'succeeded') {
+    throw new Error('That tip was not completed. Your card has not been charged.')
+  }
+  return { ...res, status: paymentIntent.status, requiresAction: false }
+}
+
 // Charge a post-job tip against the card saved from the booking payment.
 // Tips are 100% the detailer's; release-payouts adds this on top of their
 // cut once the charge succeeds.
-export const chargeTip = (bookingId, amount) => invokeFn('charge-tip', { bookingId, amount })
+export const chargeTip = async (bookingId, amount) =>
+  finishTipCharge(await invokeFn('charge-tip', { bookingId, amount }))
 
 // Admin: resolve a dispute, issuing a real Stripe refund when an amount is
 // given. Replaces calling the admin_resolve_dispute RPC directly, which

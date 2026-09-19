@@ -101,8 +101,12 @@ Deno.serve(async (req) => {
         source: 'public_tracking',
       },
     }, {
-      // Deterministic idempotency key: one tip charge per booking, ever.
-      idempotencyKey: `tip-${booking.id}`,
+      // Deterministic idempotency key, scoped to booking AND amount — a
+      // repeat of the same tip replays the first intent, while a retry at a
+      // different amount after a decline is allowed through. See the longer
+      // note in charge-tip/index.ts for why a booking-only key wedged the
+      // customer out of tipping for 24h after a single declined attempt.
+      idempotencyKey: `tip-${booking.id}-${Math.round(amount * 100)}`,
     })
 
     // The webhook stamps tip_paid_at on payment_intent.succeeded, but write

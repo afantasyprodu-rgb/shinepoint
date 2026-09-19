@@ -172,7 +172,9 @@ function normalizeCustomerBooking(row) {
     // getDetailer(...).services), since a uuid[] has no automatic embed.
     addonServiceIds: row.addon_service_ids ?? [],
     price: Number(row.total_price ?? 0),
-    tip: Number(row.tip_amount ?? 0),
+    // Only a confirmed tip counts — see the matching note in the detailer
+    // normalizer below.
+    tip: row.tip_paid_at ? Number(row.tip_amount ?? 0) : 0,
     status: row.status,
     // Set only once the customer's PaymentIntent actually succeeds
     // (create-payment-intent / stripe-webhook) — a booking can sit at
@@ -234,7 +236,14 @@ function normalizeDetailerBooking(row) {
     serviceId: row.service_id,
     addonServiceIds: row.addon_service_ids ?? [],
     price: Number(row.total_price ?? 0),
-    tip: Number(row.tip_amount ?? 0),
+    // Gated on tip_paid_at, NOT tip_amount alone: both tip functions write
+    // tip_amount provisionally before Stripe confirms, so an abandoned 3-D
+    // Secure challenge or a charge that never lands leaves an amount on the
+    // row that was never collected. release-payouts already refuses to pay a
+    // tip without tip_paid_at — this keeps DetailerEarnings' Tips total and
+    // its CSV export honest about the same thing, instead of showing the
+    // detailer money they will never receive.
+    tip: row.tip_paid_at ? Number(row.tip_amount ?? 0) : 0,
     platformCut: row.platform_cut != null ? Number(row.platform_cut) : null,
     detailerPayout: row.detailer_payout != null ? Number(row.detailer_payout) : null,
     payoutHoldUntil: row.payout_hold_until,
@@ -944,8 +953,15 @@ export async function submitPublicDetailerReview(bookingId, rating) {
 // booking payment via the charge-public-tip edge function (a real Stripe
 // charge, so this can fail: declined card, no saved card, etc.). Same
 // capability model as the RPCs above: the booking id is the token.
-export const submitPublicTip = (bookingId, amount) =>
-  invokeFn('charge-public-tip', { bookingId, amount })
+export async function submitPublicTip(bookingId, amount) {
+  const res = await invokeFn('charge-public-tip', { bookingId, amount })
+  // A 3-D Secure card comes back `requires_action` with nothing charged yet;
+  // finishTipCharge presents the challenge and throws if it isn't completed,
+  // so the caller never renders "thanks" over an uncollected tip. Imported
+  // lazily so /track/:id doesn't pull Stripe.js for visitors who never tip.
+  const { finishTipCharge } = await import('./stripe')
+  return finishTipCharge(res)
+}
 
 
 export async function fetchDetailerProfileRow(userId) {
