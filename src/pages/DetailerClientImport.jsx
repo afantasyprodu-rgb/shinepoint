@@ -182,7 +182,7 @@ export default function DetailerClientImport() {
             <div className={styles.brandRow}>
               <Sparkle className="h-4 w-4" color="#F43F8C" />
               ShinePoint
-              <span className={styles.brandSub}>CRM</span>
+              <span className={styles.brandSub}>Clients</span>
             </div>
           </div>
 

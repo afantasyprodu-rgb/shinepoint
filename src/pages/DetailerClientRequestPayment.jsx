@@ -271,7 +271,7 @@ export default function DetailerClientRequestPayment() {
             <div className={styles.brandRow}>
               <Sparkle className="h-4 w-4" color="#F43F8C" />
               ShinePoint
-              <span className={styles.brandSub}>Detailer CRM</span>
+              <span className={styles.brandSub}>Detailer Clients</span>
             </div>
           </div>
 

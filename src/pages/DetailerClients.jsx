@@ -158,7 +158,7 @@ export default function DetailerClients() {
             <Sparkle className="h-4 w-4" color="#F43F8C" />
             <Sparkle className="h-3 w-3" color="#F43F8C" />
             ShinePoint
-            <span className={styles.brandSub}>Detailer CRM</span>
+            <span className={styles.brandSub}>Detailer Clients</span>
           </div>
           <h1 className={styles.title}>Client Book</h1>
           <p className={styles.tag}>Your people. Your cars. Not a gray spreadsheet.</p>
