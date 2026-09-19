@@ -1,6 +1,6 @@
+import { Navigate } from 'react-router-dom'
 import { useState } from 'react'
-import AppShell from '../components/AppShell'
-import { AnimatedPage, FadeIn } from '../components/ui/Motion'
+import { FadeIn } from '../components/ui/Motion'
 import { CountUp } from '../components/ui/bits'
 import { NxLineChart, NxDonut, NxChartViewToggle } from '../components/ui/AnalyticsCharts'
 import { useStore } from '../context/StoreContext'
@@ -59,7 +59,8 @@ function durationOf(b) {
   return null
 }
 
-export default function DetailerAnalytics() {
+/** Analytics panels reused inside Earnings (Trends tab). */
+export function DetailerAnalyticsPanels() {
   const { bookings, isDemo, detailerProfile } = useStore()
   // Was hardcoded to the demo detailer's id even for real accounts — same
   // bug as DetailerEarnings.jsx, meant a real detailer's own completed jobs
@@ -124,11 +125,7 @@ export default function DetailerAnalytics() {
   const suggestedBump = hasComparison ? Math.max(3, Math.round(worstService.avgNet * 0.15)) : 0
 
   return (
-    <AppShell role="detailer">
-      <AnimatedPage className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
-        <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">{t('title')}</h1>
-
-        <div className="mt-6">
+        <div>
           <p className="nx-kicker mb-2">{t('sectionOverview')}</p>
           <div className="grid gap-3 sm:grid-cols-2">
             <FadeIn>
@@ -317,7 +314,10 @@ export default function DetailerAnalytics() {
             </FadeIn>
           )}
         </div>
-      </AnimatedPage>
-    </AppShell>
   )
+}
+
+/** Old /detailer/analytics deep links — App.jsx also redirects. */
+export default function DetailerAnalytics() {
+  return <Navigate to="/detailer/earnings?tab=trends" replace />
 }

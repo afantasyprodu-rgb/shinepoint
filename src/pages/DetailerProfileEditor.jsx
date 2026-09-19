@@ -3,9 +3,9 @@ import { Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import AppShell from '../components/AppShell'
 import AccountDangerZone from '../components/AccountDangerZone'
+import BrandThemePicker from '../components/BrandThemePicker'
+import LanguageToggle from '../components/LanguageToggle'
 import ChangePassword from '../components/ChangePassword'
-import LanguageSetting from '../components/LanguageSetting'
-import BrandThemeSetting from '../components/BrandThemeSetting'
 import AvatarUpload from '../components/AvatarUpload'
 import { GalleryGrid } from './ProfileSetup'
 import { AnimatedPage } from '../components/ui/Motion'
@@ -964,6 +964,19 @@ export default function DetailerProfileEditor() {
 
         {activeTab === 'account' && (
         <div className="space-y-4">
+        <div className="card !p-5">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="font-semibold text-slate-900 dark:text-slate-100">{t('appearanceTitle')}</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">{t('appearanceBody')}</p>
+            </div>
+            <div className="flex items-center gap-1">
+              <BrandThemePicker />
+              <LanguageToggle />
+            </div>
+          </div>
+        </div>
+
         <PayoutManagement />
 
         <Link
@@ -993,10 +1006,6 @@ export default function DetailerProfileEditor() {
           </span>
           <ArrowRightIcon className="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-500" />
         </Link>
-
-        <LanguageSetting />
-
-        <BrandThemeSetting />
 
         <ChangePassword />
 

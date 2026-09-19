@@ -32,7 +32,9 @@ export default function DrewLauncher() {
   const [draft, setDraft] = useState(null) // { text, clientId?, bookingId? }
   const [draftText, setDraftText] = useState('')
 
-  const actions = (showAlt ? altActionsForPath : actionsForPath)(location.pathname, lang)
+  // Include the search string — the Earnings/Trends tab is distinguished by
+  // ?tab=trends, which location.pathname alone never carries.
+  const actions = (showAlt ? altActionsForPath : actionsForPath)(location.pathname + location.search, lang)
   const t = panelStrings(lang)
 
   function openPanel() {

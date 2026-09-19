@@ -10,7 +10,7 @@ import { Avatar, CountUp, ProgressBar, StatusPill } from '../components/ui/bits'
 import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
 import { startConnectOnboarding, isStripeConfigured } from '../lib/stripe'
-import { fetchMyPayoutStatus } from '../lib/db'
+import { fetchMyPayoutStatus, fetchDisputes, fetchTimeRequests } from '../lib/db'
 import { detailerPayoutEstimate } from '../lib/fees'
 import { LockIcon, AlertTriangleIcon, ClockIcon, ChevronDownIcon } from '../components/icons'
 import { useT } from '../i18n/useT'
@@ -154,6 +154,9 @@ export default function DetailerDashboard() {
   // once each session, and this avoids a new settings field for a view
   // preference that's cheap to re-pick.
   const [scheduleView, setScheduleView] = useState('list')
+  const [openDisputeCount, setOpenDisputeCount] = useState(0)
+  const [openTimeRequestCount, setOpenTimeRequestCount] = useState(isDemo ? 1 : 0)
+
 
   async function handleDecline(id, suggestedTime, reason) {
     setDeclineError('')
@@ -181,6 +184,33 @@ export default function DetailerDashboard() {
   // always "verified" so the blueprint demo stays fully interactive.
   const verified = isDemo || Boolean(detailerProfile?.is_verified)
   const startedOnboarding = isDemo || Boolean(detailerProfile?.bio || detailerProfile?.zip_code)
+
+  useEffect(() => {
+    let cancelled = false
+    async function loadCounts() {
+      if (isDemo) {
+        if (!cancelled) {
+          setOpenTimeRequestCount(1)
+          setOpenDisputeCount(0)
+        }
+        return
+      }
+      try {
+        const [disputes, timeReqs] = await Promise.all([
+          fetchDisputes(),
+          meId ? fetchTimeRequests(meId) : Promise.resolve([]),
+        ])
+        if (cancelled) return
+        setOpenDisputeCount(disputes.filter((d) => d.status !== 'resolved').length)
+        setOpenTimeRequestCount(timeReqs.filter((r) => r.status === 'open').length)
+      } catch (e) {
+        console.error('dashboard action counts:', e?.message || e)
+      }
+    }
+    loadCounts()
+    return () => { cancelled = true }
+  }, [isDemo, meId])
+
 
   // Demo: filter the shared pool. Real: all bookings loaded are already ours.
   const mine = isDemo ? bookings.filter((b) => b.detailerId === meId) : bookings
@@ -230,89 +260,13 @@ export default function DetailerDashboard() {
   return (
     <AppShell role="detailer">
       <AnimatedPage className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
-        <Link
-          to="/detailer/clients"
-          className="mb-4 flex items-center justify-between rounded-2xl border-2 border-[#F43F8C]/25 bg-[#FFF8F3] px-4 py-3 text-sm font-semibold text-[#F43F8C] shadow-sm transition hover:border-[#F43F8C]/50 dark:bg-[#2a2030]"
-        >
-          <span>Client Book - your people and cars</span>
-          <span aria-hidden="true">{">"}</span>
-        </Link>
         <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">
           {t('welcomeBack', { name: profile?.full_name ? `, ${profile.full_name.split(' ')[0]}` : '' })}
         </h1>
 
-        {!verified && (
-          <FadeIn>
-            <div className="card mt-4 flex flex-wrap items-start gap-3 border-amber-300 bg-amber-50 !p-5 dark:border-amber-500/30 dark:bg-amber-500/10">
-              <AlertTriangleIcon className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
-              <div className="min-w-0 flex-1">
-                <p className="font-semibold text-amber-900 dark:text-amber-200">
-                  {startedOnboarding ? t('underReviewTitle') : t('finishSetupTitle')}
-                </p>
-                <p className="mt-1 text-sm text-amber-800/90 dark:text-amber-200/80">
-                  {startedOnboarding ? t('underReviewBody') : t('finishSetupBody')}
-                </p>
-                {!startedOnboarding && (
-                  <Link to="/detailer/onboarding" className="btn btn-brand mt-3 h-9 px-4 text-sm">
-                    {t('completeOnboarding')}
-                  </Link>
-                )}
-              </div>
-            </div>
-          </FadeIn>
-        )}
-
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {stats.map(({ label, value, prefix, suffix }, i) => (
-            <FadeIn key={label} delay={i * 0.08}>
-              <div className="card !p-4">
-                <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{label}</p>
-                <p className="mt-1 font-display text-2xl font-bold text-brand-800 dark:text-brand-300">
-                  <CountUp value={value} prefix={prefix ?? ''} suffix={suffix ?? ''} />
-                </p>
-              </div>
-            </FadeIn>
-          ))}
-        </div>
-
-        {(me?.probationRemaining ?? detailerProfile?.probation_jobs_remaining ?? 0) > 0 && (
-          <FadeIn delay={0.2}>
-            <div className="card mt-4 !p-5">
-              <ProgressBar
-                value={5 - (me?.probationRemaining ?? detailerProfile?.probation_jobs_remaining ?? 0)}
-                max={5}
-                label={t('qualityReview')}
-              />
-            </div>
-          </FadeIn>
-        )}
-
         <div className="mt-6">
           <AvailabilityToggle />
         </div>
-
-        {!isDemo && isStripeConfigured && <PayoutSetup />}
-
-        {/* Nothing left to open once a real detailer has actually submitted
-            the wizard (bio/zip present) — same reasoning as PayoutSetup
-            above: a "finish onboarding" prompt that never goes away once
-            onboarding is done (even if still pending admin review) is just
-            clutter. Demo always shows it since there's no real approval
-            state to reach. */}
-        {(isDemo || (!verified && !startedOnboarding)) && (
-          <Link
-            to="/detailer/onboarding"
-            className="card card-hover mt-4 flex items-center justify-between !p-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
-          >
-            <div>
-              <p className="font-semibold text-slate-900 dark:text-slate-100">{t('newDetailerOnboarding')}</p>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                {isDemo ? t('onboardingPreview') : t('onboardingPreviewReal')}
-              </p>
-            </div>
-            <span className="text-sm font-semibold text-brand-600 dark:text-brand-300">{t('openArrow')}</span>
-          </Link>
-        )}
 
         {verified ? (
           <>
@@ -562,6 +516,54 @@ export default function DetailerDashboard() {
                 })}
               </div>
             )}
+
+            <Link
+              to="/detailer/earnings"
+              className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 rounded-2xl"
+            >
+              {stats.map(({ label, value, prefix, suffix }, i) => (
+                <FadeIn key={label} delay={i * 0.05}>
+                  <div className="card !p-4">
+                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{label}</p>
+                    <p className="mt-1 font-display text-2xl font-bold text-brand-800 dark:text-brand-300">
+                      <CountUp value={value} prefix={prefix ?? ''} suffix={suffix ?? ''} />
+                    </p>
+                  </div>
+                </FadeIn>
+              ))}
+            </Link>
+            <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">{t('tapStatsForEarnings')}</p>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <Link
+                to="/detailer/time-requests"
+                className="card card-hover flex items-center justify-between !p-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+              >
+                <div>
+                  <p className="font-semibold text-slate-900 dark:text-slate-100">{t('timeRequestsCardTitle')}</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">{t('timeRequestsCardBody')}</p>
+                </div>
+                {openTimeRequestCount > 0 ? (
+                  <span className="rounded-full bg-brand-600 px-2.5 py-1 text-xs font-bold text-white">{openTimeRequestCount}</span>
+                ) : (
+                  <span className="text-sm font-semibold text-brand-600 dark:text-brand-300">{t('openArrow')}</span>
+                )}
+              </Link>
+              <Link
+                to="/detailer/reports"
+                className="card card-hover flex items-center justify-between !p-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+              >
+                <div>
+                  <p className="font-semibold text-slate-900 dark:text-slate-100">{t('disputesCardTitle')}</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">{t('disputesCardBody')}</p>
+                </div>
+                {openDisputeCount > 0 ? (
+                  <span className="rounded-full bg-amber-500 px-2.5 py-1 text-xs font-bold text-white">{openDisputeCount}</span>
+                ) : (
+                  <span className="text-sm font-semibold text-brand-600 dark:text-brand-300">{t('openArrow')}</span>
+                )}
+              </Link>
+            </div>
           </>
         ) : (
           <div className="card mt-8 flex flex-col items-center gap-2 !p-8 text-center">
@@ -572,6 +574,64 @@ export default function DetailerDashboard() {
             </p>
           </div>
         )}
+
+        {!verified && (
+          <FadeIn>
+            <div className="card mt-6 flex flex-wrap items-start gap-3 border-amber-300 bg-amber-50 !p-5 dark:border-amber-500/30 dark:bg-amber-500/10">
+              <AlertTriangleIcon className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold text-amber-900 dark:text-amber-200">
+                  {startedOnboarding ? t('underReviewTitle') : t('finishSetupTitle')}
+                </p>
+                <p className="mt-1 text-sm text-amber-800/90 dark:text-amber-200/80">
+                  {startedOnboarding ? t('underReviewBody') : t('finishSetupBody')}
+                </p>
+                {!startedOnboarding && (
+                  <Link to="/detailer/onboarding" className="btn btn-brand mt-3 h-9 px-4 text-sm">
+                    {t('completeOnboarding')}
+                  </Link>
+                )}
+              </div>
+            </div>
+          </FadeIn>
+        )}
+
+        {(me?.probationRemaining ?? detailerProfile?.probation_jobs_remaining ?? 0) > 0 && (
+          <FadeIn delay={0.1}>
+            <div className="card mt-4 !p-5">
+              <ProgressBar
+                value={5 - (me?.probationRemaining ?? detailerProfile?.probation_jobs_remaining ?? 0)}
+                max={5}
+                label={t('qualityReview')}
+              />
+            </div>
+          </FadeIn>
+        )}
+
+        {!isDemo && isStripeConfigured && <PayoutSetup />}
+
+        {(isDemo || (!verified && !startedOnboarding)) && (
+          <Link
+            to="/detailer/onboarding"
+            className="card card-hover mt-4 flex items-center justify-between !p-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+          >
+            <div>
+              <p className="font-semibold text-slate-900 dark:text-slate-100">{t('newDetailerOnboarding')}</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                {isDemo ? t('onboardingPreview') : t('onboardingPreviewReal')}
+              </p>
+            </div>
+            <span className="text-sm font-semibold text-brand-600 dark:text-brand-300">{t('openArrow')}</span>
+          </Link>
+        )}
+
+        <Link
+          to="/detailer/clients"
+          className="mt-4 flex items-center justify-between rounded-2xl border-2 border-brand-200/60 bg-brand-50/50 px-4 py-3 text-sm font-semibold text-brand-700 shadow-sm transition hover:border-brand-400 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-200"
+        >
+          <span>{t('clientBookPromo')}</span>
+          <span aria-hidden="true">{t('openArrow')}</span>
+        </Link>
       </AnimatedPage>
       <DeclineModal
         booking={declineModalBooking}

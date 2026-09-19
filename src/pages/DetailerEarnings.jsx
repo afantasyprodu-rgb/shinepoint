@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import AppShell from '../components/AppShell'
 import { AnimatedPage, FadeIn, Stagger, StaggerItem } from '../components/ui/Motion'
@@ -9,6 +10,7 @@ import { openDetailerDashboard, getDetailerBalance, requestPayout, isStripeConfi
 import { ClockIcon, ChevronDownIcon, LightbulbIcon } from '../components/icons'
 import { detailerPayoutEstimate } from '../lib/fees'
 import { useT } from '../i18n/useT'
+import { DetailerAnalyticsPanels } from './DetailerAnalytics'
 
 const ME = 'det-1'
 // Six weeks of illustrative net earnings for the demo sparkline — demo-only,
@@ -256,6 +258,13 @@ function PayoutStatus({ bookings }) {
 export default function DetailerEarnings() {
   const { bookings, getDetailer, isDemo, detailerProfile } = useStore()
   const t = useT('detailerEarnings')
+  const tA = useT('detailerAnalytics')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const tab = searchParams.get('tab') === 'trends' ? 'trends' : 'overview'
+  function setTab(next) {
+    if (next === 'trends') setSearchParams({ tab: 'trends' })
+    else setSearchParams({})
+  }
 
   // Was hardcoded to the demo detailer's id ('det-1') even for real accounts
   // — a real detailer's own completed jobs never matched that filter, so
@@ -324,6 +333,41 @@ export default function DetailerEarnings() {
           </button>
         </div>
 
+        <div className="mt-4 flex gap-2 rounded-xl bg-brand-50/80 p-1 dark:bg-white/5" role="tablist" aria-label={t('earnings')}>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === 'overview'}
+            onClick={() => setTab('overview')}
+            className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
+              tab === 'overview'
+                ? 'bg-white text-slate-900 shadow-sm dark:bg-white/10 dark:text-slate-100'
+                : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+            }`}
+          >
+            {t('tabOverview') || 'Overview'}
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === 'trends'}
+            onClick={() => setTab('trends')}
+            className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
+              tab === 'trends'
+                ? 'bg-white text-slate-900 shadow-sm dark:bg-white/10 dark:text-slate-100'
+                : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+            }`}
+          >
+            {tA('sectionTrends') || 'Trends'}
+          </button>
+        </div>
+
+        {tab === 'trends' ? (
+          <div className="mt-6">
+            <DetailerAnalyticsPanels />
+          </div>
+        ) : (
+        <>
         {!isDemo && isStripeConfigured && (
           <div className="mt-6">
             <PayoutStatus bookings={bookings} />
@@ -442,6 +486,8 @@ export default function DetailerEarnings() {
         <div className="mt-6">
           <TaxWriteOffs />
         </div>
+        </>
+        )}
       </AnimatedPage>
     </AppShell>
   )

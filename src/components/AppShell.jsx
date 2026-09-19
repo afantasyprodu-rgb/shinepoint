@@ -4,10 +4,11 @@ import { AnimatePresence, motion } from 'motion/react'
 import Logo from './Logo'
 import ThemeToggle from './ThemeToggle'
 import BrandThemePicker from './BrandThemePicker'
+import SfxToggle from './SfxToggle'
 import SyncPendingBadge from './SyncPendingBadge'
 import ToolsSidebar from './ToolsSidebar'
 import ToolsEdgeTab from './ToolsEdgeTab'
-import { BellIcon, ClipboardCheckIcon, TrendingUpIcon, UsersIcon, UserIcon, PieChartIcon, MapPinIcon, ChevronDownIcon, AlertTriangleIcon, MessageCircleIcon } from './icons'
+import { BellIcon, ClipboardCheckIcon, TrendingUpIcon, UsersIcon, UserIcon, MapPinIcon, ChevronDownIcon, MessageCircleIcon } from './icons'
 import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
 import BottomTabBar from './ui/BottomTabBar'
@@ -179,9 +180,7 @@ const NAVS = {
   detailer: [
     { to: '/detailer', labelKey: 'jobs', end: true, icon: ClipboardCheckIcon },
     { to: '/detailer/clients', labelKey: 'clients', icon: UsersIcon },
-    { to: '/detailer/reports', labelKey: 'reports', icon: AlertTriangleIcon },
     { to: '/detailer/earnings', labelKey: 'earnings', icon: TrendingUpIcon },
-    { to: '/detailer/analytics', labelKey: 'analytics', icon: PieChartIcon },
     { to: '/detailer/assistant', labelKey: 'assistant', icon: MessageCircleIcon },
     { to: '/detailer/profile', labelKey: 'account', icon: UserIcon },
   ],
@@ -322,6 +321,7 @@ export default function AppShell({ role, children, collapsibleBottomNav = false,
                 same move as LanguageSetting just above it in that tab. */}
             <BrandThemePicker className="hidden sm:flex" />
             <ThemeToggle />
+            {!locked && <SfxToggle />}
             {!locked && <NotificationBell role={role} />}
             <button onClick={handleSignOut} className="btn btn-outline h-9 px-3 text-sm">
               {isDemo ? t('exitDemo') : t('signOut')}

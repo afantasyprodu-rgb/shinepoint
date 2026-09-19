@@ -1369,6 +1369,7 @@ export const STRINGS = {
       cheatDisclaimer: 'Starting points, not fixed rules — every number here adjusts freely in its full calculator.',
     },
     detailerEarnings: {
+      tabOverview: 'Overview',
       earnings: 'Earnings',
       exportCsv: 'Export CSV (taxes)',
       availableToWithdraw: 'Available to withdraw',
@@ -2855,6 +2856,8 @@ export const STRINGS = {
       adminNavAria: 'Administración',
     },
     detailerProfileEditor: {
+      appearanceTitle: 'Apariencia',
+      appearanceBody: 'Color de la app e idioma.',
       payoutManageTitle: 'Pagos',
       payoutManageBody: 'Actualiza tus datos bancarios o consulta tu saldo en Stripe cuando quieras.',
       payoutManageError: 'No se pudo abrir el panel de Stripe.',
@@ -3330,6 +3333,7 @@ export const STRINGS = {
       cheatDisclaimer: 'Puntos de partida, no reglas fijas — cada número aquí se puede ajustar libremente en su calculadora completa.',
     },
     detailerEarnings: {
+      tabOverview: 'Resumen',
       earnings: 'Ganancias',
       exportCsv: 'Exportar CSV (impuestos)',
       availableToWithdraw: 'Disponible para retirar',
