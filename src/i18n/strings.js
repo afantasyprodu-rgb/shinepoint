@@ -73,6 +73,7 @@ export const STRINGS = {
       footerContact: '734 W Colden Ave, Los Angeles, CA 90044 · shinepoint.support@gmail.com · (213) 534-7417',
     },
     auth: {
+      signinError: 'Could not complete sign-in. Please try again.',
       createAccount: 'Create your account',
       welcomeBack: 'Welcome back',
       joinTagline: "Join ShinePoint — SoCal's detailing marketplace.",
@@ -2057,6 +2058,7 @@ export const STRINGS = {
       footerContact: '734 W Colden Ave, Los Angeles, CA 90044 · shinepoint.support@gmail.com · (213) 534-7417',
     },
     auth: {
+      signinError: 'No se pudo completar el inicio de sesión. Inténtalo de nuevo.',
       createAccount: 'Crea tu cuenta',
       welcomeBack: 'Bienvenido de nuevo',
       joinTagline: 'Únete a ShinePoint — el mercado de detallado del sur de California.',
