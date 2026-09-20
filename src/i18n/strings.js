@@ -352,6 +352,8 @@ export const STRINGS = {
       goClient: 'Open client',
     },
     bookingDetail: {
+      weatherBadgeClear: 'Clear skies forecast that day',
+      weatherBadgeRain: 'Rain was forecast that day',
       notFound: 'Booking not found.',
       backLink: 'Back',
       allBookings: 'All bookings',
@@ -2331,6 +2333,8 @@ export const STRINGS = {
       goClient: 'Abrir cliente',
     },
     bookingDetail: {
+      weatherBadgeClear: 'Se pronosticaba cielo despejado ese día',
+      weatherBadgeRain: 'Se pronosticaba lluvia ese día',
       notFound: 'Reserva no encontrada.',
       backLink: 'Atrás',
       allBookings: 'Todas las reservas',
