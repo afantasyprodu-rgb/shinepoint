@@ -763,14 +763,20 @@ function InvoiceE({ paid }) {
           ticket ends up, while still visually tucking it under the slot).
           The white ticket paints ON TOP of the dark slot (default stacking —
           it's later in the DOM, no z-index needed) so it actually reads as
-          paper sliding OUT of the slot, not disappearing behind it. */}
-      <div className="rounded-2xl border-2 border-[#2c2c2c] bg-[#2b2b2b] pb-2 shadow-[0_0_1px_0_#000,0_5px_15px_0_rgba(0,0,0,0.45)]">
-        <div className="mx-auto mt-4 h-[22px] w-[90%] rounded-full border border-[#1b1b1b] bg-black shadow-[0_0_1px_0_#000,0_5px_15px_0_rgba(0,0,0,0.45)]" />
-      </div>
-      {/* -mt pulls the ticket up so its top edge lands near the hole's own
-          top edge instead of the grey slot's outer bottom — the paper reads
-          as coming out of the black slit itself, not just below it. */}
-      <div className="relative mx-[7.5%] -mt-8 overflow-hidden rounded-xl bg-white text-slate-500 shadow-[0_5px_25px_0_rgba(0,0,0,0.15)]">
+          paper sliding OUT of the slot, not disappearing behind it.
+
+          Overlap matches the source's own numbers, not a guess: its hole is
+          25px tall starting 16px (1em) into a 120px slot, and its ticket's
+          top edge sits a further 24px (1.5em) down — landing 24-16=8px into
+          the hole, leaving a ~8px sliver of black visible above the paper.
+          This div isn't inside the outer `space-y-3` (that would add its own
+          margin-top on top of this negative one) — kept as its own group so
+          only this exact -mt applies. */}
+      <div>
+        <div className="rounded-2xl border-2 border-[#2c2c2c] bg-[#2b2b2b] pb-2 shadow-[0_0_1px_0_#000,0_5px_15px_0_rgba(0,0,0,0.45)]">
+          <div className="mx-auto mt-4 h-[22px] w-[90%] rounded-full border border-[#1b1b1b] bg-black shadow-[0_0_1px_0_#000,0_5px_15px_0_rgba(0,0,0,0.45)]" />
+        </div>
+        <div className="relative mx-[7.5%] -mt-[30px] overflow-hidden rounded-xl bg-white text-slate-500 shadow-[0_5px_25px_0_rgba(0,0,0,0.15)]">
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-x-0 top-0 h-20"
@@ -851,6 +857,7 @@ function InvoiceE({ paid }) {
             </div>
           </div>
         </div>
+      </div>
 
       {/* Payment method + Pay Now — lives below the slotted card in the
           source too (its own section, not tucked inside the ticket). Only
