@@ -166,7 +166,6 @@ export default function ConditionTimeline({
           >
             {beginActive && (
               <div className="mt-2 space-y-2">
-                <BeginWorkScene />
                 <p className="text-sm text-slate-600">{t('conditionApprovedBody')}</p>
                 <p className="flex items-center gap-1.5 rounded-2xl bg-brand-500/10 px-3 py-2 text-xs font-medium text-brand-800">
                   <ClockIcon className="h-3.5 w-3.5 shrink-0" />
@@ -175,7 +174,10 @@ export default function ConditionTimeline({
               </div>
             )}
             {phase === 'working' && (
-              <p className="mt-2 text-sm text-slate-600">{t('conditionWorkingBody')}</p>
+              <div className="mt-2 space-y-2">
+                <BeginWorkScene />
+                <p className="text-sm text-slate-600">{t('conditionWorkingBody')}</p>
+              </div>
             )}
             {phase === 'complete' && (
               <p className="mt-0.5 text-xs text-slate-500">{t('finishStepBeginSub')}</p>
