@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { useMotionValue, animate } from 'motion/react'
 import Logo from '../components/Logo'
 import { EnRouteMiniMap } from '../components/EnRouteTracker'
 import { Avatar } from '../components/ui/bits'
-import { ClockIcon, CheckIcon, AlertTriangleIcon, SunIcon, MoonIcon, LightbulbIcon } from '../components/icons'
+import { ClockIcon, CheckIcon, AlertTriangleIcon, SunIcon, MoonIcon, LightbulbIcon, XIcon, ExpandIcon, CompressIcon } from '../components/icons'
 import ConditionTimeline from '../components/ConditionTimeline'
 import { fetchPublicTracking } from '../lib/db'
 import { approxCentroidForZip, milesBetween } from '../lib/fuzzyPin'
@@ -209,6 +210,44 @@ function TrackingBody({ info, bookingId, onInfoPatch }) {
   const showMap = isEnRoute && latest && destination
   const progressPct = Math.round(progress * 100)
 
+  // Map lightbox — the thumbnail stays a long rectangle; a tap pops the map
+  // into a centered overlay over a blurred backdrop. Tapping outside the map
+  // or pressing Escape closes it, and background scroll locks while open.
+  const [mapOpen, setMapOpen] = useState(false)
+  // Big/small toggle for the popped map — full-bleed vs compact card. The
+  // ResizeObserver inside EnRouteMiniMap re-lays tiles on every switch.
+  const [mapFull, setMapFull] = useState(true)
+  // Closing beat — X/backdrop/Escape first play the shrink-out, then the
+  // overlay unmounts on a timer so the exit is visible, not a snap.
+  const [mapClosing, setMapClosing] = useState(false)
+  const closeTimer = useRef(null)
+  function requestMapClose() {
+    if (!mapOpen || mapClosing) return
+    setMapClosing(true)
+    clearTimeout(closeTimer.current)
+    closeTimer.current = setTimeout(() => {
+      setMapOpen(false)
+      setMapClosing(false)
+    }, 200)
+  }
+  useEffect(() => () => clearTimeout(closeTimer.current), [])
+  useEffect(() => {
+    if (!mapOpen) return
+    const onKey = (e) => {
+      if (e.key === 'Escape') requestMapClose()
+    }
+    document.addEventListener('keydown', onKey)
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.body.style.overflow = prevOverflow
+    }
+    // requestMapClose is re-created each render; re-subscribing with it keeps
+    // the Escape closure fresh through the closing beat.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapOpen, mapClosing])
+
   // Step 1's body ("On the way") on the unified timeline — everything the
   // customer sees before the detailer arrives: ETA/headline, driver+tips,
   // map+weather, and the two "hasn't left yet" waiting states.
@@ -239,9 +278,77 @@ function TrackingBody({ info, bookingId, onInfoPatch }) {
           <div className="pt-v2-weather-overlay pointer-events-none absolute left-2.5 top-2.5 max-w-[72%]">
             <WeatherCard zip={info.zip} destination={destination} compact />
           </div>
+          {/* Full-cover tap target — the thumbnail itself isn't interactive,
+              so one layer handles the single-tap-to-expand everywhere. */}
+          <button
+            type="button"
+            onClick={() => setMapOpen(true)}
+            aria-label={t('mapExpand')}
+            className="absolute inset-0 z-[1000] cursor-pointer touch-manipulation"
+          />
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute right-2.5 top-2.5 z-[1001] flex h-8 w-8 items-center justify-center rounded-full bg-white/85 text-slate-700 shadow-sm backdrop-blur"
+          >
+            <ExpandIcon className="h-4 w-4" />
+          </span>
         </div>
       ) : (
         <WeatherCard zip={info.zip} destination={destination} />
+      )}
+
+      {/* Portaled to document.body — an ancestor's transform/filter would
+          otherwise trap `fixed` and shrink the overlay to part of the page,
+          leaving strips (like the header) unblurred. */}
+      {showMap && mapOpen && createPortal(
+        <div className={`fixed inset-0 z-[70] flex items-center justify-center ${mapFull ? 'p-5' : 'p-8'}`} role="dialog" aria-modal="true" aria-label={t('mapExpand')}>
+          <button
+            type="button"
+            onClick={requestMapClose}
+            aria-label={t('mapClose')}
+            className={`absolute inset-0 bg-slate-900/45 backdrop-blur-md ${mapClosing ? 'pt-v2-map-fade' : ''}`}
+          />
+          {/* Motion wrapper is separate from the liquid-glass card: animating
+              transform on the same element as backdrop-filter drops Leaflet's
+              tile layers mid-animation in Chromium. Wrapper moves, card blurs. */}
+          <div className={`${mapClosing ? 'pt-v2-map-shrink' : 'pt-v2-map-pop'} ${mapFull ? 'h-full w-full' : 'w-full max-w-md'}`}>
+          <div className="pt-v2-map-liquid relative flex h-full w-full flex-col overflow-hidden rounded-[28px] p-2" onClick={(e) => e.stopPropagation()}>
+            <div className={`relative overflow-hidden rounded-[20px] ${mapFull ? 'min-h-0 flex-1' : ''}`}>
+              <EnRouteMiniMap position={latest} destination={destination} emoji={info.vehicleEmoji} className={mapFull ? 'h-full' : 'h-[58vh]'} />
+              <div className="pt-v2-weather-overlay pointer-events-none absolute left-2.5 top-2.5 max-w-[72%]">
+                <WeatherCard zip={info.zip} destination={destination} compact />
+              </div>
+              <div className="absolute bottom-2.5 right-2.5 z-[1001] flex items-center gap-1 rounded-full bg-white/90 p-1 shadow-md backdrop-blur">
+                <button
+                  type="button"
+                  onClick={() => setMapFull(false)}
+                  aria-label={t('mapShrink')}
+                  className={`flex h-8 w-8 items-center justify-center rounded-full transition ${mapFull ? 'text-slate-400 hover:text-slate-700' : 'bg-slate-900 text-white'}`}
+                >
+                  <CompressIcon className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMapFull(true)}
+                  aria-label={t('mapEnlarge')}
+                  className={`flex h-8 w-8 items-center justify-center rounded-full transition ${mapFull ? 'bg-slate-900 text-white' : 'text-slate-400 hover:text-slate-700'}`}
+                >
+                  <ExpandIcon className="h-4 w-4" />
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={requestMapClose}
+                aria-label={t('mapClose')}
+                className="absolute right-2.5 top-2.5 z-[1001] flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-slate-700 shadow-md backdrop-blur transition hover:bg-white"
+              >
+                <XIcon className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+          </div>
+        </div>,
+        document.body
       )}
 
       {isEnRoute && !latest && (
@@ -317,78 +424,62 @@ function statusHeadline(status, t) {
 // what's actually filled), not a halo around the whole disc.
 const ETA_NEAR_MINUTES = 3
 
-// Same pink/purple/blue family as the page's own wallpaper blobs, as RGB
-// triples so the traveling tip glow can interpolate between them frame by
-// frame (linear RGB lerp — cheap, and the 3 stops are close enough in hue
-// that it doesn't muddy like a pink->blue lerp would).
-const GLOW_STOPS = [
-  { p: 0, c: [249, 168, 212] }, // #f9a8d4
-  { p: 50, c: [196, 181, 253] }, // #c4b5fd
-  { p: 100, c: [125, 211, 252] }, // #7dd3fc
-]
-function colorAtPct(pct) {
-  const v = Math.min(100, Math.max(0, pct))
-  const [a, b] = v <= 50 ? [GLOW_STOPS[0], GLOW_STOPS[1]] : [GLOW_STOPS[1], GLOW_STOPS[2]]
-  const t = (v - a.p) / (b.p - a.p)
-  const mix = (i) => Math.round(a.c[i] + (b.c[i] - a.c[i]) * t)
-  return `rgb(${mix(0)} ${mix(1)} ${mix(2)})`
-}
-
 function EtaRing({ minutes, progressPct, minAwayLabel, milesLabel, progressLabel }) {
-  const size = 188
-  const stroke = 10
+  const size = 230
+  const stroke = 18
   const r = (size - stroke) / 2
   const c = 2 * Math.PI * r
   const isNear = minutes != null && minutes <= ETA_NEAR_MINUTES
-  const glowOuterRadius = r + 12
+  const glowOuterRadius = r + 11
   const glowOuterC = 2 * Math.PI * glowOuterRadius
   const targetPct = Math.min(100, Math.max(0, progressPct))
+  // SMIL can't read media queries, so gate the looping gradient in JS —
+  // same intent as the prefers-reduced-motion pulse guard in index.css.
+  const [prefersMotion] = useState(
+    () =>
+      typeof window === 'undefined' ||
+      !window.matchMedia ||
+      window.matchMedia('(prefers-reduced-motion: no-preference)').matches
+  )
 
-  // Drives the fill-in sweep: on mount, and on every progressPct change (new
-  // GPS ping), tweens from wherever the ring currently sits to the new
-  // target instead of snapping — the tip dot rides along it, so the glow
-  // visibly travels the path rather than just fading in at its final spot.
+  // Drives the fill-in sweep: on mount, tweens from empty to the target so
+  // the arc visibly fills rather than just fading in at its final spot.
   const pctMV = useMotionValue(0)
-  const [tip, setTip] = useState(() => ({
-    offset: c,
-    glowOuterOffset: glowOuterC,
-    x: size / 2 + r,
-    y: size / 2,
-    color: colorAtPct(0),
-  }))
+  const [fill, setFill] = useState(0)
 
   const hasAnimatedIn = useRef(false)
 
-  function tipAt(v) {
-    const theta = (v / 100) * 2 * Math.PI
-    return {
-      offset: c * (1 - v / 100),
-      glowOuterOffset: glowOuterC * (1 - v / 100),
-      x: size / 2 + r * Math.cos(theta),
-      y: size / 2 + r * Math.sin(theta),
-      color: colorAtPct(v),
-    }
-  }
-
   useEffect(() => {
-    // Sweep-in animation only plays once, on mount — later GPS pings just
-    // update the ring's position directly, no need to re-run the fill
-    // animation every time a new ping comes in.
+    // hasAnimatedIn only flips inside onComplete, never synchronously here —
+    // React StrictMode double-invokes this effect in dev, and cleanup calls
+    // controls.stop(), which does NOT fire onComplete. Flipping the flag
+    // synchronously at effect-start would let the throwaway first
+    // invocation claim the animation before it ever really played.
     if (!hasAnimatedIn.current) {
-      hasAnimatedIn.current = true
       const controls = animate(pctMV, targetPct, {
-        duration: 1.4,
-        ease: 'easeOut',
+        duration: 2,
+        ease: 'easeInOut',
         onUpdate(v) {
-          setTip(tipAt(v))
+          setFill(v)
+        },
+        onComplete() {
+          hasAnimatedIn.current = true
         },
       })
       return () => controls.stop()
     }
     pctMV.set(targetPct)
-    setTip(tipAt(targetPct))
+    setFill(targetPct)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [targetPct])
+
+  // Everything below derives from the single animated `fill` value so the
+  // crisp arc, its inner shadow, and the outer glow move as one.
+  const ringOffset = c * (1 - fill / 100)
+  const glowOffset = glowOuterC * (1 - fill / 100)
+  // Static inner groove the fill sits in — full circle, never masked to
+  // progress, so it stays put while the colors move.
+  const innerR = r - 3.5
 
   return (
     <div className="pt-v2-eta-flat flex w-full flex-col items-center">
@@ -413,12 +504,27 @@ function EtaRing({ minutes, progressPct, minAwayLabel, milesLabel, progressLabel
               <stop offset="0%" stopColor="#f9a8d4" />
               <stop offset="50%" stopColor="#c4b5fd" />
               <stop offset="100%" stopColor="#7dd3fc" />
+              {/* Flowing color — rotates the gradient around the disc so the
+                  pink/purple/blue bands themselves travel along the arc in
+                  the fill direction. Bloom + outer glow stroke this same
+                  gradient, so they follow the moving color automatically
+                  instead of sitting as a static background halo. */}
+              {prefersMotion && (
+                <animateTransform
+                  attributeName="gradientTransform"
+                  type="rotate"
+                  from="0 0.5 0.5"
+                  to="360 0.5 0.5"
+                  dur="4s"
+                  repeatCount="indefinite"
+                />
+              )}
             </linearGradient>
             <filter id="pt-eta-glow-filter" x="-60%" y="-60%" width="220%" height="220%">
               <feGaussianBlur stdDeviation="5" />
             </filter>
-            <filter id="pt-eta-tip-filter" x="-150%" y="-150%" width="400%" height="400%">
-              <feGaussianBlur stdDeviation="4" />
+            <filter id="pt-eta-inner-filter" x="-60%" y="-60%" width="220%" height="220%">
+              <feGaussianBlur stdDeviation="2.5" />
             </filter>
           </defs>
           <circle
@@ -439,12 +545,15 @@ function EtaRing({ minutes, progressPct, minAwayLabel, milesLabel, progressLabel
               strokeWidth={6}
               strokeLinecap="round"
               strokeDasharray={glowOuterC}
-              strokeDashoffset={tip.glowOuterOffset}
+              strokeDashoffset={glowOffset}
               filter="url(#pt-eta-glow-filter)"
               className="pt-v2-eta-glow-arc"
               aria-hidden="true"
             />
           )}
+          {/* Crisp fill arc — sits underneath the hub; only the outer glow
+              carries the halo now, so the ring reads as recessed under the
+              raised middle. */}
           <circle
             cx={size / 2}
             cy={size / 2}
@@ -454,29 +563,35 @@ function EtaRing({ minutes, progressPct, minAwayLabel, milesLabel, progressLabel
             strokeWidth={stroke}
             strokeLinecap="round"
             strokeDasharray={c}
-            strokeDashoffset={tip.offset}
+            strokeDashoffset={ringOffset}
             className="pt-v2-eta-ring"
           />
-          {/* Traveling glow head — rides the tip of the fill-in sweep above,
-              color-matched to the gradient at its current position (pink at
-              the start, blue by the end) so the glow itself looks like it's
-              "carrying" whichever color it's currently passing through. */}
-          {targetPct > 0 && (
-            <circle
-              cx={tip.x}
-              cy={tip.y}
-              r={9}
-              fill={tip.color}
-              filter="url(#pt-eta-tip-filter)"
-              aria-hidden="true"
-            />
-          )}
+          {/* Inner groove — static full-circle dark rim at the band's inner
+              edge that the fill sits in. Doesn't follow progress; the moving
+              colors travel inside it. */}
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={innerR}
+            fill="none"
+            stroke="rgb(15 23 42)"
+            strokeWidth={5}
+            filter="url(#pt-eta-inner-filter)"
+            opacity={0.4}
+            aria-hidden="true"
+          />
         </svg>
+        {/* Raised hub — neumorphic middle disc floating on top of the fill,
+            carrying the minutes readout (no percentage). Drop shadow lifts
+            it off the ring; inner highlights model the raised edge. */}
+        <div className="pt-v2-eta-hub" aria-hidden="true" />
         <div className="absolute inset-0 flex flex-col items-center justify-center px-3 text-center">
-          <p className="font-display text-5xl font-bold leading-none tracking-tight text-slate-900">
+          <p className="-translate-y-5 font-display text-9xl font-bold leading-none tracking-tight text-slate-900">
             {minutes}
           </p>
-          <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-slate-600">
+          {/* Pinned, not in flow — the number can grow without ever pushing
+              this label out of place. */}
+          <p className="absolute bottom-9 text-xs font-semibold uppercase tracking-wide text-slate-600">
             {minAwayLabel}
           </p>
         </div>

@@ -359,6 +359,28 @@ export function XIcon(props) {
   )
 }
 
+export function ExpandIcon(props) {
+  return (
+    <Icon {...props}>
+      <path d="M15 3h6v6" />
+      <path d="M9 21H3v-6" />
+      <path d="M21 3l-7 7" />
+      <path d="M3 21l7-7" />
+    </Icon>
+  )
+}
+
+export function CompressIcon(props) {
+  return (
+    <Icon {...props}>
+      <path d="M4 14h6v6" />
+      <path d="M20 10h-6V4" />
+      <path d="M14 10l7-7" />
+      <path d="M3 21l7-7" />
+    </Icon>
+  )
+}
+
 // Flat (filled, no stroke) variant — for drawer/menu triggers that want a
 // solid glyph instead of the default outline treatment.
 export function XIconFlat({ className = 'h-6 w-6' }) {

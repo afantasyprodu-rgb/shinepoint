@@ -39,7 +39,7 @@ const destIcon = L.divIcon({
 // per mount — `destination` doesn't change during a session, so the effect
 // deliberately only depends on the container ref, not on props that would
 // otherwise tear the map down and rebuild it on every position update.
-export function EnRouteMiniMap({ position, destination, emoji }) {
+export function EnRouteMiniMap({ position, destination, emoji, className = 'h-40' }) {
   const { theme } = useTheme()
   const containerRef = useRef(null)
   const mapRef = useRef(null)
@@ -74,6 +74,23 @@ export function EnRouteMiniMap({ position, destination, emoji }) {
     tileRef.current.setUrl(t.url)
   }, [theme])
 
+  // Keep tiles honest whenever the container's size settles anywhere new —
+  // rotation, lightbox open, big/small toggle — otherwise Leaflet leaves
+  // gray bands. Observes the box (not just window resizes) so class-driven
+  // size switches re-lay too. No loop risk: invalidateSize never changes
+  // the container's own size.
+  useEffect(() => {
+    const map = mapRef.current
+    const el = containerRef.current
+    if (!map || !el || typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(() => {
+      // Zero-area invalidates prune every tile — guard transitions/unmount.
+      if (el.clientWidth > 0 && el.clientHeight > 0) map.invalidateSize()
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
   // Move (or create) the vehicle marker and keep both points in frame.
   useEffect(() => {
     const map = mapRef.current
@@ -95,7 +112,7 @@ export function EnRouteMiniMap({ position, destination, emoji }) {
     // not on every parent re-render that recreates the position object.
   }, [position?.lat, position?.lng, destination.lat, destination.lng, emoji]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  return <div ref={containerRef} className="nx-map-plain h-40 w-full overflow-hidden rounded-xl" />
+  return <div ref={containerRef} className={`nx-map-plain w-full overflow-hidden rounded-xl ${className}`} />
 }
 
 // Real live tracking for the En route stage — reads GPS pings the

@@ -2386,6 +2386,78 @@
   backdrop-filter: blur(22px) saturate(1.35);
   -webkit-backdrop-filter: blur(22px) saturate(1.35);
 }
+/* Raised hub — the neumorphic middle disc (cf. the conic loader's
+   .loader__middle). Sits inside the fill ring with a small gap; the drop
+   shadow lifts it off the track so it reads as floating on top, while the
+   inner top highlight + bottom shade model the raised edge. */
+.pt-v2-eta-hub {
+  position: absolute;
+  /* Wide enough to overlap the fill ring's inner edge — the progress line
+     tucks underneath the hub instead of floating beside it with a gap. */
+  inset: 16px;
+  border-radius: 9999px;
+  /* Opaque by design — a translucent hub lets the tucked fill + groove blur
+     show through as color bleeding into the middle. Solid whites keep the
+     raised-glass read while fully masking the ring underneath. */
+  background: linear-gradient(145deg, rgb(255 255 255 / 1), rgb(241 245 249 / 1));
+  border: 1px solid rgb(255 255 255 / 0.65);
+  box-shadow:
+    0 8px 18px -8px rgb(30 41 59 / 0.22),
+    inset 0 2px 3px rgb(255 255 255 / 0.95),
+    inset 0 -4px 8px rgb(190 24 93 / 0.08);
+}
+/* Map lightbox entrance — card pops/scales in over the blurred backdrop. */
+.pt-v2-map-pop {
+  animation: pt-v2-map-pop 0.22s ease-out;
+}
+@keyframes pt-v2-map-pop {
+  from { opacity: 0; transform: scale(0.94) translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+/* Map lightbox exit — reverse of the pop above: card shrinks/fades out,
+   backdrop fades. Unmount happens on a timer (see requestMapClose) so the
+   exit is visible instead of snapping away. */
+.pt-v2-map-shrink {
+  animation: pt-v2-map-shrink 0.2s ease-in forwards;
+}
+@keyframes pt-v2-map-shrink {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: scale(0.94) translateY(8px); }
+}
+.pt-v2-map-fade {
+  animation: pt-v2-map-fade 0.2s ease-in forwards;
+}
+@keyframes pt-v2-map-fade {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+/* Liquid glass treatment for the expanded map — refracting-glass read:
+   saturated blur, luminous edge light, and a specular wash over the top
+   so the whole popped card feels like one bent-glass surface. */
+.pt-v2-map-liquid {
+  background: linear-gradient(135deg,
+    rgb(255 255 255 / 0.38) 0%,
+    rgb(255 255 255 / 0.10) 45%,
+    rgb(196 181 253 / 0.14) 100%);
+  -webkit-backdrop-filter: blur(28px) saturate(1.8);
+  backdrop-filter: blur(28px) saturate(1.8);
+  border: 1px solid rgb(255 255 255 / 0.55);
+  box-shadow:
+    0 24px 64px -16px rgb(30 41 59 / 0.5),
+    inset 0 1px 1px rgb(255 255 255 / 0.85),
+    inset 0 -1px 2px rgb(255 255 255 / 0.25);
+}
+.pt-v2-map-liquid::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(115deg,
+    rgb(255 255 255 / 0.22) 0%,
+    rgb(255 255 255 / 0.05) 28%,
+    transparent 45%);
+  pointer-events: none;
+}
 /* No stroke-dashoffset transition here — EtaRing tweens it itself via
    motion/react's animate() every frame (see the tip-glow comment in
    PublicTracking.jsx), so a CSS transition on top would double-ease and
@@ -2399,15 +2471,6 @@
    only an SVG shape that traces the same path can. */
 .pt-v2-eta-glow-arc {
   opacity: 0.75;
-}
-@media (prefers-reduced-motion: no-preference) {
-  .pt-v2-eta-glow-arc {
-    animation: pt-v2-eta-pulse 1.8s ease-in-out infinite;
-  }
-}
-@keyframes pt-v2-eta-pulse {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 1; }
 }
 
 /* Soften liquid glass on row cards */
