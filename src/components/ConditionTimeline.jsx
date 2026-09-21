@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { CheckIcon, CameraIcon, LockIcon, ClockIcon, SparklesIcon } from './icons'
 import { acknowledgePublicConditionReport } from '../lib/db'
 import FinishGallery from './FinishGallery'
@@ -149,18 +149,12 @@ export default function ConditionTimeline({
               </div>
             )}
 
-            {phase === 'complete' && (
+            {/* Once approved, collapse to the same one-line sub used once
+                complete (cf. the "En route" step above) — the full photo
+                grid + badge only matters while this step is the active one
+                (phase === 'review'); afterward it's just settled history. */}
+            {conditionDone && (
               <p className="mt-0.5 text-xs text-slate-500">{t('finishStepConditionSub')}</p>
-            )}
-            {conditionDone && phase !== 'complete' && (
-              <div className="mt-2 space-y-2">
-                {damagePhotos.length > 0 && (
-                  <PhotoGrid photos={damagePhotos} beforeCount={beforeCount} t={t} compact />
-                )}
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
-                  <CheckIcon className="h-3 w-3" /> {t('timelineApprovedBadge')}
-                </span>
-              </div>
             )}
           </TimelineStep>
 
@@ -343,25 +337,211 @@ function PhotoGridImage({ url, alt, fallback, compact }) {
 // few seconds, gliding between stations). Decorative: aria-hidden, and the
 // whole show freezes under reduced-motion.
 const CHORES = ['spray', 'scrub', 'bucket']
-const SPOTS = {
-  spray: { x: 262, face: -1 },
-  scrub: { x: 150, face: 1 },
-  bucket: { x: 48, face: -1 },
+// Workstations on the front lane (feet coords) + the facing used working there.
+const STATIONS = {
+  spray: { x: 262, y: 170, face: -1 },
+  scrub: { x: 150, y: 170, face: 1 },
+  bucket: { x: 48, y: 170, face: -1 },
+}
+const FRONT_Y = 170
+const BACK_Y = 118
+const END_L = 30
+const END_R = 280
+
+// One figure, two depths — the behind-car copy renders before the car
+// group, the front copy after it; both share pos/chore so they move as one
+// and cross-fade wherever the path rounds the car's ends.
+// Front-facing wave break — turns out to the viewer (you, on your phone),
+// big smile, waving hand. Kept symmetric so the travel mirror never matters.
+function FrontWaverFigure() {
+  return (
+    <>
+      <g className="pt-v2-bw-bob">
+        <ellipse cx="0" cy="1" rx="16" ry="3" fill="#0F172A" opacity="0.1" />
+        <rect x="-8" y="-20" width="6.5" height="20" rx="3" fill="#475569" />
+        <rect x="1.5" y="-20" width="6.5" height="20" rx="3" fill="#334155" />
+        <rect x="-9" y="-48" width="18" height="30" rx="9" fill="#EC4899" />
+        <rect x="-15" y="-46" width="6" height="20" rx="3" fill="#F2B78E" />
+        <circle cx="0" cy="-56" r="9" fill="#FBD9B0" />
+        <path d="M-9 -58 a9 9 0 0 1 18 0 Z" fill="#DB2777" />
+        <rect x="-12" y="-60.5" width="24" height="3.5" rx="1.75" fill="#DB2777" />
+        <circle cx="-3.5" cy="-54" r="1.3" fill="#1F2937" />
+        <circle cx="3.5" cy="-54" r="1.3" fill="#1F2937" />
+        <path d="M-4 -49 Q0 -46 4 -49" fill="none" stroke="#1F2937" strokeWidth="1.5" strokeLinecap="round" />
+        <g transform="translate(12 -44)">
+          <g className="pt-v2-bw-wave">
+            <rect x="-3" y="-26" width="6" height="26" rx="3" fill="#F6C9A0" />
+            <circle cx="0" cy="-28" r="3.5" fill="#F6C9A0" />
+          </g>
+        </g>
+        <path d="M24 -66 a10 10 0 0 1 6 8" fill="none" stroke="#A78BFA" strokeWidth="2" strokeLinecap="round" className="pt-v2-bw-mist" />
+        <path d="M30 -70 a16 16 0 0 1 9 13" fill="none" stroke="#A78BFA" strokeWidth="2" strokeLinecap="round" className="pt-v2-bw-mist" style={{ animationDelay: '0.5s' }} />
+      </g>
+    </>
+  )
+}
+
+function WalkerInstance({ chore, pos, show }) {
+  return (
+    <g
+      style={{
+        transform: `translate(${pos.x}px, ${pos.y}px)`,
+        transition: `transform ${pos.dur}s ease-in-out, opacity 0.3s ease`,
+        opacity: show ? 1 : 0,
+      }}
+    >
+      <g style={{ transform: `scaleX(${pos.face})`, transformBox: 'fill-box', transformOrigin: 'center' }}>
+        <WalkerFigure chore={chore} />
+      </g>
+    </g>
+  )
+}
+
+function WalkerFigure({ chore }) {
+  if (chore === 'wave') return <FrontWaverFigure />
+  return (
+    <>
+      <rect x="-95" y="-75" width="190" height="80" fill="#FFFFFF" opacity="0" />
+      <g className="pt-v2-bw-bob">
+        <ellipse cx="2" cy="1" rx="16" ry="3" fill="#0F172A" opacity="0.1" />
+        <g className="pt-v2-bw-leg"><rect x="-6" y="-20" width="5.5" height="20" rx="2.75" fill="#475569" /></g>
+        <g className="pt-v2-bw-leg pt-v2-bw-legB"><rect x="0" y="-20" width="5.5" height="20" rx="2.75" fill="#334155" /></g>
+        <rect x="-11" y="-44" width="6" height="20" rx="3" fill="#F2B78E" />
+        <rect x="-8" y="-48" width="16" height="30" rx="8" fill="#EC4899" />
+        <circle cx="0" cy="-56" r="8.5" fill="#FBD9B0" />
+        <path d="M-8.5 -58 a8.5 8.5 0 0 1 17 0 Z" fill="#DB2777" />
+        <rect x="-1" y="-60.5" width="11" height="3.5" rx="1.75" fill="#DB2777" />
+        {chore === 'spray' ? (
+          <g transform="translate(6 -40) rotate(-12)">
+            <rect x="0" y="-3" width="12" height="6.5" rx="3.25" fill="#F6C9A0" />
+            <rect x="8" y="-2.5" width="30" height="5" rx="2.5" fill="#475569" />
+            <rect x="36" y="-4" width="7" height="8" rx="2" fill="#1F2937" />
+            <g stroke="#7DD3FC" strokeLinecap="round" strokeDasharray="7 6" className="pt-v2-bw-spray">
+              <line x1="44" y1="-12" x2="82" y2="-22" strokeWidth="2.5" />
+              <line x1="44" y1="-8" x2="84" y2="-8" strokeWidth="3" />
+              <line x1="44" y1="-4" x2="82" y2="6" strokeWidth="2.5" />
+            </g>
+            <ellipse cx="86" cy="-8" rx="9" ry="13" fill="#BAE6FD" opacity="0.45" className="pt-v2-bw-mist" />
+            <circle cx="52" cy="-18" r="2.6" fill="#BAE6FD" className="pt-v2-bw-bubble" />
+            <circle cx="60" cy="-24" r="2" fill="#BAE6FD" className="pt-v2-bw-bubble" style={{ animationDelay: '0.7s' }} />
+            <circle cx="46" cy="-28" r="2.3" fill="#BAE6FD" className="pt-v2-bw-bubble" style={{ animationDelay: '1.4s' }} />
+          </g>
+        ) : chore === 'travel' ? (
+          <rect x="2" y="-44" width="6" height="20" rx="3" fill="#F6C9A0" />
+        ) : (
+          <g transform="translate(6 -40)">
+            <g className={chore === 'scrub' ? 'pt-v2-bw-scrub' : 'pt-v2-bw-dunk'}>
+              <rect x="0" y="-3.5" width="25" height="7" rx="3.5" fill="#F6C9A0" />
+              <rect x="23" y="-10" width="15" height="13" rx="5" fill="#7DD3FC" stroke="#FFFFFF" strokeWidth="1.5" />
+              <circle cx="28" cy="-6" r="1.6" fill="#FFFFFF" />
+              <circle cx="33" cy="-3" r="1.2" fill="#FFFFFF" />
+            </g>
+          </g>
+        )}
+      </g>
+    </>
+  )
 }
 
 function BeginWorkScene() {
   const [chore, setChore] = useState('spray')
+  const [pos, setPos] = useState({ ...STATIONS.spray, dur: 1 })
+  const posRef = useRef(pos)
+  const tripRef = useRef(0)
   useEffect(() => {
     if (typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return
-    const id = setInterval(() => {
-      setChore((prev) => {
-        const others = CHORES.filter((c) => c !== prev)
-        return others[Math.floor(Math.random() * others.length)]
-      })
-    }, 6000)
-    return () => clearInterval(id)
+    let alive = true
+    let timer = null
+    const later = (fn, ms) => {
+      timer = setTimeout(() => {
+        if (alive) fn()
+      }, ms)
+    }
+    const glide = (leg, next) => {
+      posRef.current = { x: leg.x, y: leg.y, face: leg.face, dur: leg.dur }
+      setPos(posRef.current)
+      later(next, leg.dur * 1000)
+    }
+    const runLegs = (legs, done) => {
+      let i = 0
+      const next = () => {
+        if (!alive) return
+        if (i >= legs.length) {
+          done()
+          return
+        }
+        glide(legs[i++], next)
+      }
+      next()
+    }
+    const sgn = (v) => (v >= 0 ? 1 : -1)
+    const legDur = (dist, per = 220, base = 1.4, min = 0.5) =>
+      Math.min(1.6, Math.max(min, (dist / per) * base))
+    // Every other trip takes the long way: out the nearest end, behind the
+    // car (hat parade above the roofline), out the far end, then back along
+    // the front to the station. Every depth crossfade happens past the
+    // bumpers where nothing overlaps, so he rounds the car instead of ever
+    // crossing THROUGH it — and every arrival ends facing the work, so the
+    // spray always points at the car, never away.
+    const buildRoute = (to) => {
+      const T = STATIONS[to]
+      const from = posRef.current
+      const legs = []
+      const trip = tripRef.current++
+      const dx = T.x - from.x
+      if (trip % 2 === 0 || Math.abs(dx) < 60) {
+        if (Math.abs(dx) > 4) {
+          legs.push({ x: T.x, y: FRONT_Y, face: sgn(dx), dur: legDur(Math.abs(dx)) })
+        }
+        legs.push({ x: T.x, y: FRONT_Y, face: T.face, dur: 0.35 })
+      } else {
+        const e1 = Math.abs(from.x - END_R) < Math.abs(from.x - END_L) ? END_R : END_L
+        const e2 = Math.abs(T.x - END_R) < Math.abs(T.x - END_L) ? END_R : END_L
+        const o1 = e1 > 160 ? 10 : -10
+        const o2 = e2 > 160 ? 10 : -10
+        const backDir = sgn(e2 + o2 - (e1 + o1))
+        legs.push({ x: e1, y: FRONT_Y, face: sgn(e1 - from.x), dur: legDur(Math.abs(e1 - from.x)) })
+        legs.push({ x: e1 + o1, y: 144, face: sgn(o1), dur: 0.4 })
+        legs.push({ x: e1 + o1, y: BACK_Y, face: backDir, dur: 0.4 })
+        if (e2 !== e1) {
+          legs.push({
+            x: e2 + o2,
+            y: BACK_Y,
+            face: backDir,
+            dur: Math.min(2, Math.max(0.8, (Math.abs(e2 - e1) / 220) * 1.8)),
+          })
+        }
+        legs.push({ x: e2 + o2, y: 145, face: backDir, dur: 0.35 })
+        legs.push({ x: e2 + o2, y: FRONT_Y, face: sgn(T.x - e2), dur: 0.35 })
+        legs.push({ x: T.x, y: FRONT_Y, face: T.face, dur: Math.max(0.3, legDur(Math.abs(T.x - e2))) })
+      }
+      return legs
+    }
+    const goNext = (station) => {
+      const others = CHORES.filter((c) => c !== station)
+      const nextSt = others[Math.floor(Math.random() * others.length)]
+      setChore('travel')
+      runLegs(buildRoute(nextSt), () => workAt(nextSt))
+    }
+    const workAt = (station) => {
+      setChore(station)
+      later(() => {
+        // Wave break — turns to face the viewer every so often, then
+        // carries on to the next station.
+        if (Math.random() < 0.35) {
+          setChore('wave')
+          later(() => goNext(station), 3000)
+        } else {
+          goNext(station)
+        }
+      }, 5000)
+    }
+    workAt('spray')
+    return () => {
+      alive = false
+      clearTimeout(timer)
+    }
   }, [])
-  const spot = SPOTS[chore]
   return (
     <div className="overflow-hidden rounded-2xl bg-gradient-to-b from-sky-100/80 via-white/20 to-transparent ring-1 ring-white/60" aria-hidden="true">
       <svg viewBox="0 0 320 178" className="h-auto w-full" focusable="false">
@@ -396,6 +576,8 @@ function BeginWorkScene() {
             </g>
           </g>
         </g>
+        {/* Behind-car half — same figure, visible only on the back lane */}
+        <WalkerInstance chore={chore} pos={pos} show={pos.y < 150} />
         {/* Ground shadow */}
         <ellipse cx="155" cy="150" rx="100" ry="6" fill="#0F172A" opacity="0.08" />
         {/* Car */}
@@ -426,49 +608,8 @@ function BeginWorkScene() {
         <circle cx="280" cy="146" r="5" fill="#334155" />
         <circle cx="296" cy="146" r="5" fill="#334155" />
         <line x1="300" y1="116" x2="308" y2="102" stroke="#475569" strokeWidth="4" strokeLinecap="round" />
-        {/* Detailer on his rounds — strolls the car's length, wand spraying.
-            Flip spacer keeps the mirror axis on his center no matter how far
-            the spray reaches: keep all flip-group art inside x -95..95. */}
-        <g style={{ transform: `translate(${spot.x}px, 170px)`, transition: 'transform 1.4s ease-in-out' }}>
-          <g style={{ transform: `scaleX(${spot.face})`, transformBox: 'fill-box', transformOrigin: 'center' }}>
-              <rect x="-95" y="-75" width="190" height="80" fill="#FFFFFF" opacity="0" />
-              <g className="pt-v2-bw-bob">
-                <ellipse cx="2" cy="1" rx="16" ry="3" fill="#0F172A" opacity="0.1" />
-                <g className="pt-v2-bw-leg"><rect x="-6" y="-20" width="5.5" height="20" rx="2.75" fill="#475569" /></g>
-                <g className="pt-v2-bw-leg pt-v2-bw-legB"><rect x="0" y="-20" width="5.5" height="20" rx="2.75" fill="#334155" /></g>
-                <rect x="-11" y="-44" width="6" height="20" rx="3" fill="#F2B78E" />
-                <rect x="-8" y="-48" width="16" height="30" rx="8" fill="#EC4899" />
-                <circle cx="0" cy="-56" r="8.5" fill="#FBD9B0" />
-                <path d="M-8.5 -58 a8.5 8.5 0 0 1 17 0 Z" fill="#DB2777" />
-                <rect x="-1" y="-60.5" width="11" height="3.5" rx="1.75" fill="#DB2777" />
-                {chore === 'spray' ? (
-                  <g transform="translate(6 -40) rotate(-12)">
-                    <rect x="0" y="-3" width="12" height="6.5" rx="3.25" fill="#F6C9A0" />
-                    <rect x="8" y="-2.5" width="30" height="5" rx="2.5" fill="#475569" />
-                    <rect x="36" y="-4" width="7" height="8" rx="2" fill="#1F2937" />
-                    <g stroke="#7DD3FC" strokeLinecap="round" strokeDasharray="7 6" className="pt-v2-bw-spray">
-                      <line x1="44" y1="-12" x2="82" y2="-22" strokeWidth="2.5" />
-                      <line x1="44" y1="-8" x2="84" y2="-8" strokeWidth="3" />
-                      <line x1="44" y1="-4" x2="82" y2="6" strokeWidth="2.5" />
-                    </g>
-                    <ellipse cx="86" cy="-8" rx="9" ry="13" fill="#BAE6FD" opacity="0.45" className="pt-v2-bw-mist" />
-                    <circle cx="52" cy="-18" r="2.6" fill="#BAE6FD" className="pt-v2-bw-bubble" />
-                    <circle cx="60" cy="-24" r="2" fill="#BAE6FD" className="pt-v2-bw-bubble" style={{ animationDelay: '0.7s' }} />
-                    <circle cx="46" cy="-28" r="2.3" fill="#BAE6FD" className="pt-v2-bw-bubble" style={{ animationDelay: '1.4s' }} />
-                  </g>
-                ) : (
-                  <g transform="translate(6 -40)">
-                    <g className={chore === 'scrub' ? 'pt-v2-bw-scrub' : 'pt-v2-bw-dunk'}>
-                      <rect x="0" y="-3.5" width="25" height="7" rx="3.5" fill="#F6C9A0" />
-                      <rect x="23" y="-10" width="15" height="13" rx="5" fill="#7DD3FC" stroke="#FFFFFF" strokeWidth="1.5" />
-                      <circle cx="28" cy="-6" r="1.6" fill="#FFFFFF" />
-                      <circle cx="33" cy="-3" r="1.2" fill="#FFFFFF" />
-                    </g>
-                  </g>
-                )}
-              </g>
-            </g>
-        </g>
+        {/* Front-car half — same figure, visible everywhere else */}
+        <WalkerInstance chore={chore} pos={pos} show={pos.y >= 150} />
         {/* Suds burst over the bucket while dunking */}
         {chore === 'bucket' && (
           <g fill="#FFFFFF">
