@@ -4,13 +4,11 @@ import Logo from './Logo'
 import { useStore } from '../context/StoreContext'
 import {
   CheckIcon,
-  ClockIcon,
   PlusIcon,
   XIcon,
   TrashIcon,
   PrinterIcon,
   FileTextIcon,
-  StampIcon,
 } from './icons'
 import { listTemplates, saveTemplate, deleteTemplate } from '../lib/invoiceTemplates'
 import { useT } from '../i18n/useT'
@@ -106,118 +104,160 @@ export function InvoicePrintable({ invoice, booking, detailer, customerName, hid
   )
 }
 
-// On-screen "ticket sliding out of a slot" view — the presentation the
-// customer/detailer actually see when opening an invoice (print/PDF still
-// uses the plain InvoicePrintable doc above, via the hidden copy).
-export function InvoiceReceipt({ invoice, booking, detailer, customerName }) {
+// On-screen slotted-ticket receipt (gallery E, shipped): dark slot with a
+// punched hole, paper ticket with the shadow-top gradient, dashed
+// perforation title, itemized rows, and a 5-stop lifecycle rail. Print/PDF
+// still uses the plain InvoicePrintable doc via the hidden copy. `onPay`
+// (customer booking page) jumps to the real Stripe checkout — without it
+// the ticket just offers Download. No card row: bookings carry no card
+// data, so a "Visa ending …" line would be invented.
+export function InvoiceReceipt({ invoice, booking, detailer, customerName, onPay }) {
   const items = invoice?.items ?? []
   const total = invoice?.total ?? items.reduce((s, it) => s + (Number(it.amount) || 0), 0)
-  const issued = invoice?.issuedAt ? new Date(invoice.issuedAt) : new Date()
   const paid = booking.status === 'complete'
   const t = useT('invoiceBuilder')
-  const { lang } = useLanguage()
+  const showPay = !paid && typeof onPay === 'function'
+  const dashed =
+    'repeating-linear-gradient(90deg, #1b1b1b, #1b1b1b 8px, transparent 8px, transparent 16px)'
+  const doneCount = paid
+    ? 5
+    : ({ pending: 1, accepted: 1, en_route: 1, arrived: 2, in_progress: 3 }[booking.status] ?? 1)
 
   return (
-    <div>
-      <div className="receipt-slot p-3">
-        <div className="receipt-slot-hole mx-auto h-5 w-[85%]" />
-      </div>
-      <div className="receipt-ticket relative z-10 -mt-6 mx-auto w-[92%] rounded-2xl bg-stone-100 p-5 text-stone-900 ring-1 ring-stone-900/10 sm:p-6">
-        <p className="text-center font-mono text-[11px] font-bold uppercase tracking-widest text-stone-500">
-          {t('invoice')} · <span>{String(booking.id ?? '').slice(0, 8)}</span>
-        </p>
-        <div
-          className="mx-auto mt-2 h-9 w-3/4 opacity-80"
-          aria-hidden="true"
-          style={{ backgroundImage: 'repeating-linear-gradient(90deg, #1c1917 0 2px, transparent 2px 5px)' }}
-        />
-        <h2 className="receipt-title py-2 text-center font-display text-base font-semibold text-slate-900 dark:text-slate-100">
-          {booking.service || t('detailingService')}
-        </h2>
-
-        <div className="mt-3 space-y-2 text-sm">
-          <p className="flex items-baseline gap-2">
-            <span className="font-mono text-xs uppercase tracking-wide text-stone-500">{t('total')}</span>
-            <span className="flex-1 border-b border-dotted border-stone-400" aria-hidden="true" />
-            <span className="font-display text-lg font-bold text-stone-900">
-              {money(total)}
-            </span>
-          </p>
-          <p className="flex items-baseline gap-2">
-            <span className="font-mono text-xs uppercase tracking-wide text-stone-500">{t('billedTo')}</span>
-            <span className="flex-1 border-b border-dotted border-stone-400" aria-hidden="true" />
-            <span className="font-medium text-stone-800">{customerName}</span>
-          </p>
-          <p className="flex items-baseline gap-2">
-            <span className="font-mono text-xs uppercase tracking-wide text-stone-500">{t('detailer')}</span>
-            <span className="flex-1 border-b border-dotted border-stone-400" aria-hidden="true" />
-            <span className="font-medium text-stone-800">{detailer?.name ?? '—'}</span>
-          </p>
+    <div className="space-y-3">
+      {/* Slot + ticket overlap via negative margin, not absolute-over-relative
+          — ticket height is dynamic (rail, item count), so a fixed-height
+          wrapper would either clip content or leave a gap. The white ticket
+          paints ON TOP of the dark slot (default DOM stacking, no z-index)
+          so it reads as paper sliding OUT of the slot rather than pasted
+          over it. Overlap matches a real slotted-ticket reference's own
+          numbers: a 25px hole starting 16px into a 120px slot, ticket top
+          24px down — landing 8px into the hole, leaving a sliver of black
+          visible above the paper. This wrapper div isn't inside the outer
+          `space-y-3` (that would add its own margin-top on top of this
+          negative one) — kept as its own group so only this -mt applies. */}
+      <div>
+        <div className="rounded-2xl border-2 border-[#2c2c2c] bg-[#2b2b2b] pb-2 shadow-[0_0_1px_0_#000,0_5px_15px_0_rgba(0,0,0,0.45)]">
+          <div className="mx-auto mt-4 h-[22px] w-[90%] rounded-full border border-[#1b1b1b] bg-black shadow-[0_0_1px_0_#000,0_5px_15px_0_rgba(0,0,0,0.45)]" />
         </div>
+        <div className="relative mx-[7.5%] -mt-[30px] overflow-hidden rounded-xl bg-white text-slate-500 shadow-[0_5px_25px_0_rgba(0,0,0,0.15)]">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 top-0 h-20"
+            style={{
+              background:
+                'linear-gradient(180deg, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.8) 10%, rgba(0,0,0,0.7) 25%, rgba(0,0,0,0.55) 40%, rgba(0,0,0,0.38) 60%, rgba(0,0,0,0.14) 80%, transparent 100%)',
+            }}
+          />
+          <div className="relative px-4 pb-4 pt-4">
+            <div className="h-12" aria-hidden="true" />
+            <h2 className="relative py-2.5 text-center text-[1.05rem] font-medium tracking-wide text-[#1b1b1b]">
+              <span
+                aria-hidden="true"
+                className="absolute inset-x-0 top-0 h-[1.5px]"
+                style={{ backgroundImage: dashed }}
+              />
+              {booking.service || t('detailingService')}
+              <span
+                aria-hidden="true"
+                className="absolute inset-x-0 bottom-0 h-[1.5px]"
+                style={{ backgroundImage: dashed }}
+              />
+            </h2>
+            <div className="mb-2 mt-3 flex items-center justify-between text-sm">
+              <span>{t('total')}</span>
+              <span className="font-bold text-black">{money(total)}</span>
+            </div>
+            <div className="mb-1 flex items-center justify-between text-sm">
+              <span>{t('billedTo')}</span>
+              <span className="font-semibold text-slate-800">{customerName}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span>{t('detailer')}</span>
+              <span className="font-semibold text-slate-800">{detailer?.name ?? '—'}</span>
+            </div>
 
-        {items.length > 0 && (
-          <ul className="mt-4 divide-y divide-dashed divide-stone-300 border-y-2 border-dashed border-stone-300 text-sm">
-            {items.map((it, i) => (
-              <li key={i} className="flex items-baseline gap-2 py-2">
-                <span className="text-stone-700">{it.label || '—'}</span>
-                <span className="flex-1 border-b border-dotted border-stone-300" aria-hidden="true" />
-                <span className="font-mono font-semibold text-stone-900">{money(it.amount)}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        <div className="mt-4 flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-          <span>{t('invoiceDate')}</span>
-          <span>{issued.toLocaleDateString(lang === 'es' ? 'es-US' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
-        </div>
-
-        <div className="mt-4 rounded-2xl border border-dashed border-stone-300 bg-white/50 p-3.5">
-          <p className="flex items-center justify-between text-sm">
-            <span className="font-mono text-xs font-bold uppercase tracking-wide text-stone-500">{t('paymentStatus')}</span>
-            {paid ? (
-              <motion.span
-                initial={{ scale: 1.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-                className="inline-flex rotate-[-8deg] items-center gap-1 rounded border-2 border-emerald-600 px-2 py-0.5 font-mono text-xs font-bold uppercase text-emerald-600"
-              >
-                <CheckIcon className="h-3.5 w-3.5" /> {t('paid')}
-              </motion.span>
-            ) : (
-              <span className="inline-flex rotate-[-8deg] items-center gap-1 rounded border-2 border-amber-500 px-2 py-0.5 font-mono text-xs font-bold uppercase text-amber-600">
-                <ClockIcon className="h-3.5 w-3.5" /> {t('pending')}
-              </span>
+            {items.length > 0 && (
+              <>
+                <hr className="my-3 border-slate-200" />
+                <ul className="divide-y divide-slate-100">
+                  {items.map((it, i) => (
+                    <li key={i} className="flex items-center justify-between py-2 text-sm">
+                      <span>{it.label || '—'}</span>
+                      <span className="font-mono text-slate-800">{money(it.amount)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </>
             )}
-          </p>
-          <div className="job-progress-track mt-3.5 mx-1.5" aria-label={t('paymentStatusAria')}>
-            <motion.div
-              className="job-progress-fill"
-              initial={false}
-              animate={{ width: paid ? '100%' : '0%' }}
-              transition={{ type: 'spring', stiffness: 140, damping: 20 }}
+
+            <div className="mt-2 flex items-center justify-between rounded-2xl border border-slate-200 p-4">
+              <p className="text-sm font-medium uppercase text-black">
+                {t('paymentStatus')}
+                <span className="ml-2 normal-case text-slate-500">{paid ? t('paid') : t('unpaid')}</span>
+              </p>
+            </div>
+
+            {/* Lifecycle rail — hard 2-tone split at doneCount/5. No
+                checkpoint markers, just the bare progress line. */}
+            <div
+              className="relative mx-0.5 mb-2 mt-8 h-1.5 rounded-full"
+              role="img"
+              aria-label={t('paymentStatusAria')}
+              style={{
+                background: `linear-gradient(90deg, #000 ${(doneCount / 5) * 100}%, #eee ${(doneCount / 5) * 100}%)`,
+              }}
             />
-            <div className="job-progress-tick" style={{ left: '0%' }}>
-              <CheckIcon className="h-3 w-3" />
+
+            <div className="mt-4 flex items-center gap-3">
+              {showPay ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={onPay}
+                    className="flex-1 rounded-full border border-[#1b1b1b] bg-[#111827] py-2 text-[13px] text-white shadow-[0_5px_10px_0_rgba(0,0,0,0.15)]"
+                  >
+                    {t('payNow')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => window.print()}
+                    className="flex-1 rounded-full border border-slate-200 bg-white py-2 text-[13px] text-slate-800 shadow-[0_5px_10px_0_rgba(0,0,0,0.15)]"
+                  >
+                    {t('downloadInvoice')}
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="w-full rounded-full border border-[#1b1b1b] bg-[#111827] py-2 text-[13px] text-white shadow-[0_5px_10px_0_rgba(0,0,0,0.15)]"
+                >
+                  {t('downloadInvoice')}
+                </button>
+              )}
             </div>
-            <div className="job-progress-tick" style={{ left: '100%' }}>
-              <StampIcon className="h-3.5 w-3.5" />
-            </div>
-            <motion.div
-              className="job-progress-ball-wrap"
-              initial={false}
-              animate={{ left: paid ? '100%' : '0%' }}
-              transition={{ type: 'spring', stiffness: 140, damping: 20 }}
-            >
-              <div className="job-progress-ball" />
-            </motion.div>
           </div>
         </div>
-
-        <button onClick={() => window.print()} className="btn btn-outline mt-4 h-10 w-full text-sm">
-          <PrinterIcon className="h-4 w-4" /> {t('downloadInvoice')}
-        </button>
       </div>
+
+      {/* Amount-due + Pay Now — below the ticket, own section, only while
+          there's actually something left to pay for. */}
+      {showPay && (
+        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+          <div className="flex items-center justify-between text-sm text-slate-500">
+            <span>{t('amountDue')}</span>
+            <span className="font-bold text-black">{money(total)}</span>
+          </div>
+          <button
+            type="button"
+            onClick={onPay}
+            className="mt-3 w-full rounded-xl border-2 border-[#1b1b1b] bg-[#111827] py-2.5 text-[15px] font-semibold text-white shadow-[0_0_1px_0_#000,0_5px_15px_0_rgba(0,0,0,0.45)]"
+          >
+            {t('payNow')}
+          </button>
+        </div>
+      )}
     </div>
   )
 }
