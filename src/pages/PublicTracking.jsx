@@ -474,12 +474,9 @@ function EtaRing({ minutes, progressPct, minAwayLabel, milesLabel, progressLabel
   }, [targetPct])
 
   // Everything below derives from the single animated `fill` value so the
-  // crisp arc, its inner shadow, and the outer glow move as one.
+  // crisp arc and the outer glow move as one.
   const ringOffset = c * (1 - fill / 100)
   const glowOffset = glowOuterC * (1 - fill / 100)
-  // Static inner groove the fill sits in — full circle, never masked to
-  // progress, so it stays put while the colors move.
-  const innerR = r - 3.5
 
   return (
     <div className="pt-v2-eta-flat flex w-full flex-col items-center">
@@ -523,9 +520,6 @@ function EtaRing({ minutes, progressPct, minAwayLabel, milesLabel, progressLabel
             <filter id="pt-eta-glow-filter" x="-60%" y="-60%" width="220%" height="220%">
               <feGaussianBlur stdDeviation="5" />
             </filter>
-            <filter id="pt-eta-inner-filter" x="-60%" y="-60%" width="220%" height="220%">
-              <feGaussianBlur stdDeviation="2.5" />
-            </filter>
           </defs>
           <circle
             cx={size / 2}
@@ -565,20 +559,6 @@ function EtaRing({ minutes, progressPct, minAwayLabel, milesLabel, progressLabel
             strokeDasharray={c}
             strokeDashoffset={ringOffset}
             className="pt-v2-eta-ring"
-          />
-          {/* Inner groove — static full-circle dark rim at the band's inner
-              edge that the fill sits in. Doesn't follow progress; the moving
-              colors travel inside it. */}
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={innerR}
-            fill="none"
-            stroke="rgb(15 23 42)"
-            strokeWidth={5}
-            filter="url(#pt-eta-inner-filter)"
-            opacity={0.4}
-            aria-hidden="true"
           />
         </svg>
         {/* Raised hub — neumorphic middle disc floating on top of the fill,

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { CheckIcon, CameraIcon, LockIcon, ClockIcon, SparklesIcon } from './icons'
 import { acknowledgePublicConditionReport } from '../lib/db'
 import FinishGallery from './FinishGallery'
@@ -172,6 +172,7 @@ export default function ConditionTimeline({
           >
             {beginActive && (
               <div className="mt-2 space-y-2">
+                <BeginWorkScene />
                 <p className="text-sm text-slate-600">{t('conditionApprovedBody')}</p>
                 <p className="flex items-center gap-1.5 rounded-2xl bg-brand-500/10 px-3 py-2 text-xs font-medium text-brand-800">
                   <ClockIcon className="h-3.5 w-3.5 shrink-0" />
@@ -333,6 +334,154 @@ function PhotoGridImage({ url, alt, fallback, compact }) {
       decoding="async"
       onError={() => setFailed(true)}
     />
+  )
+}
+
+
+// Animated "detailer at work" diorama for the Begin step — flat SVG with a
+// tiny random-chore director (spray, scrub, bucket dunk; a new task every
+// few seconds, gliding between stations). Decorative: aria-hidden, and the
+// whole show freezes under reduced-motion.
+const CHORES = ['spray', 'scrub', 'bucket']
+const SPOTS = {
+  spray: { x: 262, face: -1 },
+  scrub: { x: 150, face: 1 },
+  bucket: { x: 48, face: -1 },
+}
+
+function BeginWorkScene() {
+  const [chore, setChore] = useState('spray')
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return
+    const id = setInterval(() => {
+      setChore((prev) => {
+        const others = CHORES.filter((c) => c !== prev)
+        return others[Math.floor(Math.random() * others.length)]
+      })
+    }, 6000)
+    return () => clearInterval(id)
+  }, [])
+  const spot = SPOTS[chore]
+  return (
+    <div className="overflow-hidden rounded-2xl bg-gradient-to-b from-sky-100/80 via-white/20 to-transparent ring-1 ring-white/60" aria-hidden="true">
+      <svg viewBox="0 0 320 178" className="h-auto w-full" focusable="false">
+        {/* Sun — top right */}
+        <g transform="translate(282 30)">
+          <g className="pt-v2-bw-sunrays" stroke="#FBBF24" strokeWidth="3" strokeLinecap="round">
+            <line x1="19" y1="0" x2="26" y2="0" />
+            <line x1="13.4" y1="13.4" x2="18.4" y2="18.4" />
+            <line x1="0" y1="19" x2="0" y2="26" />
+            <line x1="-13.4" y1="13.4" x2="-18.4" y2="18.4" />
+            <line x1="-19" y1="0" x2="-26" y2="0" />
+            <line x1="-13.4" y1="-13.4" x2="-18.4" y2="-18.4" />
+            <line x1="0" y1="-19" x2="0" y2="-26" />
+            <line x1="13.4" y1="-13.4" x2="18.4" y2="-18.4" />
+          </g>
+          <circle r="13" fill="#FCD34D" />
+        </g>
+        {/* Clouds — outer g parks the lane, inner g flies it */}
+        <g transform="translate(0 46)">
+          <g className="pt-v2-bw-cloud pt-v2-bw-cloud-1" fill="#ffffff" opacity="0.95">
+            <ellipse cx="0" cy="0" rx="24" ry="13" />
+            <ellipse cx="18" cy="-7" rx="17" ry="11" />
+            <ellipse cx="-18" cy="-5" rx="15" ry="10" />
+          </g>
+        </g>
+        <g transform="translate(0 24)">
+          <g className="pt-v2-bw-cloud pt-v2-bw-cloud-2">
+            <g transform="scale(0.65)" fill="#ffffff" opacity="0.9">
+              <ellipse cx="0" cy="0" rx="24" ry="13" />
+              <ellipse cx="18" cy="-7" rx="17" ry="11" />
+              <ellipse cx="-18" cy="-5" rx="15" ry="10" />
+            </g>
+          </g>
+        </g>
+        {/* Ground shadow */}
+        <ellipse cx="155" cy="150" rx="100" ry="6" fill="#0F172A" opacity="0.08" />
+        {/* Car */}
+        <path d="M104 114 L126 94 H192 L214 114 Z" fill="#BAE6FD" />
+        <line x1="159" y1="95" x2="159" y2="114" stroke="#7FB3D5" strokeWidth="2.5" />
+        <rect x="58" y="114" width="192" height="24" rx="12" fill="#FFFFFF" stroke="#CBD5E1" strokeWidth="2" />
+        <rect x="70" y="131" width="168" height="4" rx="2" fill="#F1F5F9" />
+        <line x1="159" y1="116" x2="159" y2="136" stroke="#E2E8F0" strokeWidth="2" />
+        <rect x="166" y="120" width="10" height="3" rx="1.5" fill="#CBD5E1" />
+        <rect x="243" y="119" width="6" height="6" rx="3" fill="#FDE68A" />
+        <rect x="58" y="119" width="5" height="6" rx="2" fill="#FCA5A5" />
+        <g>
+          <circle cx="100" cy="136" r="13" fill="#334155" />
+          <circle cx="100" cy="136" r="6.5" fill="#E2E8F0" />
+          <circle cx="100" cy="136" r="2.5" fill="#94A3B8" />
+          <circle cx="200" cy="136" r="13" fill="#334155" />
+          <circle cx="200" cy="136" r="6.5" fill="#E2E8F0" />
+          <circle cx="200" cy="136" r="2.5" fill="#94A3B8" />
+        </g>
+        {/* Pressure-wash setup — parked unit, hose lead, suds bucket */}
+        <path d="M276 138 C258 148 240 144 222 150 S 182 157 158 150" fill="none" stroke="#64748B" strokeWidth="4" strokeLinecap="round" />
+        <path d="M10 128 H32 L29 148 H13 Z" fill="#3B82F6" />
+        <ellipse cx="21" cy="128" rx="11" ry="4" fill="#FFFFFF" />
+        <circle cx="14" cy="125" r="2.5" fill="#FFFFFF" opacity="0.9" />
+        <circle cx="28" cy="124" r="2" fill="#FFFFFF" opacity="0.9" />
+        <rect x="272" y="116" width="32" height="28" rx="6" fill="#F59E0B" />
+        <rect x="272" y="126" width="32" height="6" fill="#D97706" />
+        <circle cx="280" cy="146" r="5" fill="#334155" />
+        <circle cx="296" cy="146" r="5" fill="#334155" />
+        <line x1="300" y1="116" x2="308" y2="102" stroke="#475569" strokeWidth="4" strokeLinecap="round" />
+        {/* Detailer on his rounds — strolls the car's length, wand spraying.
+            Flip spacer keeps the mirror axis on his center no matter how far
+            the spray reaches: keep all flip-group art inside x -95..95. */}
+        <g style={{ transform: `translate(${spot.x}px, 170px)`, transition: 'transform 1.4s ease-in-out' }}>
+          <g style={{ transform: `scaleX(${spot.face})`, transformBox: 'fill-box', transformOrigin: 'center' }}>
+              <rect x="-95" y="-75" width="190" height="80" fill="#FFFFFF" opacity="0" />
+              <g className="pt-v2-bw-bob">
+                <ellipse cx="2" cy="1" rx="16" ry="3" fill="#0F172A" opacity="0.1" />
+                <g className="pt-v2-bw-leg"><rect x="-6" y="-20" width="5.5" height="20" rx="2.75" fill="#475569" /></g>
+                <g className="pt-v2-bw-leg pt-v2-bw-legB"><rect x="0" y="-20" width="5.5" height="20" rx="2.75" fill="#334155" /></g>
+                <rect x="-11" y="-44" width="6" height="20" rx="3" fill="#F2B78E" />
+                <rect x="-8" y="-48" width="16" height="30" rx="8" fill="#EC4899" />
+                <circle cx="0" cy="-56" r="8.5" fill="#FBD9B0" />
+                <path d="M-8.5 -58 a8.5 8.5 0 0 1 17 0 Z" fill="#DB2777" />
+                <rect x="-1" y="-60.5" width="11" height="3.5" rx="1.75" fill="#DB2777" />
+                {chore === 'spray' ? (
+                  <g transform="translate(6 -40) rotate(-12)">
+                    <rect x="0" y="-3" width="12" height="6.5" rx="3.25" fill="#F6C9A0" />
+                    <rect x="8" y="-2.5" width="30" height="5" rx="2.5" fill="#475569" />
+                    <rect x="36" y="-4" width="7" height="8" rx="2" fill="#1F2937" />
+                    <g stroke="#7DD3FC" strokeLinecap="round" strokeDasharray="7 6" className="pt-v2-bw-spray">
+                      <line x1="44" y1="-12" x2="82" y2="-22" strokeWidth="2.5" />
+                      <line x1="44" y1="-8" x2="84" y2="-8" strokeWidth="3" />
+                      <line x1="44" y1="-4" x2="82" y2="6" strokeWidth="2.5" />
+                    </g>
+                    <ellipse cx="86" cy="-8" rx="9" ry="13" fill="#BAE6FD" opacity="0.45" className="pt-v2-bw-mist" />
+                    <circle cx="52" cy="-18" r="2.6" fill="#BAE6FD" className="pt-v2-bw-bubble" />
+                    <circle cx="60" cy="-24" r="2" fill="#BAE6FD" className="pt-v2-bw-bubble" style={{ animationDelay: '0.7s' }} />
+                    <circle cx="46" cy="-28" r="2.3" fill="#BAE6FD" className="pt-v2-bw-bubble" style={{ animationDelay: '1.4s' }} />
+                  </g>
+                ) : (
+                  <g transform="translate(6 -40)">
+                    <g className={chore === 'scrub' ? 'pt-v2-bw-scrub' : 'pt-v2-bw-dunk'}>
+                      <rect x="0" y="-3.5" width="25" height="7" rx="3.5" fill="#F6C9A0" />
+                      <rect x="23" y="-10" width="15" height="13" rx="5" fill="#7DD3FC" stroke="#FFFFFF" strokeWidth="1.5" />
+                      <circle cx="28" cy="-6" r="1.6" fill="#FFFFFF" />
+                      <circle cx="33" cy="-3" r="1.2" fill="#FFFFFF" />
+                    </g>
+                  </g>
+                )}
+              </g>
+            </g>
+        </g>
+        {/* Suds burst over the bucket while dunking */}
+        {chore === 'bucket' && (
+          <g fill="#FFFFFF">
+            <circle cx="14" cy="118" r="3.5" className="pt-v2-bw-bubble" />
+            <circle cx="24" cy="112" r="2.5" className="pt-v2-bw-bubble" style={{ animationDelay: '0.7s' }} />
+            <circle cx="19" cy="109" r="4" className="pt-v2-bw-bubble" style={{ animationDelay: '1.3s' }} />
+          </g>
+        )}
+        {/* Sparkles off the clean paint */}
+        <path d="M248 55 v14 M241 62 h14" stroke="#F472B6" strokeWidth="2.5" strokeLinecap="round" className="pt-v2-bw-twinkle" />
+        <path d="M118 43 v14 M111 50 h14" stroke="#A78BFA" strokeWidth="2.5" strokeLinecap="round" className="pt-v2-bw-twinkle" style={{ animationDelay: '0.9s' }} />
+      </svg>
+    </div>
   )
 }
 
