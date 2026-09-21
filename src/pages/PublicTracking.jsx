@@ -329,6 +329,7 @@ function EtaRing({ minutes, progressPct, minAwayLabel, milesLabel, progressLabel
     <div className="pt-v2-eta-flat flex w-full flex-col items-center">
       <div
         className="pt-v2-eta-disc"
+        data-near={isNear || undefined}
         role="progressbar"
         aria-valuemin={0}
         aria-valuemax={100}
@@ -368,7 +369,6 @@ function EtaRing({ minutes, progressPct, minAwayLabel, milesLabel, progressLabel
             strokeDasharray={c}
             strokeDashoffset={offset}
             className="pt-v2-eta-ring"
-            data-near={isNear || undefined}
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center px-3 text-center">
