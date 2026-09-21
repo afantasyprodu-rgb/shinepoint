@@ -928,13 +928,10 @@ function InvoiceD({ paid }) {
 // slotted-ticket-effect mockup (dark slot + punched oval hole, ticket card
 // with a black-to-transparent top gradient standing in for the "still in
 // shadow" edge instead of a hard clip line, dashed perforation rule around
-// the title, and a 5-checkpoint status rail). The source's checkpoint rail
-// is literally 5 GROUP PAYERS (3 paid, 1 pending, 1 stamp) — this booking
-// only ever has one payer, so the 5 stops are remapped to the booking's own
-// lifecycle (dispatched/arrived/working/complete/paid) instead, which is
-// the same "3 done, 1 current, 1 future" shape the source draws.
-const RAIL_STEPS = ['Dispatched', 'Arrived', 'Working', 'Complete', 'Paid']
-
+// the title, and a status rail). The source's rail markers were literally 5
+// GROUP PAYERS' avatars (3 paid, 1 pending, 1 stamp) — this booking only
+// ever has one payer, so the rail is just the bare progress line, filled
+// through wherever this booking's own lifecycle actually sits.
 function InvoiceE({ paid }) {
   const dashed =
     'repeating-linear-gradient(90deg, #1b1b1b, #1b1b1b 8px, transparent 8px, transparent 16px)'
@@ -947,21 +944,25 @@ function InvoiceE({ paid }) {
           is dynamic — rail steps, item count — so a fixed height would
           either clip content or leave a gap. Negative margin lets normal
           document flow size the wrapper correctly no matter how tall the
-          ticket ends up, while still visually tucking it under the slot). */}
-      <div className="rounded-2xl border-2 border-[#2c2c2c] bg-[#2b2b2b] shadow-[0_0_1px_0_#000,0_5px_15px_0_rgba(0,0,0,0.45)]">
+          ticket ends up, while still visually tucking it under the slot).
+          Paint order matters: the slot sits ABOVE the ticket (z-10) so the
+          paper's top feed zone hides behind the slot's bottom lip and reads
+          as emerging from the hole instead of pasted over the slot. */}
+      <div className="relative z-10 rounded-2xl border-2 border-[#2c2c2c] bg-[#2b2b2b] shadow-[0_0_1px_0_#000,0_5px_15px_0_rgba(0,0,0,0.45)]">
         <div className="mx-auto my-4 h-[22px] w-[90%] rounded-full border border-[#1b1b1b] bg-black shadow-[0_0_1px_0_#000,0_5px_15px_0_rgba(0,0,0,0.45)]" />
         <div className="h-8" />
       </div>
-      <div className="relative mx-[7.5%] -mt-8 overflow-hidden rounded-xl bg-white text-slate-500 shadow-[0_5px_25px_0_rgba(0,0,0,0.15)]">
+      <div className="relative mx-[7.5%] -mt-12 overflow-hidden rounded-xl bg-white text-slate-500 shadow-[0_5px_25px_0_rgba(0,0,0,0.15)]">
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 top-0 h-16"
+          className="pointer-events-none absolute inset-x-0 top-0 h-20"
           style={{
             background:
-              'linear-gradient(180deg, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.75) 10%, rgba(0,0,0,0.65) 25%, rgba(0,0,0,0.45) 40%, rgba(0,0,0,0.25) 60%, transparent 100%)',
+              'linear-gradient(180deg, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.8) 10%, rgba(0,0,0,0.7) 25%, rgba(0,0,0,0.55) 40%, rgba(0,0,0,0.38) 60%, rgba(0,0,0,0.14) 80%, transparent 100%)',
           }}
         />
         <div className="relative px-4 pb-4 pt-4">
+            <div className="h-12" aria-hidden="true" />
             <p className="relative py-2.5 text-center text-[1.05rem] font-medium tracking-wide text-[#1b1b1b]">
               <span
                 aria-hidden="true"
@@ -1006,41 +1007,15 @@ function InvoiceE({ paid }) {
               </p>
             </div>
 
-            {/* Status rail — hard 2-tone split at doneCount/5 (not a smooth
-                gradient, matching the source's literal `#000 75%, #eee 75%`
-                cut), a checkmark per finished stop, an open dot at whichever
-                stop is current, and a stamp-style ring on the final "Paid"
-                stop once money's actually landed. */}
+            {/* Status rail — hard 2-tone split at doneCount/5 (matching the
+                source's literal `#000 75%, #eee 75%` cut). No checkpoint
+                markers on it — just the line itself. */}
             <div
               className="relative mx-0.5 mb-2 mt-8 h-1.5 rounded-full"
               style={{
                 background: `linear-gradient(90deg, #000 ${(doneCount / 5) * 100}%, #eee ${(doneCount / 5) * 100}%)`,
               }}
-            >
-              {RAIL_STEPS.map((label, i) => {
-                const pct = (i / 4) * 100
-                const isDone = i < doneCount
-                const isStamp = i === 4 && paid
-                return (
-                  <span
-                    key={label}
-                    title={label}
-                    className="absolute top-1/2 flex h-[26px] w-[26px] -translate-y-1/2 items-center justify-center rounded-full border-[0.5px] border-slate-200 bg-white/95 shadow-[0_5px_10px_0_rgba(0,0,0,0.15)]"
-                    style={{ left: `${pct}%`, transform: `translate(-${pct}%, -50%)` }}
-                  >
-                    {isStamp ? (
-                      <CheckIcon className="h-3.5 w-3.5 text-emerald-600" />
-                    ) : isDone ? (
-                      <CheckIcon className="h-3.5 w-3.5 text-black" />
-                    ) : i === doneCount ? (
-                      <span className="inline-block h-[15px] w-[15px] rounded-full bg-black" />
-                    ) : (
-                      <LockIcon className="h-3 w-3 text-slate-300" />
-                    )}
-                  </span>
-                )
-              })}
-            </div>
+            />
 
             <div className="mt-4 flex items-center gap-3">
               <button
@@ -1115,12 +1090,19 @@ export function DevInvoicePreview() {
       </div>
       {show('now') && (
         <>
-          <GalleryLabel>Now — dispatch ticket</GalleryLabel>
+          <GalleryLabel>Now — live receipt</GalleryLabel>
           <InvoiceReceipt
             invoice={SAMPLE_INVOICE}
             booking={{ id: 'demo-inv-0042', service: INV.service, status: 'complete', vehicle: INV.vehicle }}
             detailer={{ name: INV.detailer }}
             customerName={INV.customer}
+          />
+          <InvoiceReceipt
+            invoice={{ ...SAMPLE_INVOICE, total: 154 }}
+            booking={{ id: 'demo-inv-0043', service: 'Interior Reset', status: 'in_progress', vehicle: 'Honda Civic · Grey' }}
+            detailer={{ name: INV.detailer }}
+            customerName="Jordan P."
+            onPay={() => {}}
           />
         </>
       )}
