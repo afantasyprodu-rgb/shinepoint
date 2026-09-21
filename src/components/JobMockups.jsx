@@ -725,34 +725,440 @@ function Pastel() {
 
 import { InvoiceReceipt } from './InvoiceBuilder'
 
-/* DEV-only invoice preview — sample data so the dispatch-ticket receipt can
-   be reviewed without a real paid booking. */
-const SAMPLE_INVOICE = {
+const INV = {
+  id: 'SP-0042',
+  service: 'Full Detail + Wax',
+  customer: 'Maya R.',
+  detailer: 'Alex Rivera',
+  vehicle: 'Tesla Model 3 · White',
+  date: 'Sep 21, 2026',
   items: [
     { label: 'Full Detail + Wax', amount: 129 },
     { label: 'Pet hair add-on', amount: 25 },
     { label: 'Tip', amount: 15 },
   ],
   total: 169,
+}
+
+const money = (n) => `$${Number(n).toFixed(2)}`
+
+const SAMPLE_INVOICE = {
+  items: INV.items,
+  total: INV.total,
   issuedAt: new Date().toISOString(),
 }
 
-export function DevInvoicePreview() {
-  if (!import.meta.env.DEV) return null
+function PayPill({ paid }) {
   return (
-    <div className="mx-auto max-w-md space-y-4 px-4 py-6">
-      <InvoiceReceipt
-        invoice={SAMPLE_INVOICE}
-        booking={{ id: 'demo-inv-0042', service: 'Full Detail + Wax', status: 'complete', vehicle: 'Tesla Model 3 · White' }}
-        detailer={{ name: 'Alex Rivera' }}
-        customerName="Maya R."
+    <span
+      className={[
+        'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest',
+        paid ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700',
+      ].join(' ')}
+    >
+      {paid ? <CheckIcon className="h-3 w-3" /> : <LockIcon className="h-3 w-3" />}
+      {paid ? 'Paid' : 'Due'}
+    </span>
+  )
+}
+
+function GelMeter({ paid }) {
+  return (
+    <div className="relative h-11 overflow-hidden rounded-full bg-white shadow-[inset_0_2px_8px_rgba(15,23,42,0.08)] ring-1 ring-slate-200/80">
+      <div
+        className="absolute inset-y-1 left-1 rounded-full"
+        style={{
+          width: paid ? 'calc(100% - 8px)' : '38%',
+          background: 'linear-gradient(90deg, #bbf7d0 0%, #c4b5fd 48%, #f9a8d4 100%)',
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.85), 0 6px 14px -6px rgba(124,58,237,0.55)',
+        }}
       />
-      <InvoiceReceipt
-        invoice={{ ...SAMPLE_INVOICE, total: 154 }}
-        booking={{ id: 'demo-inv-0043', service: 'Interior Reset', status: 'in_progress', vehicle: 'Honda Civic · Grey' }}
-        detailer={{ name: 'Alex Rivera' }}
-        customerName="Jordan P."
+      <span className="relative z-[1] flex h-full items-center justify-between px-4 text-[11px] font-bold uppercase tracking-widest text-slate-700">
+        <span>{paid ? 'Paid in full' : 'Awaiting'}</span>
+        <span>{money(INV.total)}</span>
+      </span>
+    </div>
+  )
+}
+
+function InvoiceA({ paid }) {
+  return (
+    <div className="rounded-[28px] bg-slate-100 p-3 shadow-inner">
+      <div className="rounded-[24px] border border-white/80 bg-white/75 p-5 shadow-[0_18px_40px_-24px_rgba(76,29,149,0.45)] backdrop-blur">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-widest text-brand-600">Invoice · {INV.id}</p>
+            <p className="mt-1 font-display text-xl font-bold text-slate-900">{INV.service}</p>
+            <p className="mt-0.5 text-xs text-slate-500">{INV.vehicle}</p>
+          </div>
+          <PayPill paid={paid} />
+        </div>
+        <div className="mt-4">
+          <GelMeter paid={paid} />
+        </div>
+        <ul className="mt-4 space-y-2">
+          {INV.items.map((it) => (
+            <li key={it.label} className="flex items-center justify-between text-sm">
+              <span className="text-slate-600">{it.label}</span>
+              <span className="font-mono font-semibold text-slate-900">{money(it.amount)}</span>
+            </li>
+          ))}
+        </ul>
+        <div className="mt-4 flex items-end justify-between border-t border-slate-200/80 pt-3">
+          <div className="text-xs text-slate-500">
+            <p>{INV.customer}</p>
+            <p>{INV.detailer} · {INV.date}</p>
+          </div>
+          <p className="font-display text-2xl font-bold text-slate-900">{money(INV.total)}</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function InvoiceB({ paid }) {
+  return (
+    <div className="rounded-[32px] bg-white p-2 shadow-[0_16px_40px_-20px_rgba(15,23,42,0.35)] ring-1 ring-slate-900/5">
+      <div className="rounded-[26px] bg-slate-950 px-5 py-4 text-white">
+        <p className="text-[11px] font-bold uppercase tracking-widest text-fuchsia-300">{INV.id}</p>
+        <p className="mt-1 font-display text-2xl font-bold leading-none">{money(INV.total)}</p>
+        <p className="mt-1 text-xs text-slate-400">{paid ? 'Settled' : 'Open'} · {INV.date}</p>
+      </div>
+      <div className="space-y-2 p-2 pt-3">
+        {INV.items.map((it) => (
+          <div key={it.label} className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
+            <span className="text-sm font-semibold text-slate-800">{it.label}</span>
+            <span className="font-display text-sm font-bold text-slate-900">{money(it.amount)}</span>
+          </div>
+        ))}
+        <div className="flex items-center justify-between rounded-2xl bg-slate-100 px-4 py-3 text-xs font-semibold text-slate-500">
+          <span>{INV.customer} · {INV.detailer}</span>
+          <PayPill paid={paid} />
+        </div>
+        <button type="button" className="flex h-12 w-full items-center justify-center rounded-2xl bg-slate-900 text-sm font-bold text-white">
+          Download
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function InvoiceC({ paid }) {
+  return (
+    <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
+      <div className="h-1.5 bg-gradient-to-r from-brand-500 via-fuchsia-400 to-brand-700" />
+      <div className="p-5">
+        <div className="flex items-baseline justify-between">
+          <p className="font-display text-3xl font-bold tracking-tight text-slate-900">{money(INV.total)}</p>
+          <PayPill paid={paid} />
+        </div>
+        <p className="mt-1 text-sm text-slate-500">{INV.service}</p>
+        <dl className="mt-4 grid grid-cols-2 gap-3 text-xs">
+          <div>
+            <dt className="uppercase tracking-widest text-slate-400">Billed to</dt>
+            <dd className="mt-0.5 font-semibold text-slate-800">{INV.customer}</dd>
+          </div>
+          <div>
+            <dt className="uppercase tracking-widest text-slate-400">Detailer</dt>
+            <dd className="mt-0.5 font-semibold text-slate-800">{INV.detailer}</dd>
+          </div>
+          <div>
+            <dt className="uppercase tracking-widest text-slate-400">Vehicle</dt>
+            <dd className="mt-0.5 font-semibold text-slate-800">{INV.vehicle}</dd>
+          </div>
+          <div>
+            <dt className="uppercase tracking-widest text-slate-400">Issued</dt>
+            <dd className="mt-0.5 font-semibold text-slate-800">{INV.date}</dd>
+          </div>
+        </dl>
+        <table className="mt-4 w-full text-sm">
+          <tbody>
+            {INV.items.map((it) => (
+              <tr key={it.label} className="border-t border-slate-100">
+                <td className="py-2 text-slate-700">{it.label}</td>
+                <td className="py-2 text-right font-medium text-slate-900">{money(it.amount)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function InvoiceD({ paid }) {
+  return (
+    <div className="relative overflow-hidden rounded-[28px] bg-slate-950 p-5 text-white">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-8 -top-10 h-36 w-36 rounded-full opacity-70"
+        style={{ background: 'radial-gradient(circle, #e879f9 0%, transparent 70%)' }}
       />
+      <div className="relative flex items-start justify-between">
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-fuchsia-300">Shinepoint</p>
+          <p className="mt-2 font-display text-lg font-semibold">{INV.service}</p>
+        </div>
+        <span
+          className={[
+            'rotate-[-8deg] rounded border-2 px-2 py-0.5 font-mono text-[10px] font-bold uppercase',
+            paid ? 'border-emerald-400 text-emerald-300' : 'border-amber-400 text-amber-300',
+          ].join(' ')}
+        >
+          {paid ? 'Paid' : 'Open'}
+        </span>
+      </div>
+      <p className="relative mt-5 font-display text-5xl font-bold tracking-tight">{money(INV.total)}</p>
+      <ul className="relative mt-5 divide-y divide-white/10 text-sm">
+        {INV.items.map((it) => (
+          <li key={it.label} className="flex justify-between py-2 text-slate-300">
+            <span>{it.label}</span>
+            <span className="font-mono text-white">{money(it.amount)}</span>
+          </li>
+        ))}
+      </ul>
+      <p className="relative mt-4 text-xs text-slate-400">
+        {INV.customer} · {INV.detailer} · {INV.id}
+      </p>
+    </div>
+  )
+}
+
+// Perforated ticket sliding partway out of a dark slot — reference:
+// slotted-ticket-effect mockup (dark slot + punched oval hole, ticket card
+// with a black-to-transparent top gradient standing in for the "still in
+// shadow" edge instead of a hard clip line, dashed perforation rule around
+// the title, and a 5-checkpoint status rail). The source's checkpoint rail
+// is literally 5 GROUP PAYERS (3 paid, 1 pending, 1 stamp) — this booking
+// only ever has one payer, so the 5 stops are remapped to the booking's own
+// lifecycle (dispatched/arrived/working/complete/paid) instead, which is
+// the same "3 done, 1 current, 1 future" shape the source draws.
+const RAIL_STEPS = ['Dispatched', 'Arrived', 'Working', 'Complete', 'Paid']
+
+function InvoiceE({ paid }) {
+  const dashed =
+    'repeating-linear-gradient(90deg, #1b1b1b, #1b1b1b 8px, transparent 8px, transparent 16px)'
+  const doneCount = paid ? 5 : 3
+  return (
+    <div className="space-y-3">
+      {/* Slot + ticket overlap via negative margin, not absolute-over-relative
+          (the source mockup got away with `position:absolute` because its
+          .invoice-container had a hardcoded 630px height; this card's height
+          is dynamic — rail steps, item count — so a fixed height would
+          either clip content or leave a gap. Negative margin lets normal
+          document flow size the wrapper correctly no matter how tall the
+          ticket ends up, while still visually tucking it under the slot). */}
+      <div className="rounded-2xl border-2 border-[#2c2c2c] bg-[#2b2b2b] shadow-[0_0_1px_0_#000,0_5px_15px_0_rgba(0,0,0,0.45)]">
+        <div className="mx-auto my-4 h-[22px] w-[90%] rounded-full border border-[#1b1b1b] bg-black shadow-[0_0_1px_0_#000,0_5px_15px_0_rgba(0,0,0,0.45)]" />
+        <div className="h-8" />
+      </div>
+      <div className="relative mx-[7.5%] -mt-8 overflow-hidden rounded-xl bg-white text-slate-500 shadow-[0_5px_25px_0_rgba(0,0,0,0.15)]">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 h-16"
+          style={{
+            background:
+              'linear-gradient(180deg, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.75) 10%, rgba(0,0,0,0.65) 25%, rgba(0,0,0,0.45) 40%, rgba(0,0,0,0.25) 60%, transparent 100%)',
+          }}
+        />
+        <div className="relative px-4 pb-4 pt-4">
+            <p className="relative py-2.5 text-center text-[1.05rem] font-medium tracking-wide text-[#1b1b1b]">
+              <span
+                aria-hidden="true"
+                className="absolute inset-x-0 top-0 h-[1.5px]"
+                style={{ backgroundImage: dashed }}
+              />
+              {INV.service}
+              <span
+                aria-hidden="true"
+                className="absolute inset-x-0 bottom-0 h-[1.5px]"
+                style={{ backgroundImage: dashed }}
+              />
+            </p>
+            <div className="mb-2 mt-3 flex items-center justify-between text-sm">
+              <span>Total</span>
+              <span className="font-bold text-black">{money(INV.total)}</span>
+            </div>
+            <div className="mb-1 flex items-center justify-between text-sm">
+              <span>Billed to</span>
+              <span className="font-semibold text-slate-800">{INV.customer}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span>Detailer</span>
+              <span className="font-semibold text-slate-800">{INV.detailer}</span>
+            </div>
+
+            <hr className="my-3 border-slate-200" />
+
+            <ul className="divide-y divide-slate-100">
+              {INV.items.map((it) => (
+                <li key={it.label} className="flex items-center justify-between py-2 text-sm">
+                  <span>{it.label}</span>
+                  <span className="font-mono text-slate-800">{money(it.amount)}</span>
+                </li>
+              ))}
+            </ul>
+
+            <div className="mt-2 flex items-center justify-between rounded-2xl border border-slate-200 p-4">
+              <p className="text-sm font-medium uppercase text-black">
+                Payment status
+                <span className="ml-2 normal-case text-slate-500">{paid ? 'Paid' : 'Unpaid'}</span>
+              </p>
+            </div>
+
+            {/* Status rail — hard 2-tone split at doneCount/5 (not a smooth
+                gradient, matching the source's literal `#000 75%, #eee 75%`
+                cut), a checkmark per finished stop, an open dot at whichever
+                stop is current, and a stamp-style ring on the final "Paid"
+                stop once money's actually landed. */}
+            <div
+              className="relative mx-0.5 mb-2 mt-8 h-1.5 rounded-full"
+              style={{
+                background: `linear-gradient(90deg, #000 ${(doneCount / 5) * 100}%, #eee ${(doneCount / 5) * 100}%)`,
+              }}
+            >
+              {RAIL_STEPS.map((label, i) => {
+                const pct = (i / 4) * 100
+                const isDone = i < doneCount
+                const isStamp = i === 4 && paid
+                return (
+                  <span
+                    key={label}
+                    title={label}
+                    className="absolute top-1/2 flex h-[26px] w-[26px] -translate-y-1/2 items-center justify-center rounded-full border-[0.5px] border-slate-200 bg-white/95 shadow-[0_5px_10px_0_rgba(0,0,0,0.15)]"
+                    style={{ left: `${pct}%`, transform: `translate(-${pct}%, -50%)` }}
+                  >
+                    {isStamp ? (
+                      <CheckIcon className="h-3.5 w-3.5 text-emerald-600" />
+                    ) : isDone ? (
+                      <CheckIcon className="h-3.5 w-3.5 text-black" />
+                    ) : i === doneCount ? (
+                      <span className="inline-block h-[15px] w-[15px] rounded-full bg-black" />
+                    ) : (
+                      <LockIcon className="h-3 w-3 text-slate-300" />
+                    )}
+                  </span>
+                )
+              })}
+            </div>
+
+            <div className="mt-4 flex items-center gap-3">
+              <button
+                type="button"
+                className="flex-1 rounded-full border border-[#1b1b1b] bg-[#111827] py-2 text-[13px] text-white shadow-[0_5px_10px_0_rgba(0,0,0,0.15)]"
+              >
+                {paid ? 'Receipt' : 'Send reminder'}
+              </button>
+              <button
+                type="button"
+                className="flex-1 rounded-full border border-slate-200 bg-white py-2 text-[13px] text-slate-800 shadow-[0_5px_10px_0_rgba(0,0,0,0.15)]"
+              >
+                Download
+              </button>
+            </div>
+          </div>
+        </div>
+
+      {/* Payment method + Pay Now — lives below the slotted card in the
+          source too (its own section, not tucked inside the ticket). Only
+          meaningful while unpaid; a paid invoice has nothing left to pay. */}
+      {!paid && (
+        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+          <div className="flex items-center justify-between text-sm text-slate-500">
+            <span>Payment method</span>
+            <span className="flex items-center gap-2 font-semibold text-slate-800">
+              Visa ending 2986
+              <span className="inline-block h-[18px] w-[26px] rounded bg-[#1a43bf]" />
+            </span>
+          </div>
+          <button
+            type="button"
+            className="mt-3 w-full rounded-xl border-2 border-[#1b1b1b] bg-[#111827] py-2.5 text-[15px] font-semibold text-white shadow-[0_0_1px_0_#000,0_5px_15px_0_rgba(0,0,0,0.45)]"
+          >
+            Pay Now
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+export function DevInvoicePreview() {
+  const [searchParams] = useSearchParams()
+  const v = searchParams.get('v')
+  if (!import.meta.env.DEV) return null
+  const show = (key) => !v || v === 'all' || v === key
+  const links = [
+    ['all', 'All'],
+    ['now', 'Now'],
+    ['a', 'A Glass'],
+    ['b', 'B Chunky'],
+    ['c', 'C Statement'],
+    ['d', 'D Night'],
+    ['e', 'E Slotted'],
+  ]
+  return (
+    <div className="mx-auto max-w-md space-y-2 px-4 py-6">
+      <div className="flex flex-wrap gap-2">
+        {links.map(([key, label]) => (
+          <a
+            key={key}
+            href={key === 'all' ? '/dev/invoice' : `/dev/invoice?v=${key}`}
+            className={[
+              'rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wide',
+              (v || 'all') === key ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600',
+            ].join(' ')}
+          >
+            {label}
+          </a>
+        ))}
+      </div>
+      {show('now') && (
+        <>
+          <GalleryLabel>Now — dispatch ticket</GalleryLabel>
+          <InvoiceReceipt
+            invoice={SAMPLE_INVOICE}
+            booking={{ id: 'demo-inv-0042', service: INV.service, status: 'complete', vehicle: INV.vehicle }}
+            detailer={{ name: INV.detailer }}
+            customerName={INV.customer}
+          />
+        </>
+      )}
+      {show('a') && (
+        <>
+          <GalleryLabel>A — Glass slip</GalleryLabel>
+          <InvoiceA paid />
+          <InvoiceA paid={false} />
+        </>
+      )}
+      {show('b') && (
+        <>
+          <GalleryLabel>B — Chunky sheet</GalleryLabel>
+          <InvoiceB paid />
+          <InvoiceB paid={false} />
+        </>
+      )}
+      {show('c') && (
+        <>
+          <GalleryLabel>C — Statement</GalleryLabel>
+          <InvoiceC paid />
+          <InvoiceC paid={false} />
+        </>
+      )}
+      {show('d') && (
+        <>
+          <GalleryLabel>D — Night</GalleryLabel>
+          <InvoiceD paid />
+          <InvoiceD paid={false} />
+        </>
+      )}
+      {show('e') && (
+        <>
+          <GalleryLabel>E — Slotted ticket</GalleryLabel>
+          <InvoiceE paid />
+          <InvoiceE paid={false} />
+        </>
+      )}
     </div>
   )
 }
