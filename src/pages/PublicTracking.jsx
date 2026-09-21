@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { useMotionValue, animate } from 'motion/react'
 import Logo from '../components/Logo'
@@ -357,22 +357,36 @@ function EtaRing({ minutes, progressPct, minAwayLabel, milesLabel, progressLabel
     color: colorAtPct(0),
   }))
 
+  const hasAnimatedIn = useRef(false)
+
+  function tipAt(v) {
+    const theta = (v / 100) * 2 * Math.PI
+    return {
+      offset: c * (1 - v / 100),
+      glowOuterOffset: glowOuterC * (1 - v / 100),
+      x: size / 2 + r * Math.cos(theta),
+      y: size / 2 + r * Math.sin(theta),
+      color: colorAtPct(v),
+    }
+  }
+
   useEffect(() => {
-    const controls = animate(pctMV, targetPct, {
-      duration: 1.4,
-      ease: 'easeOut',
-      onUpdate(v) {
-        const theta = (v / 100) * 2 * Math.PI
-        setTip({
-          offset: c * (1 - v / 100),
-          glowOuterOffset: glowOuterC * (1 - v / 100),
-          x: size / 2 + r * Math.cos(theta),
-          y: size / 2 + r * Math.sin(theta),
-          color: colorAtPct(v),
-        })
-      },
-    })
-    return () => controls.stop()
+    // Sweep-in animation only plays once, on mount — later GPS pings just
+    // update the ring's position directly, no need to re-run the fill
+    // animation every time a new ping comes in.
+    if (!hasAnimatedIn.current) {
+      hasAnimatedIn.current = true
+      const controls = animate(pctMV, targetPct, {
+        duration: 1.4,
+        ease: 'easeOut',
+        onUpdate(v) {
+          setTip(tipAt(v))
+        },
+      })
+      return () => controls.stop()
+    }
+    pctMV.set(targetPct)
+    setTip(tipAt(targetPct))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [targetPct])
 
