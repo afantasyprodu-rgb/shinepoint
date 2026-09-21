@@ -10,11 +10,12 @@ import DamageInspection from '../components/DamageInspection'
 import PhotoCapture from '../components/PhotoCapture'
 import { AnimatedPage } from '../components/ui/Motion'
 import { StatusPill, StarInput } from '../components/ui/bits'
+import SlideToConfirm from '../components/SlideToConfirm'
 import {
   CarIcon,
   CheckIcon,
   ChevronLeftIcon,
-  LayersIcon,
+  LockIcon,
   MapPinIcon,
   MenuIconFlat,
   NavigationIcon,
@@ -40,7 +41,7 @@ export default function DetailerJob() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [showInvoice, setShowInvoice] = useState(false)
   const [showPayout, setShowPayout] = useState(false)
-  const [stepsExpanded, setStepsExpanded] = useState(false)
+  const [pinnedIdx, setPinnedIdx] = useState(null)
   const [disputeResponse, setDisputeResponse] = useState('')
   const [respondingToDispute, setRespondingToDispute] = useState(false)
   const [confirmingPick, setConfirmingPick] = useState(false)
@@ -238,39 +239,20 @@ export default function DetailerJob() {
     return idx === -1 ? gates.length - 1 : idx
   })()
 
-  function renderGate(g, i) {
+  // Pinned inspection — tapping a chip looks at any gate; a status advance
+  // drops the pin back to the live gate.
+  const shownIdx = pinnedIdx ?? activeIndex
+  useEffect(() => {
+    setPinnedIdx(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [b?.status])
+
+  // Body-only content for the selected gate — the chunky detail card below
+  // owns the badge/title/desc chrome now. All data flows and actions kept.
+  function renderGateBody(g) {
     return (
-      <motion.div
-        key={g.key}
-        layout
-        role="listitem"
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: i * 0.04 }}
-        className={`card !p-5 ${g.ready ? 'border-brand-400 ring-2 ring-brand-100 dark:border-brand-400/60 dark:ring-brand-500/20' : ''} ${
-          g.done ? 'opacity-80' : ''
-        }`}
-      >
-        <div className="flex items-start gap-3">
-          <motion.span
-            initial={false}
-            animate={{
-              backgroundColor: g.done ? '#15803d' : g.ready ? '#f40076' : 'var(--gate-pending-bg)',
-              scale: g.ready ? 1.05 : 1,
-            }}
-            className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white"
-            style={{ '--gate-pending-bg': 'var(--neu-sd)' }}
-          >
-            {g.done ? (
-              <CheckIcon className="h-4 w-4" />
-            ) : (
-              <span className="font-display text-sm font-bold">{i + 1}</span>
-            )}
-          </motion.span>
-          <div className="flex-1">
-            <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">{g.title}</h2>
-            <p className="mt-0.5 text-sm text-slate-600 dark:text-slate-400">{g.desc}</p>
-            {g.ready && g.key === 'damage' ? (
+      <>
+        {g.ready && g.key === 'damage' ? (
               <DamageInspection
                 booking={b}
                 onSubmit={(items) => submitDamageReport(b.id, items)}
@@ -335,12 +317,23 @@ export default function DetailerJob() {
                   <span className="text-slate-500 dark:text-slate-400">{t('yourTake')}</span>
                   <span className="font-semibold text-cta-700 dark:text-cta-400">+${(b.detailerPayout ?? detailerPayoutEstimate(b.price)).toFixed(0)}</span>
                 </div>
-                <button
-                  onClick={g.action}
-                  className="btn btn-brand rounded-concentric mt-4 h-10 w-full text-sm"
-                >
-                  {g.cta}
-                </button>
+                <div className="mt-4">
+                  <SlideToConfirm
+                    label={t('slideToStart')}
+                    busyLabel={t('slideStarting')}
+                    doneLabel={t('slideStarted')}
+                    onConfirm={g.action}
+                  />
+                </div>
+              </div>
+            ) : g.ready && g.key === 'complete' ? (
+              <div className="mt-3">
+                <SlideToConfirm
+                  label={t('slideToFinish')}
+                  busyLabel={t('slideFinishing')}
+                  doneLabel={t('slideFinished')}
+                  onConfirm={g.action}
+                />
               </div>
             ) : g.ready ? (
               <div className="mt-3 flex flex-wrap gap-2">
@@ -354,9 +347,7 @@ export default function DetailerJob() {
                 )}
               </div>
             ) : null}
-          </div>
-        </div>
-      </motion.div>
+      </>
     )
   }
 
@@ -370,7 +361,7 @@ export default function DetailerJob() {
           <ChevronLeftIcon className="h-4 w-4" /> {t('dashboard')}
         </Link>
 
-        <div className="card">
+        <div className="rounded-[20px] border-2 border-slate-900/10 bg-white p-5 shadow-[5px_5px_0_rgba(244,63,140,0.12)] dark:border-white/10 dark:bg-white/5 dark:shadow-[5px_5px_0_rgba(255,255,255,0.06)]">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h1 className="font-display text-xl font-bold text-slate-900 dark:text-slate-100">
@@ -533,46 +524,82 @@ export default function DetailerJob() {
           </motion.p>
         )}
 
-        {stepsExpanded ? (
-          <div className="mt-6">
-            <button
-              type="button"
-              onClick={() => setStepsExpanded(false)}
-              className="mb-3 w-full cursor-pointer rounded-xl py-2 text-center text-xs font-semibold text-slate-400 transition-colors duration-200 hover:text-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-slate-500 dark:hover:text-brand-300"
-            >
-              {t('collapseSteps')}
-            </button>
-            <div className="space-y-3" role="list">
-              <AnimatePresence initial={false}>
-                {gates.map((g, i) => renderGate(g, i))}
-              </AnimatePresence>
-            </div>
+        {/* Chunky sheet stepper — chips navigate every gate, the detail card
+            below shows the selected one with a crossfade. */}
+        <div className="mt-6">
+          <div className="flex gap-1.5 overflow-x-auto pb-1" role="list">
+            {gates.map((g, i) => {
+              const active = i === shownIdx
+              return (
+                <button
+                  key={g.key}
+                  type="button"
+                  role="listitem"
+                  onClick={() => setPinnedIdx(i)}
+                  aria-pressed={active}
+                  aria-label={g.title}
+                  className={[
+                    'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border-2 font-display text-sm font-bold transition active:scale-95',
+                    active
+                      ? 'border-slate-900 bg-slate-900 text-white shadow-[3px_3px_0_#f40076] dark:border-white dark:shadow-[3px_3px_0_rgba(244,63,140,0.7)]'
+                      : g.done
+                        ? 'border-emerald-500 bg-emerald-500 text-white'
+                        : g.ready
+                          ? 'border-brand-600 bg-white text-brand-700 dark:bg-white/5'
+                          : 'border-slate-200 bg-white text-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-500',
+                  ].join(' ')}
+                >
+                  {g.done ? (
+                    <CheckIcon className="h-4 w-4" />
+                  ) : !g.ready ? (
+                    <LockIcon className="h-4 w-4" />
+                  ) : (
+                    i + 1
+                  )}
+                </button>
+              )
+            })}
           </div>
-        ) : (
-          <div className="mt-6">
-            <div role="list">
-              <AnimatePresence mode="wait" initial={false}>
-                {renderGate(gates[activeIndex], activeIndex)}
-              </AnimatePresence>
-            </div>
 
-            {gates.length > 1 && (
-              <button
-                type="button"
-                onClick={() => setStepsExpanded(true)}
-                aria-label={t('showAllSteps', { count: gates.length })}
-                className="press-spring group relative mt-4 block w-full cursor-pointer focus-visible:outline-none"
-              >
-                <div className="pointer-events-none absolute inset-x-5 top-2 h-9 rounded-2xl bg-[var(--neu-bg)] opacity-40 transition-transform duration-200 group-hover:translate-y-0.5" />
-                <div className="pointer-events-none absolute inset-x-2.5 top-1 h-9 rounded-2xl bg-[var(--neu-bg)] opacity-70 transition-transform duration-200 group-hover:translate-y-0.5" />
-                <div className="relative flex items-center justify-center gap-2 rounded-2xl bg-[var(--neu-bg)] px-4 py-2.5 text-xs font-semibold text-slate-500 shadow-[6px_6px_14px_var(--neu-sd),-6px_-6px_14px_var(--neu-sl)] transition-shadow duration-200 group-hover:shadow-[4px_4px_10px_var(--neu-sd),-4px_-4px_10px_var(--neu-sl)] group-focus-visible:ring-2 group-focus-visible:ring-brand-600 dark:text-slate-400">
-                  <LayersIcon className="h-3.5 w-3.5" />
-                  {t('moreSteps', { count: gates.length - 1, s: gates.length - 1 === 1 ? '' : 's' })}
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={gates[shownIdx].key}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              className="mt-3 rounded-[20px] border-2 border-slate-900/10 bg-white p-5 shadow-[5px_5px_0_rgba(244,63,140,0.12)] dark:border-white/10 dark:bg-white/5 dark:shadow-[5px_5px_0_rgba(255,255,255,0.06)]"
+            >
+              <div className="flex items-start gap-3">
+                <span
+                  className={[
+                    'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl font-display text-sm font-bold',
+                    gates[shownIdx].done
+                      ? 'bg-emerald-500 text-white'
+                      : gates[shownIdx].ready
+                        ? 'bg-brand-600 text-white'
+                        : 'bg-slate-200 text-slate-400 dark:bg-white/10 dark:text-slate-500',
+                  ].join(' ')}
+                >
+                  {gates[shownIdx].done ? (
+                    <CheckIcon className="h-4 w-4" />
+                  ) : !gates[shownIdx].ready ? (
+                    <LockIcon className="h-4 w-4" />
+                  ) : (
+                    shownIdx + 1
+                  )}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">
+                    {gates[shownIdx].title}
+                  </h2>
+                  <p className="mt-0.5 text-sm text-slate-600 dark:text-slate-400">{gates[shownIdx].desc}</p>
                 </div>
-              </button>
-            )}
-          </div>
-        )}
+              </div>
+              <div className="mt-1">{renderGateBody(gates[shownIdx])}</div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
 
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <div className="card !p-5">

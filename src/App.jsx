@@ -63,6 +63,8 @@ const PublicTracking = lazy(() => import('./pages/PublicTracking'))
 const ManageReschedule = lazy(() => import('./pages/ManageReschedule'))
 const Faq = lazy(() => import('./pages/Faq'))
 const AssistantChat = lazy(() => import('./pages/AssistantChat'))
+const JobMockups = lazy(() => import('./components/JobMockups'))
+const DevInvoicePreview = lazy(() => import('./components/JobMockups').then((m) => ({ default: m.DevInvoicePreview })))
 
 function PageFallback() {
   return (
@@ -185,6 +187,9 @@ export default function App() {
         <Route path="/admin/analytics" element={guard('admin', <AdminAnalytics />)} />
         <Route path="/admin/vision-compare" element={guard('admin', <AdminVisionCompare />)} />
         <Route path="/admin/assistant" element={guard('admin', <AssistantChat role="admin" />)} />
+        {/* DEV-only job-flow redesign gallery — renders null in production. */}
+        <Route path="/dev/job-mockups" element={import.meta.env.DEV ? safe(<JobMockups />) : <Navigate to="/" replace />} />
+        <Route path="/dev/invoice" element={import.meta.env.DEV ? safe(<DevInvoicePreview />) : <Navigate to="/" replace />} />
       </Routes>
       </Suspense>
     </TransitionOverlay>

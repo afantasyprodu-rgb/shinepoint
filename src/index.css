@@ -2517,6 +2517,32 @@
   0%, 100% { transform: scale(0.55); opacity: 0.5; }
   50% { transform: scale(1); opacity: 1; }
 }
+/* Hand wave for the front-facing wave break. */
+.pt-v2-bw-wave {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: pt-v2-bw-wave 0.5s ease-in-out infinite alternate;
+}
+@keyframes pt-v2-bw-wave {
+  from { transform: rotate(-14deg); }
+  to { transform: rotate(18deg); }
+}
+/* Finish gallery motion — confetti fall over the hero, Ken Burns drift on
+   the active slideshow frame. */
+.pt-v2-confetti-piece {
+  position: absolute;
+  top: -12px;
+  animation: pt-v2-confetti-fall linear infinite;
+}
+@keyframes pt-v2-confetti-fall {
+  0% { transform: translate3d(0, -12px, 0) rotate(0deg); opacity: 0; }
+  8% { opacity: 1; }
+  50% { transform: translate3d(14px, 110px, 0) rotate(200deg); }
+  100% { transform: translate3d(-10px, 232px, 0) rotate(380deg); opacity: 0.9; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pt-v2-confetti-piece { display: none; }
+}
 @media (prefers-reduced-motion: reduce) {
   .pt-v2-bw-sunrays,
   .pt-v2-bw-cloud,
@@ -2526,6 +2552,7 @@
   .pt-v2-bw-spray,
   .pt-v2-bw-mist,
   .pt-v2-bw-bubble,
+  .pt-v2-bw-wave,
   .pt-v2-bw-twinkle { animation: none; }
 }
 /* Liquid glass treatment for the expanded map — refracting-glass read:

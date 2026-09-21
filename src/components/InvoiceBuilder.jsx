@@ -122,34 +122,46 @@ export function InvoiceReceipt({ invoice, booking, detailer, customerName }) {
       <div className="receipt-slot p-3">
         <div className="receipt-slot-hole mx-auto h-5 w-[85%]" />
       </div>
-      <div className="receipt-ticket relative z-10 -mt-6 mx-auto w-[92%] rounded-2xl p-5 sm:p-6">
-        <h2 className="receipt-title py-2.5 text-center font-display text-base font-semibold text-slate-900 dark:text-slate-100">
+      <div className="receipt-ticket relative z-10 -mt-6 mx-auto w-[92%] rounded-2xl bg-stone-100 p-5 text-stone-900 ring-1 ring-stone-900/10 sm:p-6">
+        <p className="text-center font-mono text-[11px] font-bold uppercase tracking-widest text-stone-500">
+          {t('invoice')} · <span>{String(booking.id ?? '').slice(0, 8)}</span>
+        </p>
+        <div
+          className="mx-auto mt-2 h-9 w-3/4 opacity-80"
+          aria-hidden="true"
+          style={{ backgroundImage: 'repeating-linear-gradient(90deg, #1c1917 0 2px, transparent 2px 5px)' }}
+        />
+        <h2 className="receipt-title py-2 text-center font-display text-base font-semibold text-slate-900 dark:text-slate-100">
           {booking.service || t('detailingService')}
         </h2>
 
-        <div className="mt-3 space-y-1.5">
-          <p className="flex items-center justify-between text-sm text-slate-500 dark:text-slate-400">
-            <span>{t('total')}</span>
-            <span className="font-display text-lg font-bold text-slate-900 dark:text-slate-100">
+        <div className="mt-3 space-y-2 text-sm">
+          <p className="flex items-baseline gap-2">
+            <span className="font-mono text-xs uppercase tracking-wide text-stone-500">{t('total')}</span>
+            <span className="flex-1 border-b border-dotted border-stone-400" aria-hidden="true" />
+            <span className="font-display text-lg font-bold text-stone-900">
               {money(total)}
             </span>
           </p>
-          <p className="flex items-center justify-between text-sm text-slate-500 dark:text-slate-400">
-            <span>{t('billedTo')}</span>
-            <span className="font-medium text-slate-700 dark:text-slate-300">{customerName}</span>
+          <p className="flex items-baseline gap-2">
+            <span className="font-mono text-xs uppercase tracking-wide text-stone-500">{t('billedTo')}</span>
+            <span className="flex-1 border-b border-dotted border-stone-400" aria-hidden="true" />
+            <span className="font-medium text-stone-800">{customerName}</span>
           </p>
-          <p className="flex items-center justify-between text-sm text-slate-500 dark:text-slate-400">
-            <span>{t('detailer')}</span>
-            <span className="font-medium text-slate-700 dark:text-slate-300">{detailer?.name ?? '—'}</span>
+          <p className="flex items-baseline gap-2">
+            <span className="font-mono text-xs uppercase tracking-wide text-stone-500">{t('detailer')}</span>
+            <span className="flex-1 border-b border-dotted border-stone-400" aria-hidden="true" />
+            <span className="font-medium text-stone-800">{detailer?.name ?? '—'}</span>
           </p>
         </div>
 
         {items.length > 0 && (
-          <ul className="mt-4 divide-y divide-slate-200 border-y border-slate-200 text-sm dark:divide-slate-700 dark:border-slate-700">
+          <ul className="mt-4 divide-y divide-dashed divide-stone-300 border-y-2 border-dashed border-stone-300 text-sm">
             {items.map((it, i) => (
-              <li key={i} className="flex items-center justify-between py-2">
-                <span className="text-slate-700 dark:text-slate-300">{it.label || '—'}</span>
-                <span className="font-medium text-slate-900 dark:text-slate-100">{money(it.amount)}</span>
+              <li key={i} className="flex items-baseline gap-2 py-2">
+                <span className="text-stone-700">{it.label || '—'}</span>
+                <span className="flex-1 border-b border-dotted border-stone-300" aria-hidden="true" />
+                <span className="font-mono font-semibold text-stone-900">{money(it.amount)}</span>
               </li>
             ))}
           </ul>
@@ -160,15 +172,20 @@ export function InvoiceReceipt({ invoice, booking, detailer, customerName }) {
           <span>{issued.toLocaleDateString(lang === 'es' ? 'es-US' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
         </div>
 
-        <div className="mt-4 rounded-2xl border border-slate-200 p-3.5 dark:border-slate-700">
+        <div className="mt-4 rounded-2xl border border-dashed border-stone-300 bg-white/50 p-3.5">
           <p className="flex items-center justify-between text-sm">
-            <span className="font-semibold text-slate-900 dark:text-slate-100">{t('paymentStatus')}</span>
+            <span className="font-mono text-xs font-bold uppercase tracking-wide text-stone-500">{t('paymentStatus')}</span>
             {paid ? (
-              <span className="chip bg-cta-700/10 text-cta-700">
+              <motion.span
+                initial={{ scale: 1.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+                className="inline-flex rotate-[-8deg] items-center gap-1 rounded border-2 border-emerald-600 px-2 py-0.5 font-mono text-xs font-bold uppercase text-emerald-600"
+              >
                 <CheckIcon className="h-3.5 w-3.5" /> {t('paid')}
-              </span>
+              </motion.span>
             ) : (
-              <span className="chip bg-amber-500/15 text-amber-700">
+              <span className="inline-flex rotate-[-8deg] items-center gap-1 rounded border-2 border-amber-500 px-2 py-0.5 font-mono text-xs font-bold uppercase text-amber-600">
                 <ClockIcon className="h-3.5 w-3.5" /> {t('pending')}
               </span>
             )}
