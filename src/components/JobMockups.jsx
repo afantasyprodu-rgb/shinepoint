@@ -723,8 +723,6 @@ function Pastel() {
   )
 }
 
-import { InvoiceReceipt } from './InvoiceBuilder'
-
 const INV = {
   id: 'SP-0042',
   service: 'Full Detail + Wax',
@@ -741,188 +739,6 @@ const INV = {
 }
 
 const money = (n) => `$${Number(n).toFixed(2)}`
-
-const SAMPLE_INVOICE = {
-  items: INV.items,
-  total: INV.total,
-  issuedAt: new Date().toISOString(),
-}
-
-function PayPill({ paid }) {
-  return (
-    <span
-      className={[
-        'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest',
-        paid ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700',
-      ].join(' ')}
-    >
-      {paid ? <CheckIcon className="h-3 w-3" /> : <LockIcon className="h-3 w-3" />}
-      {paid ? 'Paid' : 'Due'}
-    </span>
-  )
-}
-
-function GelMeter({ paid }) {
-  return (
-    <div className="relative h-11 overflow-hidden rounded-full bg-white shadow-[inset_0_2px_8px_rgba(15,23,42,0.08)] ring-1 ring-slate-200/80">
-      <div
-        className="absolute inset-y-1 left-1 rounded-full"
-        style={{
-          width: paid ? 'calc(100% - 8px)' : '38%',
-          background: 'linear-gradient(90deg, #bbf7d0 0%, #c4b5fd 48%, #f9a8d4 100%)',
-          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.85), 0 6px 14px -6px rgba(124,58,237,0.55)',
-        }}
-      />
-      <span className="relative z-[1] flex h-full items-center justify-between px-4 text-[11px] font-bold uppercase tracking-widest text-slate-700">
-        <span>{paid ? 'Paid in full' : 'Awaiting'}</span>
-        <span>{money(INV.total)}</span>
-      </span>
-    </div>
-  )
-}
-
-function InvoiceA({ paid }) {
-  return (
-    <div className="rounded-[28px] bg-slate-100 p-3 shadow-inner">
-      <div className="rounded-[24px] border border-white/80 bg-white/75 p-5 shadow-[0_18px_40px_-24px_rgba(76,29,149,0.45)] backdrop-blur">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-widest text-brand-600">Invoice · {INV.id}</p>
-            <p className="mt-1 font-display text-xl font-bold text-slate-900">{INV.service}</p>
-            <p className="mt-0.5 text-xs text-slate-500">{INV.vehicle}</p>
-          </div>
-          <PayPill paid={paid} />
-        </div>
-        <div className="mt-4">
-          <GelMeter paid={paid} />
-        </div>
-        <ul className="mt-4 space-y-2">
-          {INV.items.map((it) => (
-            <li key={it.label} className="flex items-center justify-between text-sm">
-              <span className="text-slate-600">{it.label}</span>
-              <span className="font-mono font-semibold text-slate-900">{money(it.amount)}</span>
-            </li>
-          ))}
-        </ul>
-        <div className="mt-4 flex items-end justify-between border-t border-slate-200/80 pt-3">
-          <div className="text-xs text-slate-500">
-            <p>{INV.customer}</p>
-            <p>{INV.detailer} · {INV.date}</p>
-          </div>
-          <p className="font-display text-2xl font-bold text-slate-900">{money(INV.total)}</p>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function InvoiceB({ paid }) {
-  return (
-    <div className="rounded-[32px] bg-white p-2 shadow-[0_16px_40px_-20px_rgba(15,23,42,0.35)] ring-1 ring-slate-900/5">
-      <div className="rounded-[26px] bg-slate-950 px-5 py-4 text-white">
-        <p className="text-[11px] font-bold uppercase tracking-widest text-fuchsia-300">{INV.id}</p>
-        <p className="mt-1 font-display text-2xl font-bold leading-none">{money(INV.total)}</p>
-        <p className="mt-1 text-xs text-slate-400">{paid ? 'Settled' : 'Open'} · {INV.date}</p>
-      </div>
-      <div className="space-y-2 p-2 pt-3">
-        {INV.items.map((it) => (
-          <div key={it.label} className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
-            <span className="text-sm font-semibold text-slate-800">{it.label}</span>
-            <span className="font-display text-sm font-bold text-slate-900">{money(it.amount)}</span>
-          </div>
-        ))}
-        <div className="flex items-center justify-between rounded-2xl bg-slate-100 px-4 py-3 text-xs font-semibold text-slate-500">
-          <span>{INV.customer} · {INV.detailer}</span>
-          <PayPill paid={paid} />
-        </div>
-        <button type="button" className="flex h-12 w-full items-center justify-center rounded-2xl bg-slate-900 text-sm font-bold text-white">
-          Download
-        </button>
-      </div>
-    </div>
-  )
-}
-
-function InvoiceC({ paid }) {
-  return (
-    <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
-      <div className="h-1.5 bg-gradient-to-r from-brand-500 via-fuchsia-400 to-brand-700" />
-      <div className="p-5">
-        <div className="flex items-baseline justify-between">
-          <p className="font-display text-3xl font-bold tracking-tight text-slate-900">{money(INV.total)}</p>
-          <PayPill paid={paid} />
-        </div>
-        <p className="mt-1 text-sm text-slate-500">{INV.service}</p>
-        <dl className="mt-4 grid grid-cols-2 gap-3 text-xs">
-          <div>
-            <dt className="uppercase tracking-widest text-slate-400">Billed to</dt>
-            <dd className="mt-0.5 font-semibold text-slate-800">{INV.customer}</dd>
-          </div>
-          <div>
-            <dt className="uppercase tracking-widest text-slate-400">Detailer</dt>
-            <dd className="mt-0.5 font-semibold text-slate-800">{INV.detailer}</dd>
-          </div>
-          <div>
-            <dt className="uppercase tracking-widest text-slate-400">Vehicle</dt>
-            <dd className="mt-0.5 font-semibold text-slate-800">{INV.vehicle}</dd>
-          </div>
-          <div>
-            <dt className="uppercase tracking-widest text-slate-400">Issued</dt>
-            <dd className="mt-0.5 font-semibold text-slate-800">{INV.date}</dd>
-          </div>
-        </dl>
-        <table className="mt-4 w-full text-sm">
-          <tbody>
-            {INV.items.map((it) => (
-              <tr key={it.label} className="border-t border-slate-100">
-                <td className="py-2 text-slate-700">{it.label}</td>
-                <td className="py-2 text-right font-medium text-slate-900">{money(it.amount)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  )
-}
-
-function InvoiceD({ paid }) {
-  return (
-    <div className="relative overflow-hidden rounded-[28px] bg-slate-950 p-5 text-white">
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -right-8 -top-10 h-36 w-36 rounded-full opacity-70"
-        style={{ background: 'radial-gradient(circle, #e879f9 0%, transparent 70%)' }}
-      />
-      <div className="relative flex items-start justify-between">
-        <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-fuchsia-300">Shinepoint</p>
-          <p className="mt-2 font-display text-lg font-semibold">{INV.service}</p>
-        </div>
-        <span
-          className={[
-            'rotate-[-8deg] rounded border-2 px-2 py-0.5 font-mono text-[10px] font-bold uppercase',
-            paid ? 'border-emerald-400 text-emerald-300' : 'border-amber-400 text-amber-300',
-          ].join(' ')}
-        >
-          {paid ? 'Paid' : 'Open'}
-        </span>
-      </div>
-      <p className="relative mt-5 font-display text-5xl font-bold tracking-tight">{money(INV.total)}</p>
-      <ul className="relative mt-5 divide-y divide-white/10 text-sm">
-        {INV.items.map((it) => (
-          <li key={it.label} className="flex justify-between py-2 text-slate-300">
-            <span>{it.label}</span>
-            <span className="font-mono text-white">{money(it.amount)}</span>
-          </li>
-        ))}
-      </ul>
-      <p className="relative mt-4 text-xs text-slate-400">
-        {INV.customer} · {INV.detailer} · {INV.id}
-      </p>
-    </div>
-  )
-}
 
 // Perforated ticket sliding partway out of a dark slot — reference:
 // slotted-ticket-effect mockup (dark slot + punched oval hole, ticket card
@@ -945,14 +761,14 @@ function InvoiceE({ paid }) {
           either clip content or leave a gap. Negative margin lets normal
           document flow size the wrapper correctly no matter how tall the
           ticket ends up, while still visually tucking it under the slot).
-          Paint order matters: the slot sits ABOVE the ticket (z-10) so the
-          paper's top feed zone hides behind the slot's bottom lip and reads
-          as emerging from the hole instead of pasted over the slot. */}
-      <div className="relative z-10 rounded-2xl border-2 border-[#2c2c2c] bg-[#2b2b2b] shadow-[0_0_1px_0_#000,0_5px_15px_0_rgba(0,0,0,0.45)]">
+          The white ticket paints ON TOP of the dark slot (default stacking —
+          it's later in the DOM, no z-index needed) so it actually reads as
+          paper sliding OUT of the slot, not disappearing behind it. */}
+      <div className="rounded-2xl border-2 border-[#2c2c2c] bg-[#2b2b2b] shadow-[0_0_1px_0_#000,0_5px_15px_0_rgba(0,0,0,0.45)]">
         <div className="mx-auto my-4 h-[22px] w-[90%] rounded-full border border-[#1b1b1b] bg-black shadow-[0_0_1px_0_#000,0_5px_15px_0_rgba(0,0,0,0.45)]" />
-        <div className="h-8" />
+        <div className="h-6" />
       </div>
-      <div className="relative mx-[7.5%] -mt-12 overflow-hidden rounded-xl bg-white text-slate-500 shadow-[0_5px_25px_0_rgba(0,0,0,0.15)]">
+      <div className="relative mx-[7.5%] -mt-6 overflow-hidden rounded-xl bg-white text-slate-500 shadow-[0_5px_25px_0_rgba(0,0,0,0.15)]">
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-x-0 top-0 h-20"
@@ -1059,88 +875,12 @@ function InvoiceE({ paid }) {
 }
 
 export function DevInvoicePreview() {
-  const [searchParams] = useSearchParams()
-  const v = searchParams.get('v')
   if (!import.meta.env.DEV) return null
-  const show = (key) => !v || v === 'all' || v === key
-  const links = [
-    ['all', 'All'],
-    ['now', 'Now'],
-    ['a', 'A Glass'],
-    ['b', 'B Chunky'],
-    ['c', 'C Statement'],
-    ['d', 'D Night'],
-    ['e', 'E Slotted'],
-  ]
   return (
     <div className="mx-auto max-w-md space-y-2 px-4 py-6">
-      <div className="flex flex-wrap gap-2">
-        {links.map(([key, label]) => (
-          <a
-            key={key}
-            href={key === 'all' ? '/dev/invoice' : `/dev/invoice?v=${key}`}
-            className={[
-              'rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wide',
-              (v || 'all') === key ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600',
-            ].join(' ')}
-          >
-            {label}
-          </a>
-        ))}
-      </div>
-      {show('now') && (
-        <>
-          <GalleryLabel>Now — live receipt</GalleryLabel>
-          <InvoiceReceipt
-            invoice={SAMPLE_INVOICE}
-            booking={{ id: 'demo-inv-0042', service: INV.service, status: 'complete', vehicle: INV.vehicle }}
-            detailer={{ name: INV.detailer }}
-            customerName={INV.customer}
-          />
-          <InvoiceReceipt
-            invoice={{ ...SAMPLE_INVOICE, total: 154 }}
-            booking={{ id: 'demo-inv-0043', service: 'Interior Reset', status: 'in_progress', vehicle: 'Honda Civic · Grey' }}
-            detailer={{ name: INV.detailer }}
-            customerName="Jordan P."
-            onPay={() => {}}
-          />
-        </>
-      )}
-      {show('a') && (
-        <>
-          <GalleryLabel>A — Glass slip</GalleryLabel>
-          <InvoiceA paid />
-          <InvoiceA paid={false} />
-        </>
-      )}
-      {show('b') && (
-        <>
-          <GalleryLabel>B — Chunky sheet</GalleryLabel>
-          <InvoiceB paid />
-          <InvoiceB paid={false} />
-        </>
-      )}
-      {show('c') && (
-        <>
-          <GalleryLabel>C — Statement</GalleryLabel>
-          <InvoiceC paid />
-          <InvoiceC paid={false} />
-        </>
-      )}
-      {show('d') && (
-        <>
-          <GalleryLabel>D — Night</GalleryLabel>
-          <InvoiceD paid />
-          <InvoiceD paid={false} />
-        </>
-      )}
-      {show('e') && (
-        <>
-          <GalleryLabel>E — Slotted ticket</GalleryLabel>
-          <InvoiceE paid />
-          <InvoiceE paid={false} />
-        </>
-      )}
+      <GalleryLabel>Slotted ticket</GalleryLabel>
+      <InvoiceE paid />
+      <InvoiceE paid={false} />
     </div>
   )
 }
