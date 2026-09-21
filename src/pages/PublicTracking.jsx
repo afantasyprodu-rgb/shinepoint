@@ -77,18 +77,6 @@ function previewConditionInfo(kind) {
     return { ...base, status: 'en_route' }
   }
 
-  // TEMP: halfway progress + near-arrival glow visible (dest 90044 ~34.0782,-118.2606)
-  if (kind === 'halfway') {
-    return {
-      ...base,
-      status: 'en_route',
-      pings: [
-        { lat: 34.0956, lng: -118.2606, recorded_at: new Date(Date.now() - 900_000).toISOString() },
-        { lat: 34.0869, lng: -118.2606, recorded_at: new Date().toISOString() },
-      ],
-    }
-  }
-
   if (kind === 'condition-approved') {
     return {
       ...base,
