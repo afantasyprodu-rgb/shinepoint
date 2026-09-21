@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
+import { useMotionValue, animate } from 'motion/react'
 import Logo from '../components/Logo'
 import { EnRouteMiniMap } from '../components/EnRouteTracker'
 import { Avatar } from '../components/ui/bits'
@@ -74,6 +75,18 @@ function previewConditionInfo(kind) {
 
   if (kind === 'en-route-preview') {
     return { ...base, status: 'en_route' }
+  }
+
+  // TEMP: halfway progress + near-arrival glow visible (dest 90044 ~34.0782,-118.2606)
+  if (kind === 'halfway') {
+    return {
+      ...base,
+      status: 'en_route',
+      pings: [
+        { lat: 34.0956, lng: -118.2606, recorded_at: new Date(Date.now() - 900_000).toISOString() },
+        { lat: 34.0869, lng: -118.2606, recorded_at: new Date().toISOString() },
+      ],
+    }
   }
 
   if (kind === 'condition-approved') {
@@ -316,18 +329,64 @@ function statusHeadline(status, t) {
 // what's actually filled), not a halo around the whole disc.
 const ETA_NEAR_MINUTES = 3
 
+// Same pink/purple/blue family as the page's own wallpaper blobs, as RGB
+// triples so the traveling tip glow can interpolate between them frame by
+// frame (linear RGB lerp — cheap, and the 3 stops are close enough in hue
+// that it doesn't muddy like a pink->blue lerp would).
+const GLOW_STOPS = [
+  { p: 0, c: [249, 168, 212] }, // #f9a8d4
+  { p: 50, c: [196, 181, 253] }, // #c4b5fd
+  { p: 100, c: [125, 211, 252] }, // #7dd3fc
+]
+function colorAtPct(pct) {
+  const v = Math.min(100, Math.max(0, pct))
+  const [a, b] = v <= 50 ? [GLOW_STOPS[0], GLOW_STOPS[1]] : [GLOW_STOPS[1], GLOW_STOPS[2]]
+  const t = (v - a.p) / (b.p - a.p)
+  const mix = (i) => Math.round(a.c[i] + (b.c[i] - a.c[i]) * t)
+  return `rgb(${mix(0)} ${mix(1)} ${mix(2)})`
+}
+
 function EtaRing({ minutes, progressPct, minAwayLabel, milesLabel, progressLabel }) {
   const size = 188
   const stroke = 10
   const r = (size - stroke) / 2
   const c = 2 * Math.PI * r
-  const offset = c * (1 - Math.min(100, Math.max(0, progressPct)) / 100)
   const isNear = minutes != null && minutes <= ETA_NEAR_MINUTES
-
-  // Outer glow halo — sits on the outer rim of the disc, tracking same fill % but at larger radius
   const glowOuterRadius = r + 12
   const glowOuterC = 2 * Math.PI * glowOuterRadius
-  const glowOuterOffset = glowOuterC * (1 - Math.min(100, Math.max(0, progressPct)) / 100)
+  const targetPct = Math.min(100, Math.max(0, progressPct))
+
+  // Drives the fill-in sweep: on mount, and on every progressPct change (new
+  // GPS ping), tweens from wherever the ring currently sits to the new
+  // target instead of snapping — the tip dot rides along it, so the glow
+  // visibly travels the path rather than just fading in at its final spot.
+  const pctMV = useMotionValue(0)
+  const [tip, setTip] = useState(() => ({
+    offset: c,
+    glowOuterOffset: glowOuterC,
+    x: size / 2 + r,
+    y: size / 2,
+    color: colorAtPct(0),
+  }))
+
+  useEffect(() => {
+    const controls = animate(pctMV, targetPct, {
+      duration: 1.4,
+      ease: 'easeOut',
+      onUpdate(v) {
+        const theta = (v / 100) * 2 * Math.PI
+        setTip({
+          offset: c * (1 - v / 100),
+          glowOuterOffset: glowOuterC * (1 - v / 100),
+          x: size / 2 + r * Math.cos(theta),
+          y: size / 2 + r * Math.sin(theta),
+          color: colorAtPct(v),
+        })
+      },
+    })
+    return () => controls.stop()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetPct])
 
   return (
     <div className="pt-v2-eta-flat flex w-full flex-col items-center">
@@ -356,6 +415,9 @@ function EtaRing({ minutes, progressPct, minAwayLabel, milesLabel, progressLabel
             <filter id="pt-eta-glow-filter" x="-60%" y="-60%" width="220%" height="220%">
               <feGaussianBlur stdDeviation="5" />
             </filter>
+            <filter id="pt-eta-tip-filter" x="-150%" y="-150%" width="400%" height="400%">
+              <feGaussianBlur stdDeviation="4" />
+            </filter>
           </defs>
           <circle
             cx={size / 2}
@@ -375,7 +437,7 @@ function EtaRing({ minutes, progressPct, minAwayLabel, milesLabel, progressLabel
               strokeWidth={6}
               strokeLinecap="round"
               strokeDasharray={glowOuterC}
-              strokeDashoffset={glowOuterOffset}
+              strokeDashoffset={tip.glowOuterOffset}
               filter="url(#pt-eta-glow-filter)"
               className="pt-v2-eta-glow-arc"
               aria-hidden="true"
@@ -390,9 +452,23 @@ function EtaRing({ minutes, progressPct, minAwayLabel, milesLabel, progressLabel
             strokeWidth={stroke}
             strokeLinecap="round"
             strokeDasharray={c}
-            strokeDashoffset={offset}
+            strokeDashoffset={tip.offset}
             className="pt-v2-eta-ring"
           />
+          {/* Traveling glow head — rides the tip of the fill-in sweep above,
+              color-matched to the gradient at its current position (pink at
+              the start, blue by the end) so the glow itself looks like it's
+              "carrying" whichever color it's currently passing through. */}
+          {targetPct > 0 && (
+            <circle
+              cx={tip.x}
+              cy={tip.y}
+              r={9}
+              fill={tip.color}
+              filter="url(#pt-eta-tip-filter)"
+              aria-hidden="true"
+            />
+          )}
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center px-3 text-center">
           <p className="font-display text-5xl font-bold leading-none tracking-tight text-slate-900">

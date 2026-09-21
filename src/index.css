@@ -2328,10 +2328,6 @@
     0 2px 0 rgb(255 255 255 / 0.9),
     0 4px 10px rgb(190 24 93 / 0.18);
 }
-.pt-v2-eta-ring {
-  transition: stroke-dashoffset 0.7s ease-out;
-}
-
 
 /* Legacy fill bar classes kept for safety if referenced elsewhere */
 .pt-v2-fill-track {
@@ -2390,9 +2386,10 @@
   backdrop-filter: blur(22px) saturate(1.35);
   -webkit-backdrop-filter: blur(22px) saturate(1.35);
 }
-.pt-v2-eta-ring {
-  transition: stroke-dashoffset 0.7s ease-out;
-}
+/* No stroke-dashoffset transition here — EtaRing tweens it itself via
+   motion/react's animate() every frame (see the tip-glow comment in
+   PublicTracking.jsx), so a CSS transition on top would double-ease and
+   lag behind the traveling glow dot instead of matching it exactly. */
 /* "Almost there" glow — a second arc in PublicTracking.jsx's EtaRing,
    traced with the exact same strokeDasharray/strokeDashoffset as the
    crisp arc above it, blurred via the SVG filter in its <defs>. Sharing
@@ -2402,7 +2399,6 @@
    only an SVG shape that traces the same path can. */
 .pt-v2-eta-glow-arc {
   opacity: 0.75;
-  transition: stroke-dashoffset 0.7s ease-out;
 }
 @media (prefers-reduced-motion: no-preference) {
   .pt-v2-eta-glow-arc {
