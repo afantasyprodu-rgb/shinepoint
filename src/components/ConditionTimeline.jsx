@@ -27,7 +27,6 @@ export default function ConditionTimeline({
   tipAmount,
   onTipped,
   finishPairs,
-  finishTotalCount,
   enRouteBody,
 }) {
   const t = useT('publicTrack')
