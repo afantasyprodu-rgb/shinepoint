@@ -79,44 +79,7 @@
     <script src="/theme-init.js"></script>
   </head>
   <body>
-    <!-- Static fallback content: replaced by React once the bundle mounts,
-         but visible to any crawler/reviewer that fetches this page without
-         running JavaScript (e.g. Twilio's toll-free verification review) —
-         without this, #root is an empty div and looks indistinguishable
-         from a login/auth wall to that kind of automated check. Keep this
-         in sync with Landing.jsx / the SMS opt-in copy in strings.js if
-         either changes materially. -->
-    <div id="root">
-      <main style="max-width: 640px; margin: 0 auto; padding: 32px 20px; font-family: system-ui, sans-serif; color: #1e293b;">
-        <h1 style="font-size: 1.5rem; font-weight: 700;">ShinePoint — Mobile Car Detailing in LA</h1>
-        <p>LA's vetted mobile car detailers, booked in minutes. Photo-proofed jobs, insured options, detailing at your door.</p>
-        <h2 style="font-size: 1.1rem; font-weight: 700; margin-top: 24px;">Text message notifications</h2>
-        <p>
-          Customers and detailers who opt in receive booking reminders and job status texts from ShinePoint
-          (e.g. appointment reminders, "detailer en route" alerts, and photo-proof links). Message frequency
-          varies by booking activity, up to a few messages per booking. Message and data rates may apply.
-          Reply STOP to cancel at any time, or HELP for help.
-        </p>
-        <p style="color: #64748b; font-size: 0.875rem;">
-          ShinePoint is operated by Richard David Rodriguez Padilla, doing business as ShinePoint.
-          <a href="/business-info" style="color: #de0067;">Full business information</a>.
-        </p>
-        <p>
-          <a href="/terms" style="color: #de0067;">Terms of Service</a>
-          &nbsp;·&nbsp;
-          <a href="/privacy" style="color: #de0067;">Privacy Policy</a>
-          &nbsp;·&nbsp;
-          <a href="/business-info" style="color: #de0067;">Business Info</a>
-        </p>
-        <p style="margin-top: 24px;">
-          <a href="/signup" style="color: #de0067;">Sign up as a customer</a>
-          &nbsp;·&nbsp;
-          <a href="/signup/detailer" style="color: #de0067;">Sign up as a detailer</a>
-          &nbsp;·&nbsp;
-          <a href="/login" style="color: #de0067;">Log in</a>
-        </p>
-      </main>
-    </div>
+    <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
