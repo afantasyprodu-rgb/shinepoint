@@ -767,10 +767,10 @@ function InvoiceE({ paid }) {
       <div className="rounded-2xl border-2 border-[#2c2c2c] bg-[#2b2b2b] pb-2 shadow-[0_0_1px_0_#000,0_5px_15px_0_rgba(0,0,0,0.45)]">
         <div className="mx-auto mt-4 h-[22px] w-[90%] rounded-full border border-[#1b1b1b] bg-black shadow-[0_0_1px_0_#000,0_5px_15px_0_rgba(0,0,0,0.45)]" />
       </div>
-      {/* -mt pulls the ticket up so its top edge lands mid-hole (11px, half
-          the hole's own height) instead of at the grey slot's outer bottom
-          edge — the paper reads as coming out of the black slit itself. */}
-      <div className="relative mx-[7.5%] -mt-[19px] overflow-hidden rounded-xl bg-white text-slate-500 shadow-[0_5px_25px_0_rgba(0,0,0,0.15)]">
+      {/* -mt pulls the ticket up so its top edge lands near the hole's own
+          top edge instead of the grey slot's outer bottom — the paper reads
+          as coming out of the black slit itself, not just below it. */}
+      <div className="relative mx-[7.5%] -mt-8 overflow-hidden rounded-xl bg-white text-slate-500 shadow-[0_5px_25px_0_rgba(0,0,0,0.15)]">
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-x-0 top-0 h-20"
