@@ -134,6 +134,13 @@ export default function DetailerJob() {
     // only a real status transition should toggle the watcher.
   }, [b?.status, isDemo]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Pinned inspection — tapping a chip looks at any gate; a status advance
+  // drops the pin back to the live gate. Must sit above the `if (!b)` return
+  // below (every hook has to run on every render, gate or no gate).
+  useEffect(() => {
+    setPinnedIdx(null)
+  }, [b?.status])
+
   if (!b) {
     return (
       <AppShell role="detailer">
@@ -242,10 +249,6 @@ export default function DetailerJob() {
   // Pinned inspection — tapping a chip looks at any gate; a status advance
   // drops the pin back to the live gate.
   const shownIdx = pinnedIdx ?? activeIndex
-  useEffect(() => {
-    setPinnedIdx(null)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [b?.status])
 
   // Body-only content for the selected gate — the chunky detail card below
   // owns the badge/title/desc chrome now. All data flows and actions kept.
