@@ -2379,7 +2379,23 @@
   -webkit-backdrop-filter: blur(22px) saturate(1.35);
 }
 .pt-v2-eta-ring {
-  transition: stroke-dashoffset 0.7s ease-out;
+  transition: stroke-dashoffset 0.7s ease-out, filter 0.4s ease-out;
+}
+/* "Almost there" cue on the public tracking ETA ring — set in
+   PublicTracking.jsx's EtaRing once minutes-out drops to ETA_NEAR_MINUTES.
+   Steady glow always applies (color already signals it); the pulse layers
+   on top only when the visitor hasn't asked for reduced motion. */
+.pt-v2-eta-ring[data-near='true'] {
+  filter: drop-shadow(0 0 6px rgb(21 128 61 / 0.5));
+}
+@media (prefers-reduced-motion: no-preference) {
+  .pt-v2-eta-ring[data-near='true'] {
+    animation: pt-v2-eta-pulse 1.6s ease-in-out infinite;
+  }
+}
+@keyframes pt-v2-eta-pulse {
+  0%, 100% { filter: drop-shadow(0 0 4px rgb(21 128 61 / 0.35)); }
+  50% { filter: drop-shadow(0 0 11px rgb(21 128 61 / 0.8)); }
 }
 
 /* Soften liquid glass on row cards */

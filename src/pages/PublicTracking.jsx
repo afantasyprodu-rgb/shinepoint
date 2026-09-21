@@ -310,12 +310,20 @@ function statusHeadline(status, t) {
   return t('headlineDefault')
 }
 
+// Below this many minutes out, the ring switches from brand pink to CTA
+// green and gets a soft pulsing glow — the same "almost there" cue the app
+// already uses green for elsewhere (success/positive states), so a
+// customer glancing at a locked phone reads "green = nearly here" without
+// having to read the number.
+const ETA_NEAR_MINUTES = 3
+
 function EtaRing({ minutes, progressPct, minAwayLabel, milesLabel, progressLabel }) {
   const size = 188
   const stroke = 10
   const r = (size - stroke) / 2
   const c = 2 * Math.PI * r
   const offset = c * (1 - Math.min(100, Math.max(0, progressPct)) / 100)
+  const isNear = minutes != null && minutes <= ETA_NEAR_MINUTES
 
   return (
     <div className="pt-v2-eta-flat flex w-full flex-col items-center">
@@ -335,6 +343,11 @@ function EtaRing({ minutes, progressPct, minAwayLabel, milesLabel, progressLabel
               <stop offset="55%" stopColor="#ec4899" />
               <stop offset="100%" stopColor="#db2777" />
             </linearGradient>
+            <linearGradient id="pt-eta-grad-near" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#86efac" />
+              <stop offset="55%" stopColor="#22c55e" />
+              <stop offset="100%" stopColor="#15803d" />
+            </linearGradient>
           </defs>
           <circle
             cx={size / 2}
@@ -349,12 +362,13 @@ function EtaRing({ minutes, progressPct, minAwayLabel, milesLabel, progressLabel
             cy={size / 2}
             r={r}
             fill="none"
-            stroke="url(#pt-eta-grad)"
+            stroke={`url(#${isNear ? 'pt-eta-grad-near' : 'pt-eta-grad'})`}
             strokeWidth={stroke}
             strokeLinecap="round"
             strokeDasharray={c}
             strokeDashoffset={offset}
             className="pt-v2-eta-ring"
+            data-near={isNear || undefined}
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center px-3 text-center">
