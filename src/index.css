@@ -2132,6 +2132,18 @@
     radial-gradient(100% 70% at 92% 18%, #ddd6fe 0%, transparent 52%),
     radial-gradient(90% 60% at 48% 100%, #bae6fd 0%, transparent 55%),
     linear-gradient(165deg, #fff7fb 0%, #fce7f3 28%, #ede9fe 62%, #e0f2fe 100%);
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .pt-v2-wallpaper {
+    animation: pt-v2-wallpaper-breath 18s ease-in-out infinite;
+  }
+}
+
+@keyframes pt-v2-wallpaper-breath {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  50% { transform: scale(1.02) rotate(0.8deg); }
 }
 
 .pt-v2-blob {

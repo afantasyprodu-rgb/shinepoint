@@ -324,6 +324,11 @@ function EtaRing({ minutes, progressPct, minAwayLabel, milesLabel, progressLabel
   const offset = c * (1 - Math.min(100, Math.max(0, progressPct)) / 100)
   const isNear = minutes != null && minutes <= ETA_NEAR_MINUTES
 
+  // Outer glow halo — sits on the outer rim of the disc, tracking same fill % but at larger radius
+  const glowOuterRadius = r + 12
+  const glowOuterC = 2 * Math.PI * glowOuterRadius
+  const glowOuterOffset = glowOuterC * (1 - Math.min(100, Math.max(0, progressPct)) / 100)
+
   return (
     <div className="pt-v2-eta-flat flex w-full flex-col items-center">
       <div
@@ -364,13 +369,13 @@ function EtaRing({ minutes, progressPct, minAwayLabel, milesLabel, progressLabel
             <circle
               cx={size / 2}
               cy={size / 2}
-              r={r}
+              r={glowOuterRadius}
               fill="none"
               stroke="url(#pt-eta-grad)"
-              strokeWidth={stroke + 10}
+              strokeWidth={6}
               strokeLinecap="round"
-              strokeDasharray={c}
-              strokeDashoffset={offset}
+              strokeDasharray={glowOuterC}
+              strokeDashoffset={glowOuterOffset}
               filter="url(#pt-eta-glow-filter)"
               className="pt-v2-eta-glow-arc"
               aria-hidden="true"
