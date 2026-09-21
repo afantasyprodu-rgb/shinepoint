@@ -56,8 +56,11 @@ export default function DetailerRating({
       if (!ok) throw new Error(t('ratingError'))
       setSubmitted(true)
       onRated?.(n)
-    } catch (e) {
-      setErr(e?.message || t('ratingError'))
+    } catch {
+      // Never surface e.message here — that's the raw Supabase/Postgres
+      // error text (e.g. "invalid input syntax for type uuid: ..."),
+      // an implementation detail, not something a customer should see.
+      setErr(t('ratingError'))
     } finally {
       setBusy(false)
     }
