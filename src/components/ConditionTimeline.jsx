@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { CheckIcon, CameraIcon, LockIcon, ClockIcon, SparklesIcon } from './icons'
 import { acknowledgePublicConditionReport } from '../lib/db'
-import FinishGallery from './FinishGallery'
+import { FinishConfetti, FinishSlider, FinishSignInCta } from './FinishGallery'
 import DetailerRating from './DetailerRating'
 import { useT } from '../i18n/useT'
 
@@ -218,7 +218,12 @@ export default function ConditionTimeline({
 
       {phase === 'complete' && (
         <>
-          <FinishGallery pairs={finishPairs} totalCount={finishTotalCount} />
+          <FinishConfetti
+            detailerName={detailerName}
+            detailerRating={detailerRating}
+          />
+          <FinishSlider pairs={finishPairs} />
+          <FinishSignInCta />
           <DetailerRating
             bookingId={bookingId}
             detailerName={detailerName}
