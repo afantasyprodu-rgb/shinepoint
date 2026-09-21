@@ -310,11 +310,10 @@ function statusHeadline(status, t) {
   return t('headlineDefault')
 }
 
-// Below this many minutes out, the ring switches from brand pink to CTA
-// green and gets a soft pulsing glow — the same "almost there" cue the app
-// already uses green for elsewhere (success/positive states), so a
-// customer glancing at a locked phone reads "green = nearly here" without
-// having to read the number.
+// Below this many minutes out, the filled arc gets a soft pulsing glow —
+// only along the arc itself (see the glow <circle> below, which shares the
+// crisp arc's exact dasharray/dashoffset so it can never show more than
+// what's actually filled), not a halo around the whole disc.
 const ETA_NEAR_MINUTES = 3
 
 function EtaRing({ minutes, progressPct, minAwayLabel, milesLabel, progressLabel }) {
@@ -329,7 +328,6 @@ function EtaRing({ minutes, progressPct, minAwayLabel, milesLabel, progressLabel
     <div className="pt-v2-eta-flat flex w-full flex-col items-center">
       <div
         className="pt-v2-eta-disc"
-        data-near={isNear || undefined}
         role="progressbar"
         aria-valuemin={0}
         aria-valuemax={100}
@@ -337,18 +335,22 @@ function EtaRing({ minutes, progressPct, minAwayLabel, milesLabel, progressLabel
         aria-label={progressLabel}
         style={{ width: size, height: size }}
       >
-        <svg width={size} height={size} className="-rotate-90" aria-hidden="true">
+        {/* overflow: visible — the UA default clips a root <svg> to its own
+            box, which cut the glow arc's blur off in a hard square right at
+            the 188x188 edge instead of following the arc's curve. */}
+        <svg width={size} height={size} className="pt-v2-eta-svg -rotate-90" style={{ overflow: 'visible' }} aria-hidden="true">
           <defs>
+            {/* Same pink/purple/blue family as the page's own wallpaper
+                blobs (.pt-v2-blob-a/b/c) — the ring is meant to read as
+                part of that same glass surface, not a different palette. */}
             <linearGradient id="pt-eta-grad" x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%" stopColor="#f9a8d4" />
-              <stop offset="55%" stopColor="#ec4899" />
-              <stop offset="100%" stopColor="#db2777" />
+              <stop offset="50%" stopColor="#c4b5fd" />
+              <stop offset="100%" stopColor="#7dd3fc" />
             </linearGradient>
-            <linearGradient id="pt-eta-grad-near" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#86efac" />
-              <stop offset="55%" stopColor="#22c55e" />
-              <stop offset="100%" stopColor="#15803d" />
-            </linearGradient>
+            <filter id="pt-eta-glow-filter" x="-60%" y="-60%" width="220%" height="220%">
+              <feGaussianBlur stdDeviation="5" />
+            </filter>
           </defs>
           <circle
             cx={size / 2}
@@ -358,12 +360,28 @@ function EtaRing({ minutes, progressPct, minAwayLabel, milesLabel, progressLabel
             stroke="rgb(255 255 255 / 0.45)"
             strokeWidth={stroke}
           />
+          {isNear && (
+            <circle
+              cx={size / 2}
+              cy={size / 2}
+              r={r}
+              fill="none"
+              stroke="url(#pt-eta-grad)"
+              strokeWidth={stroke + 10}
+              strokeLinecap="round"
+              strokeDasharray={c}
+              strokeDashoffset={offset}
+              filter="url(#pt-eta-glow-filter)"
+              className="pt-v2-eta-glow-arc"
+              aria-hidden="true"
+            />
+          )}
           <circle
             cx={size / 2}
             cy={size / 2}
             r={r}
             fill="none"
-            stroke={`url(#${isNear ? 'pt-eta-grad-near' : 'pt-eta-grad'})`}
+            stroke="url(#pt-eta-grad)"
             strokeWidth={stroke}
             strokeLinecap="round"
             strokeDasharray={c}
