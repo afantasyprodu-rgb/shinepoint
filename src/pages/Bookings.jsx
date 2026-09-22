@@ -183,6 +183,24 @@ export default function Bookings() {
               return (
                 <StaggerItem key={b.id}>
                   <div className={isPremium ? 'premium-booking' : ''}>
+                  {/* En-route banner — status-only, no fabricated ETA minutes
+                      (nothing stores a live ETA on the booking row; the real
+                      countdown lives inline on the detail page's
+                      EnRouteTracker once you tap in). */}
+                  {b.status === 'en_route' && (
+                    <Link
+                      to={`/bookings/${b.id}`}
+                      className="mb-1.5 flex items-center gap-2.5 rounded-2xl bg-gradient-to-r from-cta-600 to-cta-700 px-4 py-3 text-white shadow-sm transition hover:brightness-105"
+                    >
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/20">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-pulse"><path d="M3 11l19-9-9 19-2-8-8-2Z"/></svg>
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[10px] font-bold uppercase tracking-widest text-white/80">{t('enRouteBadge')}</span>
+                        <span className="block truncate text-sm font-extrabold">{d?.name} · {t('enRouteCta')}</span>
+                      </span>
+                    </Link>
+                  )}
                   <div className="card card-hover overflow-hidden p-0 focus-within:ring-2 focus-within:ring-brand-600">
                     {/* Collapsed row — old simple layout (Avatar + text + status) */}
                     <button

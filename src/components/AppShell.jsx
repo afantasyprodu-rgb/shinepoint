@@ -8,7 +8,7 @@ import SfxToggle from './SfxToggle'
 import SyncPendingBadge from './SyncPendingBadge'
 import ToolsSidebar from './ToolsSidebar'
 import ToolsEdgeTab from './ToolsEdgeTab'
-import { BellIcon, ClipboardCheckIcon, TrendingUpIcon, UsersIcon, UserIcon, MapPinIcon, ChevronDownIcon, MessageCircleIcon } from './icons'
+import { BellIcon, ClipboardCheckIcon, TrendingUpIcon, UsersIcon, UserIcon, MapPinIcon, ChevronDownIcon, MessageCircleIcon, SparklesIcon } from './icons'
 import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
 import BottomTabBar from './ui/BottomTabBar'
@@ -173,6 +173,7 @@ export function NotificationBell({ role, panelClass = 'right-0 top-11' }) {
 const NAVS = {
   customer: [
     { to: '/home', labelKey: 'map', end: true, icon: MapPinIcon },
+    { to: '/detailers', labelKey: 'detailers', icon: SparklesIcon },
     { to: '/bookings', labelKey: 'myBookings', icon: ClipboardCheckIcon },
     { to: '/assistant', labelKey: 'assistant', icon: MessageCircleIcon },
     { to: '/settings', labelKey: 'account', icon: UsersIcon },

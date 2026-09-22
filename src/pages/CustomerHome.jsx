@@ -21,7 +21,7 @@ const FILTERS = [
 // Blueprint screen 2.1 — Customer Home (Map Screen). Fully map-driven: tap a
 // pin to grow a quick-info bubble, tap the map to dismiss it. No card strip.
 export default function CustomerHome() {
-  const { detailers, customer, favoriteIds } = useStore()
+  const { detailers, customer, favoriteIds, isFavorite, toggleFavorite } = useStore()
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [active, setActive] = useState([])
@@ -64,10 +64,27 @@ export default function CustomerHome() {
           back to an explicit computed height, just a correct one. */}
       <main className="relative h-[calc(100dvh-61px-max(env(safe-area-inset-top),2.75rem))]">
         <h1 className="sr-only">{t('srHeading')}</h1>
-        <DetailerMap detailers={filtered} />
+        <DetailerMap detailers={filtered} isFavorite={isFavorite} onToggleFavorite={toggleFavorite} />
 
         {/* Search + filters (2.1) */}
         <div className="pointer-events-none absolute inset-x-0 top-3 z-[500] mx-auto w-full max-w-md px-4">
+          {/* Active-vehicle pill — tap to switch/edit in the garage (CustomerSettings).
+              Hidden until a vehicle is set; the "add vehicle" prompt modal below already
+              covers that first-run case. */}
+          {customer?.vehicle?.make && (
+            <button
+              type="button"
+              onClick={() => navigate('/settings')}
+              className="nx-neu press-spring pointer-events-auto mb-2 flex w-full items-center gap-2 rounded-full px-3 py-2 text-left dark:!bg-slate-800"
+            >
+              <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-300">
+                <CarIcon className="h-4 w-4" />
+              </span>
+              <span className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
+                {[customer.vehicle.year, customer.vehicle.make, customer.vehicle.model].filter(Boolean).join(' ')}
+              </span>
+            </button>
+          )}
           <input
             type="search"
             aria-label={t('searchPlaceholder')}
@@ -83,10 +100,10 @@ export default function CustomerHome() {
                 type="button"
                 aria-pressed={active.includes(key)}
                 onClick={() => toggleFilter(key)}
-                className={`press-spring pointer-events-auto cursor-pointer rounded-full px-3 py-1.5 text-xs font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
+                className={`press-spring pointer-events-auto cursor-pointer rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
                   active.includes(key)
                     ? 'nx-neu-active text-white'
-                    : 'border border-slate-200/70 bg-white text-slate-700 shadow-[0_6px_16px_-8px_rgba(30,41,59,0.35)] hover:-translate-y-0.5 dark:border-white/10 dark:!bg-slate-800 dark:!shadow-[0_6px_16px_-8px_rgba(0,0,0,0.6)] dark:text-slate-300'
+                    : 'nx-neu text-slate-600 hover:-translate-y-0.5 dark:!bg-slate-800 dark:text-slate-300'
                 }`}
               >
                 {t(labelKey)}

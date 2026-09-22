@@ -1988,58 +1988,260 @@
   margin: 0;
 }
 .nx-pop {
-  min-width: 200px;
-  max-width: 240px;
-  padding: 0.85rem 0.9rem;
+  min-width: 232px;
+  max-width: 264px;
+  padding: 0.9rem 0.95rem;
   font-family: var(--font-sans);
+}
+.nx-pop-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+.nx-pop-avatar {
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  background: var(--color-brand-100);
+  color: var(--color-brand-700);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+.nx-pop-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.nx-pop-head-text {
+  min-width: 0;
+  flex: 1;
 }
 .nx-pop-name {
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 0.95rem;
   color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nx-pop-pro {
+  flex-shrink: 0;
+  border-radius: 9999px;
+  background: var(--color-brand-100);
+  color: var(--color-brand-700);
+  font-family: var(--font-sans);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 0.05rem 0.35rem;
 }
 .nx-pop-meta {
   margin-top: 2px;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   color: #475569;
 }
-.nx-pop-status {
-  margin-top: 2px;
-  font-size: 0.78rem;
+.nx-pop-from {
+  flex-shrink: 0;
+  text-align: right;
+  line-height: 1.1;
+}
+.nx-pop-from span {
+  display: block;
+  font-size: 0.6rem;
   font-weight: 600;
+  letter-spacing: 0.06em;
+  color: #94a3b8;
 }
-.nx-pop-price {
-  margin-top: 2px;
-  font-size: 0.8rem;
-  color: #64748b;
+.nx-pop-from strong {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  color: var(--color-brand-600);
 }
-.nx-pop-services {
-  margin-top: 0.55rem;
-  border-top: 1px solid rgba(15, 23, 42, 0.08);
-  padding-top: 0.4rem;
-  max-height: 110px;
-  overflow-y: auto;
-}
-.nx-pop-services li {
-  padding: 0.15rem 0;
-  font-size: 0.78rem;
+.nx-pop-status {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
   color: #334155;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.nx-pop-status::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--dot, #94a3b8);
+  flex-shrink: 0;
+}
+.nx-pop-banner {
+  margin-top: 0.55rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 0.6rem;
+  background: var(--color-brand-50);
+  padding: 0.45rem 0.6rem;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--color-brand-700);
+}
+.nx-pop-banner span:first-child {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nx-pop-best {
+  flex-shrink: 0;
+  border-radius: 9999px;
+  background: var(--color-cta-600);
+  color: #fff;
+  font-size: 0.6rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.15rem 0.45rem;
+}
+.nx-pop-stats {
+  margin-top: 0.5rem;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.4rem;
+}
+.nx-pop-stat {
+  border-radius: 0.55rem;
+  background: var(--color-surface-container-low, #f1f5f9);
+  padding: 0.35rem 0.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+.nx-pop-stat span {
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+.nx-pop-stat strong {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nx-pop-carousel {
+  position: relative;
+  margin-top: 0.55rem;
+  border-radius: 0.6rem;
+  overflow: hidden;
+  height: 90px;
+  background: var(--color-surface-container-low, #f1f5f9);
+}
+.nx-pop-slides {
+  height: 100%;
+}
+.nx-pop-slide {
+  height: 100%;
+}
+.nx-pop-slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.nx-pop-carousel-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 9999px;
+  background: rgba(15, 23, 42, 0.55);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.nx-pop-carousel-prev { left: 0.35rem; }
+.nx-pop-carousel-next { right: 0.35rem; }
+.nx-pop-carousel-dots {
+  position: absolute;
+  bottom: 0.35rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 0.25rem;
+}
+.nx-pop-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.55);
+  cursor: pointer;
+}
+.nx-pop-dot--on {
+  background: #fff;
+}
+.nx-pop-trust {
+  margin-top: 0.5rem;
+  text-align: center;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--color-cta-600);
+}
+.nx-pop-actions {
+  margin-top: 0.65rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.nx-pop-fav {
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.65rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-brand-600);
+  background: var(--neu-bg);
+  box-shadow: 3px 3px 7px var(--neu-sd), -3px -3px 7px var(--neu-sl);
+  cursor: pointer;
+  transition: transform 0.15s var(--ease-spring);
+}
+.nx-pop-fav:active {
+  transform: scale(0.92);
+}
+.nx-pop-fav--on {
+  color: #e11d48;
 }
 .nx-pop-btn {
-  margin-top: 0.6rem;
-  width: 100%;
+  flex: 1;
   cursor: pointer;
-  border-radius: 0.6rem;
-  background: var(--color-brand-600);
-  padding: 0.4rem 0;
-  font-size: 0.8rem;
+  border-radius: 0.65rem;
+  background: var(--color-cta-600);
+  padding: 0.55rem 0;
+  font-size: 0.82rem;
   font-weight: 600;
   color: #fff;
   transition: background 0.15s ease;
 }
 .nx-pop-btn:hover {
-  background: var(--color-brand-700);
+  background: var(--color-cta-700);
 }
 
 /* Dark popup surface to match the app's dark theme */
@@ -2049,9 +2251,11 @@
 }
 .dark .nx-pop-name { color: #f1f5f9; }
 .dark .nx-pop-meta { color: #cbd5e1; }
-.dark .nx-pop-price { color: #94a3b8; }
-.dark .nx-pop-services { border-top-color: rgba(255, 255, 255, 0.1); }
-.dark .nx-pop-services li { color: #cbd5e1; }
+.dark .nx-pop-status { color: #cbd5e1; }
+.dark .nx-pop-banner { background: rgba(251, 158, 203, 0.12); }
+.dark .nx-pop-stat { background: rgba(255, 255, 255, 0.06); }
+.dark .nx-pop-stat strong { color: #f1f5f9; }
+.dark .nx-pop-carousel { background: rgba(255, 255, 255, 0.06); }
 
 /* ── Neumorphic map chrome ─────────────────────────────────────────────────
    Same raised/pressed --neu-* language as the rest of the app (buttons,

@@ -15,6 +15,7 @@ import ErrorBoundary from './components/ErrorBoundary'
 const Landing = lazy(() => import('./pages/Landing'))
 const Login = lazy(() => import('./pages/Login'))
 const CustomerHome = lazy(() => import('./pages/CustomerHome'))
+const CustomerDetailers = lazy(() => import('./pages/CustomerDetailers'))
 const CustomerSignup = lazy(() => import('./pages/CustomerSignup'))
 const DetailerSignup = lazy(() => import('./pages/DetailerSignup'))
 const CheckEmail = lazy(() => import('./pages/CheckEmail'))
@@ -152,6 +153,7 @@ export default function App() {
 
         {/* Customer */}
         <Route path="/home" element={guard('customer', <CustomerHome />)} />
+        <Route path="/detailers" element={guard('customer', <CustomerDetailers />)} />
         <Route path="/detailers/:id" element={guard('customer', <DetailerProfile />)} />
         <Route path="/book/:id" element={guard('customer', <BookingWizard />)} />
         <Route path="/bookings" element={guard('customer', <Bookings />)} />

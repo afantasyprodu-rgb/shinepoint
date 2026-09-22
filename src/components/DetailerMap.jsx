@@ -139,19 +139,74 @@ function esc(v) {
   return String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
 }
 
-function popupHtml(d) {
-  const color = PIN_COLORS[d.status] ?? PIN_COLORS.offline
-  // Names only, no prices — pricing is a "View profile" decision, not
-  // something to compare pin-to-pin while browsing the map.
-  const services = d.services.map((s) => `<li>${esc(s.name)}</li>`).join('')
+function cheapestPrice(d) {
+  const prices = (d.services ?? []).map((s) => Number(s.price)).filter((p) => Number.isFinite(p))
+  return prices.length ? Math.min(...prices) : null
+}
+
+const HEART_PATH = 'M12 21s-6.7-4.35-9.3-8.1C1 10.2 1.6 6.9 4.3 5.3c2.2-1.3 4.9-.7 6.4 1.2a1 1 0 0 0 1.6 0c1.5-1.9 4.2-2.5 6.4-1.2 2.7 1.6 3.3 4.9 1.6 7.6C18.7 16.65 12 21 12 21Z'
+
+// Two cheapest-first services for the highlight banner — mirrors the
+// mockup's "Signature Wash $85 · Full Detail $140" line without inventing
+// a package hierarchy the detailer never set.
+function bannerServices(d) {
+  return [...(d.services ?? [])]
+    .filter((s) => Number.isFinite(Number(s.price)))
+    .sort((a, b) => Number(a.price) - Number(b.price))
+    .slice(0, 2)
+}
+
+// Quick-info card, redesigned to match the "Studio Wash" map mockup: photo
+// carousel, highlight banner, and a 3-stat row — but every stat is real data
+// the detailer/booking system actually tracks (status, travel radius, jobs
+// done), never the mockup's fabricated "next slot"/"response time", which
+// this app has no way to promise. Names/services/area/gallery are
+// detailer-controlled so everything user-facing runs through esc().
+function popupHtml(d, favorited) {
+  const promoted = isPromoted(d)
+  const from = cheapestPrice(d)
   const rating = d.isRated === false ? 'New' : `★ ${Number(d.rating).toFixed(1)} (${Number(d.reviews) || 0})`
+  const banner = bannerServices(d)
+  const bannerText = banner.map((s) => `${esc(s.name)} $${Number(s.price)}`).join(' · ')
+  const bestValue = banner.some((s) => s.isBestValue)
+  const gallery = (d.gallery ?? []).slice(0, 8)
+  const slides = gallery.length
+    ? gallery.map((src, i) => `<div class="nx-pop-slide" data-slide="${i}"${i ? ' hidden' : ''}><img src="${esc(src)}" alt="" /></div>`).join('')
+    : ''
   return `
     <div class="nx-pop">
-      <p class="nx-pop-name">${esc(d.name)}</p>
-      <p class="nx-pop-meta">${rating} · ${esc(d.area)} · ${Number(d.travelMiles) || 0} mi radius</p>
-      <p class="nx-pop-status" style="color:${color}">${statusLine(d)} · ${Number(d.completedJobs) || 0} jobs done</p>
-      <ul class="nx-pop-services">${services}</ul>
-      <button type="button" data-view class="nx-pop-btn">View profile</button>
+      <div class="nx-pop-head">
+        <div class="nx-pop-avatar">
+          ${d.photo ? `<img src="${esc(d.photo)}" alt="" />` : `<span>${esc((d.name || '?')[0])}</span>`}
+        </div>
+        <div class="nx-pop-head-text">
+          <p class="nx-pop-name">${esc(d.name)}${promoted ? '<span class="nx-pop-pro">PRO</span>' : ''}</p>
+          <p class="nx-pop-meta">${rating} · ${esc(d.area)}</p>
+        </div>
+        ${from != null ? `<div class="nx-pop-from"><span>FROM</span><strong>$${from}</strong></div>` : ''}
+      </div>
+      ${bannerText ? `<div class="nx-pop-banner"><span>${bannerText}</span>${bestValue ? '<span class="nx-pop-best">Best value</span>' : ''}</div>` : ''}
+      <div class="nx-pop-stats">
+        <div class="nx-pop-stat"><span>Status</span><strong style="color:${PIN_COLORS[d.status] ?? PIN_COLORS.offline}">${statusLine(d)}</strong></div>
+        <div class="nx-pop-stat"><span>Radius</span><strong>${Number(d.travelMiles) || 0} mi</strong></div>
+        <div class="nx-pop-stat"><span>Jobs done</span><strong>${Number(d.completedJobs) || 0}</strong></div>
+      </div>
+      ${slides ? `
+      <div class="nx-pop-carousel" data-count="${gallery.length}">
+        <div class="nx-pop-slides">${slides}</div>
+        ${gallery.length > 1 ? `
+        <button type="button" data-carousel-prev aria-label="Previous photo" class="nx-pop-carousel-nav nx-pop-carousel-prev">‹</button>
+        <button type="button" data-carousel-next aria-label="Next photo" class="nx-pop-carousel-nav nx-pop-carousel-next">›</button>
+        <div class="nx-pop-carousel-dots">${gallery.map((_, i) => `<span class="nx-pop-dot${i ? '' : ' nx-pop-dot--on'}" data-dot="${i}"></span>`).join('')}</div>
+        ` : ''}
+      </div>` : ''}
+      <div class="nx-pop-actions">
+        <button type="button" data-fav aria-label="${favorited ? 'Remove from favorites' : 'Save to favorites'}" class="nx-pop-fav${favorited ? ' nx-pop-fav--on' : ''}">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="${favorited ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><path d="${HEART_PATH}"/></svg>
+        </button>
+        <button type="button" data-view class="nx-pop-btn">View profile</button>
+      </div>
+      ${d.insurance === 'insured' ? '<p class="nx-pop-trust">Licensed &amp; insured</p>' : ''}
     </div>`
 }
 
@@ -270,7 +325,7 @@ function clusterIcon(count, promoted) {
 // radar ring) all consistent with each other, and cheap enough at demo/
 // real detailer-roster scale (tens to low hundreds of pins) to run on
 // every zoom change, not just when the filtered detailer list changes.
-function renderMarkers(map, markersRef, radarRef, detailers, navigate) {
+function renderMarkers(map, markersRef, radarRef, detailers, navigate, favCtx) {
   if (!map) return
   markersRef.current.forEach((m) => m.remove())
   markersRef.current.clear()
@@ -315,7 +370,7 @@ function renderMarkers(map, markersRef, radarRef, detailers, navigate) {
         keyboard: true,
         title: `${d.name} — ${statusLine(d)}`,
       })
-        .bindPopup(popupHtml(d), {
+        .bindPopup(popupHtml(d, favCtx?.isFavorite?.(d.id)), {
           closeButton: false,
           offset: [0, -4],
           className: 'nx-popup',
@@ -358,6 +413,36 @@ function renderMarkers(map, markersRef, radarRef, detailers, navigate) {
         const el = marker.getPopup().getElement()
         const btn = el?.querySelector('[data-view]')
         if (btn) btn.onclick = () => navigate(`/detailers/${d.id}`)
+        // Toggles in place (icon fill + class) rather than re-rendering the
+        // whole popup — cheaper and avoids fighting the grow-in animation.
+        const favBtn = el?.querySelector('[data-fav]')
+        if (favBtn) {
+          favBtn.onclick = () => {
+            favCtx?.onToggleFavorite?.(d.id)
+            const nowOn = !favBtn.classList.contains('nx-pop-fav--on')
+            favBtn.classList.toggle('nx-pop-fav--on', nowOn)
+            const svg = favBtn.querySelector('svg')
+            if (svg) svg.setAttribute('fill', nowOn ? 'currentColor' : 'none')
+          }
+        }
+        // Gallery carousel: plain show/hide of pre-rendered slides, no
+        // library — the popup already re-renders from scratch on every
+        // open so there's no state to keep in sync between opens.
+        const carousel = el?.querySelector('.nx-pop-carousel')
+        if (carousel) {
+          const count = Number(carousel.dataset.count) || 0
+          let i = 0
+          const slidesEl = carousel.querySelectorAll('.nx-pop-slide')
+          const dotsEl = carousel.querySelectorAll('.nx-pop-dot')
+          function show(next) {
+            i = ((next % count) + count) % count
+            slidesEl.forEach((s, idx) => { s.hidden = idx !== i })
+            dotsEl.forEach((dot, idx) => dot.classList.toggle('nx-pop-dot--on', idx === i))
+          }
+          carousel.querySelector('[data-carousel-prev]')?.addEventListener('click', () => show(i - 1))
+          carousel.querySelector('[data-carousel-next]')?.addEventListener('click', () => show(i + 1))
+          dotsEl.forEach((dot) => dot.addEventListener('click', () => show(Number(dot.dataset.dot))))
+        }
       })
       // Tapping a pin reveals its free-travel radius as a "radar" ring —
       // a geo-accurate circle (miles -> meters) rather than a fixed-pixel
@@ -409,7 +494,7 @@ function renderMarkers(map, markersRef, radarRef, detailers, navigate) {
   })
 }
 
-export default function DetailerMap({ detailers, focus, focusOpensPopup = true }) {
+export default function DetailerMap({ detailers, focus, focusOpensPopup = true, isFavorite, onToggleFavorite }) {
   const containerRef = useRef(null)
   const mapRef = useRef(null)
   const tileRef = useRef(null)
@@ -420,6 +505,10 @@ export default function DetailerMap({ detailers, focus, focusOpensPopup = true }
   // registered once in the mount-only map-creation effect, so it can't close
   // over the `detailers` prop directly; it reads this ref instead.
   const detailersRef = useRef([])
+  // Same reason: favorite state/callback read fresh on every popup instead
+  // of closing over stale props from mount time.
+  const favCtxRef = useRef({ isFavorite, onToggleFavorite })
+  favCtxRef.current = { isFavorite, onToggleFavorite }
   const navigate = useNavigate()
   const { theme } = useTheme()
   const [locating, setLocating] = useState(false)
@@ -443,7 +532,7 @@ export default function DetailerMap({ detailers, focus, focusOpensPopup = true }
     const t = TILES[theme] ?? TILES.light
     tileRef.current = L.tileLayer(t.url, { attribution: t.attribution, maxZoom: 19 }).addTo(map)
     mapRef.current = map
-    const onZoomEnd = () => renderMarkers(mapRef.current, markersRef, radarRef, detailersRef.current, navigate)
+    const onZoomEnd = () => renderMarkers(mapRef.current, markersRef, radarRef, detailersRef.current, navigate, favCtxRef.current)
     map.on('zoomend', onZoomEnd)
     // Container can be zero-size at the instant this effect runs (mounting
     // behind the pre-reveal full-screen sheet), leaving Leaflet's view
@@ -454,7 +543,7 @@ export default function DetailerMap({ detailers, focus, focusOpensPopup = true }
       const m = mapRef.current
       if (!m) return
       m.invalidateSize()
-      renderMarkers(m, markersRef, radarRef, detailersRef.current, navigate)
+      renderMarkers(m, markersRef, radarRef, detailersRef.current, navigate, favCtxRef.current)
     })
     resizeObserver.observe(containerRef.current)
     // Snapshot for the cleanup below: markersRef.current is reassigned
@@ -509,7 +598,7 @@ export default function DetailerMap({ detailers, focus, focusOpensPopup = true }
     detailersRef.current = detailers
     const map = mapRef.current
     if (!map) return
-    renderMarkers(map, markersRef, radarRef, detailers, navigate)
+    renderMarkers(map, markersRef, radarRef, detailers, navigate, favCtxRef.current)
   }, [detailers, navigate])
 
   // "Locate" from a card (if still passed): fly to a pin and open its popup.
