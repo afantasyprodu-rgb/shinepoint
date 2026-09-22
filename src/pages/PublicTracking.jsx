@@ -401,7 +401,7 @@ function TrackingBody({ info, bookingId, onInfoPatch }) {
       )}
 
       {info.status === 'cancelled' && (
-        <p className="pt-v2-glass flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm text-slate-500">
+        <p className="pt-v2-glass flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm text-slate-500 dark:text-slate-400">
           <AlertTriangleIcon className="h-4 w-4 shrink-0" /> {t('cancelled')}
         </p>
       )}
@@ -717,7 +717,7 @@ function WeatherCard({ zip, destination, compact = false }) {
           {weather.label}
           {weather.tempF != null ? ` · ${weather.tempF}°` : ''}
         </p>
-        <p className="text-[10px] text-slate-500">
+        <p className="text-[10px] text-slate-500 dark:text-slate-400">
           {weather.source === 'open-meteo' ? t('weatherNearJob') : t('weatherApprox')}
         </p>
       </div>

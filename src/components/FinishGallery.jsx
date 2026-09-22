@@ -38,7 +38,7 @@ export function FinishSignInCta() {
       <button
         type="button"
         onClick={() => setDismissed(true)}
-        className="text-sm font-medium text-slate-400 transition hover:text-slate-600 dark:hover:text-slate-300"
+        className="text-sm font-medium text-slate-400 transition hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
       >
         {t('finishMaybeLater')}
       </button>
@@ -176,7 +176,7 @@ export function FinishSlider({ pairs }) {
               return (
                 <span
                   key={i}
-                  className="inline-flex shrink-0 items-center gap-1 rounded-full bg-slate-200/70 px-3 py-1.5 text-[11px] font-semibold text-slate-500"
+                  className="inline-flex shrink-0 items-center gap-1 rounded-full bg-slate-200/70 px-3 py-1.5 text-[11px] font-semibold text-slate-500 dark:bg-white/10 dark:text-slate-400"
                 >
                   <LockIcon className="h-3 w-3" />
                   {p.label || t('conditionPhotoAlt', { n: i + 1 })}

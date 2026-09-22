@@ -147,7 +147,7 @@ export default function DetailerRating({
           <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{t('tipThanksTitle', { amount: tipDone })}</p>
         </div>
       ) : !hasSavedCard ? (
-        <p className="text-center text-xs text-slate-400">{t('noCardForTip')}</p>
+        <p className="text-center text-xs text-slate-400 dark:text-slate-500">{t('noCardForTip')}</p>
       ) : (
         <div className="space-y-2.5">
           <p className="text-center font-display text-base font-semibold text-slate-900 dark:text-slate-100">{t('tipTitle')}</p>
@@ -175,7 +175,7 @@ export default function DetailerRating({
           </div>
 
           <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 focus-within:border-brand-400 focus-within:ring-2 focus-within:ring-brand-100 dark:border-white/10 dark:bg-white/5">
-            <span className="font-semibold text-slate-400">$</span>
+            <span className="font-semibold text-slate-400 dark:text-slate-500">$</span>
             <input
               type="number"
               min="1"
