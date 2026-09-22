@@ -125,10 +125,14 @@ export default function AdminShell({ children }) {
         <header className="flex flex-wrap items-center justify-between gap-y-2 px-4 py-3 pt-[max(env(safe-area-inset-top),2.75rem)] sm:hidden">
           <Logo />
           <div className="flex flex-wrap items-center justify-end gap-1">
-            <NotificationBell role="admin" />
             <LanguageToggle />
             <BrandThemePicker />
             <ThemeToggle />
+            {/* Last icon before Sign out, same as AppShell — its dropdown
+                anchors right-0 to itself, so it needs to sit near the
+                screen's right edge or the panel overflows off the left
+                (was first in this row, opening ~200px off-screen). */}
+            <NotificationBell role="admin" />
             <button onClick={handleSignOut} className="btn btn-outline h-9 px-3 text-sm">
               {isDemo ? t('exit') : t('signOut')}
             </button>
