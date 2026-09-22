@@ -256,7 +256,7 @@ export default function AppShell({ role, children, collapsibleBottomNav = false,
 
   return (
     <div
-      className={`relative flex flex-col ${fillHeight ? 'h-dvh overflow-hidden' : 'min-h-dvh'} ${
+      className={`relative flex flex-col overflow-x-hidden ${fillHeight ? 'h-dvh overflow-hidden' : 'min-h-dvh'} ${
         locked ? 'overflow-hidden bg-white dark:bg-[#141026]' : ''
       }`}
     >
@@ -339,7 +339,7 @@ export default function AppShell({ role, children, collapsibleBottomNav = false,
                 same move as LanguageSetting just above it in that tab. */}
             <BrandThemePicker className="hidden sm:flex" />
             <ThemeToggle />
-            {!locked && <SfxToggle />}
+            {!locked && <SfxToggle className="hidden sm:flex" />}
             {!locked && <NotificationBell role={role} />}
             <button onClick={handleSignOut} className="btn btn-outline h-9 px-3 text-sm">
               {isDemo ? t('exitDemo') : t('signOut')}

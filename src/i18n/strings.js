@@ -22,6 +22,12 @@ export const STRINGS = {
       title: 'App color',
       body: 'Pick the accent color used throughout the app.',
     },
+    sfxSetting: {
+      title: 'Sound effects',
+      body: 'Taps and confirmations play a short sound.',
+      mute: 'Mute sound effects',
+      unmute: 'Unmute sound effects',
+    },
     welcome: {
       nearbyChip: 'nearby pros',
       badge: 'Mobile detailing · Southern California',
@@ -2234,6 +2240,12 @@ export const STRINGS = {
     brandThemeSetting: {
       title: 'Color de la app',
       body: 'Elige el color de acento que se usa en toda la app.',
+    },
+    sfxSetting: {
+      title: 'Efectos de sonido',
+      body: 'Los toques y confirmaciones reproducen un sonido breve.',
+      mute: 'Silenciar efectos de sonido',
+      unmute: 'Activar efectos de sonido',
     },
     welcome: {
       nearbyChip: 'profesionales cerca',

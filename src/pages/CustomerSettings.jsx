@@ -8,6 +8,7 @@ import AccountDangerZone from '../components/AccountDangerZone'
 import ChangePassword from '../components/ChangePassword'
 import LanguageSetting from '../components/LanguageSetting'
 import BrandThemeSetting from '../components/BrandThemeSetting'
+import SfxSetting from '../components/SfxSetting'
 import AvatarUpload from '../components/AvatarUpload'
 import CarPhotoUpload from '../components/CarPhotoUpload'
 import Combobox from '../components/ui/Combobox'
@@ -666,6 +667,8 @@ export default function CustomerSettings() {
         <LanguageSetting />
 
         <BrandThemeSetting />
+
+        <SfxSetting />
 
         <ChangePassword />
 
