@@ -1,6 +1,6 @@
 // Minimal Sentry error reporting via the raw HTTP Store API — no SDK
 // dependency (keeps edge function bundles small), mirrors resend.ts's /
-// twilio.ts's soft-skip pattern exactly: unset SENTRY_DSN = silent no-op,
+// sentdm.ts's soft-skip pattern exactly: unset SENTRY_DSN = silent no-op,
 // never throws back into the caller's error path.
 function parseDsn(dsn: string) {
   const url = new URL(dsn)

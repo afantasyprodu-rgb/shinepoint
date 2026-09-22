@@ -11,7 +11,7 @@ import { Capacitor } from '@capacitor/core'
 // as VITE_GOOGLE_PLACES_API_KEY_ANDROID / _IOS when Cloud Console has them.
 // Until then native builds fall back to the web key, which the Play/App
 // Store webview won't satisfy the referrer check for, so autocomplete will
-// silently no-op on-device (same soft-skip contract as resend.ts/twilio.ts).
+// silently no-op on-device (same soft-skip contract as resend.ts/sentdm.ts).
 function apiKey() {
   const platform = Capacitor.getPlatform()
   if (platform === 'android') {
