@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import AppShell from '../components/AppShell'
 import DetailerMap from '../components/DetailerMap'
 import Modal from '../components/ui/Modal'
@@ -23,6 +23,14 @@ const FILTERS = [
 export default function CustomerHome() {
   const { detailers, customer, favoriteIds, isFavorite, toggleFavorite } = useStore()
   const navigate = useNavigate()
+  const location = useLocation()
+  // "View on map" from the Detailers tab arrives as location.state.focusPin.
+  // Read once into state: the focus effect flies there and opens the popup,
+  // and a stable object keeps it from re-firing on every re-render.
+  const [focusPin] = useState(() => {
+    const p = location.state?.focusPin
+    return p && Number.isFinite(p.lat) && Number.isFinite(p.lng) ? { lat: p.lat, lng: p.lng } : null
+  })
   const [query, setQuery] = useState('')
   const [active, setActive] = useState([])
   // Signup drops customers straight on the map now instead of forcing the
@@ -64,7 +72,7 @@ export default function CustomerHome() {
           back to an explicit computed height, just a correct one. */}
       <main className="relative h-[calc(100dvh-61px-max(env(safe-area-inset-top),2.75rem))]">
         <h1 className="sr-only">{t('srHeading')}</h1>
-        <DetailerMap detailers={filtered} isFavorite={isFavorite} onToggleFavorite={toggleFavorite} />
+        <DetailerMap detailers={filtered} focus={focusPin} isFavorite={isFavorite} onToggleFavorite={toggleFavorite} />
 
         {/* Search + filters (2.1) */}
         <div className="pointer-events-none absolute inset-x-0 top-3 z-[500] mx-auto w-full max-w-md px-4">

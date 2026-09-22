@@ -266,6 +266,8 @@ export const STRINGS = {
       jobsLabel: 'Jobs done',
       viewOnMap: 'View on map',
       bookNow: 'Book now',
+      pro: 'PRO',
+      clientPhoto: 'Client photo',
     },
     nav: {
       map: 'Map',
@@ -2289,6 +2291,8 @@ export const STRINGS = {
       jobsLabel: 'Trabajos hechos',
       viewOnMap: 'Ver en el mapa',
       bookNow: 'Reservar',
+      pro: 'PRO',
+      clientPhoto: 'Foto de cliente',
     },
     nav: {
       map: 'Mapa',

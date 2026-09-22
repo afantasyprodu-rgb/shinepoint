@@ -2033,6 +2033,52 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* Name doubles as the profile link (the actions row is heart + Book now,
+   so this is the way into the full profile). */
+button.nx-pop-name {
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  border-radius: 0.25rem;
+}
+button.nx-pop-name:focus-visible {
+  outline: 2px solid var(--color-brand-600);
+  outline-offset: 2px;
+}
+/* Photo caption bar: treatment name left, client-photo tag right. */
+.nx-pop-cap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.45rem;
+  font-size: 0.7rem;
+}
+.nx-pop-cap-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #334155;
+}
+.nx-pop-tag {
+  flex-shrink: 0;
+  border-radius: 9999px;
+  background: rgba(15, 23, 42, 0.06);
+  padding: 0.1rem 0.45rem;
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: #475569;
+}
+.dark .nx-pop-cap-name { color: #cbd5e1; }
+.dark .nx-pop-tag { background: rgba(255, 255, 255, 0.1); color: #cbd5e1; }
 .nx-pop-pro {
   flex-shrink: 0;
   border-radius: 9999px;

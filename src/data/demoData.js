@@ -231,8 +231,17 @@ const detailerRows = [
     completedJobs: 224,
     probationRemaining: 0,
     acceptsRewards: true,
+    // Demo showcase roster: real Unsplash URLs (same IDs as the reference
+    // mockups) so the popup carousel, cover caption, avatar, and PRO badge
+    // all light up on this pin. isBestValue drives the banner + PRO badge.
+    photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80',
+    gallery: [
+      'https://images.unsplash.com/photo-1617788138017-80ad40651399?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1601362840469-51e4d8d58785?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1507136566006-cfc505b114fc?auto=format&fit=crop&w=1200&q=80',
+    ],
     services: [
-      { id: 's1', name: 'Express Wash', price: 36, desc: '45-minute exterior refresh' },
+      { id: 's1', name: 'Express Wash', price: 36, desc: '45-minute exterior refresh', isBestValue: true },
       { id: 's2', name: 'Full Detail', price: 169, desc: 'Complete inside-out detail' },
       { id: 's3', name: 'Pet Hair Removal', price: 55, desc: 'Specialized tools' },
     ],

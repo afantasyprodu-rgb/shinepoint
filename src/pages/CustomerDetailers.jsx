@@ -34,7 +34,7 @@ const FILTERS = [
 // list than pan a map. Every stat here is real (status/radius/jobs done) —
 // no fabricated "next slot"/"response time" fields exist in the schema.
 export default function CustomerDetailers() {
-  const { detailers, isFavorite, toggleFavorite } = useStore()
+  const { detailers } = useStore()
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState('all')
@@ -92,7 +92,12 @@ export default function CustomerDetailers() {
           {filtered.map((d) => {
             const from = cheapestPrice(d)
             const cover = d.gallery?.[0]
-            const favorited = isFavorite(d.id)
+            const promoted = d.services?.some((s) => s.isBestValue)
+            // Caption = the detailer's own lead service (same honest source
+            // as the map popup). Radius already has its own tile below, so
+            // the cover badges carry caption + photo tag instead.
+            const priced = (d.services ?? []).filter((s) => Number.isFinite(Number(s.price)))
+            const lead = priced.length ? priced.reduce((a, b) => (Number(a.price) <= Number(b.price) ? a : b)) : null
             return (
               <div key={d.id} className="card overflow-hidden !p-0">
                 {cover && (
@@ -103,8 +108,13 @@ export default function CustomerDetailers() {
                   >
                     <img src={cover} alt="" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+                    {lead && (
+                      <span className="absolute bottom-2 left-3 max-w-[60%] truncate text-[10px] font-bold uppercase tracking-wide text-white">
+                        {lead.name}
+                      </span>
+                    )}
                     <span className="absolute bottom-2 right-3 rounded-md bg-black/50 px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur-sm">
-                      {Number(d.travelMiles) || 0} mi radius
+                      {t('clientPhoto')}
                     </span>
                   </button>
                 )}
@@ -122,6 +132,11 @@ export default function CustomerDetailers() {
                       <span className="min-w-0">
                         <span className="flex items-center gap-1.5">
                           <h4 className="truncate text-sm font-bold text-slate-900 dark:text-slate-100">{d.name}</h4>
+                          {promoted && (
+                            <span className="shrink-0 rounded-full bg-brand-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-brand-700 dark:bg-brand-500/20 dark:text-brand-300">
+                              {t('pro')}
+                            </span>
+                          )}
                         </span>
                         <span className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
                           {d.isRated === false ? (
@@ -163,22 +178,15 @@ export default function CustomerDetailers() {
                   <div className="flex items-center gap-2 border-t border-slate-100 pt-2.5 dark:border-white/10">
                     <button
                       type="button"
-                      onClick={() => toggleFavorite(d.id)}
-                      aria-pressed={favorited}
-                      aria-label={favorited ? 'Remove from favorites' : 'Save to favorites'}
-                      className={`flex h-9 w-9 flex-shrink-0 cursor-pointer items-center justify-center rounded-xl border transition-colors ${
-                        favorited
-                          ? 'border-rose-200 bg-rose-50 text-rose-600 dark:border-rose-500/30 dark:bg-rose-500/10'
-                          : 'border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-100 dark:border-white/10 dark:bg-white/5 dark:text-slate-400'
-                      }`}
+                      onClick={() => d.pin && navigate('/home', { state: { focusPin: { lat: d.pin.lat, lng: d.pin.lng } } })}
+                      disabled={!d.pin}
+                      className="btn btn-outline h-9 flex-1 px-3 text-xs disabled:opacity-40"
                     >
-                      <svg viewBox="0 0 24 24" width="16" height="16" fill={favorited ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
-                        <path d="M12 21s-6.7-4.35-9.3-8.1C1 10.2 1.6 6.9 4.3 5.3c2.2-1.3 4.9-.7 6.4 1.2a1 1 0 0 0 1.6 0c1.5-1.9 4.2-2.5 6.4-1.2 2.7 1.6 3.3 4.9 1.6 7.6C18.7 16.65 12 21 12 21Z" />
-                      </svg>
+                      {t('viewOnMap')}
                     </button>
                     <button
                       type="button"
-                      onClick={() => navigate(`/detailers/${d.id}`)}
+                      onClick={() => navigate(`/book/${d.id}`)}
                       className="btn btn-cta flex-1 !py-2 text-xs"
                     >
                       {t('bookNow')}

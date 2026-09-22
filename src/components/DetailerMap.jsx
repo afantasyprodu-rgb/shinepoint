@@ -169,6 +169,10 @@ function popupHtml(d, favorited) {
   const banner = bannerServices(d)
   const bannerText = banner.map((s) => `${esc(s.name)} $${Number(s.price)}`).join(' · ')
   const bestValue = banner.some((s) => s.isBestValue)
+  // Photo caption: the detailer's own lead service name (same source as the
+  // banner above — never invented). Tag stays neutral "Client photo": this
+  // app has no photo-verification pipeline, so "Verified" would be a claim.
+  const caption = banner[0]?.name ?? d.services?.[0]?.name
   const gallery = (d.gallery ?? []).slice(0, 8)
   const slides = gallery.length
     ? gallery.map((src, i) => `<div class="nx-pop-slide" data-slide="${i}"${i ? ' hidden' : ''}><img src="${esc(src)}" alt="" /></div>`).join('')
@@ -180,7 +184,7 @@ function popupHtml(d, favorited) {
           ${d.photo ? `<img src="${esc(d.photo)}" alt="" />` : `<span>${esc((d.name || '?')[0])}</span>`}
         </div>
         <div class="nx-pop-head-text">
-          <p class="nx-pop-name">${esc(d.name)}${promoted ? '<span class="nx-pop-pro">PRO</span>' : ''}</p>
+          <button type="button" data-view class="nx-pop-name" aria-label="View ${esc(d.name)} profile">${esc(d.name)}${promoted ? '<span class="nx-pop-pro">PRO</span>' : ''}</button>
           <p class="nx-pop-meta">${rating} · ${esc(d.area)}</p>
         </div>
         ${from != null ? `<div class="nx-pop-from"><span>FROM</span><strong>$${from}</strong></div>` : ''}
@@ -199,12 +203,13 @@ function popupHtml(d, favorited) {
         <button type="button" data-carousel-next aria-label="Next photo" class="nx-pop-carousel-nav nx-pop-carousel-next">›</button>
         <div class="nx-pop-carousel-dots">${gallery.map((_, i) => `<span class="nx-pop-dot${i ? '' : ' nx-pop-dot--on'}" data-dot="${i}"></span>`).join('')}</div>
         ` : ''}
-      </div>` : ''}
+      </div>
+      ${caption ? `<div class="nx-pop-cap"><span class="nx-pop-cap-name">${esc(caption)}</span><span class="nx-pop-tag">Client photo</span></div>` : ''}` : ''}
       <div class="nx-pop-actions">
         <button type="button" data-fav aria-label="${favorited ? 'Remove from favorites' : 'Save to favorites'}" class="nx-pop-fav${favorited ? ' nx-pop-fav--on' : ''}">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="${favorited ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><path d="${HEART_PATH}"/></svg>
         </button>
-        <button type="button" data-view class="nx-pop-btn">View profile</button>
+        <button type="button" data-book class="nx-pop-btn">${(d.name || '').split(' ')[0] ? `Book ${esc(d.name.split(' ')[0])} Now →` : 'Book Now'}</button>
       </div>
       ${d.insurance === 'insured' ? '<p class="nx-pop-trust">Licensed &amp; insured</p>' : ''}
     </div>`
@@ -407,12 +412,15 @@ function renderMarkers(map, markersRef, radarRef, detailers, navigate, favCtx) {
         // panTo only ever moves, never zooms, so it can't trigger that.
         map.panTo(targetLatLng, { duration: 0.5 })
       })
-      // Wire the popup's "View profile" button to SPA navigation (a plain
-      // <a href> would hard-reload and drop demo state).
+      // Wire the popup's buttons to SPA navigation (a plain <a href>
+      // would hard-reload and drop demo state). Name goes to the profile,
+      // the green CTA books straight into the wizard for this detailer.
       marker.on('popupopen', () => {
         const el = marker.getPopup().getElement()
-        const btn = el?.querySelector('[data-view]')
-        if (btn) btn.onclick = () => navigate(`/detailers/${d.id}`)
+        const nameBtn = el?.querySelector('button.nx-pop-name')
+        if (nameBtn) nameBtn.onclick = () => navigate(`/detailers/${d.id}`)
+        const bookBtn = el?.querySelector('[data-book]')
+        if (bookBtn) bookBtn.onclick = () => navigate(`/book/${d.id}`)
         // Toggles in place (icon fill + class) rather than re-rendering the
         // whole popup — cheaper and avoids fighting the grow-in animation.
         const favBtn = el?.querySelector('[data-fav]')

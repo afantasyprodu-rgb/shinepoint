@@ -219,13 +219,25 @@ export default function AppShell({ role, children, collapsibleBottomNav = false,
   const navigate = useNavigate()
   const location = useLocation()
   const t = useT('nav')
+  // Bookings badge: live (non-terminal) customer bookings on the tab bar.
+  // Terminal states mirror the booking lifecycle — complete, cancelled, and
+  // disputed bookings need no action, everything else does.
+  const { bookings = [] } = useStore()
+  const activeBookings =
+    role === 'customer'
+      ? bookings.filter((b) => ['pending', 'accepted', 'en_route', 'arrived', 'in_progress'].includes(b.status)).length
+      : 0
   // Driplee's own full-page section already IS the mascot-driven helper —
   // showing the header's popup-launcher mascot on top of it would just be
   // the same character twice on one screen. Suppressed only on that route;
   // every other screen keeps the launcher exactly as before.
   const onAssistantPage = location.pathname === '/assistant' || location.pathname === '/detailer/assistant'
   const onToolsPage = location.pathname.startsWith('/detailer/tools')
-  const nav = (NAVS[role] ?? []).map((item) => ({ ...item, label: t(item.labelKey) }))
+  const nav = (NAVS[role] ?? []).map((item) => ({
+    ...item,
+    label: t(item.labelKey),
+    badge: item.to === '/bookings' ? activeBookings : 0,
+  }))
   const [toolsOpen, setToolsOpen] = useState(false)
   // Starts VISIBLE even on a collapsible-nav screen (the map) — it used to
   // start hidden, on the theory that the map wants full screen on open, but
@@ -287,7 +299,7 @@ export default function AppShell({ role, children, collapsibleBottomNav = false,
             )}
             {!locked && (
               <nav aria-label="Main" className="hidden items-center gap-1 sm:flex">
-                {nav.map(({ to, label, end }) => (
+                {nav.map(({ to, label, end, badge }) => (
                   <NavLink
                     key={to}
                     to={to}
@@ -301,6 +313,11 @@ export default function AppShell({ role, children, collapsibleBottomNav = false,
                     }
                   >
                     {label}
+                    {badge > 0 && (
+                      <span className="ml-1.5 rounded-full bg-brand-600 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+                        {badge > 9 ? '9+' : badge}
+                      </span>
+                    )}
                   </NavLink>
                 ))}
               </nav>
