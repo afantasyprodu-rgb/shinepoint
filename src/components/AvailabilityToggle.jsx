@@ -52,8 +52,14 @@ export default function AvailabilityToggle() {
     }
   }, [user, isDemo, t])
 
+  // demoDetailer can be briefly undefined right after entering demo mode:
+  // StoreContext lazy-loads demoData.js on a dynamic import, so there's a
+  // real render where isDemo is already true but demoDetailers is still the
+  // empty initial array (see its one-shot hydration effect). Falling
+  // through to the loading-skeleton branch below, same as real mode before
+  // `profile` has loaded, instead of dereferencing undefined.
   const current = isDemo
-    ? { status: demoDetailer.status, accepts_bookings_when_busy: demoDetailer.acceptsWhenBusy }
+    ? (demoDetailer ? { status: demoDetailer.status, accepts_bookings_when_busy: demoDetailer.acceptsWhenBusy } : null)
     : profile
 
   async function save(updates) {
