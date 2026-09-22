@@ -22,7 +22,7 @@ const MILESTONES = [
     gradient: 'from-amber-400 to-orange-500',
     bg: 'bg-amber-50',
     border: 'border-amber-200',
-    text: 'text-amber-700',
+    text: 'text-amber-700 dark:text-amber-300',
     badge: 'bg-amber-100 text-amber-700',
   },
   {
@@ -32,7 +32,7 @@ const MILESTONES = [
     gradient: 'from-slate-400 to-slate-600',
     bg: 'bg-slate-50',
     border: 'border-slate-200',
-    text: 'text-slate-700',
+    text: 'text-slate-700 dark:text-slate-300',
     badge: 'bg-slate-100 text-slate-700',
   },
   {
@@ -42,7 +42,7 @@ const MILESTONES = [
     gradient: 'from-yellow-400 to-amber-500',
     bg: 'bg-yellow-50',
     border: 'border-yellow-200',
-    text: 'text-yellow-700',
+    text: 'text-yellow-700 dark:text-yellow-300',
     badge: 'bg-yellow-100 text-yellow-700',
   },
 ]

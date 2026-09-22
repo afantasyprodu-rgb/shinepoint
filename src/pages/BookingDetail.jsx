@@ -192,8 +192,8 @@ export default function BookingDetail() {
   if (!b) {
     return (
       <AppShell role="customer">
-        <div className="mx-auto max-w-xl px-6 py-16 text-center text-slate-600">
-          {t('notFound')} <Link to="/bookings" className="font-semibold text-brand-600">{t('backLink')}</Link>
+        <div className="mx-auto max-w-xl px-6 py-16 text-center text-slate-600 dark:text-slate-400">
+          {t('notFound')} <Link to="/bookings" className="font-semibold text-brand-600 dark:text-brand-300">{t('backLink')}</Link>
         </div>
       </AppShell>
     )
@@ -237,7 +237,7 @@ const shownStage = openStage ?? stageIdx
       <AnimatedPage className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
         <Link
           to="/bookings"
-          className="mb-4 inline-flex items-center gap-1 rounded text-sm font-medium text-slate-600 transition-colors duration-200 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+          className="mb-4 inline-flex items-center gap-1 rounded text-sm font-medium text-slate-600 transition-colors duration-200 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-slate-400 dark:hover:text-brand-300"
         >
           <ChevronLeftIcon className="h-4 w-4" /> {t('allBookings')}
         </Link>
@@ -247,7 +247,7 @@ const shownStage = openStage ?? stageIdx
             <div className="flex items-center gap-3">
               <Avatar name={d?.name ?? 'Detailer'} photo={d?.photo} />
               <div>
-                <h1 className="font-display text-xl font-bold text-slate-900">
+                <h1 className="font-display text-xl font-bold text-slate-900 dark:text-slate-100">
                   {b.service}
                   {(b.addonServiceIds ?? []).length > 0 &&
                     ` + ${b.addonServiceIds
@@ -255,7 +255,7 @@ const shownStage = openStage ?? stageIdx
                       .filter(Boolean)
                       .join(' + ')}`}
                 </h1>
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-slate-500 dark:text-slate-400">
                   {d?.name} · ${b.price + (b.tip ?? 0)} · {b.vehicle}
                 </p>
               </div>
@@ -354,7 +354,7 @@ const shownStage = openStage ?? stageIdx
           )}
 
           {unpaid && (
-            <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-500/30 dark:bg-amber-500/10">
+            <div id="booking-pay" className="mt-4 scroll-mt-24 rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-500/30 dark:bg-amber-500/10">
               <p className="flex items-center gap-1.5 font-display text-sm font-bold text-amber-800 dark:text-amber-300">
                 <CreditCardIcon className="h-4 w-4" /> {t('paymentPendingTitle')}
               </p>
@@ -434,7 +434,7 @@ const shownStage = openStage ?? stageIdx
                   {TIMELINE.map((stage, i) => (
                     <span
                       key={stage}
-                      className={`hidden text-[10px] sm:block ${i === stageIdx ? 'font-bold text-brand-700' : 'text-slate-400'}`}
+                      className={`hidden text-[10px] sm:block ${i === stageIdx ? 'font-bold text-brand-700 dark:text-brand-300' : 'text-slate-400 dark:text-slate-300'}`}
                     >
                       {t(TIMELINE_LABEL_KEYS[stage])}
                     </span>
@@ -450,10 +450,10 @@ const shownStage = openStage ?? stageIdx
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -8 }}
                   transition={{ duration: 0.2 }}
-                  className="mt-5 rounded-2xl border border-brand-100 bg-brand-50/60 p-4"
+                  className="mt-5 rounded-2xl border border-brand-100 bg-brand-50/60 p-4 dark:border-brand-500/20 dark:bg-slate-800/70"
                 >
                   <div className="flex items-center gap-2">
-                    <h2 className="font-display text-sm font-bold text-slate-900">
+                    <h2 className="font-display text-sm font-bold text-slate-900 dark:text-slate-100">
                       {t(TIMELINE_LABEL_KEYS[shownKey])}
                     </h2>
                     {shownStage === stageIdx ? (
@@ -464,14 +464,14 @@ const shownStage = openStage ?? stageIdx
                       </span>
                     )}
                   </div>
-                  <p className="mt-1.5 text-sm text-slate-700">
+                  <p className="mt-1.5 text-sm text-slate-700 dark:text-slate-300">
                     {t(stageKeys.what, { name: detailerName })}
                   </p>
-                  <p className="mt-2 flex items-start gap-1.5 text-xs text-slate-500">
+                  <p className="mt-2 flex items-start gap-1.5 text-xs text-slate-500 dark:text-slate-400">
                     <ClockIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                     {t(stageKeys.eta, { name: detailerName, when: formatWhen(b.scheduledTime, lang) ?? t('yourScheduledTime') })}
                   </p>
-                  <p className="mt-1 flex items-start gap-1.5 text-xs font-medium text-brand-700">
+                  <p className="mt-1 flex items-start gap-1.5 text-xs font-medium text-brand-700 dark:text-brand-300">
                     <LightbulbIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                     {t(stageKeys.prep, { name: detailerName })}
                   </p>
@@ -482,12 +482,12 @@ const shownStage = openStage ?? stageIdx
                     <div className="mt-3">
                       {b.damageReport.items.length > 0 ? (
                         <>
-                          <p className="mb-2 text-xs font-semibold text-amber-700 uppercase tracking-wide">
+                          <p className="mb-2 text-xs font-semibold text-amber-700 uppercase tracking-wide dark:text-amber-400">
                             {t('preExisting')}
                           </p>
                           <ul className="space-y-2">
                             {b.damageReport.items.map((item, i) => (
-                              <li key={i} className="overflow-hidden rounded-xl border border-amber-200 bg-white">
+                                <li key={i} className="overflow-hidden rounded-xl border border-amber-200 bg-white dark:border-amber-500/20 dark:bg-slate-900">
                                 {item.photo && (
                                   <img loading="lazy" decoding="async"
                                     src={item.photo}
@@ -496,14 +496,14 @@ const shownStage = openStage ?? stageIdx
                                   />
                                 )}
                                 {!item.photo && (
-                                  <div className="flex h-28 items-center justify-center bg-slate-100 text-xs text-slate-400">
+                                  <div className="flex h-28 items-center justify-center bg-slate-100 text-xs text-slate-400 dark:bg-slate-800 dark:text-slate-500">
                                     {t('noPhotoAttached')}
                                   </div>
                                 )}
                                 {(item.area || item.note) && (
                                   <div className="px-3 py-2 text-sm">
-                                    {item.area && <strong className="text-slate-900">{item.area}: </strong>}
-                                    <span className="text-slate-600">{item.note}</span>
+                                    {item.area && <strong className="text-slate-900 dark:text-slate-100">{item.area}: </strong>}
+                                    <span className="text-slate-600 dark:text-slate-400">{item.note}</span>
                                   </div>
                                 )}
                               </li>
@@ -525,13 +525,13 @@ const shownStage = openStage ?? stageIdx
                               </button>
                             </div>
                           ) : (
-                            <p className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-cta-700">
+                            <p className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-cta-700 dark:text-cta-400">
                               <CheckIcon className="h-3.5 w-3.5" /> {t('conditionApproved')}
                             </p>
                           )}
                         </>
                       ) : (
-                        <p className="text-xs text-cta-700 font-medium flex items-center gap-1.5">
+                          <p className="text-xs text-cta-700 dark:text-cta-400 font-medium flex items-center gap-1.5">
                           <CheckIcon className="h-3.5 w-3.5" /> {t('noPreExisting')}
                         </p>
                       )}
@@ -571,11 +571,11 @@ const shownStage = openStage ?? stageIdx
         {b.status === 'complete' && (
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <div className="card !p-5">
-              <h2 className="mb-3 font-display text-sm font-semibold text-slate-900">{t('beforeHeading')}</h2>
+              <h2 className="mb-3 font-display text-sm font-semibold text-slate-900 dark:text-slate-100">{t('beforeHeading')}</h2>
               <PhotoGrid count={b.beforePhotos} photos={b.beforePhotoData} label="before" emptyText={t('takenAtArrival')} />
             </div>
             <div className="card !p-5">
-              <h2 className="mb-3 font-display text-sm font-semibold text-slate-900">{t('afterHeading')}</h2>
+              <h2 className="mb-3 font-display text-sm font-semibold text-slate-900 dark:text-slate-100">{t('afterHeading')}</h2>
               <PhotoGrid count={b.afterPhotos} photos={b.afterPhotoData} label="after" emptyText={t('takenAtCompletion')} />
             </div>
           </div>
@@ -594,7 +594,7 @@ const shownStage = openStage ?? stageIdx
                 <FileTextIcon className="h-5 w-5" />
               </span>
               <div>
-                <p className="font-semibold text-slate-900">{t('viewInvoice')}</p>
+                <p className="font-semibold text-slate-900 dark:text-slate-100">{t('viewInvoice')}</p>
                 <p className="text-sm text-slate-500">
                   {t('fullBreakdown', { total: (b.invoice.total ?? 0).toFixed(2) })}
                 </p>
@@ -614,7 +614,7 @@ const shownStage = openStage ?? stageIdx
               <h2 className="mt-0.5 font-display text-lg font-bold">{t('howDidItGo', { name: d?.name })}</h2>
             </div>
             <div className="flex items-center justify-between gap-3 px-5 py-4">
-              <p className="text-sm text-slate-500">{t('rateWithin48')}</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">{t('rateWithin48')}</p>
               <button onClick={() => setShowReview(true)} className="btn btn-cta shrink-0 h-10 text-sm">
                 {t('rateNow')}
               </button>
@@ -622,7 +622,7 @@ const shownStage = openStage ?? stageIdx
           </motion.div>
         )}
         {b.reviewed && (
-          <p className="mt-4 flex items-center justify-center gap-2 text-sm font-medium text-cta-700">
+          <p className="mt-4 flex items-center justify-center gap-2 text-sm font-medium text-cta-700 dark:text-cta-400">
             <CheckIcon className="h-4 w-4" /> {t('reviewedEarned')}
           </p>
         )}
@@ -658,6 +658,14 @@ const shownStage = openStage ?? stageIdx
             booking={b}
             detailer={d}
             customerName={b.customerName}
+            // Receipt Pay Now jumps back to the real Stripe checkout above —
+            // the modal has to close first so the card is visible to scroll to.
+            onPay={() => {
+              setShowInvoice(false)
+              setTimeout(() => {
+                document.getElementById('booking-pay')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+              }, 60)
+            }}
           />
           {/* Hidden — window.print() picks this clean doc up via #invoice-print,
               not the decorative on-screen receipt above. */}
@@ -672,10 +680,10 @@ const shownStage = openStage ?? stageIdx
 
         <Modal open={showRejectDamage} onClose={() => setShowRejectDamage(false)} labelledBy="reject-damage-title">
           <AlertTriangleIcon className="mx-auto h-10 w-10 text-red-500" />
-          <h2 id="reject-damage-title" className="mt-3 text-center font-display text-xl font-bold text-slate-900">
+          <h2 id="reject-damage-title" className="mt-3 text-center font-display text-xl font-bold text-slate-900 dark:text-slate-100">
             {t('rejectDamageTitle')}
           </h2>
-          <p className="mt-2 text-center text-sm text-slate-600">
+          <p className="mt-2 text-center text-sm text-slate-600 dark:text-slate-400">
             {t('rejectDamageBody')}
           </p>
           <div className="mt-6 flex flex-col gap-2">
@@ -700,10 +708,10 @@ const shownStage = openStage ?? stageIdx
 
         <Modal open={showCancel} onClose={() => setShowCancel(false)} labelledBy="cancel-title">
           <AlertTriangleIcon className="mx-auto h-10 w-10 text-amber-500" />
-          <h2 id="cancel-title" className="mt-3 text-center font-display text-xl font-bold text-slate-900">
+          <h2 id="cancel-title" className="mt-3 text-center font-display text-xl font-bold text-slate-900 dark:text-slate-100">
             {t('cancelTitle')}
           </h2>
-          <p className="mt-2 text-center text-sm text-slate-600">
+          <p className="mt-2 text-center text-sm text-slate-600 dark:text-slate-400">
             {t('cancelBody')}
           </p>
           <div className="mt-6 flex flex-col gap-2">
@@ -734,10 +742,10 @@ const shownStage = openStage ?? stageIdx
         >
           {identityRequired ? (
             <>
-              <h2 id="dispute-title" className="text-center font-display text-xl font-bold text-slate-900">
+              <h2 id="dispute-title" className="text-center font-display text-xl font-bold text-slate-900 dark:text-slate-100">
                 {t('verifyIdentityTitle')}
               </h2>
-              <p className="mt-2 text-center text-sm text-slate-600">
+              <p className="mt-2 text-center text-sm text-slate-600 dark:text-slate-400">
                 {idStatus === 'pending' ? t('verifyIdentityPending') : t('verifyIdentityBody')}
               </p>
               {idError && (
@@ -774,10 +782,10 @@ const shownStage = openStage ?? stageIdx
             </>
           ) : (
             <>
-              <h2 id="dispute-title" className="text-center font-display text-xl font-bold text-slate-900">
+              <h2 id="dispute-title" className="text-center font-display text-xl font-bold text-slate-900 dark:text-slate-100">
                 {t('reportProblemTitle')}
               </h2>
-              <p className="mt-2 text-center text-sm text-slate-600">
+              <p className="mt-2 text-center text-sm text-slate-600 dark:text-slate-400">
                 {t('reportProblemBody')}
               </p>
               <label htmlFor="dispute-reason" className="sr-only">
@@ -841,7 +849,7 @@ const shownStage = openStage ?? stageIdx
                       {active ? MOODS[active] : '⭐'}
                     </motion.span>
                   </AnimatePresence>
-                  <h2 id="review-title" className="mt-2 font-display text-xl font-bold text-slate-900">
+                  <h2 id="review-title" className="mt-2 font-display text-xl font-bold text-slate-900 dark:text-slate-100">
                     {t('howDidDetailerDo', { name: d?.name })}
                   </h2>
                   <AnimatePresence mode="wait">
@@ -919,7 +927,7 @@ const shownStage = openStage ?? stageIdx
             </motion.div>
           </div>
 
-          <h2 id="tip-title" className="mt-3 text-center font-display text-xl font-bold text-slate-900">
+          <h2 id="tip-title" className="mt-3 text-center font-display text-xl font-bold text-slate-900 dark:text-slate-100">
             {'⭐'.repeat(rating)} {t('ratingIn')}
           </h2>
           <p className="mt-1 text-center text-sm text-slate-500">
@@ -938,7 +946,7 @@ const shownStage = openStage ?? stageIdx
                 className={`cursor-pointer rounded-2xl border py-4 text-center transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cta-600 ${
                   selectedTip === t && !customTip
                     ? 'border-cta-600 bg-cta-600 text-white shadow-md'
-                    : 'border-slate-200 bg-white text-slate-800 hover:border-cta-400 hover:bg-cta-50'
+                    : 'border-slate-200 bg-white text-slate-800 hover:border-cta-400 hover:bg-cta-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:border-cta-500 dark:hover:bg-white/10'
                 }`}
               >
                 <span className="block font-display text-lg font-bold">${t}</span>
@@ -947,7 +955,7 @@ const shownStage = openStage ?? stageIdx
           </div>
 
           {/* Custom amount */}
-          <div className="mt-3 flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 focus-within:border-brand-400 focus-within:ring-2 focus-within:ring-brand-100">
+          <div className="mt-3 flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 focus-within:border-brand-400 focus-within:ring-2 focus-within:ring-brand-100 dark:border-white/10 dark:bg-white/5 dark:focus-within:border-brand-400 dark:focus-within:ring-brand-500/30">
             <span className="font-semibold text-slate-400">$</span>
             <input
               type="number"
@@ -956,7 +964,7 @@ const shownStage = openStage ?? stageIdx
               placeholder={t('customAmount')}
               value={customTip}
               onChange={(e) => { setCustomTip(e.target.value); setSelectedTip(null) }}
-              className="h-11 flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400"
+              className="h-11 flex-1 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400 dark:text-slate-100"
             />
           </div>
 
@@ -999,7 +1007,7 @@ const shownStage = openStage ?? stageIdx
               }
               setShowTip(false); setCustomTip(''); setSelectedTip(null)
             }}
-            className="mt-2 w-full cursor-pointer rounded py-2 text-sm text-slate-400 transition-colors hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+            className="mt-2 w-full cursor-pointer rounded py-2 text-sm text-slate-400 transition-colors hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:hover:text-slate-300"
           >
             {t('skipTip')}
           </button>

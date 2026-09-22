@@ -79,6 +79,9 @@
 :root {
   --brand-h: 356;
   --cta-h: 142;
+  /* Native controls (scrollbars, checkboxes, pickers) follow the theme
+     instead of glaring light in dark mode. */
+  color-scheme: light;
 }
 
 /* Neumorphic surface — the putty base + its dual shadow pair. Light and
@@ -97,6 +100,7 @@
   --neu-bg: #1a2029;
   --neu-sd: #0e1218;
   --neu-sl: #262e3a;
+  color-scheme: dark;
 }
 
 /* --neu-sd is now a semi-transparent dark color (pronounced drop shadow on

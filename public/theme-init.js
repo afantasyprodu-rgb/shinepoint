@@ -1,11 +1,20 @@
-// Seed the theme before first paint so dark mode never flashes white.
-// Default is light regardless of OS preference — dark is opt-in only.
-// A separate file (not inline in index.html) so the CSP can be plain
-// script-src 'self' with no hashes to keep in sync across line endings.
+// Pre-paint theme init — mirrors ThemeContext.initialTheme() so dark-mode
+// users don't get a full-screen light flash before React hydrates and its
+// effect toggles .dark. External file (not inline) so the build-time CSP
+// (script-src 'self') allows it. Runs synchronously in <head>, before CSS
+// paint. Keep the storage keys + fallback order in sync with
+// src/context/ThemeContext.jsx.
 (function () {
   try {
     var saved = localStorage.getItem('shinepoint-theme')
-    var mode = saved === 'dark' ? 'dark' : 'light'
+    // Stored choice wins; otherwise follow the OS — dark is NOT opt-in
+    // only, it follows initialTheme()'s stored-or-system order exactly.
+    var mode =
+      saved === 'dark' || saved === 'light'
+        ? saved
+        : window.matchMedia('(prefers-color-scheme: dark)').matches
+          ? 'dark'
+          : 'light'
     if (mode === 'dark') document.documentElement.classList.add('dark')
     var paint = localStorage.getItem('shinepoint-paint')
     if (paint) document.documentElement.style.setProperty('--accent', paint)

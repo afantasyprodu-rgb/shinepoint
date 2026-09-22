@@ -26,10 +26,10 @@ export default function ProtectedRoute({ role, children }) {
     return (
       <div className="flex min-h-screen items-center justify-center px-4">
         <div role="alert" className="card w-full max-w-md text-center">
-          <h1 className="text-xl font-bold text-slate-900">
+          <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">
             We couldn&apos;t load your account
           </h1>
-          <p className="mt-2 text-slate-600">
+          <p className="mt-2 text-slate-600 dark:text-slate-400">
             Something went wrong fetching your profile. Try signing out and back in.
           </p>
           <button onClick={signOut} className="btn btn-brand mt-6">

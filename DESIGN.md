@@ -228,3 +228,11 @@ Distinctive and defining: a teardrop bubble (`border-radius: 50% 50% 50% 4px`, `
 - **Don't** stack flat drop shadows on cards; use the raised wash instead.
 - **Don't** turn the CTA into a neumorphic/soft surface; keep it flat and solid.
 - **Don't** add glassmorphism as decoration; glass is for ambient panels and modal backdrops, never as a default card treatment.
+
+## Theme Scope (decided 2026-09, dark-mode audit)
+
+Two surface families, two contracts. **Dark-adaptive** surfaces (`.card`, `.neu-*`, drawer, clay, modal panels) reskin via `--neu-bg` and every hand-written `text-slate-*`/`bg-*` on them MUST carry its `dark:` twin. **Fixed-light** surfaces stay light in both modes on purpose: the invoice paper ticket + print doc, QR wrapper, photo-slider handle, white knobs/pills on gradients, and error-detail boxes. Mark fixed-light spots with a comment so future audits don't re-flag them.
+
+The public tracking page (`pt-v2` wallpaper + glass), landing (`ColdStart`), legal, and MFA pages are **light-only by design** for now: no `dark:` variants, no dark wallpaper. If dark support is ever extended to them, it must cover wallpaper, glass, and map tiles together, never text alone.
+
+Conventions: `*-700` running text takes `dark:*-300` (slate) / `dark:*-400` (cta/amber); `slate-900` headings take `dark:text-slate-100`; `slate-600` body takes `dark:text-slate-400`. Theme class is set pre-paint by `public/theme-init.js` (mirrors `ThemeContext.initialTheme()`); `color-scheme` follows the theme so native controls don't glare.

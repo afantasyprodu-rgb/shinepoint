@@ -404,7 +404,7 @@ export default function InvoiceBuilder({ booking, detailer }) {
               >
                 <button
                   onClick={() => loadTemplate(tpl)}
-                  className="flex flex-1 cursor-pointer items-center gap-2 text-left text-sm font-medium text-slate-800 transition-colors duration-200 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+                  className="flex flex-1 cursor-pointer items-center gap-2 text-left text-sm font-medium text-slate-800 transition-colors duration-200 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-slate-200 dark:hover:text-brand-300"
                 >
                   <FileTextIcon className="h-4 w-4 text-brand-600" />
                   {tpl.name}
@@ -473,7 +473,7 @@ export default function InvoiceBuilder({ booking, detailer }) {
           <PlusIcon className="h-4 w-4" /> {t('addItem')}
         </button>
 
-        <div className="mt-4 flex items-center justify-between border-t border-brand-100 pt-3 font-display text-lg font-bold text-slate-900">
+        <div className="mt-4 flex items-center justify-between border-t border-brand-100 pt-3 font-display text-lg font-bold text-slate-900 dark:border-white/10 dark:text-slate-100">
           <span>{t('total')}</span>
           <motion.span key={total} initial={{ scale: 1.15 }} animate={{ scale: 1 }}>
             {money(total)}
@@ -494,7 +494,7 @@ export default function InvoiceBuilder({ booking, detailer }) {
             className="mt-0.5 h-4 w-4 shrink-0 accent-brand-600"
           />
           <span>
-            <span className="block text-sm font-medium text-slate-900">{t('emailItemizedLabel')}</span>
+            <span className="block text-sm font-medium text-slate-900 dark:text-slate-100">{t('emailItemizedLabel')}</span>
             <span className="block text-xs text-slate-400">{t('emailItemizedHint')}</span>
           </span>
         </label>

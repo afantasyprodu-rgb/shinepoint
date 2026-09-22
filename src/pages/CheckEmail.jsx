@@ -13,8 +13,8 @@ export default function CheckEmail() {
         <span className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-100 text-brand-600">
           <MailIcon className="h-8 w-8" />
         </span>
-        <h1 className="text-2xl font-bold text-slate-900">{t('title')}</h1>
-        <p className="mt-3 text-slate-600">
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{t('title')}</h1>
+        <p className="mt-3 text-slate-600 dark:text-slate-400">
           {state?.email ? t('bodyWithEmail', { email: state.email }) : t('bodyFallback')}
         </p>
         <Link to="/login" className="btn btn-brand mt-6">

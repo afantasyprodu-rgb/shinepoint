@@ -48,10 +48,10 @@ export default class ErrorBoundary extends Component {
     const message = this.state.error?.message || String(this.state.error)
     return (
       <div role="alert" className="flex min-h-screen flex-col items-center justify-center gap-4 p-6 text-center">
-        <h1 className="font-display text-xl font-bold text-slate-900">Something went wrong</h1>
-        <p className="text-sm text-slate-500">The page hit an unexpected error. Reloading usually fixes it.</p>
+        <h1 className="font-display text-xl font-bold text-slate-900 dark:text-slate-100">Something went wrong</h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400">The page hit an unexpected error. Reloading usually fixes it.</p>
         {message && (
-          <p className="max-w-md rounded-lg bg-slate-100 px-3 py-2 text-left font-mono text-xs text-slate-600">
+          <p className="max-w-md rounded-lg bg-slate-100 px-3 py-2 text-left font-mono text-xs text-slate-600 dark:bg-white/5 dark:text-slate-400">
             {message}
           </p>
         )}

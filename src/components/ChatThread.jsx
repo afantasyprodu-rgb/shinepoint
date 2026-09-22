@@ -96,7 +96,7 @@ export default function ChatThread({ bookingId, me }) {
 
   return (
     <div className="card !p-4">
-      <h2 className="px-1 font-display text-sm font-semibold text-slate-900">{t('chat')}</h2>
+      <h2 className="px-1 font-display text-sm font-semibold text-slate-900 dark:text-slate-100">{t('chat')}</h2>
       <div className="mt-2 max-h-64 space-y-2 overflow-y-auto px-1 py-1">
         {thread.length === 0 && (
           <p className="py-4 text-center text-sm text-slate-400">{t('noMessagesYet')}</p>
@@ -114,7 +114,7 @@ export default function ChatThread({ bookingId, me }) {
                 className={`max-w-[80%] rounded-2xl px-3.5 py-2 text-sm ${
                   m.mine
                     ? 'rounded-br-md bg-brand-600 text-white'
-                    : 'rounded-bl-md bg-brand-50 text-slate-800'
+                    : 'rounded-bl-md bg-brand-50 text-slate-800 dark:bg-slate-700 dark:text-slate-100'
                 } ${m.flagged ? 'ring-2 ring-red-400' : ''}`}
               >
                 {m.text}
@@ -129,7 +129,7 @@ export default function ChatThread({ bookingId, me }) {
         </AnimatePresence>
       </div>
       {flagNotice && (
-        <p role="alert" className="mx-1 mb-2 rounded-lg bg-red-50 px-3 py-1.5 text-xs text-red-700">
+        <p role="alert" className="mx-1 mb-2 rounded-lg bg-red-50 px-3 py-1.5 text-xs text-red-700 dark:bg-red-950/40 dark:text-red-300">
           {t('flagNotice')}
         </p>
       )}

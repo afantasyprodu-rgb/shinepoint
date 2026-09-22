@@ -107,7 +107,7 @@ export default function ConditionTimeline({
           <TimelineStep
             state={conditionDone ? 'done' : conditionActive ? 'active' : 'locked'}
             title={t('timelineStepCondition')}
-            titleClassName={conditionActive ? 'text-brand-700' : undefined}
+            titleClassName={conditionActive ? 'text-brand-700 dark:text-brand-300' : undefined}
             connector={conditionDone ? 'done' : conditionActive ? 'active' : 'locked'}
             last={false}
           >
@@ -116,13 +116,13 @@ export default function ConditionTimeline({
             )}
             {phase === 'documenting' && (
               <div className="mt-2 space-y-2">
-                <p className="font-display text-base font-semibold text-slate-900">
+                <p className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
                   {t('conditionDocumentingTitle')}
                 </p>
-                <p className="text-sm text-slate-600">{t('conditionDocumentingBody')}</p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">{t('conditionDocumentingBody')}</p>
                 <div className="flex items-center gap-2 rounded-2xl border border-dashed border-brand-300/70 bg-brand-500/5 px-3 py-3">
                   <CameraIcon className="h-5 w-5 shrink-0 text-brand-600" />
-                  <p className="text-sm text-slate-600">{t('conditionWaitingPhotos')}</p>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">{t('conditionWaitingPhotos')}</p>
                 </div>
                 <GatePills active="doc" t={t} />
               </div>
@@ -130,10 +130,10 @@ export default function ConditionTimeline({
 
             {phase === 'review' && (
               <div className="mt-2 space-y-3">
-                <p className="font-display text-base font-semibold text-slate-900">
+                <p className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
                   {t('conditionReviewTitle')}
                 </p>
-                <p className="text-sm text-slate-600">{t('conditionReviewBody')}</p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">{t('conditionReviewBody')}</p>
                 <PhotoGrid photos={damagePhotos} beforeCount={beforeCount} t={t} />
                 <GatePills active="review" t={t} />
                 <button
@@ -165,8 +165,8 @@ export default function ConditionTimeline({
           >
             {beginActive && (
               <div className="mt-2 space-y-2">
-                <p className="text-sm text-slate-600">{t('conditionApprovedBody')}</p>
-                <p className="flex items-center gap-1.5 rounded-2xl bg-brand-500/10 px-3 py-2 text-xs font-medium text-brand-800">
+                <p className="text-sm text-slate-600 dark:text-slate-400">{t('conditionApprovedBody')}</p>
+                <p className="flex items-center gap-1.5 rounded-2xl bg-brand-500/10 px-3 py-2 text-xs font-medium text-brand-800 dark:text-brand-200">
                   <ClockIcon className="h-3.5 w-3.5 shrink-0" />
                   {t('conditionApprovedWait')}
                 </p>
@@ -175,7 +175,7 @@ export default function ConditionTimeline({
             {phase === 'working' && (
               <div className="mt-2 space-y-2">
                 <BeginWorkScene />
-                <p className="text-sm text-slate-600">{t('conditionWorkingBody')}</p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">{t('conditionWorkingBody')}</p>
               </div>
             )}
             {phase === 'complete' && (
@@ -211,7 +211,7 @@ export default function ConditionTimeline({
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-500/15 text-brand-700">
           <SparklesIcon className="h-4 w-4" />
         </span>
-        <p className="text-sm text-slate-700">{tip}</p>
+        <p className="text-sm text-slate-700 dark:text-slate-300">{tip}</p>
       </div>
       )}
 
@@ -296,7 +296,7 @@ function PhotoGrid({ photos, beforeCount, t, compact = false }) {
               compact={compact}
             />
             {!compact && p.area ? (
-              <p className="truncate px-2 py-1 text-[11px] font-medium text-slate-700">{p.area}</p>
+              <p className="truncate px-2 py-1 text-[11px] font-medium text-slate-700 dark:text-slate-300">{p.area}</p>
             ) : null}
           </li>
         ))}
@@ -670,7 +670,11 @@ function TimelineStep({ state, title, titleClassName, connector, last = false, g
           className={[
             'text-sm font-semibold',
             titleClassName ||
-              (state === 'locked' ? 'text-slate-400' : state === 'active' ? 'text-slate-900' : 'text-slate-800'),
+              (state === 'locked'
+                ? 'text-slate-400'
+                : state === 'active'
+                  ? 'text-slate-900 dark:text-slate-100'
+                  : 'text-slate-800 dark:text-slate-200'),
           ].join(' ')}
         >
           {title}
