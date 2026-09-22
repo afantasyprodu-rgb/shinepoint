@@ -97,7 +97,7 @@ export default function ConditionTimeline({
             connector={isArrivedOrBeyond ? 'done' : 'active'}
           >
             {isArrivedOrBeyond ? (
-              <p className="mt-0.5 text-xs text-slate-500">{t('timelineArrivedSub')}</p>
+              <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{t('timelineArrivedSub')}</p>
             ) : (
               <div className="mt-2">{enRouteBody}</div>
             )}
@@ -112,7 +112,7 @@ export default function ConditionTimeline({
             last={false}
           >
             {!isArrivedOrBeyond && (
-              <p className="mt-1 text-xs text-slate-400">{t('timelineConditionLocked')}</p>
+              <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">{t('timelineConditionLocked')}</p>
             )}
             {phase === 'documenting' && (
               <div className="mt-2 space-y-2">
@@ -153,7 +153,7 @@ export default function ConditionTimeline({
                 grid + badge only matters while this step is the active one
                 (phase === 'review'); afterward it's just settled history. */}
             {conditionDone && (
-              <p className="mt-0.5 text-xs text-slate-500">{t('finishStepConditionSub')}</p>
+              <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{t('finishStepConditionSub')}</p>
             )}
           </TimelineStep>
 
@@ -179,10 +179,10 @@ export default function ConditionTimeline({
               </div>
             )}
             {phase === 'complete' && (
-              <p className="mt-0.5 text-xs text-slate-500">{t('finishStepBeginSub')}</p>
+              <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{t('finishStepBeginSub')}</p>
             )}
             {!beginDone && !beginActive && (
-              <p className="mt-1 text-xs text-slate-400">{t('timelineBeginLocked')}</p>
+              <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">{t('timelineBeginLocked')}</p>
             )}
           </TimelineStep>
 
@@ -199,7 +199,7 @@ export default function ConditionTimeline({
               <p className="mt-1 text-sm text-emerald-700/90">{t('finishCompleteSub')}</p>
             )}
             {!completeDone && !beginDone && (
-              <p className="mt-1 text-xs text-slate-400">{t('timelineBeginLocked')}</p>
+              <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">{t('timelineBeginLocked')}</p>
             )}
           </TimelineStep>
         </ol>
@@ -302,7 +302,7 @@ function PhotoGrid({ photos, beforeCount, t, compact = false }) {
         ))}
       </ul>
       {beforeCount > 0 ? (
-        <p className="text-xs text-slate-500">{t('conditionBeforeCount', { n: beforeCount })}</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400">{t('conditionBeforeCount', { n: beforeCount })}</p>
       ) : null}
     </div>
   )
@@ -644,7 +644,7 @@ function TimelineStep({ state, title, titleClassName, connector, last = false, g
         <span className="relative h-3 w-3 rounded-full bg-brand-600 ring-4 ring-brand-200" />
       </span>
     ) : (
-      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-200 text-slate-400">
+      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-200 text-slate-400 dark:bg-white/15 dark:text-slate-500">
         <LockIcon className="h-3.5 w-3.5" />
       </span>
     )
@@ -653,8 +653,8 @@ function TimelineStep({ state, title, titleClassName, connector, last = false, g
     connector === 'done'
       ? 'bg-emerald-400'
       : connector === 'active'
-        ? 'bg-gradient-to-b from-brand-400 to-slate-200'
-        : 'bg-slate-200'
+        ? 'bg-gradient-to-b from-brand-400 to-slate-200 dark:to-white/15'
+        : 'bg-slate-200 dark:bg-white/15'
 
   return (
     <li className="relative flex gap-3 pb-5 last:pb-0">
@@ -671,7 +671,7 @@ function TimelineStep({ state, title, titleClassName, connector, last = false, g
             'text-sm font-semibold',
             titleClassName ||
               (state === 'locked'
-                ? 'text-slate-400'
+                ? 'text-slate-400 dark:text-slate-500'
                 : state === 'active'
                   ? 'text-slate-900 dark:text-slate-100'
                   : 'text-slate-800 dark:text-slate-200'),
