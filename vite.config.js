@@ -20,7 +20,7 @@ const CSP = [
   "default-src 'self'",
   "script-src 'self' https://js.stripe.com https://va.vercel-scripts.com https://challenges.cloudflare.com https://accounts.google.com",
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://vitals.vercel-insights.com https://api.open-meteo.com https://nominatim.openstreetmap.org https://*.ingest.us.sentry.io https://places.googleapis.com https://accounts.google.com",
-  "img-src 'self' data: blob: https://tiles.stadiamaps.com https://*.tile.openstreetmap.org https://*.supabase.co",
+  "img-src 'self' data: blob: https://tiles.stadiamaps.com https://*.tile.openstreetmap.org https://*.basemaps.cartocdn.com https://*.supabase.co",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com",
   "font-src 'self' data: https://fonts.gstatic.com",
   "frame-src https://js.stripe.com https://challenges.cloudflare.com https://accounts.google.com",

@@ -140,7 +140,7 @@ export default function PublicTracking() {
         {notFound ? (
           <div className="pt-v2-glass rounded-2xl p-5">
             <Logo tone="dark" size="lg" />
-            <p className="mt-4 text-sm text-slate-600">{t('notFound')}</p>
+            <p className="mt-4 text-sm text-slate-600 dark:text-slate-300">{t('notFound')}</p>
           </div>
         ) : !info ? (
           <div className="pt-v2-glass rounded-2xl p-5">
@@ -263,10 +263,10 @@ function TrackingBody({ info, bookingId, onInfoPatch }) {
         />
       ) : (
         <div className="py-1 text-center">
-          <p className="font-display text-xl font-semibold text-slate-900">
+          <p className="font-display text-xl font-semibold text-slate-900 dark:text-slate-100">
             {statusHeadline(info.status, t)}
           </p>
-          <p className="mt-1 text-sm text-slate-500">{t('shinepointDetailer')}</p>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{t('shinepointDetailer')}</p>
         </div>
       )}
 
@@ -323,7 +323,7 @@ function TrackingBody({ info, bookingId, onInfoPatch }) {
                   type="button"
                   onClick={() => setMapFull(false)}
                   aria-label={t('mapShrink')}
-                  className={`flex h-8 w-8 items-center justify-center rounded-full transition ${mapFull ? 'text-slate-400 hover:text-slate-700' : 'bg-slate-900 text-white'}`}
+                  className={`flex h-8 w-8 items-center justify-center rounded-full transition ${mapFull ? 'text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-200' : 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'}`}
                 >
                   <CompressIcon className="h-4 w-4" />
                 </button>
@@ -331,7 +331,7 @@ function TrackingBody({ info, bookingId, onInfoPatch }) {
                   type="button"
                   onClick={() => setMapFull(true)}
                   aria-label={t('mapEnlarge')}
-                  className={`flex h-8 w-8 items-center justify-center rounded-full transition ${mapFull ? 'bg-slate-900 text-white' : 'text-slate-400 hover:text-slate-700'}`}
+                  className={`flex h-8 w-8 items-center justify-center rounded-full transition ${mapFull ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' : 'text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-200'}`}
                 >
                   <ExpandIcon className="h-4 w-4" />
                 </button>
@@ -352,13 +352,13 @@ function TrackingBody({ info, bookingId, onInfoPatch }) {
       )}
 
       {isEnRoute && !latest && (
-        <p className="pt-v2-glass flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm text-slate-600">
+        <p className="pt-v2-glass flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm text-slate-600 dark:text-slate-300">
           <ClockIcon className="h-4 w-4 shrink-0" /> {t('waitingForLocation')}
         </p>
       )}
 
       {['pending', 'accepted'].includes(info.status) && (
-        <p className="pt-v2-glass flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm text-slate-600">
+        <p className="pt-v2-glass flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm text-slate-600 dark:text-slate-300">
           <ClockIcon className="h-4 w-4 shrink-0" /> {t('notLeftYet')}
         </p>
       )}
@@ -566,18 +566,18 @@ function EtaRing({ minutes, progressPct, minAwayLabel, milesLabel, progressLabel
             it off the ring; inner highlights model the raised edge. */}
         <div className="pt-v2-eta-hub" aria-hidden="true" />
         <div className="absolute inset-0 flex flex-col items-center justify-center px-3 text-center">
-          <p className="-translate-y-5 font-display text-9xl font-bold leading-none tracking-tight text-slate-900">
+          <p className="-translate-y-5 font-display text-9xl font-bold leading-none tracking-tight text-slate-900 dark:text-slate-100">
             {minutes}
           </p>
           {/* Pinned, not in flow — the number can grow without ever pushing
               this label out of place. */}
-          <p className="absolute bottom-9 text-xs font-semibold uppercase tracking-wide text-slate-600">
+          <p className="absolute bottom-9 text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400">
             {minAwayLabel}
           </p>
         </div>
       </div>
       {milesLabel && (
-        <p className="mt-2.5 text-center text-sm font-medium text-slate-600">{milesLabel}</p>
+        <p className="mt-2.5 text-center text-sm font-medium text-slate-600 dark:text-slate-400">{milesLabel}</p>
       )}
     </div>
   )
@@ -605,11 +605,11 @@ function DetailerTipsCard({ name, photo, showEnRoute }) {
       <div className="pt-v2-glass pt-v2-squircle flex flex-col items-center justify-center gap-2 px-3 py-3.5 text-center">
         <Avatar name={name} photo={photo} size="lg" />
         <div className="min-w-0 w-full">
-          <p className="truncate text-sm font-semibold text-slate-900">{name}</p>
-          <p className="truncate text-[10px] text-slate-500">{t('shinepointDetailer')}</p>
+          <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">{name}</p>
+          <p className="truncate text-[10px] text-slate-500 dark:text-slate-400">{t('shinepointDetailer')}</p>
         </div>
         {showEnRoute && (
-          <span className="pt-v2-chip rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-brand-700">
+          <span className="pt-v2-chip rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-brand-700 dark:text-brand-300">
             {t('stepEnRoute')}
           </span>
         )}
@@ -623,13 +623,13 @@ function DetailerTipsCard({ name, photo, showEnRoute }) {
         aria-label={t('tipsAria')}
       >
         <div>
-          <span className="mb-2 flex h-8 w-8 items-center justify-center rounded-xl bg-brand-500/15 text-brand-700">
+          <span className="mb-2 flex h-8 w-8 items-center justify-center rounded-xl bg-brand-500/15 text-brand-700 dark:text-brand-300">
             <LightbulbIcon className="h-4 w-4" />
           </span>
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-700">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-700 dark:text-brand-300">
             {t('tipsTitle')}
           </p>
-          <p className="mt-1 text-sm font-medium leading-snug text-slate-800">{tips[idx]}</p>
+          <p className="mt-1 text-sm font-medium leading-snug text-slate-800 dark:text-slate-200">{tips[idx]}</p>
         </div>
         <div className="mt-3 flex gap-1" aria-hidden="true">
           {tips.map((_, i) => (
@@ -698,7 +698,7 @@ function WeatherCard({ zip, destination, compact = false }) {
           <Icon className="h-4 w-4" />
         </span>
         <div className="min-w-0">
-          <p className="truncate text-xs font-semibold text-slate-800">
+          <p className="truncate text-xs font-semibold text-slate-800 dark:text-slate-200">
             {weather.label}
             {weather.tempF != null ? ` · ${weather.tempF}°` : ''}
           </p>
@@ -713,7 +713,7 @@ function WeatherCard({ zip, destination, compact = false }) {
         <Icon className="h-5 w-5" />
       </span>
       <div className="min-w-0">
-        <p className="text-sm font-semibold text-slate-800">
+        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
           {weather.label}
           {weather.tempF != null ? ` · ${weather.tempF}°` : ''}
         </p>

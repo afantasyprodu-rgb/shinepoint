@@ -91,7 +91,7 @@ export default function DetailerRating({
             <CheckIcon className="h-4.5 w-4.5" />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-slate-900">{t('ratingThanksTitle')}</p>
+            <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{t('ratingThanksTitle')}</p>
             <div className="mt-1 flex gap-0.5" aria-hidden="true">
               {[1, 2, 3, 4, 5].map((n) => (
                 <StarIcon key={n} className={`h-4 w-4 ${n <= rating ? 'text-amber-400' : 'text-slate-300'}`} />
@@ -101,10 +101,10 @@ export default function DetailerRating({
         </div>
       ) : (
         <div className="space-y-2.5 text-center">
-          <p className="font-display text-base font-semibold text-slate-900">
+          <p className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
             {t('ratingTitle')}
           </p>
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-slate-600 dark:text-slate-400">
             {t('ratingBody', { name: detailerName || t('shinepointDetailer') })}
           </p>
           <div role="radiogroup" aria-label={t('ratingSr')} className="flex justify-center gap-2 pt-1">
@@ -144,14 +144,14 @@ export default function DetailerRating({
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white shadow-sm">
             <CheckIcon className="h-4.5 w-4.5" />
           </span>
-          <p className="text-sm font-semibold text-slate-900">{t('tipThanksTitle', { amount: tipDone })}</p>
+          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{t('tipThanksTitle', { amount: tipDone })}</p>
         </div>
       ) : !hasSavedCard ? (
         <p className="text-center text-xs text-slate-400">{t('noCardForTip')}</p>
       ) : (
         <div className="space-y-2.5">
-          <p className="text-center font-display text-base font-semibold text-slate-900">{t('tipTitle')}</p>
-          <p className="text-center text-sm text-slate-600">
+          <p className="text-center font-display text-base font-semibold text-slate-900 dark:text-slate-100">{t('tipTitle')}</p>
+          <p className="text-center text-sm text-slate-600 dark:text-slate-400">
             {t('tipBody', { name: detailerName || t('shinepointDetailer') })}
           </p>
 
@@ -166,7 +166,7 @@ export default function DetailerRating({
                 className={`cursor-pointer rounded-2xl border py-3 text-center transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cta-600 ${
                   tipSelected === amt && !tipCustom
                     ? 'border-cta-600 bg-cta-600 text-white shadow-md'
-                    : 'border-slate-200 bg-white text-slate-800 hover:border-cta-400 hover:bg-cta-50'
+                    : 'border-slate-200 bg-white text-slate-800 hover:border-cta-400 hover:bg-cta-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:border-cta-500 dark:hover:bg-white/10'
                 }`}
               >
                 <span className="block font-display text-base font-bold">${amt}</span>
@@ -174,7 +174,7 @@ export default function DetailerRating({
             ))}
           </div>
 
-          <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 focus-within:border-brand-400 focus-within:ring-2 focus-within:ring-brand-100">
+          <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 focus-within:border-brand-400 focus-within:ring-2 focus-within:ring-brand-100 dark:border-white/10 dark:bg-white/5">
             <span className="font-semibold text-slate-400">$</span>
             <input
               type="number"
@@ -183,7 +183,7 @@ export default function DetailerRating({
               placeholder={t('customAmount')}
               value={tipCustom}
               onChange={(e) => { setTipCustom(e.target.value); setTipSelected(null) }}
-              className="h-11 flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400"
+              className="h-11 flex-1 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400 dark:text-slate-100"
             />
           </div>
 

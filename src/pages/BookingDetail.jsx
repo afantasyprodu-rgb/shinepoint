@@ -234,7 +234,7 @@ const shownStage = openStage ?? stageIdx
 
   return (
     <AppShell role="customer">
-      <AnimatedPage className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
+      <AnimatedPage className="booking-cascade mx-auto max-w-2xl px-4 py-8 sm:px-6">
         <Link
           to="/bookings"
           className="mb-4 inline-flex items-center gap-1 rounded text-sm font-medium text-slate-600 transition-colors duration-200 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-slate-400 dark:hover:text-brand-300"
@@ -243,24 +243,28 @@ const shownStage = openStage ?? stageIdx
         </Link>
 
         <div className="card">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <Avatar name={d?.name ?? 'Detailer'} photo={d?.photo} />
-              <div>
-                <h1 className="font-display text-xl font-bold text-slate-900 dark:text-slate-100">
-                  {b.service}
-                  {(b.addonServiceIds ?? []).length > 0 &&
-                    ` + ${b.addonServiceIds
-                      .map((aid) => d?.services?.find((s) => s.id === aid)?.name)
-                      .filter(Boolean)
-                      .join(' + ')}`}
-                </h1>
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  {d?.name} · ${b.price + (b.tip ?? 0)} · {b.vehicle}
-                </p>
+          {/* K-cascade hero: gradient panel, white type — theme-proof in both
+              modes, same pattern as the review prompt's header below. */}
+          <div className="rounded-2xl bg-gradient-to-br from-brand-800 via-brand-700 to-brand-600 px-5 py-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <Avatar name={d?.name ?? 'Detailer'} photo={d?.photo} />
+                <div>
+                  <h1 className="font-display text-xl font-bold text-white">
+                    {b.service}
+                    {(b.addonServiceIds ?? []).length > 0 &&
+                      ` + ${b.addonServiceIds
+                        .map((aid) => d?.services?.find((s) => s.id === aid)?.name)
+                        .filter(Boolean)
+                        .join(' + ')}`}
+                  </h1>
+                  <p className="text-sm text-white/75">
+                    {d?.name} · ${b.price + (b.tip ?? 0)} · {b.vehicle}
+                  </p>
+                </div>
               </div>
+              <StatusPill status={b.status} />
             </div>
-            <StatusPill status={b.status} />
           </div>
 
           {/* Forecast as it stood the moment this was booked (BookingWizard's
@@ -330,7 +334,7 @@ const shownStage = openStage ?? stageIdx
               off-session capture (charge-balance) has somewhere to be paid
               from. */}
           {balanceDue > 0 && (
-            <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-500/30 dark:bg-amber-500/10">
+            <div id="booking-balance" className="mt-4 scroll-mt-24 rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-500/30 dark:bg-amber-500/10">
               <p className="flex items-center gap-1.5 font-display text-sm font-bold text-amber-800 dark:text-amber-300">
                 <CreditCardIcon className="h-4 w-4" /> {t('balanceDueTitle', { amount: balanceDue.toFixed(2) })}
               </p>
@@ -385,6 +389,23 @@ const shownStage = openStage ?? stageIdx
                   </Elements>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Photos — K cascade: single strip card right under the hero,
+              before the timeline. Visible once the job is complete. */}
+          {b.status === 'complete' && (
+            <div className="card mt-4 !p-5">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <h2 className="mb-3 font-display text-sm font-semibold text-slate-900 dark:text-slate-100">{t('beforeHeading')}</h2>
+                  <PhotoGrid count={b.beforePhotos} photos={b.beforePhotoData} label="before" emptyText={t('takenAtArrival')} />
+                </div>
+                <div>
+                  <h2 className="mb-3 font-display text-sm font-semibold text-slate-900 dark:text-slate-100">{t('afterHeading')}</h2>
+                  <PhotoGrid count={b.afterPhotos} photos={b.afterPhotoData} label="after" emptyText={t('takenAtCompletion')} />
+                </div>
+              </div>
             </div>
           )}
 
@@ -567,20 +588,6 @@ const shownStage = openStage ?? stageIdx
         </div>
 
 
-        {/* Photos — visible only once the job is complete */}
-        {b.status === 'complete' && (
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <div className="card !p-5">
-              <h2 className="mb-3 font-display text-sm font-semibold text-slate-900 dark:text-slate-100">{t('beforeHeading')}</h2>
-              <PhotoGrid count={b.beforePhotos} photos={b.beforePhotoData} label="before" emptyText={t('takenAtArrival')} />
-            </div>
-            <div className="card !p-5">
-              <h2 className="mb-3 font-display text-sm font-semibold text-slate-900 dark:text-slate-100">{t('afterHeading')}</h2>
-              <PhotoGrid count={b.afterPhotos} photos={b.afterPhotoData} label="after" emptyText={t('takenAtCompletion')} />
-            </div>
-          </div>
-        )}
-
         {/* Invoice from the detailer — full itemized breakdown */}
         {b.invoice && (
           <motion.button
@@ -650,6 +657,26 @@ const shownStage = openStage ?? stageIdx
         <div className="mt-4">
           <ChatThread bookingId={b.id} me="customer" />
         </div>
+
+        {/* K-cascade sticky pay bar: whatever is owed, one thumb-reachable
+            action that jumps to the real checkout/balance card above.
+            In-flow sticky (not fixed), so it never covers content. */}
+        {(unpaid || balanceDue > 0) && (
+          <div className="sticky bottom-4 z-30 mt-4">
+            <button
+              type="button"
+              onClick={() => {
+                document.getElementById(unpaid ? 'booking-pay' : 'booking-balance')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+              }}
+              className="flex w-full items-center justify-between gap-3 rounded-2xl bg-slate-900 px-5 py-3.5 text-white shadow-xl dark:bg-white dark:text-slate-900"
+            >
+              <span className="flex items-center gap-2 text-sm font-bold">
+                <CreditCardIcon className="h-4 w-4" />
+                {unpaid ? t('finishPayment', { amount: b.price }) : t('balancePayNow', { amount: balanceDue.toFixed(2) })}
+              </span>
+            </button>
+          </div>
+        )}
 
         <Modal open={showInvoice} onClose={() => setShowInvoice(false)} labelledBy="invoice-title">
           <h2 id="invoice-title" className="sr-only">{t('invoiceSr')}</h2>

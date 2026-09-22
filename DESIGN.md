@@ -233,6 +233,8 @@ Distinctive and defining: a teardrop bubble (`border-radius: 50% 50% 50% 4px`, `
 
 Two surface families, two contracts. **Dark-adaptive** surfaces (`.card`, `.neu-*`, drawer, clay, modal panels) reskin via `--neu-bg` and every hand-written `text-slate-*`/`bg-*` on them MUST carry its `dark:` twin. **Fixed-light** surfaces stay light in both modes on purpose: the invoice paper ticket + print doc, QR wrapper, photo-slider handle, white knobs/pills on gradients, and error-detail boxes. Mark fixed-light spots with a comment so future audits don't re-flag them.
 
-The public tracking page (`pt-v2` wallpaper + glass), landing (`ColdStart`), legal, and MFA pages are **light-only by design** for now: no `dark:` variants, no dark wallpaper. If dark support is ever extended to them, it must cover wallpaper, glass, and map tiles together, never text alone.
+Dark mode is supported **app-wide** — client, detailer, and admin. The public tracking page (`pt-v2` wallpaper + glass), landing (`ColdStart`), legal, and MFA pages all carry dark variants; extending dark support anywhere new must cover surfaces, glass, wallpaper, and map tiles together, never text alone.
+
+Deliberately fixed-light surfaces (readable in both modes, do not "fix"): the invoice paper ticket + print doc, QR wrapper, photo-slider handle, map control pills, white knobs/pills/badges on gradients, payout overlays, and the auth card (fixed-dark shell, fixed-light card).
 
 Conventions: `*-700` running text takes `dark:*-300` (slate) / `dark:*-400` (cta/amber); `slate-900` headings take `dark:text-slate-100`; `slate-600` body takes `dark:text-slate-400`. Theme class is set pre-paint by `public/theme-init.js` (mirrors `ThemeContext.initialTheme()`); `color-scheme` follows the theme so native controls don't glare.

@@ -21,10 +21,10 @@ export function FinishSignInCta() {
   return (
     <div className="pt-v2-glass pt-v2-squircle space-y-3 rounded-[28px] px-4 py-5 text-center">
       <div>
-        <p className="font-display text-xl font-semibold text-slate-900">
+        <p className="font-display text-xl font-semibold text-slate-900 dark:text-slate-100">
           {t('finishSignInTitle')}
         </p>
-        <p className="mt-1.5 text-sm leading-snug text-slate-600">
+        <p className="mt-1.5 text-sm leading-snug text-slate-600 dark:text-slate-400">
           {t('finishSignInBody')}
         </p>
       </div>
@@ -38,7 +38,7 @@ export function FinishSignInCta() {
       <button
         type="button"
         onClick={() => setDismissed(true)}
-        className="text-sm font-medium text-slate-400 transition hover:text-slate-600"
+        className="text-sm font-medium text-slate-400 transition hover:text-slate-600 dark:hover:text-slate-300"
       >
         {t('finishMaybeLater')}
       </button>
@@ -133,8 +133,8 @@ export function FinishSlider({ pairs }) {
   return (
     <div className="space-y-2.5">
       <div className="text-center">
-        <p className="font-display text-xl font-bold text-slate-900">{t('finishSliderTitle')}</p>
-        <p className="mt-0.5 text-sm text-slate-600">{t('finishSliderSub')}</p>
+        <p className="font-display text-xl font-bold text-slate-900 dark:text-slate-100">{t('finishSliderTitle')}</p>
+        <p className="mt-0.5 text-sm text-slate-600 dark:text-slate-400">{t('finishSliderSub')}</p>
       </div>
       <div className="pt-v2-glass pt-v2-squircle overflow-hidden rounded-[28px] p-2.5">
         <div className="relative h-64 select-none overflow-hidden rounded-2xl">
@@ -190,8 +190,8 @@ export function FinishSlider({ pairs }) {
                 type="button"
                 onClick={() => setIdx(ui)}
                 aria-pressed={ui === idx}
-                className={`shrink-0 rounded-full px-3 py-1.5 text-[11px] font-semibold transition ${
-                  ui === idx ? 'bg-slate-900 text-white' : 'bg-white/70 text-slate-600 ring-1 ring-white/70'
+                  className={`shrink-0 rounded-full px-3 py-1.5 text-[11px] font-semibold transition ${
+                  ui === idx ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' : 'bg-white/70 text-slate-600 ring-1 ring-white/70 dark:bg-white/10 dark:text-slate-300 dark:ring-white/15'
                 }`}
               >
                 {p.label || t('conditionPhotoAlt', { n: i + 1 })}

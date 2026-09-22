@@ -21,6 +21,7 @@ import { CAR_MAKES, CAR_MODELS, MODEL_TO_TYPE } from '../lib/vehicleData'
 import { extractVehiclePhoto } from '../lib/db'
 import { useT } from '../i18n/useT'
 import { TILES } from '../components/DetailerMap'
+import { useTheme } from '../context/ThemeContext'
 
 // Mini open-source map for the Home address card — same Leaflet + Carto tiles
 // we already use in DetailerMap (Voyager nolabels = OpenStreetMap + CARTO).
@@ -33,6 +34,7 @@ import { TILES } from '../components/DetailerMap'
 //   2. CA_ZIP_CENTROIDS entry (city-level, zoom 12)
 //   3. no marker (never fall back to a wrong city like downtown LA)
 function HomeMiniMap({ zip, address }) {
+  const { theme } = useTheme()
   const ref = useRef(null)
   const mapRef = useRef(null)
   const markerRef = useRef(null)
@@ -68,11 +70,18 @@ function HomeMiniMap({ zip, address }) {
   useEffect(() => {
     if (!ref.current || mapRef.current) return
     const map = L.map(ref.current, { center: center ?? [34.05, -118.24], zoom: zoom || 12, zoomControl: false, attributionControl: true, dragging: true, scrollWheelZoom: false })
-    tileRef.current = L.tileLayer(TILES.light.url, { attribution: TILES.light.attribution, maxZoom: 19 }).addTo(map)
+    const t = TILES[theme] ?? TILES.light
+    tileRef.current = L.tileLayer(t.url, { attribution: t.attribution, maxZoom: 19 }).addTo(map)
     mapRef.current = map
-    return () => { map.remove(); mapRef.current = null }
+    return () => { map.remove(); mapRef.current = null; tileRef.current = null }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+  // Swap tiles when the theme flips (same pattern as EnRouteMiniMap).
+  useEffect(() => {
+    if (!mapRef.current || !tileRef.current) return
+    const t = TILES[theme] ?? TILES.light
+    tileRef.current.setUrl(t.url)
+  }, [theme])
   useEffect(() => {
     if (!mapRef.current || !center) return
     mapRef.current.setView(center, zoom || 12)

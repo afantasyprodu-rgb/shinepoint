@@ -52,22 +52,22 @@ export default function MfaChallenge() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-brand-50 via-white to-cta-50/40">
+    <div className="min-h-screen bg-gradient-to-br from-brand-50 via-white to-cta-50/40 dark:from-[#1A1430] dark:via-[#141026] dark:to-[#141026]">
       <AnimatedPage className="mx-auto flex min-h-screen max-w-sm flex-col px-4 py-10 sm:px-6">
         <div className="mb-8 flex justify-center">
           <Logo />
         </div>
 
         <div className="card space-y-4">
-          <h1 className="text-center font-display text-lg font-bold text-slate-900">
+          <h1 className="text-center font-display text-lg font-bold text-slate-900 dark:text-slate-100">
             {t('challengeTitle')}
           </h1>
-          <p className="text-center text-sm text-slate-600">
+          <p className="text-center text-sm text-slate-600 dark:text-slate-400">
             {t('challengeBody')}
           </p>
 
           {error && (
-            <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+            <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">
               {error}
             </p>
           )}
@@ -95,7 +95,7 @@ export default function MfaChallenge() {
           <button
             type="button"
             onClick={signOut}
-            className="w-full text-center text-sm font-medium text-slate-500 hover:text-slate-700"
+            className="w-full text-center text-sm font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
           >
             {t('notYouSignOut')}
           </button>

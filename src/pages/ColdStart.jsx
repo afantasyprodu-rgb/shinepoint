@@ -490,17 +490,17 @@ export default function ColdStart() {
                       aria-hidden="true"
                     />
                   </span>
-                  <span className="text-[11px] font-semibold text-slate-900">{d.name?.split(' ')[0] ?? `Pro ${i + 1}`}</span>
+                  <span className="text-[11px] font-semibold text-slate-900 dark:text-white">{d.name?.split(' ')[0] ?? `Pro ${i + 1}`}</span>
                   <span className="flex items-center gap-0.5">
                     <Stars rating={d.rating ?? 5} className="h-3 w-3" />
-                    <span className="text-[9px] font-medium text-slate-600">{(d.rating ?? 5).toFixed(1)}</span>
+                    <span className="text-[9px] font-medium text-slate-600 dark:text-slate-300">{(d.rating ?? 5).toFixed(1)}</span>
                   </span>
                   {/* Uses real data where available instead of a fake slot
                       label: area, distance (when geolocation resolves), and a
                       plain "available" affordance. The demo roster has no
                       schedule field, so time stays generic rather than fake. */}
-                  <span className="text-[10px] text-slate-500">{d.area ?? d.zip ?? ''}</span>
-                  <span className="text-[9px] font-medium text-cta-600">
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400">{d.area ?? d.zip ?? ''}</span>
+                  <span className="text-[9px] font-medium text-cta-600 dark:text-cta-400">
                     {typeof milesByDetailer[d.id] === 'number'
                       ? `${milesByDetailer[d.id].toFixed(1)} mi`
                       : 'nearby'}
@@ -629,18 +629,22 @@ export default function ColdStart() {
           />
         </button>
         <div className="relative flex h-full w-full flex-col items-center justify-center">
+        {/* Dark-mode scrim: the wordmark + headline below sit directly on
+            the live map (dark tiles in dark mode), so dim it there just
+            enough for dark type to read while the map still breathes. */}
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 hidden bg-slate-950/50 dark:block" />
         <div ref={contentRef} className="relative mx-auto w-full max-w-[17.5rem] text-center">
           <div className="mx-auto flex flex-col items-center">
             <div className="flex items-center justify-center gap-2.5">
               <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-[0_8px_20px_rgba(222,0,103,0.28)]">
                 <SparklesIcon className="h-7 w-7" />
               </span>
-              <span className="font-display text-[1.65rem] font-semibold leading-none tracking-tight text-brand-900">ShinePoint</span>
+              <span className="font-display text-[1.65rem] font-semibold leading-none tracking-tight text-brand-900 dark:text-white">ShinePoint</span>
             </div>
-            <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-brand-600">Mobile detailing</p>
+            <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-brand-600 dark:text-brand-300">Mobile detailing</p>
           </div>
-          <h1 className="mt-3 font-display text-xl font-bold leading-tight text-slate-950">See who's nearby</h1>
-          <p className="mt-1 text-sm leading-relaxed text-slate-600">Browse vetted detailers nearby — no account needed.</p>
+          <h1 className="mt-3 font-display text-xl font-bold leading-tight text-slate-950 dark:text-white">See who's nearby</h1>
+          <p className="mt-1 text-sm leading-relaxed text-slate-600 dark:text-slate-300">Browse vetted detailers nearby — no account needed.</p>
           <div
             className="mt-3 rounded-3xl p-3"
             style={{
@@ -677,7 +681,7 @@ export default function ColdStart() {
             </div>
             <Link
               to="/signup/detailer"
-              className="press-spring mt-2.5 block w-full rounded-full py-2.5 text-center text-sm font-semibold"
+              className="press-spring mt-2.5 block w-full rounded-full py-2.5 text-center text-sm font-semibold dark:[color:#e5b93f]"
               style={{ color: '#b8860b' }}
             >
               Join as detailer

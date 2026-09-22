@@ -136,7 +136,7 @@ export default function AuthCallback() {
               aria-label={t('finishingSignin')}
               className="mx-auto mt-6 h-8 w-8 animate-spin rounded-full border-4 border-brand-600 border-t-transparent"
             />
-            <p className="mt-4 text-sm text-slate-600">{t('finishingSignin')}</p>
+            <p className="mt-4 text-sm text-slate-600 dark:text-slate-400">{t('finishingSignin')}</p>
           </>
         )}
       </div>

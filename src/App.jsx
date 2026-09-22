@@ -65,6 +65,7 @@ const Faq = lazy(() => import('./pages/Faq'))
 const AssistantChat = lazy(() => import('./pages/AssistantChat'))
 const JobMockups = lazy(() => import('./components/JobMockups'))
 const DevInvoicePreview = lazy(() => import('./components/JobMockups').then((m) => ({ default: m.DevInvoicePreview })))
+const DarkTokens = lazy(() => import('./components/DarkTokens'))
 
 function PageFallback() {
   return (
@@ -190,6 +191,7 @@ export default function App() {
         {/* DEV-only job-flow redesign gallery — renders null in production. */}
         <Route path="/dev/job-mockups" element={import.meta.env.DEV ? safe(<JobMockups />) : <Navigate to="/" replace />} />
         <Route path="/dev/invoice" element={import.meta.env.DEV ? safe(<DevInvoicePreview />) : <Navigate to="/" replace />} />
+        <Route path="/dev/dark-tokens" element={import.meta.env.DEV ? safe(<DarkTokens />) : <Navigate to="/" replace />} />
       </Routes>
       </Suspense>
     </TransitionOverlay>
