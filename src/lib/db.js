@@ -735,7 +735,14 @@ export async function updateUserName(userId, fullName) {
 export async function updateUserContactInfo(userId, { phone, smsOptIn }) {
   const cols = {}
   if (phone !== undefined) cols.phone = phone
-  if (smsOptIn !== undefined) cols.sms_opt_in = smsOptIn
+  if (smsOptIn !== undefined) {
+    cols.sms_opt_in = smsOptIn
+    // Consent audit trail (TCPA/CTIA defense-in-depth) — stamp whichever
+    // direction this toggle just moved, every time, not just on the
+    // false→true transition CustomerSettings itself cares about.
+    if (smsOptIn) cols.sms_consent_at = new Date().toISOString()
+    else cols.sms_opt_out_at = new Date().toISOString()
+  }
   if (!Object.keys(cols).length) return
   const { error } = await supabase.from('users').update(cols).eq('id', userId)
   if (error) console.error('updateUserContactInfo:', error.message)
