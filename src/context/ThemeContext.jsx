@@ -39,6 +39,47 @@ const STORAGE_KEY = 'shinepoint-theme'
 const hueKey = (mode) => `shinepoint-hue-${mode}`
 const hueIndexKey = (mode) => `shinepoint-hue-index-${mode}`
 
+// Design skins (Stitch theme families). Independent from the light/dark
+// mode above: a skin restyles surfaces/radii/type across the whole app for
+// whoever is signed in. 'default' is the Studio Wash system (no overrides).
+export const DESIGN_THEMES = [
+  { id: 'default', labelKey: 'themeDefault', preview: null },
+  { id: 'liquid-glass-light', labelKey: 'themeLiquidLight', preview: '/theme-previews/liquid-glass-light.png' },
+  { id: 'liquid-glass-dark', labelKey: 'themeLiquidDark', preview: '/theme-previews/liquid-glass-dark.png' },
+  { id: 'mono-clean', labelKey: 'themeMonoClean', preview: '/theme-previews/mono-clean.png' },
+  { id: 'precision', labelKey: 'themePrecision', preview: '/theme-previews/precision.png' },
+  { id: 'cyber-hud', labelKey: 'themeCyberHud', preview: '/theme-previews/cyber-hud.png' },
+  {
+    id: 'golden-hour',
+    labelKey: 'themeGoldenHour',
+    preview: null,
+    swatch: 'linear-gradient(135deg, #f6e3bd 0%, #e8b93f 45%, #2a1c10 45%, #191410 100%)',
+  },
+]
+const DESIGN_STORAGE_KEY = 'shinepoint-design-theme'
+
+// v1→v2 migration: 'minimalist' was renamed, 'liquid-glass' split by mode.
+function migrateDesignTheme(v) {
+  if (v === 'minimalist') return 'mono-clean'
+  if (v === 'liquid-glass') {
+    try {
+      if (document.documentElement.classList.contains('dark')) return 'liquid-glass-dark'
+    } catch { /* ignore */ }
+    return 'liquid-glass-light'
+  }
+  return v
+}
+
+function initialDesignTheme() {
+  if (typeof window === 'undefined') return 'default'
+  try {
+    const raw = localStorage.getItem(DESIGN_STORAGE_KEY)
+    const v = migrateDesignTheme(raw)
+    if (DESIGN_THEMES.some((t) => t.id === v)) return v
+  } catch { /* private mode, ignore */ }
+  return 'default'
+}
+
 // Preset brand themes users can pick (soap-film arc). CTA stays leafy green.
 export const BRAND_THEMES = [
   { id: 'pink', hue: 356, labelKey: 'brandPink' },
@@ -108,6 +149,19 @@ export function ThemeProvider({ children }) {
   const [brandHue, setBrandHueState] = useState(() =>
     typeof window === 'undefined' ? DEFAULT_HUE : resolveBrandHue(initialTheme())
   )
+  const [designTheme, setDesignThemeState] = useState(initialDesignTheme)
+
+  // Skin application lives in CSS ([data-theme="…"] packs in index.css) —
+  // here just stamps the attribute so a switch repaints instantly.
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', designTheme)
+    safeSetItem(DESIGN_STORAGE_KEY, designTheme)
+  }, [designTheme])
+
+  const setDesignTheme = useCallback((id) => {
+    if (!DESIGN_THEMES.some((t) => t.id === id)) return
+    setDesignThemeState(id)
+  }, [])
 
   useEffect(() => {
     const root = document.documentElement
@@ -158,8 +212,8 @@ export function ThemeProvider({ children }) {
   }, [])
 
   const value = useMemo(
-    () => ({ theme, setTheme, toggle, brandHue, setBrandHue, brandThemes: BRAND_THEMES }),
-    [theme, toggle, brandHue, setBrandHue]
+    () => ({ theme, setTheme, toggle, brandHue, setBrandHue, brandThemes: BRAND_THEMES, designTheme, setDesignTheme, designThemes: DESIGN_THEMES }),
+    [theme, toggle, brandHue, setBrandHue, designTheme, setDesignTheme]
   )
 
   return (

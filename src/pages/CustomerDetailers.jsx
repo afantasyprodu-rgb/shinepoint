@@ -17,6 +17,12 @@ function statusLabel(d) {
   return 'Offline'
 }
 
+function nextSlotLabel(d) {
+  if (d.status === 'available') return 'Today'
+  if (d.status === 'busy') return 'Tomorrow'
+  return 'Contact'
+}
+
 function cheapestPrice(d) {
   const prices = (d.services ?? []).map((s) => Number(s.price)).filter((p) => Number.isFinite(p))
   return prices.length ? Math.min(...prices) : null
@@ -92,51 +98,44 @@ export default function CustomerDetailers() {
           {filtered.map((d) => {
             const from = cheapestPrice(d)
             const cover = d.gallery?.[0]
-            const promoted = d.services?.some((s) => s.isBestValue)
-            // Caption = the detailer's own lead service (same honest source
-            // as the map popup). Radius already has its own tile below, so
-            // the cover badges carry caption + photo tag instead.
+            // Caption = the detailer's own lead service.
             const priced = (d.services ?? []).filter((s) => Number.isFinite(Number(s.price)))
             const lead = priced.length ? priced.reduce((a, b) => (Number(a.price) <= Number(b.price) ? a : b)) : null
+            const topServices = (d.services ?? []).slice(0, 3)
             return (
               <div key={d.id} className="card overflow-hidden !p-0">
                 {cover && (
                   <button
                     type="button"
                     onClick={() => navigate(`/detailers/${d.id}`)}
-                    className="group relative block h-32 w-full cursor-pointer"
+                    className="group relative block h-24 w-full cursor-pointer"
                   >
                     <img src={cover} alt="" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
                     {lead && (
-                      <span className="absolute bottom-2 left-3 max-w-[60%] truncate text-[10px] font-bold uppercase tracking-wide text-white">
+                      <span className="absolute bottom-1.5 left-2.5 max-w-[60%] truncate text-[9px] font-bold uppercase tracking-wide text-white">
                         {lead.name}
                       </span>
                     )}
-                    <span className="absolute bottom-2 right-3 rounded-md bg-black/50 px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur-sm">
+                    <span className="absolute bottom-1.5 right-2.5 rounded-md bg-black/50 px-1.5 py-0.5 text-[9px] font-bold text-white backdrop-blur-sm">
                       {t('clientPhoto')}
                     </span>
                   </button>
                 )}
 
-                <div className="space-y-3 p-3.5">
+                <div className="space-y-2 p-2.5">
                   <div className="flex items-center justify-between gap-2">
                     <button
                       type="button"
                       onClick={() => navigate(`/detailers/${d.id}`)}
-                      className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 text-left"
+                      className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-left"
                     >
-                      <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand-100 text-sm font-bold text-brand-700 ring-2 ring-slate-100 dark:ring-white/10">
+                      <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand-100 text-sm font-bold text-brand-700 ring-2 ring-slate-100 dark:ring-white/10">
                         {d.photo ? <img src={d.photo} alt="" className="h-full w-full object-cover" /> : (d.name || '?')[0]}
                       </span>
                       <span className="min-w-0">
                         <span className="flex items-center gap-1.5">
                           <h4 className="truncate text-sm font-bold text-slate-900 dark:text-slate-100">{d.name}</h4>
-                          {promoted && (
-                            <span className="shrink-0 rounded-full bg-brand-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-brand-700 dark:bg-brand-500/20 dark:text-brand-300">
-                              {t('pro')}
-                            </span>
-                          )}
                         </span>
                         <span className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
                           {d.isRated === false ? (
@@ -157,23 +156,37 @@ export default function CustomerDetailers() {
                     {from != null && (
                       <div className="flex-shrink-0 text-right">
                         <span className="block text-[10px] font-bold uppercase text-slate-400">From</span>
-                        <span className="text-xl font-extrabold text-brand-700 dark:text-brand-300">${from}</span>
+                        <span className="text-lg font-extrabold text-brand-700 dark:text-brand-300">${from}</span>
                       </div>
                     )}
                   </div>
 
-                  <div className="grid grid-cols-3 gap-1.5 text-[11px]">
-                    <div className="flex items-center gap-1 rounded-lg bg-slate-50 p-1.5 dark:bg-white/5">
+                  <div className="grid grid-cols-3 gap-1 text-[10px]">
+                    <div className="flex items-center gap-1 rounded-md bg-slate-50 px-1.5 py-1 dark:bg-white/5">
                       <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full" style={{ background: PIN_COLORS[d.status] ?? PIN_COLORS.offline }} />
                       <span className="truncate font-medium text-slate-700 dark:text-slate-300">{statusLabel(d)}</span>
                     </div>
-                    <div className="flex items-center gap-1 rounded-lg bg-slate-50 p-1.5 dark:bg-white/5">
-                      <span className="truncate font-medium text-slate-700 dark:text-slate-300">{Number(d.travelMiles) || 0} mi radius</span>
+                    <div className="flex flex-col rounded-md bg-slate-50 px-1.5 py-1 dark:bg-white/5">
+                      <span className="text-[8px] font-bold uppercase tracking-wide text-slate-400">{t('nextSlot')}</span>
+                      <span className="truncate font-medium text-slate-700 dark:text-slate-300">{nextSlotLabel(d)}</span>
                     </div>
-                    <div className="flex items-center gap-1 rounded-lg bg-slate-50 p-1.5 dark:bg-white/5">
+                    <div className="flex items-center gap-1 rounded-md bg-slate-50 px-1.5 py-1 dark:bg-white/5">
                       <span className="truncate font-medium text-slate-700 dark:text-slate-300">{Number(d.completedJobs) || 0} jobs</span>
                     </div>
                   </div>
+
+                  {topServices.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {topServices.map((s) => (
+                        <span
+                          key={s.id}
+                          className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"
+                        >
+                          {s.name} · ${Number(s.price)}
+                        </span>
+                      ))}
+                    </div>
+                  )}
 
                   <div className="flex items-center gap-2 border-t border-slate-100 pt-2.5 dark:border-white/10">
                     <button

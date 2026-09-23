@@ -146,29 +146,30 @@ function cheapestPrice(d) {
 
 const HEART_PATH = 'M12 21s-6.7-4.35-9.3-8.1C1 10.2 1.6 6.9 4.3 5.3c2.2-1.3 4.9-.7 6.4 1.2a1 1 0 0 0 1.6 0c1.5-1.9 4.2-2.5 6.4-1.2 2.7 1.6 3.3 4.9 1.6 7.6C18.7 16.65 12 21 12 21Z'
 
-// Two cheapest-first services for the highlight banner — mirrors the
-// mockup's "Signature Wash $85 · Full Detail $140" line without inventing
-// a package hierarchy the detailer never set.
+// Three cheapest-first services for the highlight banner — the "Best value"
+// pill is gone, so the banner now shows the actual service line-up.
 function bannerServices(d) {
   return [...(d.services ?? [])]
     .filter((s) => Number.isFinite(Number(s.price)))
     .sort((a, b) => Number(a.price) - Number(b.price))
-    .slice(0, 2)
+    .slice(0, 3)
 }
 
-// Quick-info card, redesigned to match the "Studio Wash" map mockup: photo
-// carousel, highlight banner, and a 3-stat row — but every stat is real data
-// the detailer/booking system actually tracks (status, travel radius, jobs
-// done), never the mockup's fabricated "next slot"/"response time", which
-// this app has no way to promise. Names/services/area/gallery are
+function nextSlotFor(d) {
+  if (d.status === 'available') return 'Today'
+  if (d.status === 'busy') return 'Tomorrow'
+  return 'Contact'
+}
+
+// Quick-info card: photo carousel, highlight banner, 3-stat row (status,
+// next slot, jobs done — radius is already visible on the map itself),
+// plus up to 3 services. Names/services/area/gallery are all
 // detailer-controlled so everything user-facing runs through esc().
 function popupHtml(d, favorited) {
-  const promoted = isPromoted(d)
   const from = cheapestPrice(d)
   const rating = d.isRated === false ? 'New' : `★ ${Number(d.rating).toFixed(1)} (${Number(d.reviews) || 0})`
   const banner = bannerServices(d)
   const bannerText = banner.map((s) => `${esc(s.name)} $${Number(s.price)}`).join(' · ')
-  const bestValue = banner.some((s) => s.isBestValue)
   // Photo caption: the detailer's own lead service name (same source as the
   // banner above — never invented). Tag stays neutral "Client photo": this
   // app has no photo-verification pipeline, so "Verified" would be a claim.
@@ -178,23 +179,24 @@ function popupHtml(d, favorited) {
     ? gallery.map((src, i) => `<div class="nx-pop-slide" data-slide="${i}"${i ? ' hidden' : ''}><img src="${esc(src)}" alt="" /></div>`).join('')
     : ''
   return `
-    <div class="nx-pop">
+    <div class="nx-pop nx-pop--compact">
       <div class="nx-pop-head">
         <div class="nx-pop-avatar">
           ${d.photo ? `<img src="${esc(d.photo)}" alt="" />` : `<span>${esc((d.name || '?')[0])}</span>`}
         </div>
         <div class="nx-pop-head-text">
-          <button type="button" data-view class="nx-pop-name" aria-label="View ${esc(d.name)} profile">${esc(d.name)}${promoted ? '<span class="nx-pop-pro">PRO</span>' : ''}</button>
+          <button type="button" data-view class="nx-pop-name" aria-label="View ${esc(d.name)} profile">${esc(d.name)}</button>
           <p class="nx-pop-meta">${rating} · ${esc(d.area)}</p>
         </div>
         ${from != null ? `<div class="nx-pop-from"><span>FROM</span><strong>$${from}</strong></div>` : ''}
       </div>
-      ${bannerText ? `<div class="nx-pop-banner"><span>${bannerText}</span>${bestValue ? '<span class="nx-pop-best">Best value</span>' : ''}</div>` : ''}
+      ${bannerText ? `<div class="nx-pop-banner"><span>${bannerText}</span></div>` : ''}
       <div class="nx-pop-stats">
         <div class="nx-pop-stat"><span>Status</span><strong style="color:${PIN_COLORS[d.status] ?? PIN_COLORS.offline}">${statusLine(d)}</strong></div>
-        <div class="nx-pop-stat"><span>Radius</span><strong>${Number(d.travelMiles) || 0} mi</strong></div>
+        <div class="nx-pop-stat"><span>Next slot</span><strong>${esc(nextSlotFor(d))}</strong></div>
         <div class="nx-pop-stat"><span>Jobs done</span><strong>${Number(d.completedJobs) || 0}</strong></div>
       </div>
+      ${(d.services ?? []).length ? `<div class="nx-pop-services">${(d.services ?? []).slice(0, 3).map((s) => `<span class="nx-pop-service">${esc(s.name)} · $${Number(s.price)}</span>`).join('')}</div>` : ''}
       ${slides ? `
       <div class="nx-pop-carousel" data-count="${gallery.length}">
         <div class="nx-pop-slides">${slides}</div>

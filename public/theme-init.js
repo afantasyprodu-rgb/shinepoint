@@ -26,5 +26,9 @@
       document.documentElement.style.setProperty('--brand-h', hue)
       document.documentElement.style.setProperty('--cta-h', ((hue - 120 + 360) % 360))
     }
+    // Design skin before paint for the same reason (ThemeContext mirrors).
+    var skin = null
+    try { skin = localStorage.getItem('shinepoint-design-theme') } catch (e2) {}
+    if (skin) document.documentElement.setAttribute('data-theme', skin)
   } catch (e) {}
 })()
