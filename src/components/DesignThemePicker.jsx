@@ -18,9 +18,8 @@ export function DesignThemeGrid() {
   const { designTheme, setDesignTheme, designThemes } = useTheme()
   const t = useT('designTheme')
 
-  // Spec Theme Matrix: fixed 2 rows × 3 columns on every viewport.
   return (
-    <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label={t('title')}>
+    <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={t('title')}>
       {designThemes.map((theme) => {
         const active = designTheme === theme.id
         return (

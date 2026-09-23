@@ -3,8 +3,9 @@ import { useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import AppShell from '../components/AppShell'
 import { AnimatedPage, FadeIn, Stagger, StaggerItem } from '../components/ui/Motion'
-import { CountUp } from '../components/ui/bits'
+import { CountUp, Sparkline } from '../components/ui/bits'
 import { useStore } from '../context/StoreContext'
+import { milesBetweenZips } from '../lib/fuzzyPin'
 import { openDetailerDashboard, getDetailerBalance, requestPayout, isStripeConfigured } from '../lib/stripe'
 import { ClockIcon, ChevronDownIcon, LightbulbIcon } from '../components/icons'
 import { detailerPayoutEstimate } from '../lib/fees'
@@ -12,53 +13,30 @@ import { useT } from '../i18n/useT'
 import { DetailerAnalyticsPanels } from './DetailerAnalytics'
 
 const ME = 'det-1'
+// Six weeks of illustrative net earnings for the demo sparkline — demo-only,
+// never shown to a real account (see weeklyNetFor below).
+const DEMO_WEEKLY = [240, 310, 285, 390, 364, 412]
 
 const DAY_MS = 86_400_000
 const payoutFor = (b) => b.detailerPayout ?? detailerPayoutEstimate(b.price)
 
-// Last-7-days net, oldest → today, for the yield histogram. Demo uses a
-// fixed illustrative week (tour data, never shown to real accounts).
-const DEMO_DAILY = [120, 180, 90, 220, 310, 420, 260]
-function dailyNetFor(complete) {
-  const days = Array(7).fill(0)
-  const now = new Date()
-  now.setHours(0, 0, 0, 0)
-  const start = now.getTime() - 6 * DAY_MS
+// Real net-earnings-by-week from actual completed jobs, bucketed by
+// completedAt (falling back to scheduledTime for older rows that predate
+// that column). Every previous number on this page (net this week, this
+// month, tips, all-time, the sparkline) was a hardcoded illustrative value
+// shown unconditionally — a brand-new real detailer with zero jobs saw the
+// exact same "$412 net this week" / "$24,830 all-time" as the demo. This
+// computes the real thing from `complete` bookings instead, so it's zero
+// until they actually are.
+function weeklyNetFor(complete) {
+  const weeks = Array(6).fill(0)
+  const now = Date.now()
   complete.forEach((b) => {
-    const at = new Date(b.completedAt ?? b.scheduledTime ?? Date.now()).getTime()
-    const idx = Math.floor((at - start) / DAY_MS)
-    if (idx >= 0 && idx < 7) days[idx] += payoutFor(b)
+    const at = new Date(b.completedAt ?? b.scheduledTime ?? now).getTime()
+    const weeksAgo = Math.floor((now - at) / (DAY_MS * 7))
+    if (weeksAgo >= 0 && weeksAgo < 6) weeks[5 - weeksAgo] += payoutFor(b)
   })
-  return days.map((v) => Math.round(v))
-}
-
-function YieldHistogram({ data, t, lang }) {
-  const max = Math.max(1, ...data)
-  const peak = data.indexOf(Math.max(...data))
-  const fmt = new Intl.DateTimeFormat(lang === 'es' ? 'es-US' : 'en-US', { weekday: 'narrow' })
-  const labels = data.map((_, i) => {
-    const d = new Date()
-    d.setDate(d.getDate() - (6 - i))
-    return fmt.format(d)
-  })
-  return (
-    <div>
-      <div className="flex h-28 items-end gap-1.5" role="img" aria-label={t('histAria')}>
-        {data.map((v, i) => (
-          <div key={i} className="flex min-w-0 flex-1 flex-col items-center gap-1">
-            <div
-              className={`w-full rounded-t-md ${i === peak && v > 0 ? 'bg-cta-500' : 'bg-brand-200 dark:bg-brand-500/30'}`}
-              style={{ height: `${Math.max(4, (v / max) * 100)}%` }}
-              title={`$${v}`}
-            />
-            <span className={`text-[10px] font-semibold ${i === peak && v > 0 ? 'text-cta-700 dark:text-cta-400' : 'text-slate-400 dark:text-slate-500'}`}>
-              {labels[i]}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
+  return weeks.map((v) => Math.round(v))
 }
 
 // Common self-employed deduction categories for a mobile detailer — not
@@ -278,7 +256,7 @@ function PayoutStatus({ bookings }) {
 
 // Blueprint screen 5.6 — Detailer Earnings, as a bento cockpit.
 export default function DetailerEarnings() {
-  const { bookings, isDemo, detailerProfile } = useStore()
+  const { bookings, getDetailer, isDemo, detailerProfile } = useStore()
   const t = useT('detailerEarnings')
   const tA = useT('detailerAnalytics')
   const [searchParams, setSearchParams] = useSearchParams()
@@ -294,23 +272,40 @@ export default function DetailerEarnings() {
   // empty for them regardless of their actual job history.
   const meId = isDemo ? ME : detailerProfile?.id
   const complete = bookings.filter((b) => b.detailerId === meId && b.status === 'complete')
+  const me = meId ? getDetailer(meId) : null
+
+  // Round-trip straight-line distance home base <-> each job's zip — a real
+  // distance estimate (not fabricated), useful alongside the tax CSV export.
+  const milesTraveled = complete.reduce((sum, b) => {
+    const oneWay = me?.zip ? milesBetweenZips(me.zip, b.zip) : null
+    return sum + (oneWay ? oneWay * 2 : 0)
+  }, 0)
 
   // Real accounts compute every figure below from their own `complete`
   // bookings. Demo keeps the illustrative numbers — they're seeded to look
   // like an established detailer's history on purpose, for the tour.
+  const weeklyNet = isDemo ? DEMO_WEEKLY : weeklyNetFor(complete)
+  const netThisWeek = weeklyNet[weeklyNet.length - 1]
+
+  const now = new Date()
+  const thisMonthTotal = isDemo
+    ? 1690
+    : Math.round(
+        complete
+          .filter((b) => new Date(b.completedAt ?? b.scheduledTime).getMonth() === now.getMonth())
+          .reduce((sum, b) => sum + payoutFor(b), 0)
+      )
   const tipsTotal = isDemo ? 1240 : Math.round(complete.reduce((sum, b) => sum + (b.tip ?? 0), 0))
   const allTimeTotal = isDemo ? 24830 : Math.round(complete.reduce((sum, b) => sum + payoutFor(b), 0))
 
-  // IRS $600 reporting threshold — plain progress marker, not tax advice.
-  const TAX_THRESHOLD = 600
-  const thisYear = new Date().getFullYear()
-  const ytdGross = isDemo
-    ? allTimeTotal
-    : Math.round(
-        complete
-          .filter((b) => new Date(b.completedAt ?? b.scheduledTime).getFullYear() === thisYear)
-          .reduce((sum, b) => sum + payoutFor(b), 0)
-      )
+  // Small stat tiles — one number each. The big earnings tile and the payout
+  // action tile are laid out separately so the grid's sizes carry hierarchy.
+  const smallStats = [
+    { label: t('statThisMonth'), value: thisMonthTotal, prefix: '$' },
+    { label: t('statTips'), value: tipsTotal, prefix: '$' },
+    { label: t('statRating'), value: me?.rating ?? 4.9, decimals: true },
+    { label: t('statMiles'), value: Math.round(milesTraveled), suffix: ' mi' },
+  ]
 
   function exportCsv() {
     const rows = [
@@ -373,88 +368,88 @@ export default function DetailerEarnings() {
           </div>
         ) : (
         <>
-        {/* Instant cash-out hero: live Stripe balance + withdraw form on real
-            accounts; the illustrative demo tile on demo. */}
         {!isDemo && isStripeConfigured && (
           <div className="mt-6">
             <PayoutStatus bookings={bookings} />
           </div>
         )}
-        {isDemo && (
-          <FadeIn delay={0.05}>
-            <div className="bento-action mt-6 flex items-center justify-between gap-3">
-              <div>
-                <p className="bento-k text-brand-200">{t('availableBalance')}</p>
-                <p className="mt-1 font-display text-4xl font-bold tabular-nums">
-                  <CountUp value={963} prefix="$" />
-                </p>
-                <p className="mt-1 text-xs text-white/70">{t('demoBalanceNote')}</p>
+
+        {/* Bento grid — mixed tile sizes are the hierarchy. */}
+        <div className="mt-6 grid grid-cols-2 gap-3">
+          {/* Hero: this week's net, with the six-week sparkline. */}
+          <FadeIn className="col-span-2">
+            <div className="bento-tile">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="bento-k">{t('netThisWeek')}</p>
+                  <p className="bento-v mt-1 text-4xl">
+                    <CountUp value={netThisWeek} prefix="$" />
+                    {isDemo && (
+                      <span className="ml-2 align-middle text-sm font-semibold text-cta-700 dark:text-cta-500">
+                        {t('vsLastWeek')}
+                      </span>
+                    )}
+                  </p>
+                </div>
               </div>
-              <button
-                type="button"
-                onClick={() => setTab('trends')}
-                className="press-spring btn btn-cta rounded-concentric-uniform h-11 shrink-0 text-sm"
-              >
-                {t('cashOut')}
-              </button>
+              <Sparkline data={weeklyNet} className="mt-3 h-14 w-full" />
             </div>
           </FadeIn>
-        )}
 
-        {/* Performance bento 2x2 — gross, kept gratuity, jobs, avg ticket. */}
-        <div className="mt-3 grid grid-cols-2 gap-2.5" role="group" aria-label={t('bentoAria')}>
-          {[
-            { label: t('bentoGross'), value: `$${allTimeTotal.toLocaleString()}` },
-            { label: t('bentoTips'), value: `$${tipsTotal.toLocaleString()}` },
-            { label: t('bentoJobs'), value: String(complete.length) },
-            {
-              label: t('bentoAvg'),
-              value: complete.length ? `$${Math.round(allTimeTotal / complete.length)}` : '$0',
-            },
-          ].map(({ label, value }, i) => (
-            <FadeIn key={label} delay={0.05 + i * 0.05}>
-              <div className="card !p-3.5">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
-                  {label}
-                </p>
-                <p className="mt-1 truncate font-display text-xl font-bold tabular-nums text-slate-900 dark:text-slate-100">
-                  {value}
+          {/* Payout action tile — demo only. Real accounts get the actual
+              thing above (PayoutStatus: live Stripe balance + a working
+              withdraw form) — this was a second, fake "$963 available"
+              tile with a Cash Out button that had no onClick at all,
+              sitting right next to the real one on every real account. */}
+          {isDemo && (
+            <FadeIn delay={0.05} className="col-span-2">
+              <div className="bento-action flex items-center justify-between gap-3">
+                <div>
+                  <p className="bento-k text-brand-200">{t('availableBalance')}</p>
+                  <p className="mt-1 font-display text-2xl font-bold tabular-nums">
+                    <CountUp value={963} prefix="$" />
+                  </p>
+                </div>
+                {/* rounded-concentric-uniform, not the plain per-corner variant: this
+                    button sits shrink-0 against the tile's right/top/bottom edges but
+                    is nowhere near the left edge (the balance label owns that side), so
+                    per-corner math would shrink its left corners toward 0 for no reason.
+                    Forcing all four corners to the tightest relevant edge (isUniform in
+                    SwiftUI's version) keeps it looking like one coherent pill. */}
+                <button className="press-spring btn btn-cta rounded-concentric-uniform h-11 shrink-0 text-sm">
+                  {t('cashOut')}
+                </button>
+              </div>
+            </FadeIn>
+          )}
+
+          {smallStats.map(({ label, value, prefix, suffix, decimals }, i) => (
+            <FadeIn key={label} delay={0.1 + i * 0.05}>
+              <div className="bento-tile !p-4">
+                <p className="bento-k">{label}</p>
+                <p className="bento-v mt-1 text-2xl">
+                  {decimals ? (
+                    <>
+                      {value.toFixed(1)}
+                      <span className="ml-0.5 align-top text-sm text-amber-500">★</span>
+                    </>
+                  ) : (
+                    <CountUp value={value} prefix={prefix} suffix={suffix} />
+                  )}
                 </p>
               </div>
             </FadeIn>
           ))}
-        </div>
 
-        {/* Weekly yield histogram — last 7 days, peak highlighted. */}
-        <div className="card mt-3 !p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
-            {t('histTitle')}
-          </p>
-          <div className="mt-2">
-            <YieldHistogram data={isDemo ? DEMO_DAILY : dailyNetFor(complete)} t={t} lang={lang} />
-          </div>
-        </div>
-
-        {/* Tax vault — year-to-date gross toward the IRS reporting threshold.
-            Plain progress, no tax advice (TaxWriteOffs below covers that). */}
-        <div className="card mt-3 !p-4">
-          <div className="flex items-baseline justify-between gap-2">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
-              {t('vaultTitle')}
-            </p>
-            <p className="font-mono text-sm font-bold tabular-nums text-slate-900 dark:text-slate-100">
-              ${ytdGross.toLocaleString()} / ${TAX_THRESHOLD.toLocaleString()}
-            </p>
-          </div>
-          <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-white/10" role="progressbar" aria-valuenow={Math.min(100, Math.round((100 * ytdGross) / TAX_THRESHOLD))} aria-valuemin={0} aria-valuemax={100} aria-label={t('vaultTitle')}>
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-brand-500 to-cta-500"
-              style={{ width: `${Math.min(100, (100 * ytdGross) / TAX_THRESHOLD)}%` }}
-            />
-          </div>
-          <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-            {ytdGross >= TAX_THRESHOLD ? t('vaultMet') : t('vaultRemaining', { amount: (TAX_THRESHOLD - ytdGross).toLocaleString() })}
-          </p>
+          {/* All-time — wide footer tile. */}
+          <FadeIn delay={0.3} className="col-span-2">
+            <div className="bento-tile !p-4">
+              <p className="bento-k">{t('allTimeEarnings')}</p>
+              <p className="bento-v mt-1 text-2xl">
+                <CountUp value={allTimeTotal} prefix="$" />
+              </p>
+            </div>
+          </FadeIn>
         </div>
 
         <h2 className="mt-8 font-display text-lg font-semibold text-slate-900 dark:text-slate-100">{t('recentPayouts')}</h2>
@@ -465,12 +460,7 @@ export default function DetailerEarnings() {
             <StaggerItem key={b.id}>
               <div className="card flex items-center justify-between !p-5">
                 <div>
-                  <p className="flex items-center gap-2 font-semibold text-slate-900 dark:text-slate-100">
-                    {b.service}
-                    <span className="rounded-full bg-cta-600/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-cta-700 dark:text-cta-400">
-                      {t('clearedTag')}
-                    </span>
-                  </p>
+                  <p className="font-semibold text-slate-900 dark:text-slate-100">{b.service}</p>
                   <p className="text-sm text-slate-500 dark:text-slate-400">
                     {b.id} · {t('grossPlatformCut', { gross: b.price, cut: (b.price - payout).toFixed(0) })}
                   </p>

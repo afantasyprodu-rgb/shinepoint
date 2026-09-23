@@ -712,11 +712,6 @@ export function StoreProvider({ children }) {
         }
         // Deposit share taken up front (086). 0 means charge in full.
         if (patch.depositPercent != null) cols.deposit_percent = Number(patch.depositPercent) || 0
-        // Operational dispatch (spec Account screen): auto-accept new
-        // requests while marked Busy, and dispatch radius in miles. Demo
-        // spreads the camelCase patch straight onto the seed record.
-        if (patch.acceptsWhenBusy != null) cols.accepts_bookings_when_busy = patch.acceptsWhenBusy
-        if (patch.travelMiles != null) cols.free_travel_miles = Math.max(0, Number(patch.travelMiles) || 0)
         if (Object.keys(cols).length) {
           await updateDetailerProfile(profile.id, cols)
           setDetailerProfile((dp) => ({ ...(dp ?? {}), ...cols }))

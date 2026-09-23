@@ -4,8 +4,6 @@ import { AnimatePresence, motion } from 'motion/react'
 import AppShell from '../components/AppShell'
 import AccountDangerZone from '../components/AccountDangerZone'
 import BrandThemePicker from '../components/BrandThemePicker'
-import DesignThemeSetting from '../components/DesignThemePicker'
-import { AccountHeader, DispatchControls, TariffList } from '../components/DetailerAccount'
 import LanguageToggle from '../components/LanguageToggle'
 import ChangePassword from '../components/ChangePassword'
 import AvatarUpload from '../components/AvatarUpload'
@@ -966,7 +964,6 @@ export default function DetailerProfileEditor() {
 
         {activeTab === 'account' && (
         <div className="space-y-4">
-        <AccountHeader me={me} verified={storeIsDemo || me?.is_verified === true} t={t} />
         <div className="card !p-5">
           <div className="flex items-center justify-between gap-3">
             <div>
@@ -979,12 +976,6 @@ export default function DetailerProfileEditor() {
             </div>
           </div>
         </div>
-
-        <DesignThemeSetting />
-
-        <TariffList services={services} t={t} onEdit={() => setActiveTab('services')} />
-
-        <DispatchControls me={me} t={t} />
 
         <PayoutManagement />
 

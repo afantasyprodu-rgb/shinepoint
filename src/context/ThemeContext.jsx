@@ -42,13 +42,13 @@ const hueIndexKey = (mode) => `shinepoint-hue-index-${mode}`
 // Design skins (Stitch theme families). Independent from the light/dark
 // mode above: a skin restyles surfaces/radii/type across the whole app for
 // whoever is signed in. 'default' is the Studio Wash system (no overrides).
+// Only two skins are live in the picker: the original Studio Wash and
+// Golden Hour ("Default 2"). The five Stitch families stay out of the list
+// until their screens are rebuilt — their packs remain in index.css and
+// their exports in stitch-themes/ for that later pass. Stored ids from
+// the hidden set fall back to default (see initialDesignTheme).
 export const DESIGN_THEMES = [
   { id: 'default', labelKey: 'themeDefault', preview: null },
-  { id: 'liquid-glass-light', labelKey: 'themeLiquidLight', preview: '/theme-previews/liquid-glass-light.png' },
-  { id: 'liquid-glass-dark', labelKey: 'themeLiquidDark', preview: '/theme-previews/liquid-glass-dark.png' },
-  { id: 'mono-clean', labelKey: 'themeMonoClean', preview: '/theme-previews/mono-clean.png' },
-  { id: 'precision', labelKey: 'themePrecision', preview: '/theme-previews/precision.png' },
-  { id: 'cyber-hud', labelKey: 'themeCyberHud', preview: '/theme-previews/cyber-hud.png' },
   {
     id: 'golden-hour',
     labelKey: 'themeGoldenHour',

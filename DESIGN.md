@@ -239,24 +239,19 @@ Deliberately fixed-light surfaces (readable in both modes, do not "fix"): the in
 
 Conventions: `*-700` running text takes `dark:*-300` (slate) / `dark:*-400` (cta/amber); `slate-900` headings take `dark:text-slate-100`; `slate-600` body takes `dark:text-slate-400`. Theme class is set pre-paint by `public/theme-init.js` (mirrors `ThemeContext.initialTheme()`); `color-scheme` follows the theme so native controls don't glare.
 
-## Design skins (Stitch master-prompt v2, 6 themes)
+## Design skins (2 live, 5 parked)
 
-Six spec themes ship as whole-app skins, switchable in the detailer
-account tab (`DesignThemeSetting`, 2×3 Theme Matrix): Studio Wash
-(default, no overrides), Liquid Glass Light (frosted daylight),
-Liquid Glass Dark (obsidian + azure), Mono Clean (flat Swiss, Inter
-headings), Apex Precision (navy slabs, Grotesk voice), Neo-Tokyo Cyber HUD
-(pitch cockpit, cyan hairlines, lime telemetry, Grotesk + JetBrains Mono).
+The picker (`DesignThemeSetting`, detailer account tab) lists two skins:
+**Default** (Studio Wash, no overrides) and **Default 2** (Golden Hour —
+warm honey wash over cream/espresso, amber halo in dark mode).
 Skins live as `[data-theme="…"]` packs in `index.css`, stamped by
 `ThemeContext` (+ pre-paint in `theme-init.js`), persisted to
-`shinepoint-design-theme` (v1 ids migrate: minimalist→mono-clean,
-liquid-glass→light/dark by mode). Previews in `public/theme-previews/`
-are the exported Stitch mockups; full exports live in `stitch-themes/`
-(reference only, never bundled).
+`shinepoint-design-theme`; stored ids from the parked set fall back to
+Default.
 
-The 4 spec screens (Jobs dispatch, Clients CRM, Earnings, Account) are
-rebuilt once with live data and restyled per skin — never one layout per
-theme. Honest substitutions are commented at each site: paint-gauge
-slider → condition-photo progress (no sensor exists), gate PINs → time +
-address (no gate field), VIP chip → Regulars (no VIP signal), $600 tax
-marker is a plain progress line, not advice.
+Parked for a later pass: Liquid Glass Light/Dark, Mono Clean, Apex
+Precision, Neo-Tokyo Cyber HUD. Their CSS packs and i18n keys stay in the
+tree (hidden, zero runtime cost); their screen rebuilds were reverted so
+the original Jobs/Clients/Earnings/Account layouts are back untouched.
+Full Stitch exports live in `stitch-themes/` (reference only, never
+bundled).
