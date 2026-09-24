@@ -6,6 +6,7 @@ import AccountDangerZone from '../components/AccountDangerZone'
 import BrandThemePicker from '../components/BrandThemePicker'
 import LanguageToggle from '../components/LanguageToggle'
 import ChangePassword from '../components/ChangePassword'
+import DesignThemeSetting from '../components/DesignThemePicker'
 import AvatarUpload from '../components/AvatarUpload'
 import { GalleryGrid } from './ProfileSetup'
 import { AnimatedPage } from '../components/ui/Motion'
@@ -1006,6 +1007,8 @@ export default function DetailerProfileEditor() {
           </span>
           <ArrowRightIcon className="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-500" />
         </Link>
+
+        <DesignThemeSetting />
 
         <ChangePassword />
 

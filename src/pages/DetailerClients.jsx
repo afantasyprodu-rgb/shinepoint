@@ -18,6 +18,9 @@ import {
 import { signStorageUrl } from '../lib/storage'
 import { Sparkle, PhoneIcon, ChatIcon } from './clientBookBits'
 import styles from '../styles/clientBook.module.css'
+import PulseClientBoard from '../components/PulseClientBoard'
+import ZenClientList from '../components/ZenClientList'
+import { useTheme } from '../context/ThemeContext'
 
 const DUE_FILTERS = [
   { id: 'all', label: 'All' },
@@ -91,6 +94,7 @@ function stopNav(e) {
 
 export default function DetailerClients() {
   const { detailerProfile, detailerProfileLoaded, isDemo } = useStore()
+  const { designTheme } = useTheme()
   const detailerId = isDemo ? 'det-1' : detailerProfile?.id
   const [clients, setClients] = useState([])
   const [lastDetailed, setLastDetailed] = useState(() => new Map())
@@ -146,6 +150,24 @@ export default function DetailerClients() {
     const days = Number(dueFilter)
     return clients.filter((c) => isDueForDetail(lastDetailed.get(c.id) ?? null, days))
   }, [clients, dueFilter, lastDetailed])
+
+  if (designTheme === 'zen') {
+    return (
+      <AppShell role="detailer">
+        <ZenClientList clients={clients} lastDetailed={lastDetailed} loading={loading} error={error} />
+      </AppShell>
+    )
+  }
+
+  if (designTheme === 'pulse') {
+    return (
+      <AppShell role="detailer">
+        <AnimatedPage>
+          <PulseClientBoard clients={clients} lastDetailed={lastDetailed} loading={loading} error={error} />
+        </AnimatedPage>
+      </AppShell>
+    )
+  }
 
   return (
     <AppShell role="detailer">

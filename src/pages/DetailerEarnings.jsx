@@ -11,6 +11,9 @@ import { ClockIcon, ChevronDownIcon, LightbulbIcon } from '../components/icons'
 import { detailerPayoutEstimate } from '../lib/fees'
 import { useT } from '../i18n/useT'
 import { DetailerAnalyticsPanels } from './DetailerAnalytics'
+import { useTheme } from '../context/ThemeContext'
+import PulseEarningsHero from '../components/PulseEarningsHero'
+import ZenEarningsSummary from '../components/ZenEarningsSummary'
 
 const ME = 'det-1'
 // Six weeks of illustrative net earnings for the demo sparkline — demo-only,
@@ -259,6 +262,7 @@ export default function DetailerEarnings() {
   const { bookings, getDetailer, isDemo, detailerProfile } = useStore()
   const t = useT('detailerEarnings')
   const tA = useT('detailerAnalytics')
+  const { designTheme } = useTheme()
   const [searchParams, setSearchParams] = useSearchParams()
   const tab = searchParams.get('tab') === 'trends' ? 'trends' : 'overview'
   function setTab(next) {
@@ -368,13 +372,20 @@ export default function DetailerEarnings() {
           </div>
         ) : (
         <>
+        {designTheme === 'pulse' && (
+          <PulseEarningsHero weeklyNet={weeklyNet} thisMonth={thisMonthTotal} tips={tipsTotal} />
+        )}
         {!isDemo && isStripeConfigured && (
           <div className="mt-6">
             <PayoutStatus bookings={bookings} />
           </div>
         )}
 
+        {designTheme === 'zen' && (
+          <ZenEarningsSummary weeklyNet={weeklyNet} thisMonth={thisMonthTotal} tips={tipsTotal} allTime={allTimeTotal} />
+        )}
         {/* Bento grid — mixed tile sizes are the hierarchy. */}
+        {designTheme !== 'zen' && (
         <div className="mt-6 grid grid-cols-2 gap-3">
           {/* Hero: this week's net, with the six-week sparkline. */}
           <FadeIn className="col-span-2">
@@ -451,6 +462,7 @@ export default function DetailerEarnings() {
             </div>
           </FadeIn>
         </div>
+        )}
 
         <h2 className="mt-8 font-display text-lg font-semibold text-slate-900 dark:text-slate-100">{t('recentPayouts')}</h2>
         <Stagger className="mt-3 space-y-3">

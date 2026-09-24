@@ -15,7 +15,7 @@
 export default function DrewBlob({ size = 44, muted = false, className = '' }) {
   return (
     <div
-      className={`nx-tab-drop-float ${className}`}
+      className={`sp-logo nx-tab-drop-float ${className}`}
       style={{ width: size, height: size, '--drew-size': `${size}px` }}
       aria-hidden="true"
     >

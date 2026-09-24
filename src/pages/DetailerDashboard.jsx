@@ -15,6 +15,9 @@ import { detailerPayoutEstimate } from '../lib/fees'
 import { LockIcon, AlertTriangleIcon, ClockIcon, ChevronDownIcon } from '../components/icons'
 import { useT } from '../i18n/useT'
 import { useLanguage } from '../context/LanguageContext'
+import { useTheme } from '../context/ThemeContext'
+import PulseJobsHero from '../components/PulseJobsHero'
+import ZenJobsSummary from '../components/ZenJobsSummary'
 
 // Stripe Connect payout setup (real detailers only). Shows the actual
 // stripe_charges_enabled flag rather than trusting the ?payouts=done redirect
@@ -172,6 +175,9 @@ export default function DetailerDashboard() {
   }
   const t = useT('detailerDashboard')
   const { lang } = useLanguage()
+  const { designTheme } = useTheme()
+  const pulse = designTheme === 'pulse'
+  const zen = designTheme === 'zen'
 
   // Demo: use the seeded detailer. Real: use the logged-in detailer's DB profile id.
   const meId = isDemo ? 'det-1' : detailerProfile?.id
@@ -270,8 +276,21 @@ export default function DetailerDashboard() {
 
         {verified ? (
           <>
+            {pulse && (
+              <PulseJobsHero
+                incoming={incoming}
+                active={active}
+                completed={mine.filter((b) => b.status === 'complete')}
+                todayKey={todayKey}
+                dateKeyOf={localDateKey}
+                lang={lang}
+              />
+            )}
+            {zen && (
+              <ZenJobsSummary incoming={incoming} active={active} todayKey={todayKey} dateKeyOf={localDateKey} lang={lang} />
+            )}
             {/* Incoming requests (5.2) */}
-            <h2 className="mt-8 font-display text-lg font-semibold text-slate-900 dark:text-slate-100">
+            <h2 id="pulse-incoming" className="mt-8 scroll-mt-4 font-display text-lg font-semibold text-slate-900 dark:text-slate-100">
               {t('incomingRequests')}
             </h2>
             {declineError && (
@@ -444,7 +463,7 @@ export default function DetailerDashboard() {
                 same time-sort inside once opened. Calendar (087) is the
                 same jobs, laid out on a month grid instead, with a
                 pending/accepted job draggable onto a different day. */}
-            <div className="mt-8 flex items-center justify-between">
+            <div id="pulse-active" className="mt-8 flex scroll-mt-4 items-center justify-between">
               <h2 className="font-display text-lg font-semibold text-slate-900 dark:text-slate-100">{t('activeJobs')}</h2>
               <div className="inline-flex rounded-full border border-slate-200 bg-white p-0.5 dark:border-white/10 dark:bg-white/5">
                 {['list', 'calendar'].map((v) => (
@@ -517,6 +536,7 @@ export default function DetailerDashboard() {
               </div>
             )}
 
+            {!zen && (<>
             <Link
               to="/detailer/earnings"
               className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 rounded-2xl"
@@ -533,7 +553,26 @@ export default function DetailerDashboard() {
               ))}
             </Link>
             <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">{t('tapStatsForEarnings')}</p>
+            </>)}
 
+            {zen ? (
+              <div className="mt-8 border-t border-slate-100 dark:border-white/5">
+                {[
+                  { to: '/detailer/time-requests', label: t('timeRequestsCardTitle'), count: openTimeRequestCount },
+                  { to: '/detailer/reports', label: t('disputesCardTitle'), count: openDisputeCount },
+                  { to: '/detailer/clients', label: t('clientBookPromo') },
+                ].map((row) => (
+                  <Link
+                    key={row.to}
+                    to={row.to}
+                    className="flex items-center justify-between border-b border-slate-100 py-3.5 text-[15px] text-slate-900 dark:border-white/5 dark:text-slate-100"
+                  >
+                    <span className="truncate">{row.label}</span>
+                    <span className="shrink-0 text-sm tabular-nums text-slate-400">{row.count ? row.count : '→'}</span>
+                  </Link>
+                ))}
+              </div>
+            ) : (
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <Link
                 to="/detailer/time-requests"
@@ -564,6 +603,7 @@ export default function DetailerDashboard() {
                 )}
               </Link>
             </div>
+            )}
           </>
         ) : (
           <div className="card mt-8 flex flex-col items-center gap-2 !p-8 text-center">
@@ -625,13 +665,13 @@ export default function DetailerDashboard() {
           </Link>
         )}
 
-        <Link
+        {!zen && <Link
           to="/detailer/clients"
           className="mt-4 flex items-center justify-between rounded-2xl border-2 border-brand-200/60 bg-brand-50/50 px-4 py-3 text-sm font-semibold text-brand-700 shadow-sm transition hover:border-brand-400 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-200"
         >
           <span>{t('clientBookPromo')}</span>
           <span aria-hidden="true">{t('openArrow')}</span>
-        </Link>
+        </Link>}
       </AnimatedPage>
       <DeclineModal
         booking={declineModalBooking}

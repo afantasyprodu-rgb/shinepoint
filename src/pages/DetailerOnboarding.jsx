@@ -36,6 +36,13 @@ const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 // Typical detailing-business hours — 7 AM to 8 PM — as toggleable blackout
 // chips, rather than all 24, since nobody's fielding a 3 AM booking anyway.
 const BLACKOUT_HOUR_OPTIONS = Array.from({ length: 14 }, (_, i) => i + 7)
+// Decision-fatigue: presets first; Custom reveals day/hour chips.
+// blackoutHours = hours (7-20) the detailer does NOT want booked.
+const SCHEDULE_PRESETS = [
+  { id: 'weekdays86', days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], blackoutHours: [7, 18, 19, 20] },
+  { id: 'weekendsToo', days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], blackoutHours: [7, 18, 19, 20] },
+  { id: 'custom', days: null, blackoutHours: null },
+]
 function formatHour(h) {
   const period = h < 12 ? 'AM' : 'PM'
   const hour12 = h % 12 === 0 ? 12 : h % 12
@@ -47,12 +54,11 @@ function formatHour(h) {
 // wizard, even though both are just "the Stripe stuff" from a detailer's
 // point of view. Merged into one step (still keyed stepIdentity for
 // translation continuity) so every Stripe-touching action lives in one
-// place — see step === 0 below for both blocks rendered together.
-const STEP_KEYS = ['stepIdentity', 'stepInsurance', 'stepProfile', 'stepSurvey', 'stepServices', 'stepSchedule']
+// place — see the last step (stepIdentity) for both blocks rendered together.
+// Decision-fatigue spine: Profile → Services → Schedule → Insurance → Stripe.
+// About-you survey deferred; deposit/upcharges/promote polished after go-live.
+const STEP_KEYS = ['stepProfile', 'stepServices', 'stepSchedule', 'stepInsurance', 'stepIdentity']
 
-const YEARS_EXPERIENCE_OPTIONS = ['0-1', '1-3', '3-5', '5+']
-const CERT_OPTIONS = ['ida_certified', 'manufacturer_trained']
-const REFERRAL_OPTIONS = ['referral', 'social_media', 'google', 'word_of_mouth', 'other']
 const EXAMPLE_TEMPLATE = { 'Exterior Wash': 45, 'Full Detail': 175, 'Interior Deep Clean': 85, 'Wax & Seal': 60 }
 
 // Blueprint screens 4.2–4.8 — detailer onboarding wizard.
@@ -121,7 +127,8 @@ export default function DetailerOnboarding() {
   const [customName, setCustomName] = useState('')
   const [customPrice, setCustomPrice] = useState('')
   const [days, setDays] = useState(['Mon', 'Tue', 'Wed', 'Thu', 'Fri'])
-  const [blackoutHours, setBlackoutHours] = useState([])
+  const [blackoutHours, setBlackoutHours] = useState([7, 18, 19, 20])
+  const [schedulePreset, setSchedulePreset] = useState('weekdays86')
   const [travel, setTravel] = useState(10)
   const [chargePerMile, setChargePerMile] = useState(2)
   // Optional per-vehicle-type upcharge — '' (not 0) means "not set", so a
@@ -372,43 +379,25 @@ export default function DetailerOnboarding() {
   // final review screen for this field, so onBlur is the only save point
   // before a detailer might tab away to Connect bank and never come back
   // to this input.
-  function saveDepositPercent() {
-    const clamped = Math.min(100, Math.max(0, Number(depositPercent) || 0))
-    updateDetailerMe({ depositPercent: clamped })
-  }
 
   function toggle(list, setList, item) {
     setList(list.includes(item) ? list.filter((x) => x !== item) : [...list, item])
   }
 
-  function addCustomCert() {
-    const name = customCertName.trim()
-    if (!name || certifications.includes(name)) return
-    setCertifications((c) => [...c, name])
-    setCustomCertName('')
-  }
 
   const canContinue = [
-    // Identity verification is skippable — Stripe Connect gates the actual
-    // payout on it later, so it doesn't need to block the wizard too — but
-    // Continue itself stays disabled until they've actually taken one of
-    // the two explicit actions (Upload ID & selfie, or Skip for now).
-    // Real payout connection is a redirect-away Stripe flow, not something
-    // that can gate synchronous submission — the wizard doesn't send `bank`
-    // to the backend at all (submit_detailer_onboarding never takes it).
-    // Demo keeps the fake digits gate so the simulated flow still feels
-    // real. Both live on this one combined step now — see STEP_KEYS.
-    (idStatus !== 'idle') && (isDemo ? bank.length >= 4 : true),
+    zip.length === 5, // Bio is optional — the zip is what places their map pin.
+    Object.keys(services).length > 0,
+    days.length > 0,
     // 094: an "insured" pick isn't complete until the document has actually
     // gone through (saved either 'ok' or 'flagged' -- a soft check never
     // blocks the save itself, so "flagged" still counts as done here; only
     // 'idle'/'checking'/'error' hold up Continue).
     (insurance === 'insured' && (insuranceDocStatus === 'ok' || insuranceDocStatus === 'flagged')) ||
       (insurance === 'none' && noInsuranceAck),
-    zip.length === 5, // Bio is optional — the zip is what places their map pin.
-    yearsExperience !== null,
-    Object.keys(services).length > 0,
-    days.length > 0,
+    // Identity last — skippable later via Connect gate, but Continue stays
+    // disabled until Upload ID / Skip (demo also needs fake bank digits).
+    (idStatus !== 'idle') && (isDemo ? bank.length >= 4 : true),
   ][step]
 
   if (submitted) {
@@ -481,12 +470,13 @@ export default function DetailerOnboarding() {
         </div>
         <p className="mt-1.5 text-xs font-semibold text-brand-700 dark:text-brand-300">
           {step + 1}/{STEPS.length} · {STEPS[step]}
+          {step < STEPS.length - 1 ? ` · ${t('almostBookable')}` : ''}
         </p>
 
         <OnboardingHelper
           step={step}
           onApplyPricing={
-            step === 4 && Object.keys(services).length === 0 ? applySuggestedPricing : null
+            step === 1 && Object.keys(services).length === 0 ? applySuggestedPricing : null
           }
           zip={zip}
           yearsExperience={yearsExperience}
@@ -502,8 +492,13 @@ export default function DetailerOnboarding() {
             transition={{ duration: 0.25, ease: 'easeOut' }}
             className="mt-6"
           >
-            {step === 0 && (
+            {step === 4 && (
               <div className="space-y-4">
+                <div className="rounded-2xl border-2 border-brand-400/40 bg-gradient-to-br from-brand-50 to-white p-4 dark:border-brand-400/30 dark:from-brand-500/15 dark:to-transparent">
+                  <p className="text-xs font-bold uppercase tracking-wide text-brand-700 dark:text-brand-300">{t('stripeBlastKicker')}</p>
+                  <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">{t('stripeBlastTitle')}</p>
+                  <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{t('stripeBlastBody')}</p>
+                </div>
                 <MarketingTip title={t('tipVerifiedTitle')}>
                   {t('tipVerifiedBody')}
                 </MarketingTip>
@@ -637,45 +632,11 @@ export default function DetailerOnboarding() {
                 )}
                 </div>
 
-                {/* 086. Own card, separate from bank connection — this is a
-                    pricing choice, not a Stripe requirement, and doesn't
-                    block the rest of onboarding either way. */}
-                <div className="card space-y-2">
-                  <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100">
-                    {t('depositSetupLabel')}
-                  </h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">{t('depositSetupHint')}</p>
-                  <div className="mt-2 flex items-center justify-between gap-3">
-                    <label htmlFor="ob-deposit" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                      {t('depositPercentLabel')}
-                    </label>
-                    <div className="flex items-center gap-1">
-                      <input
-                        id="ob-deposit"
-                        type="number" min={0} max={100} step={5} inputMode="numeric"
-                        value={depositPercent}
-                        onChange={(e) => setDepositPercent(e.target.value)}
-                        onBlur={saveDepositPercent}
-                        placeholder="0"
-                        className="input h-10 w-24"
-                      />
-                      <span className="text-slate-500 dark:text-slate-400">%</span>
-                    </div>
-                  </div>
-                  {Number(depositPercent) > 0 && (
-                    <p className="rounded-xl bg-brand-50/60 p-2 text-xs text-slate-600 dark:bg-white/5 dark:text-slate-400">
-                      {t('depositExample', {
-                        pct: Math.min(100, Math.max(0, Number(depositPercent) || 0)),
-                        deposit: (200 * Math.min(100, Math.max(0, Number(depositPercent) || 0)) / 100).toFixed(0),
-                        balance: (200 - 200 * Math.min(100, Math.max(0, Number(depositPercent) || 0)) / 100).toFixed(0),
-                      })}
-                    </p>
-                  )}
-                </div>
+                
               </div>
             )}
 
-            {step === 1 && (
+            {step === 3 && (
               <div className="space-y-3">
                 <MarketingTip title={t('tipInsuranceTitle')}>
                   {t('tipInsuranceBody')}
@@ -757,7 +718,7 @@ export default function DetailerOnboarding() {
               </div>
             )}
 
-            {step === 2 && (
+            {step === 0 && (
               <div className="space-y-4">
                 <MarketingTip title={t('tipBioTitle')}>
                   {t('tipBioBody')}
@@ -778,117 +739,7 @@ export default function DetailerOnboarding() {
               </div>
             )}
 
-            {step === 3 && (
-              <div className="space-y-4">
-                <MarketingTip title={t('tipSurveyTitle')}>
-                  {t('tipSurveyBody')}
-                </MarketingTip>
-
-                <div className="card space-y-5">
-                  <div>
-                    <p className="label">{t('yearsExperienceLabel')}</p>
-                    <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t('yearsExperienceLabel')}>
-                      {YEARS_EXPERIENCE_OPTIONS.map((v) => (
-                        <button key={v} type="button" role="radio" aria-checked={yearsExperience === v}
-                          onClick={() => setYearsExperience(yearsExperience === v ? null : v)}
-                          className={`cursor-pointer rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
-                            yearsExperience === v ? 'bg-brand-600 text-white shadow-md' : 'bg-brand-50 text-slate-600 hover:bg-brand-100 dark:bg-white/5 dark:text-slate-400 dark:hover:bg-white/10'
-                          }`}>
-                          {t(`years_${v.replace('+', 'plus').replace('-', '_')}`)}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <p className="label">{t('equipmentLabel')}</p>
-                    <div className="space-y-2" role="radiogroup" aria-label={t('equipmentLabel')}>
-                      {['mobile_rig', 'customer_utilities'].map((v) => (
-                        <button key={v} type="button" role="radio" aria-checked={equipmentType === v}
-                          onClick={() => setEquipmentType(equipmentType === v ? null : v)}
-                          className={`flex w-full cursor-pointer items-center justify-between rounded-xl px-4 py-3 text-left text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
-                            equipmentType === v ? 'bg-brand-50 text-brand-800 ring-1 ring-brand-300 dark:bg-brand-500/15 dark:text-brand-200 dark:ring-brand-500/30' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 dark:bg-white/5 dark:text-slate-400 dark:hover:bg-white/10'
-                          }`}>
-                          {t(`equipment_${v}`)}
-                          {equipmentType === v && <CheckIcon className="h-4 w-4 shrink-0" />}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <p className="label">{t('certificationsLabel')}</p>
-                    <div className="flex flex-wrap gap-2">
-                      {CERT_OPTIONS.map((v) => (
-                        <button key={v} type="button" aria-pressed={certifications.includes(v)}
-                          onClick={() => toggle(certifications, setCertifications, v)}
-                          className={`cursor-pointer rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
-                            certifications.includes(v) ? 'bg-brand-600 text-white shadow-md' : 'bg-brand-50 text-slate-600 hover:bg-brand-100 dark:bg-white/5 dark:text-slate-400 dark:hover:bg-white/10'
-                          }`}>
-                          {t(`cert_${v}`)}
-                        </button>
-                      ))}
-                      {certifications.filter((c) => !CERT_OPTIONS.includes(c)).map((name) => (
-                        <span key={name} className="inline-flex items-center gap-1.5 rounded-full bg-brand-600 py-2 pl-4 pr-2 text-sm font-medium text-white shadow-md">
-                          {name}
-                          <button type="button" aria-label={t('removeCert', { name })} onClick={() => toggle(certifications, setCertifications, name)}
-                            className="flex h-5 w-5 cursor-pointer items-center justify-center rounded-full transition-colors duration-200 hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
-                            <XIcon className="h-3.5 w-3.5" />
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                    <div className="mt-2 flex items-center gap-2">
-                      <input
-                        type="text"
-                        aria-label={t('customCertAria')}
-                        value={customCertName}
-                        onChange={(e) => setCustomCertName(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addCustomCert())}
-                        placeholder={t('customCertPlaceholder')}
-                        className="input h-9 min-w-0 flex-1 text-sm"
-                      />
-                      <button
-                        type="button"
-                        onClick={addCustomCert}
-                        disabled={!customCertName.trim()}
-                        aria-label={t('addCert')}
-                        className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full bg-brand-600 text-white transition-colors duration-150 hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
-                      >
-                        <PlusIcon className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <p className="label">{t('teamSizeLabel')}</p>
-                    <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t('teamSizeLabel')}>
-                      {['solo', 'team'].map((v) => (
-                        <button key={v} type="button" role="radio" aria-checked={teamSize === v}
-                          onClick={() => setTeamSize(teamSize === v ? null : v)}
-                          className={`cursor-pointer rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
-                            teamSize === v ? 'bg-brand-600 text-white shadow-md' : 'bg-brand-50 text-slate-600 hover:bg-brand-100 dark:bg-white/5 dark:text-slate-400 dark:hover:bg-white/10'
-                          }`}>
-                          {t(`teamSize_${v}`)}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label htmlFor="ob-referral" className="label">{t('referralLabel')}</label>
-                    <select id="ob-referral" value={referralSource ?? ''} onChange={(e) => setReferralSource(e.target.value || null)} className="input">
-                      <option value="">{t('referralPlaceholder')}</option>
-                      {REFERRAL_OPTIONS.map((v) => (
-                        <option key={v} value={v}>{t(`referral_${v}`)}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {step === 4 && (
+            {step === 1 && (
               <div className="space-y-2">
                 <MarketingTip title={t('tipPriceTitle')}>
                   {t('tipPriceBody')}
@@ -896,20 +747,30 @@ export default function DetailerOnboarding() {
 
                 {!serviceMethod ? (
                   <div className="space-y-3">
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{t('changeAnytimeHint')}</p>
                     {[
-                      ['flyer', CameraIcon, 'methodFlyerTitle', 'methodFlyerBody'],
-                      ['template', FileTextIcon, 'methodTemplateTitle', 'methodTemplateBody'],
-                      ['manual', TagIcon, 'methodManualTitle', 'methodManualBody'],
-                    ].map(([method, Icon, titleKey, bodyKey]) => (
+                      ['template', FileTextIcon, 'methodTemplateTitle', 'methodTemplateBody', true],
+                      ['flyer', CameraIcon, 'methodFlyerTitle', 'methodFlyerBody', false],
+                      ['manual', TagIcon, 'methodManualTitle', 'methodManualBody', false],
+                    ].map(([method, Icon, titleKey, bodyKey, recommended]) => (
                       <button
                         key={method}
                         type="button"
                         onClick={() => (method === 'template' ? applyExampleTemplate() : setServiceMethod(method))}
-                        className="card flex w-full cursor-pointer items-start gap-3 !p-5 text-left transition-all duration-200 hover:border-brand-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+                        className={`card flex w-full cursor-pointer items-start gap-3 !p-5 text-left transition-all duration-200 hover:border-brand-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
+                          recommended ? 'border-brand-400 ring-2 ring-brand-200 dark:ring-brand-500/30' : ''
+                        }`}
                       >
                         <Icon className="mt-0.5 h-5 w-5 shrink-0 text-brand-600 dark:text-brand-300" />
                         <div>
-                          <p className="font-semibold text-slate-900 dark:text-slate-100">{t(titleKey)}</p>
+                          <p className="font-semibold text-slate-900 dark:text-slate-100">
+                            {t(titleKey)}
+                            {recommended && (
+                              <span className="ml-2 rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-brand-700 dark:bg-brand-500/20 dark:text-brand-300">
+                                {t('recommendedBadge')}
+                              </span>
+                            )}
+                          </p>
                           <p className="text-sm text-slate-600 dark:text-slate-400">{t(bodyKey)}</p>
                         </div>
                       </button>
@@ -992,39 +853,12 @@ export default function DetailerOnboarding() {
                               placeholder={t('serviceIncludesPlaceholder')}
                               className="input mt-2 h-9 text-sm"
                             />
-                            <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-brand-100 pt-2 dark:border-white/10">
-                              {advice ? (
-                                <p className="flex gap-1.5 text-xs text-brand-700 dark:text-brand-300">
-                                  <LightbulbIcon className="h-3.5 w-3.5 shrink-0" />
-                                  {advice}
-                                </p>
-                              ) : <span />}
-                              <div className="flex shrink-0 items-center gap-1.5">
-                                <button
-                                  type="button"
-                                  onClick={() => setServiceAddons((a) => ({ ...a, [name]: !isAddon }))}
-                                  title={t('toggleAddonTitle')}
-                                  className="flex cursor-pointer items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold text-slate-400 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-slate-500 dark:hover:bg-white/5 dark:hover:text-slate-300"
-                                >
-                                  <TagIcon className="h-3.5 w-3.5" />
-                                  {isAddon ? t('markAsPackage') : t('markAsAddon')}
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setFeaturedService((f) => (f === name ? null : name))}
-                                  aria-pressed={isPromoted}
-                                  title={isPromoted ? t('unmarkBestMargin') : t('markBestMarginTitle')}
-                                  className={`flex cursor-pointer items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
-                                    isPromoted
-                                      ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400'
-                                      : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:text-slate-500 dark:hover:bg-white/5 dark:hover:text-slate-300'
-                                  }`}
-                                >
-                                  <StarIcon className="h-3.5 w-3.5" />
-                                  {isPromoted ? t('bestMargin') : t('markAsBestMargin')}
-                                </button>
-                              </div>
-                            </div>
+                            {advice && (
+                              <p className="mt-2 flex gap-1.5 border-t border-brand-100 pt-2 text-xs text-brand-700 dark:border-white/10 dark:text-brand-300">
+                                <LightbulbIcon className="h-3.5 w-3.5 shrink-0" />
+                                {advice}
+                              </p>
+                            )}
                           </motion.div>
                         )
                       }
@@ -1035,12 +869,7 @@ export default function DetailerOnboarding() {
                               <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
                                 {t('yourServices')}
                               </p>
-                              {!featuredService && (
-                                <p className="flex items-start gap-1.5 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
-                                  <StarIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                                  {t('noPromotedWarning')}
-                                </p>
-                              )}
+                              <p className="text-xs text-slate-500 dark:text-slate-400">{t('servicesPolishLaterHint')}</p>
                               <AnimatePresence>{packageNames.map(renderCard)}</AnimatePresence>
                             </div>
                           )}
@@ -1100,44 +929,80 @@ export default function DetailerOnboarding() {
               </div>
             )}
 
-            {step === 5 && (
+            {step === 2 && (
               <div className="space-y-4">
                 <MarketingTip title={t('tipTravelTitle')}>
                   {t('tipTravelBody')}
                 </MarketingTip>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{t('changeAnytimeHint')}</p>
                 <div className="card space-y-5">
                 <div>
-                  <p className="label">{t('serviceDays')}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {DAYS.map((day) => (
-                      <button key={day} type="button" aria-pressed={days.includes(day)} onClick={() => toggle(days, setDays, day)}
-                        className={`cursor-pointer rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
-                          days.includes(day) ? 'bg-brand-600 text-white shadow-md' : 'bg-brand-50 text-slate-600 hover:bg-brand-100 dark:bg-white/5 dark:text-slate-400 dark:hover:bg-white/10'
-                        }`}>
-                        {day}
-                      </button>
-                    ))}
+                  <p className="label">{t('schedulePresetLabel')}</p>
+                  <div className="space-y-2" role="radiogroup" aria-label={t('schedulePresetLabel')}>
+                    {SCHEDULE_PRESETS.map((preset) => {
+                      const selected = schedulePreset === preset.id
+                      return (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          role="radio"
+                          aria-checked={selected}
+                          onClick={() => {
+                            setSchedulePreset(preset.id)
+                            if (preset.id !== 'custom') {
+                              setDays(preset.days)
+                              setBlackoutHours(preset.blackoutHours)
+                            }
+                          }}
+                          className={`card flex w-full cursor-pointer items-start gap-3 !p-4 text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
+                            selected ? 'border-brand-600 ring-2 ring-brand-200 dark:ring-brand-500/20' : 'hover:border-brand-300'
+                          }`}
+                        >
+                          <div>
+                            <p className="font-semibold text-slate-900 dark:text-slate-100">{t(`schedulePreset_${preset.id}`)}</p>
+                            <p className="text-sm text-slate-600 dark:text-slate-400">{t(`schedulePreset_${preset.id}Sub`)}</p>
+                          </div>
+                        </button>
+                      )
+                    })}
                   </div>
                 </div>
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <p className="label !mb-0">{t('blackoutHoursLabel')}</p>
-                    <InfoPopover label={t('whyBlackoutLabel')}>
-                      {t('whyBlackoutBody')}
-                    </InfoPopover>
-                  </div>
-                  <p className="mb-2 text-xs text-slate-400 dark:text-slate-500">{t('blackoutHoursHint')}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {BLACKOUT_HOUR_OPTIONS.map((h) => (
-                      <button key={h} type="button" aria-pressed={blackoutHours.includes(h)} onClick={() => toggle(blackoutHours, setBlackoutHours, h)}
-                        className={`cursor-pointer rounded-full px-3 py-1.5 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
-                          blackoutHours.includes(h) ? 'bg-slate-800 text-white shadow-md dark:bg-slate-200 dark:text-slate-900' : 'bg-brand-50 text-slate-600 hover:bg-brand-100 dark:bg-white/5 dark:text-slate-400 dark:hover:bg-white/10'
-                        }`}>
-                        {formatHour(h)}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                {schedulePreset === 'custom' && (
+                  <>
+                    <div>
+                      <p className="label">{t('serviceDays')}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {DAYS.map((day) => (
+                          <button key={day} type="button" aria-pressed={days.includes(day)} onClick={() => toggle(days, setDays, day)}
+                            className={`cursor-pointer rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
+                              days.includes(day) ? 'bg-brand-600 text-white shadow-md' : 'bg-brand-50 text-slate-600 hover:bg-brand-100 dark:bg-white/5 dark:text-slate-400 dark:hover:bg-white/10'
+                            }`}>
+                            {day}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <p className="label !mb-0">{t('blackoutHoursLabel')}</p>
+                        <InfoPopover label={t('whyBlackoutLabel')}>
+                          {t('whyBlackoutBody')}
+                        </InfoPopover>
+                      </div>
+                      <p className="mb-2 text-xs text-slate-400 dark:text-slate-500">{t('blackoutHoursHint')}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {BLACKOUT_HOUR_OPTIONS.map((h) => (
+                          <button key={h} type="button" aria-pressed={blackoutHours.includes(h)} onClick={() => toggle(blackoutHours, setBlackoutHours, h)}
+                            className={`cursor-pointer rounded-full px-3 py-1.5 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
+                              blackoutHours.includes(h) ? 'bg-slate-800 text-white shadow-md dark:bg-slate-200 dark:text-slate-900' : 'bg-brand-50 text-slate-600 hover:bg-brand-100 dark:bg-white/5 dark:text-slate-400 dark:hover:bg-white/10'
+                            }`}>
+                            {formatHour(h)}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
                 <div>
                   <label htmlFor="ob-travel" className="label">{t('freeTravelRadius', { miles: travel })}</label>
                   <input id="ob-travel" type="range" min={1} max={30} value={travel} onChange={(e) => setTravel(Number(e.target.value))} className="w-full cursor-pointer accent-brand-600" />
@@ -1155,40 +1020,7 @@ export default function DetailerOnboarding() {
                     {t('chargePerMileHint')}
                   </p>
                 </div>
-                </div>
-
-                <div className="card space-y-4">
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <p className="label !mb-0">{t('vehicleUpchargesLabel')}</p>
-                      <span className="rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-500 dark:bg-white/5 dark:text-slate-400">
-                        {t('optionalTag')}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">{t('vehicleUpchargesHint')}</p>
-                  </div>
-                  {[
-                    { key: 'suv', label: t('vehicleTypeSuv'), value: upchargeSuv, set: setUpchargeSuv },
-                    { key: 'truck', label: t('vehicleTypeTruck'), value: upchargeTruck, set: setUpchargeTruck },
-                    { key: 'van', label: t('vehicleTypeVan'), value: upchargeVan, set: setUpchargeVan },
-                  ].map(({ key, label, value, set }) => (
-                    <div key={key} className="flex items-center justify-between gap-3">
-                      <label htmlFor={`ob-upcharge-${key}`} className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                        {label}
-                      </label>
-                      <div className="flex items-center gap-1">
-                        <span className="text-slate-500 dark:text-slate-400">$</span>
-                        <input
-                          id={`ob-upcharge-${key}`}
-                          type="number" min={0} step={1} inputMode="decimal"
-                          value={value}
-                          onChange={(e) => set(e.target.value)}
-                          placeholder="0"
-                          className="input h-10 w-24"
-                        />
-                      </div>
-                    </div>
-                  ))}
+                <p className="text-xs text-slate-500 dark:text-slate-400">{t('schedulePolishLaterHint')}</p>
                 </div>
               </div>
             )}
@@ -1204,7 +1036,7 @@ export default function DetailerOnboarding() {
         <div className="mt-6 flex gap-2">
           {step > 0 && (
             <button
-              onClick={() => (step === 4 && serviceMethod ? setServiceMethod(null) : setStep(step - 1))}
+              onClick={() => (step === 1 && serviceMethod ? setServiceMethod(null) : setStep(step - 1))}
               disabled={saving}
               className="btn btn-outline"
             >

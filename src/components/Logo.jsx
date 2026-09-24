@@ -7,7 +7,7 @@ export default function Logo({ tone = 'dark', size = 'md' }) {
   const word = size === 'lg' ? 'text-3xl' : 'text-lg'
 
   return (
-    <span className="inline-flex items-center gap-2.5">
+    <span className="sp-logo inline-flex items-center gap-2.5">
       <span
         className={`${mark} inline-flex items-center justify-center bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-sm`}
       >

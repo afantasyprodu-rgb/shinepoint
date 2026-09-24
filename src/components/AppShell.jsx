@@ -284,7 +284,7 @@ export default function AppShell({ role, children, collapsibleBottomNav = false,
           relayout signal for. The floor is sized to the tallest current
           status bar (Dynamic Island); env() only pushes it further if a
           future device genuinely needs more. */}
-      <header className="relative z-[600] border-b border-brand-100 bg-white/90 pt-[max(env(safe-area-inset-top),2.75rem)] backdrop-blur dark:border-white/10 dark:bg-[#1A1430]/90">
+      <header className="app-header relative z-[600] border-b border-brand-100 bg-white/90 pt-[max(env(safe-area-inset-top),2.75rem)] backdrop-blur dark:border-white/10 dark:bg-[#1A1430]/90">
         <div className="flex items-center justify-between gap-2 px-3 py-3 sm:gap-3 sm:px-6">
           <div className="flex items-center gap-4">
             {locked ? (

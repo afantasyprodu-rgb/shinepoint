@@ -2971,92 +2971,12 @@ button.nx-pop-name:focus-visible {
    total, sticky bottom pay bar. */
 .darkopt-h { --neu-bg: #10141c; --neu-sd: transparent; --neu-sl: transparent; }
 
-/* ── Design skins (Stitch master-prompt v2, 6 themes) ─────────────────────────
+/* ── Design skins ─────────────────────────────────────────────────────────────
    Skins restyle shared surfaces app-wide for whoever is signed in; the
    attribute is stamped by ThemeContext (and pre-paint by theme-init.js).
    'default' (Studio Wash) has no overrides. Unlayered on purpose so these
    beat the layered .card/.btn utilities. House rules still hold everywhere:
    green CTA stays green, brand hue stays user-set. */
-/* Liquid Glass Light: luminous canvas, frosted white cards, daylight. */
-html[data-theme='liquid-glass-light'] { --neu-bg: #faf8ff; }
-html[data-theme='liquid-glass-light'] .card {
-  background: rgb(255 255 255 / 0.75);
-  border: 1px solid rgb(255 255 255 / 0.8);
-  border-radius: 22px;
-  box-shadow: 0 10px 28px -14px rgb(15 23 42 / 0.12), inset 0 1px 0 rgb(255 255 255 / 0.9);
-  backdrop-filter: blur(28px) saturate(1.9);
-  -webkit-backdrop-filter: blur(28px) saturate(1.9);
-}
-html.dark[data-theme='liquid-glass-light'] { --neu-bg: #14141c; }
-html.dark[data-theme='liquid-glass-light'] .card {
-  background: rgb(255 255 255 / 0.07);
-  border-color: rgb(255 255 255 / 0.14);
-  box-shadow: 0 12px 32px -12px rgb(0 0 0 / 0.6);
-}
-/* Liquid Glass Dark: obsidian canvas, smoked acrylic, azure/cyan glow. */
-html[data-theme='liquid-glass-dark'] {
-  --neu-bg: #090e16;
-  --neu-sd: #000000;
-  --neu-sl: #232c3d;
-}
-html[data-theme='liquid-glass-dark'] .card {
-  background: rgb(23 28 36 / 0.65);
-  border: 1px solid rgb(255 255 255 / 0.12);
-  border-radius: 22px;
-  box-shadow: 0 0 0 1px rgb(100 210 255 / 0.06), 0 16px 40px -16px rgb(0 0 0 / 0.8);
-  backdrop-filter: blur(28px);
-  -webkit-backdrop-filter: blur(28px);
-}
-/* Mono Clean: flat Swiss, hairlines, Inter everywhere, geometric radii. */
-html[data-theme='mono-clean'] { --neu-bg: #f8f9fa; }
-html[data-theme='mono-clean'] .card {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  box-shadow: none;
-}
-html.dark[data-theme='mono-clean'] { --neu-bg: #111417; }
-html.dark[data-theme='mono-clean'] .card {
-  background: #171b20;
-  border-color: rgb(255 255 255 / 0.09);
-}
-html[data-theme='mono-clean'] .font-display { font-family: var(--font-sans); letter-spacing: -0.01em; }
-html[data-theme='mono-clean'] .btn { border-radius: 10px; }
-/* Apex Precision: midnight navy-slate slabs, micro-hairlines, Grotesk voice. */
-html[data-theme='precision'] { --neu-bg: #eef1f6; }
-html[data-theme='precision'] .card {
-  background: linear-gradient(180deg, #ffffff 0%, #f2f5f9 100%);
-  border: 1px solid #dbe2ec;
-  border-radius: 10px;
-  box-shadow: none;
-}
-html.dark[data-theme='precision'] { --neu-bg: #031427; --neu-sd: #000000; --neu-sl: #1a2d42; }
-html.dark[data-theme='precision'] .card {
-  background: linear-gradient(180deg, #0a2138 0%, #031427 100%);
-  border-color: #1a2d42;
-}
-html[data-theme='precision'] .font-display { font-family: 'Space Grotesk', var(--font-sans); }
-html[data-theme='precision'] .btn { border-radius: 10px; }
-html[data-theme='precision'] .chip { border-radius: 8px; }
-/* Neo-Tokyo Cyber HUD: pitch cockpit, cyan hairlines, lime telemetry,
-   Grotesk headers + JetBrains Mono data. Fixed dark-first in both modes. */
-html[data-theme='cyber-hud'] {
-  --neu-bg: #090a0f;
-  --neu-sd: #000000;
-  --neu-sl: #16202e;
-  --font-display: 'Space Grotesk', var(--font-sans);
-}
-html[data-theme='cyber-hud'] .card {
-  background: #0d1119;
-  border: 1px solid rgb(0 242 254 / 0.18);
-  border-radius: 8px;
-  box-shadow: 0 0 12px rgb(204 255 0 / 0.06), 0 12px 32px -12px rgb(0 0 0 / 0.8);
-}
-html[data-theme='cyber-hud'] .font-mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
-html[data-theme='cyber-hud'] .btn-cta {
-  box-shadow: 0 0 16px rgb(204 255 0 / 0.35);
-}
-html[data-theme='cyber-hud'] .chip { border-radius: 6px; }
 /* Golden Hour (house original): warm low-sun garage light. The wash itself
    goes honey — shadow and highlight tinted amber — over cream paper days
    and espresso nights. Brand and CTA stay theirs; only the light changes. */
@@ -3079,6 +2999,244 @@ html.dark[data-theme='golden-hour'] .card {
 }
 html.dark[data-theme='golden-hour'] .btn-cta {
   box-shadow: 0 0 20px -4px rgb(232 185 63 / 0.45);
+}
+
+/* Pulse: animated/interactive skin. A slow drifting aurora behind the app,
+   springy cards that lift and tilt on hover/press, a breathing CTA glow.
+   Everything motion-related is gated off under prefers-reduced-motion. */
+html[data-theme='pulse'] {
+  --neu-bg: #fbf8ff;
+  --neu-sd: rgba(91, 33, 182, 0.14);
+  --neu-sl: #ffffff;
+}
+html.dark[data-theme='pulse'] {
+  --neu-bg: #120e24;
+  --neu-sd: #05030c;
+  --neu-sl: #2a2150;
+}
+html[data-theme='pulse'] body {
+  background:
+    radial-gradient(40rem 30rem at 10% -10%, rgb(255 95 162 / 0.16), transparent 60%),
+    radial-gradient(36rem 28rem at 110% 20%, rgb(139 92 246 / 0.14), transparent 60%),
+    radial-gradient(40rem 30rem at 50% 120%, rgb(34 211 238 / 0.12), transparent 60%),
+    var(--neu-bg);
+  background-size: 140% 140%;
+  background-attachment: fixed;
+  animation: pulse-aurora 22s ease-in-out infinite alternate;
+}
+@keyframes pulse-aurora {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 100% 100%; }
+}
+html[data-theme='pulse'] .card {
+  border-radius: 22px;
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.35s ease;
+}
+html[data-theme='pulse'] .card:hover {
+  transform: translateY(-3px) rotate(-0.25deg);
+  box-shadow: 12px 14px 26px var(--neu-sd), -8px -8px 18px var(--neu-sl);
+}
+html[data-theme='pulse'] .card:active { transform: scale(0.985); }
+html.dark[data-theme='pulse'] .card {
+  background: rgb(30 22 58 / 0.78);
+  border: 1px solid rgb(167 139 250 / 0.14);
+  backdrop-filter: blur(10px);
+}
+html[data-theme='pulse'] .btn { border-radius: 16px; transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); }
+html[data-theme='pulse'] .btn:active { transform: scale(0.94); }
+html[data-theme='pulse'] .btn-cta { animation: pulse-cta 2.8s ease-in-out infinite; }
+@keyframes pulse-cta {
+  0%, 100% { box-shadow: 0 6px 16px -6px color-mix(in srgb, var(--color-cta-600) 70%, transparent); }
+  50% { box-shadow: 0 8px 26px -4px color-mix(in srgb, var(--color-cta-500) 85%, transparent); }
+}
+html[data-theme='pulse'] .pulse-tile { background-size: 180% 180%; animation: pulse-tile-flow 6s ease-in-out infinite alternate; }
+@keyframes pulse-tile-flow {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 100% 50%; }
+}
+.pulse-ping::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: inherit;
+  animation: nx-ping 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+/* Zen: ultra-minimal skin. Monochrome, flat, hairline borders, sans-only
+   type, no decorative motion. The brand ramp is remapped to neutrals so
+   every pink accent in the app goes grey/black at once; the green CTA is
+   left alone as the single colour on screen (the one-action rule). */
+html[data-theme='zen'] {
+  --neu-bg: #ffffff;
+  --neu-sd: transparent;
+  --neu-sl: transparent;
+  --font-display: var(--font-sans);
+  --color-brand-50: #f7f7f7;
+  --color-brand-100: #efefef;
+  --color-brand-200: #dcdcdc;
+  --color-brand-300: #a3a3a3;
+  --color-brand-400: #8a8a8a;
+  --color-brand-500: #5c5c5c;
+  --color-brand-600: #262626;
+  --color-brand-700: #171717;
+  --color-brand-800: #0a0a0a;
+}
+html.dark[data-theme='zen'] {
+  --neu-bg: #0b0b0b;
+  --color-brand-50: #141414;
+  --color-brand-100: #1c1c1c;
+  --color-brand-200: #ededed;
+  --color-brand-300: #d4d4d4;
+  --color-brand-400: #a3a3a3;
+  --color-brand-500: #8a8a8a;
+  --color-brand-600: #3a3a3a;
+  --color-brand-700: #a3a3a3;
+  --color-brand-800: #ededed;
+}
+/* Neutralise Tailwind's blue-tinted slate so every grey is pure grey. */
+html[data-theme='zen'] {
+  --color-slate-50: #fafafa;
+  --color-slate-100: #f4f4f4;
+  --color-slate-200: #e5e5e5;
+  --color-slate-300: #d4d4d4;
+  --color-slate-400: #a3a3a3;
+  --color-slate-500: #737373;
+  --color-slate-600: #525252;
+  --color-slate-700: #404040;
+  --color-slate-800: #262626;
+  --color-slate-900: #171717;
+  --color-slate-950: #0a0a0a;
+}
+html[data-theme='zen'] body { background: var(--neu-bg); }
+/* Branding is exempt: the logo and the Driplee/Drew mascot (.sp-logo)
+   keep their real brand ramp and serif. */
+html[data-theme='zen'] .sp-logo {
+  --font-display: "Playfair Display", ui-sans-serif, system-ui, sans-serif;
+  --color-brand-200: oklch(from #e9d5ff L calc(C * 1.5) var(--brand-h));
+  --color-brand-300: oklch(from #d8b4fe L calc(C * 1.5) var(--brand-h));
+  --color-brand-400: oklch(from #c084fc L calc(C * 1.5) var(--brand-h));
+  --color-brand-500: oklch(from #a78bfa L calc(C * 1.5) var(--brand-h));
+  --color-brand-600: oklch(from #7c3aed L calc(C * 1.5) var(--brand-h));
+  --color-brand-700: oklch(from #6d28d9 L calc(C * 1.5) var(--brand-h));
+  --color-brand-900: oklch(from #4c1d95 L calc(C * 1.5) var(--brand-h));
+}
+html[data-theme='zen'] .sp-logo .font-display { font-family: var(--font-display); font-weight: 600; letter-spacing: normal; }
+html[data-theme='zen'] h1,
+html[data-theme='zen'] h2,
+html[data-theme='zen'] h3,
+html[data-theme='zen'] h4,
+html[data-theme='zen'] .font-display { font-family: var(--font-sans); font-weight: 600; letter-spacing: -0.025em; }
+html[data-theme='zen'] .card {
+  box-shadow: none;
+  border: 1px solid #ececec;
+  border-radius: 14px;
+}
+html.dark[data-theme='zen'] .card { border-color: #1f1f1f; background: #0f0f0f; }
+html[data-theme='zen'] .card-hover:hover { transform: none; box-shadow: none; border-color: #cfcfcf; }
+html.dark[data-theme='zen'] .card-hover:hover { border-color: #333; }
+html[data-theme='zen'] .btn { border-radius: 10px; }
+html[data-theme='zen'] .btn:hover { transform: none; box-shadow: none; }
+html[data-theme='zen'] .btn-cta { box-shadow: none; }
+html[data-theme='zen'] .btn-brand,
+html[data-theme='zen'] .btn-outline {
+  background: transparent;
+  box-shadow: none;
+  border: 1px solid #e2e2e2;
+  color: #171717;
+}
+html.dark[data-theme='zen'] .btn-brand,
+html.dark[data-theme='zen'] .btn-outline { border-color: #2a2a2a; color: #ededed; }
+html[data-theme='zen'] .btn-brand:active,
+html[data-theme='zen'] .btn-outline:active { box-shadow: none; background: #f4f4f4; }
+html.dark[data-theme='zen'] .btn-brand:active,
+html.dark[data-theme='zen'] .btn-outline:active { background: #161616; }
+html[data-theme='zen'] .input {
+  box-shadow: none;
+  background: #f6f6f6;
+  border-radius: 10px;
+}
+html.dark[data-theme='zen'] .input { background: #161616; }
+html[data-theme='zen'] .input:focus { box-shadow: 0 0 0 1px #171717; }
+html.dark[data-theme='zen'] .input:focus { box-shadow: 0 0 0 1px #ededed; }
+html[data-theme='zen'] .chip { border-radius: 8px; }
+html[data-theme='zen'] .bottom-tabbar-bg { -webkit-mask-image: none; mask-image: none; border-top: 1px solid #ececec; }
+html.dark[data-theme='zen'] .bottom-tabbar-bg { border-top-color: #1f1f1f; }
+/* Zen sweep — surfaces that carry their own hardcoded colours. */
+/* Client Book family (clientBook.module.css shells): remap its palette
+   variables to neutrals, drop the wavy/blob decoration and hard offset
+   shadows, and grayscale any leftover literal pink. Buttons go black. */
+html[data-theme='zen'] [class*='_shell_'] {
+  --cb-pink: #171717;
+  --cb-pink-soft: #f1f1f1;
+  --cb-pink-deep: #000000;
+  --cb-cream: #ffffff;
+  --cb-cream-deep: #f7f7f7;
+  --cb-peach: #f4f4f4;
+  --cb-mint: #f1f1f1;
+  --cb-ink: #0a0a0a;
+  --cb-muted: #737373;
+  filter: grayscale(1);
+}
+html.dark[data-theme='zen'] [class*='_shell_'] {
+  --cb-pink: #3a3a3a;
+  --cb-pink-soft: #1c1c1c;
+  --cb-pink-deep: #ededed;
+  --cb-cream: #0b0b0b;
+  --cb-cream-deep: #141414;
+  --cb-peach: #161616;
+  --cb-mint: #161616;
+  --cb-ink: #ededed;
+  --cb-muted: #a3a3a3;
+}
+html[data-theme='zen'] [class*='_blob'],
+html[data-theme='zen'] [class*='_wave_'],
+html[data-theme='zen'] [class*='_droplet'] { display: none; }
+html[data-theme='zen'] [class*='_waveHeader_'] {
+  clip-path: none;
+  border-radius: 0;
+  background: transparent;
+  border-bottom: 1px solid #ececec;
+}
+html.dark[data-theme='zen'] [class*='_waveHeader_'] { border-bottom-color: #1f1f1f; }
+html[data-theme='zen'] [class*='_waveHeader_'] * { color: var(--cb-ink) !important; }
+html[data-theme='zen'] [class*='_shell_'] * { box-shadow: none !important; }
+/* Everything else: flat surfaces, no coloured hard shadows. */
+html[data-theme='zen'] [class*='shadow-']:not(:focus-visible) { box-shadow: none !important; }
+html[data-theme='zen'] .nx-neu,
+html[data-theme='zen'] .bento-tile,
+html[data-theme='zen'] .bento-action {
+  box-shadow: none;
+  border: 1px solid #ececec;
+}
+html.dark[data-theme='zen'] .nx-neu,
+html.dark[data-theme='zen'] .bento-tile,
+html.dark[data-theme='zen'] .bento-action { border-color: #1f1f1f; }
+html[data-theme='zen'] .bento-action { background: #171717; color: #fff; }
+html.dark[data-theme='zen'] .bento-action { background: #1c1c1c; }
+/* Decorative coloured placeholder gradients (photo slots etc.) go grey. */
+html[data-theme='zen'] [class*='from-rose-'],
+html[data-theme='zen'] [class*='from-amber-'],
+html[data-theme='zen'] [class*='from-sky-'],
+html[data-theme='zen'] [class*='from-blue-'],
+html[data-theme='zen'] [class*='from-indigo-'],
+html[data-theme='zen'] [class*='from-violet-'],
+html[data-theme='zen'] [class*='from-orange-'],
+html[data-theme='zen'] [class*='from-teal-'],
+html[data-theme='zen'] [class*='from-yellow-'],
+html[data-theme='zen'] [class*='from-emerald-'] { filter: grayscale(1); }
+html[data-theme='zen'] .card-glow::before,
+html[data-theme='zen'] .card-glow::after { display: none; }
+html.dark[data-theme='zen'] .app-header { background: rgb(11 11 11 / 0.92); border-color: #1f1f1f; }
+html[data-theme='zen'] .press-spring:active { transform: none; opacity: 0.6; }
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme='pulse'] body,
+  html[data-theme='pulse'] .btn-cta,
+  html[data-theme='pulse'] .pulse-tile,
+  .pulse-ping::after { animation: none; }
+  html[data-theme='pulse'] .card,
+  html[data-theme='pulse'] .card:hover,
+  html[data-theme='pulse'] .card:active { transform: none; }
 }
 
 /* ── Booking cascade (BookingDetail, ships gallery K + E-flat) ─────────────

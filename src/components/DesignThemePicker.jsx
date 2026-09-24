@@ -2,16 +2,14 @@ import { CheckIcon, PaletteIcon } from './icons'
 import { useTheme } from '../context/ThemeContext'
 import { useT } from '../i18n/useT'
 
-// Design skin picker: the 5 v1 Stitch families. Selecting stamps
+// Design skin picker. Selecting stamps
 // data-theme on <html> (persisted, pre-painted) and repaints the whole app
-// for whoever is signed in. Previews are the exported Stitch mockups.
+// for whoever is signed in.
 const TAG_KEYS = {
   default: 'tagDefault',
-  'liquid-glass-light': 'tagLiquidLight',
-  'liquid-glass-dark': 'tagLiquidDark',
-  'mono-clean': 'tagMonoClean',
-  precision: 'tagPrecision',
-  'cyber-hud': 'tagCyberHud',
+  'golden-hour': 'tagGoldenHour',
+  pulse: 'tagPulse',
+  zen: 'tagZen',
 }
 
 export function DesignThemeGrid() {

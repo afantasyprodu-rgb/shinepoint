@@ -8,6 +8,7 @@ import {
   useSpring,
   useReducedMotion,
 } from 'motion/react'
+import { useTheme } from '../../context/ThemeContext'
 // Fixed bottom tab bar, mobile only, shared by every role (customer,
 // detailer, admin). The bar's top edge has a circular cutout that slides to
 // the active tab (--tab-notch-x, animated via the CSS `@property` in
@@ -16,6 +17,8 @@ import {
 // a click listener, so back/forward and deep links stay correct.
 export default function BottomTabBar({ items, hidden = false }) {
   const location = useLocation()
+  // Zen (ultra-minimal skin) drops the droplet: flat bar, plain active icon.
+  const flat = useTheme().designTheme === 'zen'
   const [pressed, setPressed] = useState(false)
   const activeIndex = Math.max(
     0,
@@ -71,7 +74,7 @@ export default function BottomTabBar({ items, hidden = false }) {
           box-shadow entirely in this engine, so the shadow needs its own
           unmasked layer underneath the masked fill (see the profile card's
           identical fix/comment in index.css for how this was found). */}
-      <div aria-hidden="true" className="absolute inset-0 shadow-[0_-8px_20px_-10px_var(--neu-sd)]" />
+      {!flat && <div aria-hidden="true" className="absolute inset-0 shadow-[0_-8px_20px_-10px_var(--neu-sd)]" />}
       <div aria-hidden="true" className="bottom-tabbar-bg absolute inset-0 bg-[var(--neu-bg)]" />
       <nav
         aria-label="Main mobile"
@@ -81,7 +84,7 @@ export default function BottomTabBar({ items, hidden = false }) {
         onPointerCancel={onPointerCancel}
         onPointerLeave={onPointerLeave}
       >
-        <WaterDroplet activeIndex={activeIndex} count={items.length} activeIcon={items[activeIndex]?.icon} pressed={pressed} />
+        {!flat && <WaterDroplet activeIndex={activeIndex} count={items.length} activeIcon={items[activeIndex]?.icon} pressed={pressed} />}
         {items.map(({ to, label, end, icon: ItemIcon, badge }) => (
         <NavLink
           key={to}
@@ -98,7 +101,7 @@ export default function BottomTabBar({ items, hidden = false }) {
                 {ItemIcon && (
                   <ItemIcon
                     className={`h-5 w-5 transition-opacity duration-150 ${
-                      isActive ? 'opacity-0' : 'text-slate-500 dark:text-slate-400'
+                      isActive ? (flat ? 'text-slate-900 dark:text-white' : 'opacity-0') : 'text-slate-500 dark:text-slate-400'
                     }`}
                   />
                 )}

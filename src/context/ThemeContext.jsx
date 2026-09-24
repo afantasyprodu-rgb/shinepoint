@@ -39,14 +39,10 @@ const STORAGE_KEY = 'shinepoint-theme'
 const hueKey = (mode) => `shinepoint-hue-${mode}`
 const hueIndexKey = (mode) => `shinepoint-hue-index-${mode}`
 
-// Design skins (Stitch theme families). Independent from the light/dark
-// mode above: a skin restyles surfaces/radii/type across the whole app for
-// whoever is signed in. 'default' is the Studio Wash system (no overrides).
-// Only two skins are live in the picker: the original Studio Wash and
-// Golden Hour ("Default 2"). The five Stitch families stay out of the list
-// until their screens are rebuilt — their packs remain in index.css and
-// their exports in stitch-themes/ for that later pass. Stored ids from
-// the hidden set fall back to default (see initialDesignTheme).
+// Design skins. Independent from the light/dark mode above: a skin restyles
+// surfaces/radii/type across the whole app for whoever is signed in.
+// 'default' is the Studio Wash system (no overrides). Stored ids that aren't
+// in this list fall back to default (see initialDesignTheme).
 export const DESIGN_THEMES = [
   { id: 'default', labelKey: 'themeDefault', preview: null },
   {
@@ -55,26 +51,30 @@ export const DESIGN_THEMES = [
     preview: null,
     swatch: 'linear-gradient(135deg, #f6e3bd 0%, #e8b93f 45%, #2a1c10 45%, #191410 100%)',
   },
+  {
+    // Animated/interactive skin. Also swaps the detailer Clients tab for the
+    // simpler bucketed CRM (PulseClientBoard).
+    id: 'pulse',
+    labelKey: 'themePulse',
+    preview: null,
+    swatch: 'linear-gradient(135deg, #ff5fa2 0%, #8b5cf6 50%, #22d3ee 100%)',
+  },
+  {
+    // Ultra-minimal: monochrome, flat, no motion. Detailer Jobs/Clients/
+    // Earnings get stripped-down layouts (Zen* components).
+    id: 'zen',
+    labelKey: 'themeZen',
+    preview: null,
+    swatch: 'linear-gradient(135deg, #ffffff 0%, #ffffff 50%, #0b0b0b 50%, #0b0b0b 100%)',
+  },
 ]
 const DESIGN_STORAGE_KEY = 'shinepoint-design-theme'
-
-// v1→v2 migration: 'minimalist' was renamed, 'liquid-glass' split by mode.
-function migrateDesignTheme(v) {
-  if (v === 'minimalist') return 'mono-clean'
-  if (v === 'liquid-glass') {
-    try {
-      if (document.documentElement.classList.contains('dark')) return 'liquid-glass-dark'
-    } catch { /* ignore */ }
-    return 'liquid-glass-light'
-  }
-  return v
-}
 
 function initialDesignTheme() {
   if (typeof window === 'undefined') return 'default'
   try {
     const raw = localStorage.getItem(DESIGN_STORAGE_KEY)
-    const v = migrateDesignTheme(raw)
+    const v = raw
     if (DESIGN_THEMES.some((t) => t.id === v)) return v
   } catch { /* private mode, ignore */ }
   return 'default'
