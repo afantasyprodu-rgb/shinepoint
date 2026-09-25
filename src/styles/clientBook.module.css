@@ -453,6 +453,10 @@
   margin-top: 0.15rem;
   transition: background 0.15s ease;
 }
+.toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
 .toggle::after {
   content: "";
   position: absolute;

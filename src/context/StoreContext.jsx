@@ -712,6 +712,9 @@ export function StoreProvider({ children }) {
         }
         // Deposit share taken up front (086). 0 means charge in full.
         if (patch.depositPercent != null) cols.deposit_percent = Number(patch.depositPercent) || 0
+        // Client Book Autopilot cadence in days (104) — how often an
+        // auto-remind client gets re-texted by send-client-book-reminders.
+        if (patch.clientRemindCadenceDays != null) cols.client_remind_cadence_days = Number(patch.clientRemindCadenceDays) || 60
         if (Object.keys(cols).length) {
           await updateDetailerProfile(profile.id, cols)
           setDetailerProfile((dp) => ({ ...(dp ?? {}), ...cols }))

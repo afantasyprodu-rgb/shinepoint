@@ -94,9 +94,23 @@ function maskPhone(phone) {
  * Approve / Edit / Skip. Send path = existing detailer-helper send_reminder
  * (Sent.dm when SENTDM_API_KEY is set; otherwise skipped stub reply).
  */
+const CADENCE_OPTIONS = [30, 60, 90]
+
 export default function DetailerClientAutopilot() {
-  const { detailerProfile, detailerProfileLoaded, isDemo } = useStore()
+  const { detailerProfile, detailerProfileLoaded, isDemo, updateDetailerMe } = useStore()
   const detailerId = isDemo ? 'det-1' : detailerProfile?.id
+  const cadenceDays = detailerProfile?.client_remind_cadence_days ?? 60
+  const [savingCadence, setSavingCadence] = useState(false)
+
+  async function setCadence(days) {
+    if (days === cadenceDays || savingCadence) return
+    setSavingCadence(true)
+    try {
+      await updateDetailerMe({ clientRemindCadenceDays: days })
+    } finally {
+      setSavingCadence(false)
+    }
+  }
 
   const [clients, setClients] = useState([])
   const [lastDetailed, setLastDetailed] = useState(() => new Map())
@@ -287,6 +301,30 @@ export default function DetailerClientAutopilot() {
             Send path: detailer-helper → Sent.dm when configured; otherwise stub (approved, not sent).
           </p>
 
+          <div className={`${styles.card} mt-3`}>
+            <strong className={styles.cardName}>Automatic reminders</strong>
+            <p className={styles.meta} style={{ marginTop: '0.15rem' }}>
+              Clients with Auto-remind on (see their client page) get texted on this
+              schedule automatically — no manual Approve needed. This scan below is
+              still here for one-off sends to everyone else.
+            </p>
+            <div className={styles.filterChips} role="radiogroup" aria-label="Auto-remind cadence" style={{ marginTop: '0.6rem' }}>
+              {CADENCE_OPTIONS.map((days) => (
+                <button
+                  key={days}
+                  type="button"
+                  role="radio"
+                  aria-checked={cadenceDays === days}
+                  disabled={savingCadence}
+                  className={cadenceDays === days ? styles.chipActive : styles.chip}
+                  onClick={() => setCadence(days)}
+                >
+                  Every {days}d
+                </button>
+              ))}
+            </div>
+          </div>
+
           {error && <div className={styles.error} role="alert">{error}</div>}
 
           <div className={styles.filterChips} role="tablist" aria-label="Due window">
@@ -359,6 +397,9 @@ export default function DetailerClientAutopilot() {
                       {masked ? ` · ${masked}` : ''}
                       {!c.sms_opt_in && (
                         <span className="ml-2 text-xs font-semibold text-amber-700">no SMS opt-in</span>
+                      )}
+                      {c.auto_remind && (
+                        <span className="ml-2 text-xs font-semibold text-cta-700">auto-remind on</span>
                       )}
                     </div>
                   </div>
