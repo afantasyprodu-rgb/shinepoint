@@ -8,7 +8,8 @@ import OnboardingHelper from '../components/OnboardingHelper'
 import { useStore } from '../context/StoreContext'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
-import { CheckIcon, ShieldCheckIcon, CreditCardIcon, ClipboardCheckIcon, UsersIcon, PlusIcon, XIcon, LightbulbIcon, ClockIcon, SparklesIcon, CameraIcon, ImageIcon, FileTextIcon, TagIcon } from '../components/icons'
+import { CheckIcon, ShieldCheckIcon, CreditCardIcon, UsersIcon, PlusIcon, XIcon, LightbulbIcon, ClockIcon, SparklesIcon, CameraIcon, ImageIcon, FileTextIcon, TagIcon, PaletteIcon, QrCodeIcon, ArrowRightIcon } from '../components/icons'
+import DrewBlob from '../components/ui/DrewBlob'
 import { InfoPopover } from '../components/ui/bits'
 import { startIdentityVerification, startConnectOnboarding, isStripeConfigured, stripePromise } from '../lib/stripe'
 import { fetchMyPayoutStatus, extractFlyerPrices, submitInsuranceDocument } from '../lib/db'
@@ -399,15 +400,26 @@ export default function DetailerOnboarding() {
     return (
       <AppShell role="detailer" locked>
         <div className="mx-auto max-w-md px-4 py-16 text-center">
-          <motion.span
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: 'spring', stiffness: 200, damping: 12 }}
-            className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-brand-600 text-white shadow-xl"
+          {/* Driplee celebrates the finish — speech bubble first, then the
+              mascot pops in under it. */}
+          <motion.div
+            initial={{ opacity: 0, y: 8, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ delay: 0.35, type: 'spring', stiffness: 260, damping: 18 }}
+            className="relative mx-auto w-fit rounded-2xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg"
           >
-            <ClipboardCheckIcon className="h-10 w-10" />
-          </motion.span>
-          <h1 className="mt-6 font-display text-3xl font-bold text-slate-900 dark:text-slate-100">
+            {t('allSetBubble')}
+            <span aria-hidden="true" className="absolute -bottom-1.5 left-1/2 h-3 w-3 -translate-x-1/2 rotate-45 bg-brand-600" />
+          </motion.div>
+          <motion.div
+            initial={{ scale: 0, rotate: -12 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ type: 'spring', stiffness: 220, damping: 11 }}
+            className="mx-auto mt-3 w-fit"
+          >
+            <DrewBlob size={96} />
+          </motion.div>
+          <h1 className="mt-4 font-display text-3xl font-bold text-slate-900 dark:text-slate-100">
             {t('submittedTitle')}
           </h1>
           <p className="mt-2 text-slate-600 dark:text-slate-400">{t('whatsNext')}</p>
@@ -437,6 +449,35 @@ export default function DetailerOnboarding() {
               </motion.li>
             ))}
           </ol>
+
+          <h2 className="mt-8 text-left text-sm font-semibold text-slate-700 dark:text-slate-300">{t('makeItYours')}</h2>
+          <p className="text-left text-xs text-slate-500 dark:text-slate-400">{t('makeItYoursSub')}</p>
+          <div className="mt-3 grid gap-3 text-left">
+            {[
+              { icon: PaletteIcon, title: t('finishThemeTitle'), sub: t('finishThemeSub'), go: () => navigate('/detailer/profile', { state: { tab: 'account' } }) },
+              { icon: QrCodeIcon, title: t('finishQrTitle'), sub: t('finishQrSub'), go: () => navigate('/detailer/flyer') },
+            ].map(({ icon: Icon, title, sub, go }, i) => (
+              <motion.button
+                key={title}
+                type="button"
+                onClick={go}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8 + i * 0.12 }}
+                className="card card-hover flex w-full cursor-pointer items-center gap-4 !p-4 text-left"
+              >
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 text-brand-600 dark:text-brand-300">
+                  <Icon className="h-5 w-5" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block font-semibold text-slate-900 dark:text-slate-100">{title}</span>
+                  <span className="block text-xs text-slate-500 dark:text-slate-400">{sub}</span>
+                </span>
+                <ArrowRightIcon className="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-500" />
+              </motion.button>
+            ))}
+          </div>
+
           <button onClick={() => navigate('/detailer')} className="btn btn-cta mt-8 w-full">
             {isDemo ? t('demoSkipReview') : t('goToDashboard')}
           </button>
@@ -556,6 +597,18 @@ export default function DetailerOnboarding() {
                     <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                       {t('stripeConfirming')}
                     </p>
+                  </div>
+                )}
+                {idStatus === 'skipped' && (
+                  <div className="mt-5">
+                    <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">
+                      <ClockIcon className="h-6 w-6" />
+                    </span>
+                    <p className="mt-2 font-semibold text-amber-700 dark:text-amber-400">{t('idSkippedTitle')}</p>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{t('skipIdNote')}</p>
+                    <button type="button" onClick={() => setIdStatus('idle')} className="mt-2 text-xs font-semibold text-brand-600 underline-offset-2 hover:underline dark:text-brand-300">
+                      {t('idSkippedVerifyNow')}
+                    </button>
                   </div>
                 )}
                 {idStatus === 'passed' && (
@@ -1079,8 +1132,12 @@ export default function DetailerOnboarding() {
             </button>
             <button
               onClick={() => {
+                // Stay on this (last) step and record the skip — any non-idle
+                // idStatus unlocks Submit. This used to setStep(1), a leftover
+                // from when identity was step 2: it bounced the detailer back
+                // to Services instead of letting them finish.
                 setConfirmSkipId(false)
-                setStep(1)
+                setIdStatus('skipped')
               }}
               className="btn btn-brand flex-1"
             >

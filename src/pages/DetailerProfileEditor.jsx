@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import AppShell from '../components/AppShell'
 import AccountDangerZone from '../components/AccountDangerZone'
@@ -14,7 +14,7 @@ import { AnimatedPage } from '../components/ui/Motion'
 import Drawer from '../components/ui/Drawer'
 import LocationServicesEditor from '../components/LocationServicesEditor'
 import { allLocationsFor } from '../lib/fuzzyPin'
-import { CheckIcon, TrashIcon, PlusIcon, LightbulbIcon, ArrowRightIcon, CreditCardIcon, InfoIcon } from '../components/icons'
+import { CheckIcon, TrashIcon, PlusIcon, LightbulbIcon, ArrowRightIcon, CreditCardIcon, InfoIcon, QrCodeIcon } from '../components/icons'
 import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
 import { fetchMyPayoutStatus, fetchVacations, addVacation, removeVacation, bookingsInRange } from '../lib/db'
@@ -170,7 +170,10 @@ export default function DetailerProfileEditor() {
   const [ecoWaterless, setEcoWaterless] = useState(me.eco?.waterless ?? false)
   const [ecoProducts, setEcoProducts] = useState(me.eco?.products ?? false)
   const [ecoReclaim, setEcoReclaim] = useState(me.eco?.reclaim ?? false)
-  const [activeTab, setActiveTab] = useState('profile')
+  const location = useLocation()
+  const [activeTab, setActiveTab] = useState(() =>
+    ['profile', 'services', 'schedule', 'account'].includes(location.state?.tab) ? location.state.tab : 'profile'
+  )
   const [saved, setSaved] = useState(false)
   const [busy, setBusy] = useState(false)
   // Additional service locations (074) — saved immediately on add/remove,
@@ -988,6 +991,22 @@ export default function DetailerProfileEditor() {
           </div>
         </div>
 
+        <DesignThemeSetting />
+
+        <Link
+          to="/detailer/flyer"
+          className="card card-hover flex items-center gap-4 !p-4"
+        >
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 text-brand-600 dark:text-brand-300">
+            <QrCodeIcon className="h-5 w-5" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-semibold text-slate-900 dark:text-slate-100">Your QR flyer</span>
+            <span className="block text-sm text-slate-500 dark:text-slate-400">Print a flyer with your booking QR code — 5 designs, your own photo.</span>
+          </span>
+          <ArrowRightIcon className="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-500" />
+        </Link>
+
         <SfxSetting />
 
         <PayoutManagement />
@@ -1019,8 +1038,6 @@ export default function DetailerProfileEditor() {
           </span>
           <ArrowRightIcon className="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-500" />
         </Link>
-
-        <DesignThemeSetting />
 
         <ChangePassword />
 
