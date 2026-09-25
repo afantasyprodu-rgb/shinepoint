@@ -7,6 +7,7 @@ const detailerRows = [
   {
     id: 'det-1',
     name: "Marco's Mobile Shine",
+    slug: 'marcos-mobile-shine',
     rating: 4.9,
     reviews: 128,
     zip: '90026',

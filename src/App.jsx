@@ -41,6 +41,7 @@ const DetailerClientImport = lazy(() => import('./pages/DetailerClientImport'))
 const DetailerClientRequestPayment = lazy(() => import('./pages/DetailerClientRequestPayment'))
 const DetailerClientRemind = lazy(() => import('./pages/DetailerClientRemind'))
 const DetailerClientAutopilot = lazy(() => import('./pages/DetailerClientAutopilot'))
+const DetailerFlyer = lazy(() => import('./pages/DetailerFlyer'))
 const DetailerTimeRequests = lazy(() => import('./pages/DetailerTimeRequests'))
 const DetailerTimeRequestRespond = lazy(() => import('./pages/DetailerTimeRequests').then((m) => ({ default: m.DetailerTimeRequestRespond })))
 const PayCharge = lazy(() => import('./pages/PayCharge'))
@@ -175,6 +176,7 @@ export default function App() {
         <Route path="/detailer/clients/add" element={guard('detailer', <DetailerClientAdd />)} />
         <Route path="/detailer/clients/import" element={guard('detailer', <DetailerClientImport />)} />
         <Route path="/detailer/clients/autopilot" element={guard('detailer', <DetailerClientAutopilot />)} />
+        <Route path="/detailer/flyer" element={guard('detailer', <DetailerFlyer />)} />
         <Route path="/detailer/clients/:id/request-payment" element={guard('detailer', <DetailerClientRequestPayment />)} />
         <Route path="/detailer/clients/:id/remind" element={guard('detailer', <DetailerClientRemind />)} />
         <Route path="/detailer/time-requests" element={guard('detailer', <DetailerTimeRequests />)} />
