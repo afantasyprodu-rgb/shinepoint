@@ -799,6 +799,42 @@ export default function DetailerClientDetail() {
             </div>
           </div>
 
+          <div className={styles.toggleRow} style={{ marginTop: '0.5rem' }}>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={Boolean(client.auto_remind)}
+              className={styles.toggle}
+              onClick={async () => {
+                const next = !client.auto_remind
+                if (isDemo) {
+                  setClient((c) => (c ? { ...c, auto_remind: next } : c))
+                  return
+                }
+                setSaving(true)
+                setError('')
+                try {
+                  const updated = await updateDetailerClient(client.id, { auto_remind: next })
+                  setClient(updated)
+                } catch (err) {
+                  setError(err.message ?? String(err))
+                } finally {
+                  setSaving(false)
+                }
+              }}
+              aria-label="Auto-remind"
+              disabled={saving || !client.sms_opt_in}
+            />
+            <div>
+              <strong>Auto-remind</strong>
+              <p className="mb-0 mt-0.5 text-xs" style={{ color: 'var(--cb-muted)' }}>
+                {client.sms_opt_in
+                  ? 'Texts this client automatically on your Autopilot cadence — no manual approval needed.'
+                  : 'Requires SMS opt-in above.'}
+              </p>
+            </div>
+          </div>
+
           {(phoneTelHref(client.phone) || phoneSmsHref(client.phone)) && (
             <div className={styles.quickActions} style={{ marginTop: '0.75rem' }}>
               {phoneTelHref(client.phone) && (

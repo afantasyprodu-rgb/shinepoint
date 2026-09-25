@@ -356,7 +356,8 @@ const CLIENT_COLS =
 // tier above CLIENT_COLS, same reasoning as the service_address tier below
 // it: a client deployed ahead of its migration must still degrade instead
 // of erroring every select/insert/update.
-const CLIENT_COLS_FULL = CLIENT_COLS + ', sms_consent_at, sms_opt_out_at'
+// auto_remind/last_reminded_at (104) — Client Book Autopilot automation.
+const CLIENT_COLS_FULL = CLIENT_COLS + ', sms_consent_at, sms_opt_out_at, auto_remind, last_reminded_at'
 
 function isMissingColumnError(err) {
   const msg = String(err?.message || err || '')
