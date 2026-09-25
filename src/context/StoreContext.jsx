@@ -978,6 +978,20 @@ export function StoreProvider({ children }) {
         }
       },
 
+      // Pull-to-refresh on Jobs / My bookings. Realtime already keeps these
+      // live; this is the manual "make sure" a user expects from a pull.
+      async refreshBookings() {
+        if (isDemo) {
+          await new Promise((r) => setTimeout(r, 700))
+          return
+        }
+        if (customerProfile) {
+          setRealBookings(await fetchBookingsForCustomer(customerProfile.id))
+        } else if (detailerProfile) {
+          setRealBookings(await fetchBookingsForDetailer(detailerProfile.id))
+        }
+      },
+
       rateCustomer(bookingId, rating, hardToHandle) {
         const booking = bookings.find((b) => b.id === bookingId)
         if (!isDemo && booking?._real) {
