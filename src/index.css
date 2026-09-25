@@ -1074,16 +1074,35 @@
 /* ── Detailer QR flyer (DetailerFlyer.jsx) ───────────────────────────────
    Laid out at real US Letter size (816×1056 CSS px) and scaled down for the
    on-screen preview; printing drops the scale so the page prints 1:1. Always
-   light-on-paper regardless of app theme — it's a physical flyer. */
+   light paper regardless of app theme — it's a physical flyer.
+   One shared markup; each .flyer-t-<id> template only overrides the custom
+   properties below plus its own decoration (.flyer-deco spans). */
 .flyer-page {
   --fl-ink: #1e0a2e;
-  --fl-pink: #f40076;
-  --fl-pink-soft: #ffe3f0;
   --fl-muted: #5b4a66;
+  --fl-rule: #d7c8df;
+  --fl-paper: #ffffff;
+  --fl-accent: #f40076;
+  --fl-accent-soft: #ffe3f0;
+  --fl-accent-ink: #ffffff;
+  --fl-check: #16a34a;
+  --fl-hero-ink: #ffffff;
+  --fl-kicker: #ff9ccb;
+  --fl-hero-bg:
+    radial-gradient(120% 90% at 85% 10%, rgba(244, 0, 118, 0.55) 0%, rgba(244, 0, 118, 0) 55%),
+    linear-gradient(160deg, #2a0f3f 0%, #1e0a2e 60%, #12061c 100%);
+  --fl-hero-overlay: linear-gradient(160deg, rgba(30, 10, 46, 0.9) 0%, rgba(30, 10, 46, 0.6) 55%, rgba(244, 0, 118, 0.35) 100%);
+  --fl-display: 'Lexend', 'Inter', system-ui, sans-serif;
+  --fl-headline-size: 54px;
+  --fl-headline-style: normal;
+  --fl-qr-border: 4px solid var(--fl-ink);
+  --fl-qr-radius: 24px;
+  --fl-qr-shadow: 10px 10px 0 var(--fl-accent);
+  --fl-avatar-ring: var(--fl-accent);
   position: relative;
   display: flex;
   flex-direction: column;
-  background: #ffffff;
+  background: var(--fl-paper);
   color: var(--fl-ink);
   font-family: 'Inter', system-ui, sans-serif;
   -webkit-print-color-adjust: exact;
@@ -1093,32 +1112,31 @@
 .flyer-hero {
   position: relative;
   padding: 56px 56px 48px;
-  background:
-    radial-gradient(120% 90% at 85% 10%, rgba(244, 0, 118, 0.55) 0%, rgba(244, 0, 118, 0) 55%),
-    linear-gradient(160deg, #2a0f3f 0%, #1e0a2e 60%, #12061c 100%);
-  color: #fff;
+  background: var(--fl-hero-bg);
+  color: var(--fl-hero-ink);
   overflow: hidden;
 }
-.flyer-beads span {
+.flyer-hero.has-photo {
+  background: var(--fl-hero-overlay), var(--fl-photo) center / cover no-repeat;
+}
+.flyer-deco span {
   position: absolute;
   border-radius: 50%;
-  background: radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.85) 0 12%, rgba(255, 255, 255, 0.18) 30%, rgba(255, 255, 255, 0.04) 70%);
-  box-shadow: inset -2px -3px 6px rgba(0, 0, 0, 0.25);
 }
-.flyer-beads span:nth-child(1) { width: 38px; height: 38px; right: 70px; top: 40px; }
-.flyer-beads span:nth-child(2) { width: 18px; height: 18px; right: 130px; top: 96px; }
-.flyer-beads span:nth-child(3) { width: 26px; height: 26px; right: 44px; top: 128px; }
-.flyer-beads span:nth-child(4) { width: 12px; height: 12px; right: 190px; top: 52px; }
-.flyer-beads span:nth-child(5) { width: 54px; height: 54px; right: 210px; top: 150px; }
-.flyer-beads span:nth-child(6) { width: 14px; height: 14px; right: 96px; top: 200px; }
-.flyer-beads span:nth-child(7) { width: 22px; height: 22px; right: 300px; top: 30px; }
-.flyer-beads span:nth-child(8) { width: 10px; height: 10px; right: 262px; top: 110px; }
-.flyer-beads span:nth-child(9) { width: 30px; height: 30px; right: 20px; top: 230px; }
-.flyer-beads span:nth-child(10) { width: 16px; height: 16px; right: 160px; top: 250px; }
-.flyer-beads span:nth-child(11) { width: 9px; height: 9px; right: 340px; top: 180px; }
-.flyer-beads span:nth-child(12) { width: 20px; height: 20px; right: 380px; top: 80px; }
-.flyer-beads span:nth-child(13) { width: 11px; height: 11px; right: 60px; top: 10px; }
-.flyer-beads span:nth-child(14) { width: 42px; height: 42px; right: 330px; top: 230px; }
+.flyer-deco span:nth-child(1) { width: 38px; height: 38px; right: 70px; top: 40px; }
+.flyer-deco span:nth-child(2) { width: 18px; height: 18px; right: 130px; top: 96px; }
+.flyer-deco span:nth-child(3) { width: 26px; height: 26px; right: 44px; top: 128px; }
+.flyer-deco span:nth-child(4) { width: 12px; height: 12px; right: 190px; top: 52px; }
+.flyer-deco span:nth-child(5) { width: 54px; height: 54px; right: 210px; top: 150px; }
+.flyer-deco span:nth-child(6) { width: 14px; height: 14px; right: 96px; top: 200px; }
+.flyer-deco span:nth-child(7) { width: 22px; height: 22px; right: 300px; top: 30px; }
+.flyer-deco span:nth-child(8) { width: 10px; height: 10px; right: 262px; top: 110px; }
+.flyer-deco span:nth-child(9) { width: 30px; height: 30px; right: 20px; top: 230px; }
+.flyer-deco span:nth-child(10) { width: 16px; height: 16px; right: 160px; top: 250px; }
+.flyer-deco span:nth-child(11) { width: 9px; height: 9px; right: 340px; top: 180px; }
+.flyer-deco span:nth-child(12) { width: 20px; height: 20px; right: 380px; top: 80px; }
+.flyer-deco span:nth-child(13) { width: 11px; height: 11px; right: 60px; top: 10px; }
+.flyer-deco span:nth-child(14) { width: 42px; height: 42px; right: 330px; top: 230px; }
 .flyer-kicker {
   position: relative;
   margin: 0 0 14px;
@@ -1126,13 +1144,14 @@
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #ff9ccb;
+  color: var(--fl-kicker);
 }
 .flyer-headline {
   position: relative;
   margin: 0;
-  font-family: 'Lexend', 'Inter', system-ui, sans-serif;
-  font-size: 54px;
+  font-family: var(--fl-display);
+  font-size: var(--fl-headline-size);
+  font-style: var(--fl-headline-style);
   line-height: 1.04;
   font-weight: 800;
   letter-spacing: -0.02em;
@@ -1155,21 +1174,21 @@
   height: 76px;
   border-radius: 50%;
   object-fit: cover;
-  border: 3px solid var(--fl-pink);
+  border: 3px solid var(--fl-avatar-ring);
   flex-shrink: 0;
 }
 .flyer-avatar-fallback {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--fl-pink-soft);
-  color: var(--fl-pink);
+  background: var(--fl-accent-soft);
+  color: var(--fl-accent);
   font-size: 32px;
   font-weight: 800;
 }
 .flyer-name {
   margin: 0;
-  font-family: 'Lexend', 'Inter', system-ui, sans-serif;
+  font-family: var(--fl-display);
   font-size: 28px;
   font-weight: 700;
   line-height: 1.1;
@@ -1194,12 +1213,12 @@
 }
 .flyer-dots {
   flex: 1;
-  border-bottom: 2px dotted #d7c8df;
+  border-bottom: 2px dotted var(--fl-rule);
   transform: translateY(-4px);
 }
 .flyer-services strong {
   font-size: 20px;
-  color: var(--fl-pink);
+  color: var(--fl-accent);
 }
 .flyer-perks {
   list-style: none;
@@ -1215,19 +1234,20 @@
   display: inline-block;
   width: 22px;
   font-weight: 800;
-  color: #16a34a;
+  color: var(--fl-check);
 }
 .flyer-qr-card {
-  border: 4px solid var(--fl-ink);
-  border-radius: 24px;
+  border: var(--fl-qr-border);
+  border-radius: var(--fl-qr-radius);
   padding: 18px 18px 16px;
   text-align: center;
   background: #fff;
-  box-shadow: 10px 10px 0 var(--fl-pink);
+  color: var(--fl-ink);
+  box-shadow: var(--fl-qr-shadow);
 }
 .flyer-qr-label {
   margin: 0 0 8px;
-  font-family: 'Lexend', 'Inter', system-ui, sans-serif;
+  font-family: var(--fl-display);
   font-size: 22px;
   font-weight: 800;
 }
@@ -1251,7 +1271,7 @@
   grid-template-columns: repeat(3, 1fr);
   gap: 18px;
   border-radius: 18px;
-  background: var(--fl-pink-soft);
+  background: var(--fl-accent-soft);
   font-size: 16px;
   font-weight: 600;
 }
@@ -1269,15 +1289,15 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: var(--fl-pink);
-  color: #fff;
-  font-family: 'Lexend', 'Inter', system-ui, sans-serif;
+  background: var(--fl-accent);
+  color: var(--fl-accent-ink);
+  font-family: var(--fl-display);
   font-size: 18px;
 }
 .flyer-tabs {
   display: grid;
   grid-template-columns: repeat(8, 1fr);
-  border-top: 2px dashed #b9a6c6;
+  border-top: 2px dashed var(--fl-rule);
   height: 150px;
 }
 .flyer-tab {
@@ -1286,7 +1306,7 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  border-right: 2px dashed #b9a6c6;
+  border-right: 2px dashed var(--fl-rule);
   writing-mode: vertical-rl;
   transform: rotate(180deg);
   font-size: 11px;
@@ -1307,8 +1327,154 @@
   font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #a594b0;
+  color: var(--fl-muted);
+  opacity: 0.7;
 }
+
+/* 1 · Midnight Gloss — dark plum, glossy water beads. */
+.flyer-t-gloss .flyer-deco span {
+  background: radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.85) 0 12%, rgba(255, 255, 255, 0.18) 30%, rgba(255, 255, 255, 0.04) 70%);
+  box-shadow: inset -2px -3px 6px rgba(0, 0, 0, 0.25);
+}
+
+/* 2 · Fresh Suds — bright sky blue, soap bubbles, friendly and round. */
+.flyer-t-suds {
+  --fl-ink: #0b2a45;
+  --fl-muted: #4a6782;
+  --fl-rule: #bfdcf2;
+  --fl-accent: #0891d1;
+  --fl-accent-soft: #e3f4fd;
+  --fl-check: #0891d1;
+  --fl-hero-ink: #0b2a45;
+  --fl-kicker: #0678ad;
+  --fl-hero-bg:
+    radial-gradient(90% 120% at 100% 0%, #ffffff 0%, rgba(255, 255, 255, 0) 55%),
+    linear-gradient(170deg, #bfe8fb 0%, #7fd0f5 100%);
+  --fl-hero-overlay: linear-gradient(170deg, rgba(223, 244, 253, 0.92) 0%, rgba(191, 232, 251, 0.7) 50%, rgba(127, 208, 245, 0.25) 100%);
+  --fl-display: 'Fredoka', 'Lexend', system-ui, sans-serif;
+  --fl-qr-border: 4px solid #0891d1;
+  --fl-qr-radius: 36px;
+  --fl-qr-shadow: 0 14px 30px rgba(8, 145, 209, 0.28);
+}
+.flyer-t-suds .flyer-hero {
+  border-radius: 0 0 48px 48px;
+}
+.flyer-t-suds .flyer-deco span {
+  background: radial-gradient(circle at 34% 30%, rgba(255, 255, 255, 0.95) 0 10%, rgba(255, 255, 255, 0.25) 26%, rgba(255, 255, 255, 0.08) 62%);
+  border: 2px solid rgba(255, 255, 255, 0.85);
+}
+.flyer-t-suds .flyer-steps {
+  border-radius: 999px;
+}
+
+/* 3 · Race Day — black and signal yellow, racing stripes, checkered band. */
+.flyer-t-race {
+  --fl-ink: #0d0d0d;
+  --fl-muted: #4b4b4b;
+  --fl-rule: #c9c9c9;
+  --fl-accent: #0d0d0d;
+  --fl-accent-soft: #ffe24a;
+  --fl-accent-ink: #ffe24a;
+  --fl-check: #0d0d0d;
+  --fl-hero-ink: #ffffff;
+  --fl-kicker: #ffe24a;
+  --fl-hero-bg: linear-gradient(180deg, #111111 0%, #000000 100%);
+  --fl-hero-overlay: linear-gradient(180deg, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0.88) 100%);
+  --fl-display: 'Lexend', 'Inter', system-ui, sans-serif;
+  --fl-headline-size: 70px;
+  --fl-headline-style: italic;
+  --fl-qr-border: 5px solid #0d0d0d;
+  --fl-qr-radius: 6px;
+  --fl-qr-shadow: 12px 12px 0 #ffe24a;
+  --fl-avatar-ring: #ffe24a;
+}
+.flyer-t-race .flyer-hero {
+  padding-bottom: 70px;
+  text-transform: uppercase;
+}
+.flyer-t-race .flyer-hero::before {
+  content: '';
+  position: absolute;
+  top: -40px;
+  right: 90px;
+  width: 150px;
+  height: 140%;
+  background: linear-gradient(90deg, #ffe24a 0 42%, transparent 42% 58%, #ffe24a 58% 100%);
+  transform: skewX(-18deg);
+  opacity: 0.95;
+}
+.flyer-t-race .flyer-hero::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 24px;
+  background: conic-gradient(#fff 25%, #000 0 50%, #fff 0 75%, #000 0) 0 0 / 24px 24px;
+}
+.flyer-t-race .flyer-deco { display: none; }
+.flyer-t-race .flyer-services strong { background: #ffe24a; padding: 0 6px; }
+
+/* 4 · Photo Hero — the uploaded photo fills the whole top of the page. */
+.flyer-t-photo {
+  --fl-hero-bg:
+    radial-gradient(80% 90% at 70% 30%, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0) 60%),
+    linear-gradient(135deg, #3b3552 0%, #16131f 100%);
+  --fl-hero-overlay: linear-gradient(180deg, rgba(0, 0, 0, 0) 30%, rgba(0, 0, 0, 0.78) 100%);
+  --fl-kicker: #ffffff;
+  --fl-headline-size: 60px;
+}
+.flyer-t-photo .flyer-hero {
+  height: 440px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.45);
+}
+.flyer-t-photo .flyer-deco { display: none; }
+.flyer-t-photo .flyer-body { padding-top: 30px; grid-template-columns: 1fr 290px; }
+.flyer-t-photo .flyer-perks { display: none; }
+.flyer-t-photo .flyer-services { margin-top: 20px; gap: 9px; }
+.flyer-t-photo .flyer-steps { margin-bottom: 22px; padding: 16px 22px; }
+
+/* 5 · Clean Pro — white editorial, one green accent, hairline rules. */
+.flyer-t-pro {
+  --fl-ink: #111418;
+  --fl-muted: #5a6470;
+  --fl-rule: #d9dee3;
+  --fl-accent: #15803d;
+  --fl-accent-soft: #eef7f1;
+  --fl-check: #15803d;
+  --fl-hero-ink: #111418;
+  --fl-kicker: #15803d;
+  --fl-hero-bg: #ffffff;
+  --fl-hero-overlay: linear-gradient(90deg, rgba(255, 255, 255, 0.97) 0%, rgba(255, 255, 255, 0.9) 48%, rgba(255, 255, 255, 0) 80%);
+  --fl-display: 'Playfair Display', Georgia, serif;
+  --fl-headline-size: 60px;
+  --fl-qr-border: 1px solid #111418;
+  --fl-qr-radius: 0;
+  --fl-qr-shadow: none;
+  --fl-avatar-ring: #111418;
+}
+.flyer-t-pro .flyer-hero {
+  padding-top: 64px;
+  border-bottom: 1px solid #111418;
+  margin: 0 56px;
+  padding-left: 0;
+  padding-right: 0;
+}
+.flyer-t-pro .flyer-hero::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  width: 120px;
+  height: 5px;
+  background: #15803d;
+}
+.flyer-t-pro .flyer-headline { font-weight: 700; letter-spacing: -0.01em; }
+.flyer-t-pro .flyer-deco { display: none; }
+.flyer-t-pro .flyer-steps { border-radius: 0; background: transparent; border-top: 1px solid var(--fl-rule); border-bottom: 1px solid var(--fl-rule); }
 
 /* Named page so the zero-margin Letter sizing applies to the flyer only,
    never to invoice printing (which keeps the browser's default margins). */
@@ -1324,14 +1490,14 @@
   #flyer-print * {
     visibility: visible;
   }
-  .flyer-preview {
+  .flyer-preview-main {
     width: auto !important;
     height: auto !important;
     overflow: visible !important;
     box-shadow: none !important;
     border-radius: 0 !important;
   }
-  .flyer-preview > div {
+  .flyer-preview-main > div {
     transform: none !important;
   }
   #flyer-print {
