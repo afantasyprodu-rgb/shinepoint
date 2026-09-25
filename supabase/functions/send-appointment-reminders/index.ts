@@ -38,19 +38,59 @@ Deno.serve(async (req) => {
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
   )
 
-  // Same-day, a few hours out — not the day before. Hourly cron + this
-  // window means a booking gets its reminder on the first run that lands
-  // 1-4 hours before scheduled_time.
+  const BOOKING_SELECT = `id, scheduled_time, booking_address, total_price,
+       customer_profiles!inner(users!inner(email, phone, sms_opt_in, full_name)),
+       detailer_profiles!bookings_detailer_id_fkey!inner(users!inner(full_name)),
+       services(service_name)`
+
+  let sent = 0
+  let skipped = 0
+  const errors: string[] = []
+
+  // Shared by both passes below: SMS if opted in with a phone, else email,
+  // never both (same rule as send-en-route-email).
+  async function sendReminderFor(b: any) {
+    const customer = b.customer_profiles?.users
+    const detailer = b.detailer_profiles?.users
+    const service = b.services?.service_name ?? 'Detail service'
+    const wantsSms = Boolean(customer?.sms_opt_in && customer?.phone)
+
+    if (wantsSms) {
+      await sendSms({
+        to: customer.phone,
+        ...appointmentReminderSms({
+          customerName: customer.full_name ?? 'there',
+          detailerName: detailer?.full_name ?? 'Your detailer',
+          service,
+          scheduledTime: b.scheduled_time,
+        }),
+      })
+      sent++
+    } else if (customer?.email) {
+      const { subject, html } = reminderEmail({
+        customerName: customer.full_name ?? 'there',
+        detailerName: detailer?.full_name ?? 'Your detailer',
+        service,
+        scheduledTime: b.scheduled_time,
+        bookingId: b.id,
+        bookingUrl: `${Deno.env.get('APP_ORIGIN') ?? 'https://shinepoint.app'}/bookings/${b.id}`,
+      })
+      await sendEmail({ to: customer.email, subject, html })
+      sent++
+    } else {
+      skipped++
+    }
+  }
+
+  // Pass 1: the automatic same-day reminder, unchanged — same-day, a few
+  // hours out (not the day before). Hourly cron + this window means a
+  // booking gets its reminder on the first run that lands 1-4 hours before
+  // scheduled_time.
   const REMINDER_WINDOW_HOURS = 4
   const windowEnd = new Date(Date.now() + REMINDER_WINDOW_HOURS * 3600_000).toISOString()
   const { data: due, error } = await admin
     .from('bookings')
-    .select(
-      `id, scheduled_time, booking_address, total_price,
-       customer_profiles!inner(users!inner(email, phone, sms_opt_in, full_name)),
-       detailer_profiles!bookings_detailer_id_fkey!inner(users!inner(full_name)),
-       services(service_name)`
-    )
+    .select(BOOKING_SELECT)
     .in('status', ['pending', 'accepted'])
     .not('paid_at', 'is', null)
     .is('reminder_sent_at', null)
@@ -61,43 +101,9 @@ Deno.serve(async (req) => {
     return json({ error: error.message }, 500)
   }
 
-  let sent = 0
-  let skipped = 0
-  const errors: string[] = []
-
   for (const b of due ?? []) {
-    const customer = (b as any).customer_profiles?.users
-    const detailer = (b as any).detailer_profiles?.users
-    const service = (b as any).services?.service_name ?? 'Detail service'
-
     try {
-      const wantsSms = Boolean(customer?.sms_opt_in && customer?.phone)
-
-      if (wantsSms) {
-        await sendSms({
-          to: customer.phone,
-          ...appointmentReminderSms({
-            customerName: customer.full_name ?? 'there',
-            detailerName: detailer?.full_name ?? 'Your detailer',
-            service,
-            scheduledTime: b.scheduled_time,
-          }),
-        })
-        sent++
-      } else if (customer?.email) {
-        const { subject, html } = reminderEmail({
-          customerName: customer.full_name ?? 'there',
-          detailerName: detailer?.full_name ?? 'Your detailer',
-          service,
-          scheduledTime: b.scheduled_time,
-          bookingId: b.id,
-          bookingUrl: `${Deno.env.get('APP_ORIGIN') ?? 'https://shinepoint.app'}/bookings/${b.id}`,
-        })
-        await sendEmail({ to: customer.email, subject, html })
-        sent++
-      } else {
-        skipped++
-      }
+      await sendReminderFor(b)
     } catch (e) {
       console.error('send-appointment-reminders failed for', b.id, (e as Error).message)
       await captureException(e, 'send-appointment-reminders')
@@ -107,6 +113,39 @@ Deno.serve(async (req) => {
       await admin
         .from('bookings')
         .update({ reminder_sent_at: new Date().toISOString() })
+        .eq('id', b.id)
+    }
+  }
+
+  // Pass 2: the customer's own custom reminder time (103) — additive, fully
+  // independent of pass 1 and its reminder_sent_at guard. No upper bound on
+  // how far past custom_reminder_at we still send it (same tolerance the
+  // guard-by-null-timestamp pattern already gives pass 1): the point is it
+  // fires on the first cron run at or after the moment the customer picked.
+  const { data: dueCustom, error: customError } = await admin
+    .from('bookings')
+    .select(BOOKING_SELECT)
+    .in('status', ['pending', 'accepted'])
+    .not('paid_at', 'is', null)
+    .not('custom_reminder_at', 'is', null)
+    .is('custom_reminder_sent_at', null)
+    .lte('custom_reminder_at', new Date().toISOString())
+  if (customError) {
+    console.error('send-appointment-reminders custom query:', customError.message)
+    return json({ sent, skipped, errors, customError: customError.message })
+  }
+
+  for (const b of dueCustom ?? []) {
+    try {
+      await sendReminderFor(b)
+    } catch (e) {
+      console.error('send-appointment-reminders (custom) failed for', b.id, (e as Error).message)
+      await captureException(e, 'send-appointment-reminders')
+      errors.push(`${b.id}: ${(e as Error).message}`)
+    } finally {
+      await admin
+        .from('bookings')
+        .update({ custom_reminder_sent_at: new Date().toISOString() })
         .eq('id', b.id)
     }
   }

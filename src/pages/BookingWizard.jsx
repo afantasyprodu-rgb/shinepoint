@@ -419,6 +419,12 @@ export default function BookingWizard() {
   }, [customer.vehicle?.type, customer.vehicle?.make, customer.vehicle?.model, vehicleTouched])
   const [date, setDate] = useState(null)
   const [time, setTime] = useState('')
+  // Optional second reminder at an exact time the customer picks — additive
+  // to the automatic 1-4h-before text (send-appointment-reminders), which
+  // is unaffected by this. datetime-local string, browser-local time.
+  const [customReminderOn, setCustomReminderOn] = useState(false)
+  const [customReminderInput, setCustomReminderInput] = useState('')
+  const [customReminderError, setCustomReminderError] = useState('')
   const [weatherAck, setWeatherAck] = useState(false)
   // The vacation the customer just tapped into (085). Holding it here
   // rather than blocking the tap is what lets us answer "he's away until
@@ -703,7 +709,20 @@ const [smsError, setSmsError] = useState(null)
         ? { ok: false, summary: 'Rain forecast', acknowledged: true, rainy: true, tempF: date.tempF ?? null }
         : { ok: true, summary: 'Clear skies', rainy: false, tempF: date.tempF ?? null },
       bookingSource,
+      customReminderAt: customReminderOn && customReminderInput ? new Date(customReminderInput).toISOString() : undefined,
     }
+  }
+
+  // datetime-local has no timezone — new Date() on it parses as browser-local,
+  // which is what we want to compare against (both picked in the same tab).
+  const scheduledDate = date ? new Date(`${date.key}T${parseTime(time)}`) : null
+  function validateCustomReminder(value) {
+    if (!value) return 'Pick a date and time.'
+    const picked = new Date(value)
+    if (Number.isNaN(picked.getTime())) return 'Pick a valid date and time.'
+    if (picked.getTime() <= Date.now()) return 'Pick a time in the future.'
+    if (scheduledDate && picked.getTime() >= scheduledDate.getTime()) return 'Must be before the appointment time.'
+    return ''
   }
 
   // Real Stripe charge only when: live user, real detailer, profile loaded,
@@ -716,6 +735,10 @@ const [smsError, setSmsError] = useState(null)
     if (uninsured && !showUninsured) {
       setShowUninsured(true)
       return
+    }
+    if (customReminderOn) {
+      const err = validateCustomReminder(customReminderInput)
+      if (err) { setCustomReminderError(err); return }
     }
     setShowUninsured(false)
     setPayError('')
@@ -1284,6 +1307,46 @@ const [smsError, setSmsError] = useState(null)
                   </motion.span>
                 </div>
                 <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">{t('tipAfter')}</p>
+              </div>
+
+              <div className="card mt-4 !p-4">
+                <button
+                  type="button"
+                  aria-pressed={customReminderOn}
+                  onClick={() => {
+                    const next = !customReminderOn
+                    setCustomReminderOn(next)
+                    setCustomReminderError('')
+                    if (!next) setCustomReminderInput('')
+                  }}
+                  className="flex w-full cursor-pointer items-center justify-between gap-3 text-left"
+                >
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{t('customReminderTitle')}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{t('customReminderBody')}</p>
+                  </div>
+                  <span className={`chip shrink-0 ${customReminderOn ? 'bg-cta-700 text-white' : 'bg-brand-100 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300'}`}>
+                    {customReminderOn ? t('customReminderOn') : t('customReminderOff')}
+                  </span>
+                </button>
+                {customReminderOn && (
+                  <div className="mt-3">
+                    <input
+                      type="datetime-local"
+                      value={customReminderInput}
+                      onChange={(e) => {
+                        setCustomReminderInput(e.target.value)
+                        setCustomReminderError('')
+                      }}
+                      onBlur={(e) => setCustomReminderError(validateCustomReminder(e.target.value))}
+                      aria-label={t('customReminderTitle')}
+                      className="input"
+                    />
+                    {customReminderError && (
+                      <p role="alert" className="mt-1.5 text-xs text-red-600 dark:text-red-400">{customReminderError}</p>
+                    )}
+                  </div>
+                )}
               </div>
 
               {payError && (
