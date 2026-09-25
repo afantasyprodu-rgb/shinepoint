@@ -396,8 +396,17 @@ export default function DetailerProfileEditor() {
                   />
                 </div>
                 <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                  Share this link so clients can book you directly (outside the marketplace map).
+                  Your personal booking page. Clients who scan your QR flyer land here.
                 </p>
+                {me.slug ? (
+                  <Link to="/detailer/flyer" className="btn btn-brand mt-3 inline-flex items-center gap-2 text-sm">
+                    Get my QR flyer <ArrowRightIcon className="h-4 w-4" />
+                  </Link>
+                ) : (
+                  <p className="mt-2 text-xs font-medium text-amber-700 dark:text-amber-400">
+                    Save a link name to unlock your printable QR flyer.
+                  </p>
+                )}
               </div>
             </div>
           </div>

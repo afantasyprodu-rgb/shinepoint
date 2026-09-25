@@ -1071,6 +1071,276 @@
   }
 }
 
+/* ── Detailer QR flyer (DetailerFlyer.jsx) ───────────────────────────────
+   Laid out at real US Letter size (816×1056 CSS px) and scaled down for the
+   on-screen preview; printing drops the scale so the page prints 1:1. Always
+   light-on-paper regardless of app theme — it's a physical flyer. */
+.flyer-page {
+  --fl-ink: #1e0a2e;
+  --fl-pink: #f40076;
+  --fl-pink-soft: #ffe3f0;
+  --fl-muted: #5b4a66;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  color: var(--fl-ink);
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+  overflow: hidden;
+}
+.flyer-hero {
+  position: relative;
+  padding: 56px 56px 48px;
+  background:
+    radial-gradient(120% 90% at 85% 10%, rgba(244, 0, 118, 0.55) 0%, rgba(244, 0, 118, 0) 55%),
+    linear-gradient(160deg, #2a0f3f 0%, #1e0a2e 60%, #12061c 100%);
+  color: #fff;
+  overflow: hidden;
+}
+.flyer-beads span {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.85) 0 12%, rgba(255, 255, 255, 0.18) 30%, rgba(255, 255, 255, 0.04) 70%);
+  box-shadow: inset -2px -3px 6px rgba(0, 0, 0, 0.25);
+}
+.flyer-beads span:nth-child(1) { width: 38px; height: 38px; right: 70px; top: 40px; }
+.flyer-beads span:nth-child(2) { width: 18px; height: 18px; right: 130px; top: 96px; }
+.flyer-beads span:nth-child(3) { width: 26px; height: 26px; right: 44px; top: 128px; }
+.flyer-beads span:nth-child(4) { width: 12px; height: 12px; right: 190px; top: 52px; }
+.flyer-beads span:nth-child(5) { width: 54px; height: 54px; right: 210px; top: 150px; }
+.flyer-beads span:nth-child(6) { width: 14px; height: 14px; right: 96px; top: 200px; }
+.flyer-beads span:nth-child(7) { width: 22px; height: 22px; right: 300px; top: 30px; }
+.flyer-beads span:nth-child(8) { width: 10px; height: 10px; right: 262px; top: 110px; }
+.flyer-beads span:nth-child(9) { width: 30px; height: 30px; right: 20px; top: 230px; }
+.flyer-beads span:nth-child(10) { width: 16px; height: 16px; right: 160px; top: 250px; }
+.flyer-beads span:nth-child(11) { width: 9px; height: 9px; right: 340px; top: 180px; }
+.flyer-beads span:nth-child(12) { width: 20px; height: 20px; right: 380px; top: 80px; }
+.flyer-beads span:nth-child(13) { width: 11px; height: 11px; right: 60px; top: 10px; }
+.flyer-beads span:nth-child(14) { width: 42px; height: 42px; right: 330px; top: 230px; }
+.flyer-kicker {
+  position: relative;
+  margin: 0 0 14px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #ff9ccb;
+}
+.flyer-headline {
+  position: relative;
+  margin: 0;
+  font-family: 'Lexend', 'Inter', system-ui, sans-serif;
+  font-size: 54px;
+  line-height: 1.04;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.flyer-body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 330px;
+  gap: 36px;
+  padding: 40px 56px 28px;
+  align-items: start;
+}
+.flyer-who {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.flyer-avatar {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--fl-pink);
+  flex-shrink: 0;
+}
+.flyer-avatar-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--fl-pink-soft);
+  color: var(--fl-pink);
+  font-size: 32px;
+  font-weight: 800;
+}
+.flyer-name {
+  margin: 0;
+  font-family: 'Lexend', 'Inter', system-ui, sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+.flyer-meta {
+  margin: 4px 0 0;
+  font-size: 15px;
+  color: var(--fl-muted);
+}
+.flyer-services {
+  list-style: none;
+  margin: 30px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.flyer-services li {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 18px;
+}
+.flyer-dots {
+  flex: 1;
+  border-bottom: 2px dotted #d7c8df;
+  transform: translateY(-4px);
+}
+.flyer-services strong {
+  font-size: 20px;
+  color: var(--fl-pink);
+}
+.flyer-perks {
+  list-style: none;
+  margin: 30px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  font-size: 15px;
+  color: var(--fl-muted);
+}
+.flyer-perks li::before {
+  content: '✓';
+  display: inline-block;
+  width: 22px;
+  font-weight: 800;
+  color: #16a34a;
+}
+.flyer-qr-card {
+  border: 4px solid var(--fl-ink);
+  border-radius: 24px;
+  padding: 18px 18px 16px;
+  text-align: center;
+  background: #fff;
+  box-shadow: 10px 10px 0 var(--fl-pink);
+}
+.flyer-qr-label {
+  margin: 0 0 8px;
+  font-family: 'Lexend', 'Inter', system-ui, sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+}
+.flyer-qr {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+}
+.flyer-url {
+  margin: 8px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fl-muted);
+  word-break: break-all;
+}
+.flyer-steps {
+  list-style: none;
+  margin: 0 56px 34px;
+  padding: 22px 26px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  border-radius: 18px;
+  background: var(--fl-pink-soft);
+  font-size: 16px;
+  font-weight: 600;
+}
+.flyer-steps li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  line-height: 1.25;
+}
+.flyer-steps strong {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--fl-pink);
+  color: #fff;
+  font-family: 'Lexend', 'Inter', system-ui, sans-serif;
+  font-size: 18px;
+}
+.flyer-tabs {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  border-top: 2px dashed #b9a6c6;
+  height: 150px;
+}
+.flyer-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-right: 2px dashed #b9a6c6;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: 11px;
+  color: var(--fl-muted);
+}
+.flyer-tab:last-child {
+  border-right: 0;
+}
+.flyer-tab strong {
+  font-size: 12px;
+  color: var(--fl-ink);
+}
+.flyer-footer {
+  position: absolute;
+  right: 56px;
+  bottom: 158px;
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #a594b0;
+}
+
+/* Named page so the zero-margin Letter sizing applies to the flyer only,
+   never to invoice printing (which keeps the browser's default margins). */
+@page flyer {
+  size: letter;
+  margin: 0;
+}
+@media print {
+  #flyer-print {
+    page: flyer;
+  }
+  #flyer-print,
+  #flyer-print * {
+    visibility: visible;
+  }
+  .flyer-preview {
+    width: auto !important;
+    height: auto !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+  .flyer-preview > div {
+    transform: none !important;
+  }
+  #flyer-print {
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+}
+
 /* ── Invoice receipt ──────────────────────────────────────────────────────
    On-screen-only "ticket sliding out of a slot" view (InvoiceReceipt).
    Printing still uses the plain InvoicePrintable doc above — this is purely
