@@ -4,6 +4,7 @@ import { Sparkle } from './clientBookBits'
 import { fetchPublicDetailerBySlug, phoneSmsHref } from '../lib/detailerClients'
 import { useAuth } from '../context/AuthContext'
 import styles from '../styles/clientBook.module.css'
+import QrQuickBook from '../components/QrQuickBook'
 
 /** Public book-me landing — /d/:slug — no login required to view packages.
  *  CRM Rebook appends ?crm=1&name=&phone=&customer_id=&vehicle=&photo= which
@@ -99,6 +100,13 @@ export default function DetailerPublicBook() {
       `Hi${crmPrefill.name ? ` ${crmPrefill.name.split(' ')[0]}` : ''} — book your next detail here: ${typeof window !== 'undefined' ? window.location.href : ''}`,
     )
     : ''
+
+  // Scan-to-book visitors (and signed-in customers) get Bo's quick-book
+  // flow. Keyed on role, not on session, so the component stays mounted
+  // through the email-code sign-in mid-flow. Detailers/admins and CRM
+  // "Rebook" links keep the share-oriented page below.
+  const quickBook = !loading && data && !crmPrefill && profile?.role !== 'detailer' && profile?.role !== 'admin'
+  if (quickBook) return <QrQuickBook detailer={data} />
 
   return (
     <div className={styles.shell} style={{ minHeight: '100dvh' }}>
