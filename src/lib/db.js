@@ -1076,6 +1076,7 @@ export async function createBookingInDB({
   weather,
   detailerLocationId,
   bookingSource,
+  customReminderAt,
 }) {
   const { data, error } = await supabase
     .from('bookings')
@@ -1114,6 +1115,9 @@ export async function createBookingInDB({
       // D4: marketplace (default) vs direct book-me link. Analytics tag;
       // fee split still uses tiered platformFeePercent until server-authoritative.
       booking_source: bookingSource === 'direct' ? 'direct' : 'marketplace',
+      // Optional, additive to the automatic 1-4h-before reminder — a
+      // customer-picked exact time for a second SMS reminder (103).
+      custom_reminder_at: customReminderAt ?? null,
     })
     .select('id')
     .single()

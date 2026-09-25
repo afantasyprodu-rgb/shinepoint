@@ -1049,6 +1049,7 @@ export function StoreProvider({ children }) {
             weather: draft.weather,
             detailerLocationId: draft.detailerLocationId,
             bookingSource: draft.bookingSource,
+            customReminderAt: draft.customReminderAt,
           })
           // Attach whatever photo(s) the customer used for Bo/Driplee's
           // "Take a photo -> estimate" flow, if any are still pending from
