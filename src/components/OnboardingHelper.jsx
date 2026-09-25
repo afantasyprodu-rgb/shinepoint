@@ -33,7 +33,7 @@ export default function OnboardingHelper({ step, onApplyPricing, zip, yearsExper
   const greetingKey = greetingKeyForStep(step)
 
   useEffect(() => {
-    let seen = false
+    let seen
     try {
       seen = sessionStorage.getItem(WELCOME_SEEN_KEY) === '1'
     } catch {
