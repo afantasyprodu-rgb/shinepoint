@@ -5,6 +5,7 @@ import AppShell from '../components/AppShell'
 import AccountDangerZone from '../components/AccountDangerZone'
 import BrandThemePicker from '../components/BrandThemePicker'
 import LanguageToggle from '../components/LanguageToggle'
+import SfxSetting from '../components/SfxSetting'
 import ChangePassword from '../components/ChangePassword'
 import DesignThemeSetting from '../components/DesignThemePicker'
 import AvatarUpload from '../components/AvatarUpload'
@@ -977,6 +978,8 @@ export default function DetailerProfileEditor() {
             </div>
           </div>
         </div>
+
+        <SfxSetting />
 
         <PayoutManagement />
 

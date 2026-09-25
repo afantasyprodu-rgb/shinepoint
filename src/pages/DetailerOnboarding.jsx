@@ -8,7 +8,7 @@ import OnboardingHelper from '../components/OnboardingHelper'
 import { useStore } from '../context/StoreContext'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
-import { CheckIcon, ShieldCheckIcon, CreditCardIcon, ClipboardCheckIcon, UsersIcon, PlusIcon, XIcon, LightbulbIcon, ClockIcon, StarIcon, SparklesIcon, CameraIcon, ImageIcon, FileTextIcon, TagIcon } from '../components/icons'
+import { CheckIcon, ShieldCheckIcon, CreditCardIcon, ClipboardCheckIcon, UsersIcon, PlusIcon, XIcon, LightbulbIcon, ClockIcon, SparklesIcon, CameraIcon, ImageIcon, FileTextIcon, TagIcon } from '../components/icons'
 import { InfoPopover } from '../components/ui/bits'
 import { startIdentityVerification, startConnectOnboarding, isStripeConfigured, stripePromise } from '../lib/stripe'
 import { fetchMyPayoutStatus, extractFlyerPrices, submitInsuranceDocument } from '../lib/db'
@@ -65,7 +65,7 @@ const EXAMPLE_TEMPLATE = { 'Exterior Wash': 45, 'Full Detail': 175, 'Interior De
 // Stripe Identity / Connect calls are simulated until Phase 4 wiring.
 export default function DetailerOnboarding() {
   const navigate = useNavigate()
-  const { isDemo, saveOnboarding, detailerProfile, updateDetailerMe } = useStore()
+  const { isDemo, saveOnboarding, detailerProfile } = useStore()
   const { session } = useAuth()
   const draftUserId = isDemo ? null : session?.user?.id
   const { theme } = useTheme()
@@ -133,25 +133,20 @@ export default function DetailerOnboarding() {
   const [chargePerMile, setChargePerMile] = useState(2)
   // Optional per-vehicle-type upcharge — '' (not 0) means "not set", so a
   // detailer who never touches these fields never charges anyone extra.
-  const [upchargeSuv, setUpchargeSuv] = useState('')
-  const [upchargeTruck, setUpchargeTruck] = useState('')
-  const [upchargeVan, setUpchargeVan] = useState('')
+  const [upchargeSuv] = useState('')
+  const [upchargeTruck] = useState('')
+  const [upchargeVan] = useState('')
   const [bank, setBank] = useState('')
   const [payoutStatus, setPayoutStatus] = useState(null)
   const [connectingBank, setConnectingBank] = useState(false)
   const [connectError, setConnectError] = useState('')
-  // 086, added to onboarding so it's live from the very first booking
-  // instead of only discoverable later in Profile. Picks up wherever a real
-  // account left off (e.g. set it, left onboarding, came back).
-  const [depositPercent, setDepositPercent] = useState(String(detailerProfile?.deposit_percent ?? 0))
 
   // Quick-survey step — every field optional, none block continuing.
-  const [yearsExperience, setYearsExperience] = useState(null)
-  const [equipmentType, setEquipmentType] = useState(null)
-  const [certifications, setCertifications] = useState([])
-  const [teamSize, setTeamSize] = useState(null)
-  const [referralSource, setReferralSource] = useState(null)
-  const [customCertName, setCustomCertName] = useState('')
+  const [yearsExperience] = useState(null)
+  const [equipmentType] = useState(null)
+  const [certifications] = useState([])
+  const [teamSize] = useState(null)
+  const [referralSource] = useState(null)
 
   const [flyerBusy, setFlyerBusy] = useState(false)
   const [flyerError, setFlyerError] = useState('')
@@ -821,7 +816,6 @@ export default function DetailerOnboarding() {
                       const renderCard = (name) => {
                         const advice = SERVICE_ADVICE_KEYS[name] ? t(SERVICE_ADVICE_KEYS[name]) : null
                         const isPromoted = name === featuredService
-                        const isAddon = Boolean(serviceAddons[name])
                         return (
                           <motion.div
                             key={name}

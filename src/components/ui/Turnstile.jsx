@@ -3,7 +3,7 @@
 // email-code send (signup spam, since signInWithOtp with
 // shouldCreateUser:true is what actually creates accounts).
 //
-// Soft-skips exactly like _shared/resend.ts and _shared/twilio.ts: with
+// Soft-skips exactly like _shared/resend.ts and _shared/sentdm.ts: with
 // VITE_TURNSTILE_SITE_KEY unset this renders nothing and reports a null
 // token, so auth keeps working unchanged until the keys are configured.
 // Supabase enforces the token server-side, so a client that skips it only

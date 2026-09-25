@@ -352,31 +352,56 @@ const CLIENT_COLS_BASE =
   'id, detailer_id, full_name, phone, email, notes, vehicles, linked_customer_id, imported_from, sms_opt_in, created_at'
 const CLIENT_COLS =
   'id, detailer_id, full_name, phone, email, notes, vehicles, service_address, service_zip, linked_customer_id, imported_from, sms_opt_in, created_at'
+// sms_consent_at/sms_opt_out_at (102) — consent audit trail. Kept as its own
+// tier above CLIENT_COLS, same reasoning as the service_address tier below
+// it: a client deployed ahead of its migration must still degrade instead
+// of erroring every select/insert/update.
+const CLIENT_COLS_FULL = CLIENT_COLS + ', sms_consent_at, sms_opt_out_at'
 
 function isMissingColumnError(err) {
   const msg = String(err?.message || err || '')
-  return /service_address|service_zip|column .* does not exist|42703/i.test(msg)
+  return /service_address|service_zip|sms_consent_at|sms_opt_out_at|column .* does not exist|42703/i.test(msg)
 }
 
-function stripAddressFields(rowOrRows) {
+function stripFields(rowOrRows, fields) {
   if (Array.isArray(rowOrRows)) {
     return rowOrRows.map((r) => {
       if (!r || typeof r !== 'object') return r
       const next = { ...r }
-      delete next.service_address
-      delete next.service_zip
+      fields.forEach((f) => delete next[f])
       return next
     })
   }
   if (!rowOrRows || typeof rowOrRows !== 'object') return rowOrRows
   const next = { ...rowOrRows }
-  delete next.service_address
-  delete next.service_zip
+  fields.forEach((f) => delete next[f])
   return next
 }
 
+const CONSENT_FIELDS = ['sms_consent_at', 'sms_opt_out_at']
+const ADDRESS_FIELDS = ['service_address', 'service_zip']
+function stripAddressFields(rowOrRows) {
+  return stripFields(rowOrRows, ADDRESS_FIELDS)
+}
+function stripConsentFields(rowOrRows) {
+  return stripFields(rowOrRows, CONSENT_FIELDS)
+}
+
+// Every sms_opt_in write also stamps when it happened — TCPA/CTIA
+// defense-in-depth wants a timestamp, not just the current boolean.
+function withSmsConsentStamp(rowOrPatch) {
+  if (!rowOrPatch || typeof rowOrPatch !== 'object' || !('sms_opt_in' in rowOrPatch)) return rowOrPatch
+  const now = new Date().toISOString()
+  return rowOrPatch.sms_opt_in
+    ? { ...rowOrPatch, sms_consent_at: now }
+    : { ...rowOrPatch, sms_opt_out_at: now }
+}
+
 async function selectClients(build) {
-  let res = await build(CLIENT_COLS)
+  let res = await build(CLIENT_COLS_FULL)
+  if (res.error && isMissingColumnError(res.error)) {
+    res = await build(CLIENT_COLS)
+  }
   if (res.error && isMissingColumnError(res.error)) {
     res = await build(CLIENT_COLS_BASE)
   }
@@ -415,14 +440,22 @@ export async function fetchDetailerClient(clientId) {
 }
 
 export async function insertDetailerClient(row) {
-  let payload = row
+  let payload = withSmsConsentStamp(row)
   let { data, error } = await supabase
     .from('detailer_clients')
     .insert(payload)
-    .select(CLIENT_COLS)
+    .select(CLIENT_COLS_FULL)
     .single()
   if (error && isMissingColumnError(error)) {
-    payload = stripAddressFields(row)
+    payload = stripConsentFields(payload)
+    ;({ data, error } = await supabase
+      .from('detailer_clients')
+      .insert(payload)
+      .select(CLIENT_COLS)
+      .single())
+  }
+  if (error && isMissingColumnError(error)) {
+    payload = stripAddressFields(payload)
     ;({ data, error } = await supabase
       .from('detailer_clients')
       .insert(payload)
@@ -438,13 +471,20 @@ export async function insertDetailerClient(row) {
 
 export async function insertDetailerClientsBulk(rows) {
   if (!rows?.length) return []
-  let payload = rows
+  let payload = rows.map(withSmsConsentStamp)
   let { data, error } = await supabase
     .from('detailer_clients')
     .insert(payload)
-    .select(CLIENT_COLS)
+    .select(CLIENT_COLS_FULL)
   if (error && isMissingColumnError(error)) {
-    payload = stripAddressFields(rows)
+    payload = stripConsentFields(payload)
+    ;({ data, error } = await supabase
+      .from('detailer_clients')
+      .insert(payload)
+      .select(CLIENT_COLS))
+  }
+  if (error && isMissingColumnError(error)) {
+    payload = stripAddressFields(payload)
     ;({ data, error } = await supabase
       .from('detailer_clients')
       .insert(payload)
@@ -458,15 +498,26 @@ export async function insertDetailerClientsBulk(rows) {
 }
 
 export async function updateDetailerClient(clientId, patch) {
-  let payload = patch
+  let payload = withSmsConsentStamp(patch)
   let { data, error } = await supabase
     .from('detailer_clients')
     .update(payload)
     .eq('id', clientId)
-    .select(CLIENT_COLS)
+    .select(CLIENT_COLS_FULL)
     .single()
   if (error && isMissingColumnError(error)) {
-    payload = stripAddressFields(patch)
+    payload = stripConsentFields(payload)
+    if (Object.keys(payload).length) {
+      ;({ data, error } = await supabase
+        .from('detailer_clients')
+        .update(payload)
+        .eq('id', clientId)
+        .select(CLIENT_COLS)
+        .single())
+    }
+  }
+  if (error && isMissingColumnError(error)) {
+    payload = stripAddressFields(payload)
     // If the only fields were address cols, skip rather than no-op update error
     if (!Object.keys(payload).length) {
       console.warn('updateDetailerClient: service_address columns missing — apply 095 migration')

@@ -122,13 +122,17 @@ export default function AdminShell({ children }) {
       <div className="flex min-w-0 max-w-full flex-1 flex-col overflow-x-hidden">
         {/* Mobile header — floored safe-area padding, same as the
             customer/detailer shell (see AppShell.jsx for why the floor). */}
-        <header className="flex items-center justify-between px-4 py-3 pt-[max(env(safe-area-inset-top),2.75rem)] sm:hidden">
+        <header className="flex flex-wrap items-center justify-between gap-y-2 px-4 py-3 pt-[max(env(safe-area-inset-top),2.75rem)] sm:hidden">
           <Logo />
-          <div className="flex items-center gap-1">
-            <NotificationBell role="admin" />
+          <div className="flex flex-wrap items-center justify-end gap-1">
             <LanguageToggle />
             <BrandThemePicker />
             <ThemeToggle />
+            {/* Last icon before Sign out, same as AppShell — its dropdown
+                anchors right-0 to itself, so it needs to sit near the
+                screen's right edge or the panel overflows off the left
+                (was first in this row, opening ~200px off-screen). */}
+            <NotificationBell role="admin" />
             <button onClick={handleSignOut} className="btn btn-outline h-9 px-3 text-sm">
               {isDemo ? t('exit') : t('signOut')}
             </button>

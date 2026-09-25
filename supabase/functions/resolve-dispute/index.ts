@@ -21,6 +21,7 @@ import { corsHeaders, json } from '../_shared/cors.ts'
 import { captureException } from '../_shared/sentry.ts'
 import { isUuid, isOneOf, isFiniteNumber, cleanText } from '../_shared/validate.ts'
 import { publicErrorMessage } from '../_shared/errors.ts'
+import { withinRateLimit, tooManyRequests } from '../_shared/rateLimit.ts'
 
 // Mirrors the resolution CHECK constraint on public.disputes (migration 002).
 const RESOLUTIONS = ['customer_wins', 'detailer_wins', 'split', 'dismissed'] as const
@@ -67,6 +68,16 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
+
+    // Same policy as every other money-moving function ("rate-limited...
+    // for endpoints that spend money") — this one refunds real Stripe
+    // charges and had been the one gap. 20/hr comfortably covers a busy
+    // admin session or a detailer settling a single dispute, while still
+    // backstopping a compromised session or an auth-check bug from firing
+    // refunds in a tight loop.
+    if (!(await withinRateLimit(admin, `resolve-dispute:${user.id}`, 20, '1 hour'))) {
+      return tooManyRequests(3600)
+    }
 
     const { data: me } = await admin.from('users').select('role').eq('id', user.id).single()
     const isAdmin = me?.role === 'admin'
