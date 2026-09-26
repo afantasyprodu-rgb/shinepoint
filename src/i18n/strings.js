@@ -728,6 +728,7 @@ export const STRINGS = {
       tapOutside: 'Tap outside to close',
     },
     photoCapture: {
+      processing: 'Processing photo…',
       captureHint: 'Capture what you can — front, rear, left side, right side, and interior all help, but at least one photo is enough to {action} the job. Pick several at once from your library and they\'ll fill the open angles.',
       actionStart: 'start',
       actionComplete: 'complete',
@@ -3009,6 +3010,7 @@ export const STRINGS = {
       tapOutside: 'Toca afuera para cerrar',
     },
     photoCapture: {
+      processing: 'Procesando foto…',
       captureHint: 'Captura lo que puedas — frente, atrás, lado izquierdo, lado derecho e interior ayudan, pero al menos una foto es suficiente para {action} el trabajo. Elige varias a la vez de tu galería y llenarán los ángulos abiertos.',
       actionStart: 'iniciar',
       actionComplete: 'completar',

@@ -2,6 +2,7 @@ import { motion } from 'motion/react'
 import { Avatar } from './ui/bits'
 import { CameraIcon, XIcon } from './icons'
 import { useFileUpload } from '../hooks/useFileUpload'
+import WaterFill from './ui/WaterFill'
 
 // Reusable profile-photo picker. Shows the current photo (or initials), lets the
 // user pick a new one, runs the parent-supplied async uploader, and reports the
@@ -15,7 +16,7 @@ import { useFileUpload } from '../hooks/useFileUpload'
 //   onFile    async (file) => url   — uploads and returns the new URL
 //   onChange  (url | null) => void  — called with the new URL, or null on remove
 export default function AvatarUpload({ photo, name, size = 'xl', onFile, onChange }) {
-  const { inputRef, busy, error, handlePick, open } = useFileUpload({ onFile, onChange })
+  const { inputRef, busy, justDone, error, handlePick, open } = useFileUpload({ onFile, onChange })
 
   return (
     <div className="flex flex-col items-center gap-2">
@@ -38,11 +39,7 @@ export default function AvatarUpload({ photo, name, size = 'xl', onFile, onChang
             <CameraIcon className="h-6 w-6" />
             <span className="text-[10px] font-semibold">{photo ? 'Change' : 'Add photo'}</span>
           </span>
-          {busy && (
-            <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/55">
-              <span className="h-6 w-6 animate-spin rounded-full border-2 border-white border-t-transparent" />
-            </span>
-          )}
+          <WaterFill active={busy} done={justDone} className="rounded-full" />
         </motion.button>
 
         {/* Remove button */}
