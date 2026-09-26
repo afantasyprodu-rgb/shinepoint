@@ -1,10 +1,12 @@
+import PullToRefresh from '../components/ui/PullToRefresh'
+import FloatingMascot from '../components/ui/FloatingMascot'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import AppShell from '../components/AppShell'
 import Modal from '../components/ui/Modal'
 import { AnimatedPage, Stagger, StaggerItem } from '../components/ui/Motion'
-import { StatusPill, EmptyState, Avatar, Skeleton, CarWashIllustration } from '../components/ui/bits'
+import { StatusPill, EmptyState, Avatar, Skeleton } from '../components/ui/bits'
 import { PhoneIcon, XIcon } from '../components/icons'
 import { useStore } from '../context/StoreContext'
 import { useT } from '../i18n/useT'
@@ -77,7 +79,7 @@ function Chevron({ open }) {
 }
 
 export default function Bookings() {
-  const { bookings, customer, isDemo, getDetailer, cancelBooking } = useStore()
+  const { bookings, customer, isDemo, getDetailer, cancelBooking, refreshBookings } = useStore()
   // Cancelling from the list goes through the same refund-issuing path the
   // detail page uses (StoreContext.cancelBooking -> cancel-booking). Held
   // here by booking id so the confirm modal can be a single instance
@@ -120,6 +122,7 @@ export default function Bookings() {
 
   return (
     <AppShell role="customer">
+      <PullToRefresh onRefresh={refreshBookings}>
       <AnimatedPage className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
         <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">{t('title')}</h1>
 
@@ -138,7 +141,7 @@ export default function Bookings() {
         ) : mine.length === 0 ? (
           <div className="mt-6">
             <EmptyState
-              illustration={<CarWashIllustration />}
+              illustration={<FloatingMascot size={72} />}
               title={t('emptyTitle')}
               body={t('emptyBody')}
               action={
@@ -387,6 +390,7 @@ export default function Bookings() {
           </div>
         </Modal>
       </AnimatedPage>
+      </PullToRefresh>
     </AppShell>
   )
 }

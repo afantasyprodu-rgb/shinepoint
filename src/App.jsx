@@ -6,6 +6,7 @@ import TransitionOverlay from './components/TransitionOverlay'
 import NativeBridge from './components/NativeBridge'
 import IosInstallPrompt from './components/IosInstallPrompt'
 import ErrorBoundary from './components/ErrorBoundary'
+import useButtonRipple from './hooks/useButtonRipple'
 
 // Route-level code splitting: every page loads on demand. Before this, the
 // entry bundle carried all 33 pages — including the 1.2MB of wizard/admin/
@@ -93,6 +94,7 @@ const guard = (role, el) => (
 const safe = (el) => <ErrorBoundary>{el}</ErrorBoundary>
 
 export default function App() {
+  useButtonRipple()
   const location = useLocation()
   const navigate = useNavigate()
 

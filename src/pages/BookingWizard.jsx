@@ -6,8 +6,10 @@ import AppShell from '../components/AppShell'
 import TimePicker from '../components/TimePicker'
 import PaymentForm from '../components/PaymentForm'
 import { ReceiptPrintout } from '../components/InvoiceBuilder'
+import BubbleBurst from '../components/ui/BubbleBurst'
+import ShineSweep from '../components/ui/ShineSweep'
 import Modal from '../components/ui/Modal'
-import { CheckIcon, AlertTriangleIcon, ChevronLeftIcon, SparklesIcon, CarIcon, CalendarIcon, PhoneIcon } from '../components/icons'
+import { CheckIcon, AlertTriangleIcon, ChevronLeftIcon, CarIcon, CalendarIcon, PhoneIcon } from '../components/icons'
 import { useStore } from '../context/StoreContext'
 import { useTheme } from '../context/ThemeContext'
 import { stripePromise, isStripeConfigured, createPaymentIntent } from '../lib/stripe'
@@ -1378,7 +1380,7 @@ const [smsError, setSmsError] = useState(null)
 
           {/* ===== Step 4: confirmed ===== */}
           {step === 4 && (
-            <motion.div key="s4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="py-16 text-center">
+            <motion.div key="s4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="relative py-16 text-center">
               <motion.span
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
@@ -1387,24 +1389,14 @@ const [smsError, setSmsError] = useState(null)
               >
                 <CheckIcon className="h-10 w-10" />
               </motion.span>
-              {[...Array(6)].map((_, i) => (
-                <motion.span
-                  key={i}
-                  aria-hidden="true"
-                  initial={{ opacity: 1, x: 0, y: 0 }}
-                  animate={{ opacity: 0, x: (i - 2.5) * 60, y: -80 - (i % 3) * 30 }}
-                  transition={{ duration: 0.9, delay: 0.15, ease: 'easeOut' }}
-                  className="absolute left-1/2 inline-block text-brand-500"
-                >
-                  <SparklesIcon className="h-5 w-5" />
-                </motion.span>
-              ))}
+              <BubbleBurst count={16} />
               <h1 className="mt-6 font-display text-3xl font-bold text-slate-900 dark:text-slate-100">{t('bookedTitle')}</h1>
               <p className="mt-2 text-slate-600 dark:text-slate-400">
                 {t('bookedRefPrefix')} <span className="font-mono font-semibold">{bookingId}</span> · {t('bookedSuffix', { name: d.name })}
               </p>
 
-              <div className="mt-8">
+              <div className="relative mt-8 overflow-hidden rounded-2xl">
+                <ShineSweep delay={0.9} />
                 <ReceiptPrintout
                   title={serviceName}
                   sub={`${d.name} · ${date.label} ${date.day} · ${formatTime(time)}`}

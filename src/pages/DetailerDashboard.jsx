@@ -1,3 +1,5 @@
+import PullToRefresh from '../components/ui/PullToRefresh'
+import FloatingMascot from '../components/ui/FloatingMascot'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
@@ -147,7 +149,7 @@ function JobRow({ b, t, lang }) {
 // Blueprint screen 5.1 — Detailer Dashboard.
 export default function DetailerDashboard() {
   const { profile } = useAuth()
-  const { bookings, getDetailer, patchBooking, declineBooking, rescheduleBooking, isDemo, detailerProfile } = useStore()
+  const { bookings, getDetailer, patchBooking, declineBooking, rescheduleBooking, isDemo, detailerProfile, refreshBookings } = useStore()
   const [decliningId, setDecliningId] = useState(null)
   const [declineError, setDeclineError] = useState('')
   const [expandedIncomingId, setExpandedIncomingId] = useState(null)
@@ -265,6 +267,7 @@ export default function DetailerDashboard() {
 
   return (
     <AppShell role="detailer">
+      <PullToRefresh onRefresh={refreshBookings}>
       <AnimatedPage className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
         <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">
           {t('welcomeBack', { name: profile?.full_name ? `, ${profile.full_name.split(' ')[0]}` : '' })}
@@ -300,9 +303,10 @@ export default function DetailerDashboard() {
             )}
             <AnimatePresence>
               {incoming.length === 0 && (
-                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-3 text-sm text-slate-500 dark:text-slate-400">
-                  {t('nothingWaiting')}
-                </motion.p>
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-3 flex items-center gap-3 text-sm text-slate-500 dark:text-slate-400">
+                  <FloatingMascot size={40} />
+                  <p>{t('nothingWaiting')}</p>
+                </motion.div>
               )}
               {incoming.map((b) => {
                 const isExpanded = expandedIncomingId === b.id
@@ -488,7 +492,10 @@ export default function DetailerDashboard() {
                 <DetailerCalendar jobs={active} onReschedule={rescheduleBooking} />
               </div>
             ) : active.length === 0 ? (
-              <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">{t('noActiveJobs')}</p>
+              <div className="mt-3 flex items-center gap-3 text-sm text-slate-500 dark:text-slate-400">
+                <FloatingMascot size={40} />
+                <p>{t('noActiveJobs')}</p>
+              </div>
             ) : (
               <div className="mt-3 space-y-3">
                 {groupedActive.map(([dateKey, jobs]) => {
@@ -673,6 +680,7 @@ export default function DetailerDashboard() {
           <span aria-hidden="true">{t('openArrow')}</span>
         </Link>}
       </AnimatedPage>
+      </PullToRefresh>
       <DeclineModal
         booking={declineModalBooking}
         onClose={() => setDeclineModalBooking(null)}

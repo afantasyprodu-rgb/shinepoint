@@ -176,6 +176,8 @@
   .btn {
     @apply inline-flex h-12 cursor-pointer items-center justify-center gap-2 rounded-xl px-5 font-semibold transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none;
     transition-timing-function: var(--ease-spring);
+    position: relative;
+    overflow: hidden;
   }
 
   /* Springy press for non-.btn interactive elements (chips, cards, stamps).
@@ -3726,4 +3728,29 @@ html[data-theme='zen'] .press-spring:active { transform: none; opacity: 0.6; }
   15% { opacity: 1; }
   50% { transform: translate(3px, -45%) scale(1); }
   100% { transform: translate(-2px, -120%) scale(1.1); opacity: 0; }
+}
+
+/* ── Micro-interactions: button ripple, toggle slosh, checkbox pop ── */
+.btn-ripple {
+  position: absolute;
+  border-radius: 9999px;
+  pointer-events: none;
+  background: radial-gradient(circle, rgba(255,255,255,.45) 0 40%, rgba(255,255,255,0) 70%);
+  transform: scale(0);
+  animation: btn-ripple .6s ease-out forwards;
+}
+@keyframes btn-ripple { to { transform: scale(1); opacity: 0; } }
+
+[role="switch"][aria-checked="true"] > span { animation: slosh-on .45s var(--ease-spring, ease-out); }
+[role="switch"][aria-checked="false"] > span { animation: slosh-off .45s var(--ease-spring, ease-out); }
+@keyframes slosh-on { 0% { scale: 1 1; } 35% { scale: 1.35 .8; } 65% { scale: .9 1.1; } 100% { scale: 1 1; } }
+@keyframes slosh-off { 0% { scale: 1 1; } 35% { scale: 1.35 .8; } 65% { scale: .9 1.1; } 100% { scale: 1 1; } }
+
+input[type="checkbox"]:checked { animation: check-pop .35s var(--ease-spring, ease-out); }
+@keyframes check-pop { 0% { scale: 1; } 40% { scale: 1.3; } 70% { scale: .92; } 100% { scale: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-ripple,
+  [role="switch"] > span,
+  input[type="checkbox"]:checked { animation: none !important; }
 }
