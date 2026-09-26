@@ -10,6 +10,7 @@ import { normalizePhone } from '../lib/detailerClients'
 import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
 import { useT } from '../i18n/useT'
+import { useLanguage } from '../context/LanguageContext'
 
 // QR-flyer quick book (/d/:slug). A first-time visitor never sees a signup
 // screen: Bo walks them through services → address → name/email → a 6-digit
@@ -55,6 +56,7 @@ function BoSays({ text }) {
 
 export default function QrQuickBook({ detailer }) {
   const t = useT('qrQuickBook')
+  const { lang } = useLanguage()
   const tSms = useT('customerSettings')
   const navigate = useNavigate()
   const { session, profile } = useAuth()
@@ -178,7 +180,7 @@ export default function QrQuickBook({ detailer }) {
       ...(bySms ? { phone: normalizePhone(phone) } : { email: email.trim() }),
       options: {
         shouldCreateUser: true,
-        data: { full_name: name.trim(), role: 'customer', ...(digits ? { phone: normalizePhone(phone) } : {}) },
+        data: { full_name: name.trim(), role: 'customer', locale: lang, ...(digits ? { phone: normalizePhone(phone) } : {}) },
         captchaToken: captchaToken ?? undefined,
       },
     })

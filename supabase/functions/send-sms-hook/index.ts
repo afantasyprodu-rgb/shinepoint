@@ -6,7 +6,9 @@
 //
 // Secrets:
 //   SEND_SMS_HOOK_SECRET    — from Auth → Hooks (format "v1,whsec_<base64>")
-//   SENTDM_OTP_TEMPLATE_ID  — the approved Sent template id
+//   SENTDM_OTP_TEMPLATE_ID  — the approved Sent template id (English)
+//   SENTDM_OTP_TEMPLATE_ID_ES — optional Spanish twin, used when the user
+//                              signed up with locale 'es' (set by Bo)
 //   SENTDM_API_KEY          — already used by _shared/sentdm.ts
 //
 // Deploy with verify_jwt = false: Supabase Auth calls it with a Standard
@@ -76,7 +78,7 @@ Deno.serve(async (req) => {
   const body = await req.text()
   if (!(await verify(req, body, secret))) return fail(401, 'Invalid signature')
 
-  let payload: { user?: { phone?: string }; sms?: { otp?: string } }
+  let payload: { user?: { phone?: string; user_metadata?: { locale?: string } }; sms?: { otp?: string } }
   try {
     payload = JSON.parse(body)
   } catch {
@@ -90,7 +92,9 @@ Deno.serve(async (req) => {
   const to = raw.startsWith('+') ? raw : `+${raw}`
 
   try {
-    const res = await sendSms({ to, templateId, parameters: { code: otp } })
+    const esTemplate = Deno.env.get('SENTDM_OTP_TEMPLATE_ID_ES')
+    const useEs = !!esTemplate && payload.user?.user_metadata?.locale === 'es'
+    const res = await sendSms({ to, templateId: useEs ? esTemplate : templateId, parameters: { code: otp } })
     if ('skipped' in res) return fail(500, 'SMS delivery is not configured')
   } catch (err) {
     // Don't log the code itself.
