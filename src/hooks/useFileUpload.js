@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 const MAX_BYTES = 5 * 1024 * 1024
 
@@ -11,6 +11,14 @@ export function useFileUpload({ onFile, onChange }) {
   const inputRef = useRef(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  // Brief "it worked" window after a successful upload, so feedback UI
+  // (WaterFill) can top off and show a check before disappearing.
+  const [justDone, setJustDone] = useState(false)
+  useEffect(() => {
+    if (!justDone) return
+    const t = setTimeout(() => setJustDone(false), 1100)
+    return () => clearTimeout(t)
+  }, [justDone])
 
   async function handlePick(e) {
     const file = e.target.files?.[0]
@@ -22,6 +30,7 @@ export function useFileUpload({ onFile, onChange }) {
     setBusy(true)
     try {
       onChange(await onFile(file))
+      setJustDone(true)
     } catch {
       setError('Upload failed — try again.')
     } finally {
@@ -29,5 +38,5 @@ export function useFileUpload({ onFile, onChange }) {
     }
   }
 
-  return { inputRef, busy, error, handlePick, open: () => inputRef.current?.click() }
+  return { inputRef, busy, justDone, error, handlePick, open: () => inputRef.current?.click() }
 }

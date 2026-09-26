@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { CameraIcon, CheckIcon, XIcon } from './icons'
 import { useT } from '../i18n/useT'
 import { downscaleImage } from '../lib/imageUtils'
+import WaterFill from './ui/WaterFill'
 
 const ANGLES = ['Front', 'Rear', 'Left', 'Right', 'Interior']
 
@@ -17,18 +18,32 @@ const ANGLE_GRADIENTS = [
 export default function PhotoCapture({ label = 'before', onSubmit }) {
   const [photos, setPhotos] = useState({}) // { angle: base64 }
   const [lightbox, setLightbox] = useState(null) // angle string
+  // Per-tile water-fill feedback: `working` while a shot is being downscaled,
+  // `landed` for a moment after, so the tile tops off and shows a check.
+  const [working, setWorking] = useState(() => new Set())
+  const [landed, setLanded] = useState(() => new Set())
+  const flag = (setter, angle, on) =>
+    setter((prev) => { const n = new Set(prev); if (on) n.add(angle); else n.delete(angle); return n })
   const fileRefs = useRef({})
   const fileObjs = useRef({}) // { angle: File } — kept for real uploads
   const t = useT('photoCapture')
 
   // Downscaled to ~1280px/JPEG before it ever lands in state — camera shots
   // otherwise run 8-20MB and get uploaded as-is over the detailer's mobile data.
+  function land(angle, dataUrl) {
+    setPhotos((prev) => ({ ...prev, [angle]: dataUrl }))
+    flag(setWorking, angle, false)
+    flag(setLanded, angle, true)
+    setTimeout(() => flag(setLanded, angle, false), 1100)
+  }
+
   async function readOne(angle, file) {
+    flag(setWorking, angle, true)
     try {
       const { file: optimized, dataUrl } = await downscaleImage(file)
       fileObjs.current[angle] = optimized || file
       if (dataUrl) {
-        setPhotos((prev) => ({ ...prev, [angle]: dataUrl }))
+        land(angle, dataUrl)
         return
       }
     } catch {
@@ -36,7 +51,8 @@ export default function PhotoCapture({ label = 'before', onSubmit }) {
     }
     fileObjs.current[angle] = file
     const reader = new FileReader()
-    reader.onload = (e) => setPhotos((prev) => ({ ...prev, [angle]: e.target.result }))
+    reader.onload = (e) => land(angle, e.target.result)
+    reader.onerror = () => flag(setWorking, angle, false)
     reader.readAsDataURL(file)
   }
 
@@ -84,15 +100,17 @@ export default function PhotoCapture({ label = 'before', onSubmit }) {
                   <div className="absolute inset-0 flex items-end justify-center bg-gradient-to-t from-black/50 pb-0.5">
                     <CheckIcon className="h-3.5 w-3.5 text-white" />
                   </div>
+                  <WaterFill active={false} done={landed.has(angle)} className="rounded-xl" />
                 </motion.button>
               ) : (
                 <motion.button
                   type="button"
                   whileTap={{ scale: 0.92 }}
                   onClick={() => fileRefs.current[angle]?.click()}
-                  className={`flex aspect-square w-full cursor-pointer flex-col items-center justify-center rounded-xl bg-gradient-to-br ${grad} text-white/60 transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600`}
+                  className={`relative flex aspect-square w-full cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br ${grad} text-white/60 transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600`}
                 >
                   <CameraIcon className="h-5 w-5" />
+                  <WaterFill active={working.has(angle)} done={false} className="rounded-xl" label={t('processing')} />
                 </motion.button>
               )}
               <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">{angle}</span>

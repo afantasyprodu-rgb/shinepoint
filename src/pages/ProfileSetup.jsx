@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import Logo from '../components/Logo'
+import WaterFill from '../components/ui/WaterFill'
 import AvatarUpload from '../components/AvatarUpload'
 import CarPhotoUpload from '../components/CarPhotoUpload'
 import Combobox from '../components/ui/Combobox'
@@ -259,6 +260,7 @@ export default function ProfileSetup() {
 // Small uploadable gallery grid reused by the detailer setup + profile editor.
 export function GalleryGrid({ gallery, setGallery, onAdd }) {
   const [busy, setBusy] = useState(false)
+  const [justDone, setJustDone] = useState(false)
   const t = useT('gallery')
 
   async function pick(e) {
@@ -266,7 +268,13 @@ export function GalleryGrid({ gallery, setGallery, onAdd }) {
     e.target.value = ''
     if (!file || !file.type.startsWith('image/')) return
     setBusy(true)
-    try { await onAdd(file) } finally { setBusy(false) }
+    try {
+      await onAdd(file)
+      setJustDone(true)
+      setTimeout(() => setJustDone(false), 1100)
+    } finally {
+      setBusy(false)
+    }
   }
 
   return (
@@ -293,15 +301,10 @@ export function GalleryGrid({ gallery, setGallery, onAdd }) {
           </motion.div>
         ))}
       </AnimatePresence>
-      <label className="flex aspect-square cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-brand-200 bg-brand-50 text-brand-600 transition-colors hover:border-brand-400 hover:bg-brand-100 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300 dark:hover:border-brand-400/50 dark:hover:bg-brand-500/15">
-        {busy ? (
-          <span className="h-5 w-5 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
-        ) : (
-          <>
-            <span className="text-2xl leading-none">+</span>
-            <span className="text-[10px] font-semibold">{t('add')}</span>
-          </>
-        )}
+      <label className="relative flex aspect-square cursor-pointer overflow-hidden flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-brand-200 bg-brand-50 text-brand-600 transition-colors hover:border-brand-400 hover:bg-brand-100 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300 dark:hover:border-brand-400/50 dark:hover:bg-brand-500/15">
+        <span className="text-2xl leading-none">+</span>
+        <span className="text-[10px] font-semibold">{t('add')}</span>
+        <WaterFill active={busy} done={justDone} className="rounded-xl" />
         <input type="file" accept="image/*" onChange={pick} className="sr-only" />
       </label>
     </div>

@@ -4,6 +4,7 @@ import QRCode from 'qrcode'
 import AppShell from '../components/AppShell'
 import { AnimatedPage } from '../components/ui/Motion'
 import { useStore } from '../context/StoreContext'
+import WaterFill from '../components/ui/WaterFill'
 import { PrinterIcon, ArrowRightIcon, CameraIcon, CheckIcon } from '../components/icons'
 
 // US Letter at 96dpi — the flyer is laid out at real print size and scaled
@@ -167,6 +168,7 @@ export default function DetailerFlyer() {
   const [qrError, setQrError] = useState('')
   const [prefs, setPrefs] = useState(loadPrefs)
   const [uploading, setUploading] = useState(false)
+  const [uploadDone, setUploadDone] = useState(false)
   const [uploadError, setUploadError] = useState('')
   const fileRef = useRef(null)
 
@@ -206,6 +208,8 @@ export default function DetailerFlyer() {
     try {
       const url = await uploadImage(file, 'gallery')
       setPrefs((p) => ({ ...p, photo: url }))
+      setUploadDone(true)
+      setTimeout(() => setUploadDone(false), 1100)
     } catch (err) {
       setUploadError(err?.message || 'Upload failed — try again.')
     } finally {
@@ -276,13 +280,16 @@ export default function DetailerFlyer() {
             </div>
 
             <div className="card mt-5 flex flex-wrap items-center gap-3 !p-4 print:hidden">
-              {prefs.photo ? (
-                <img src={prefs.photo} alt="" className="h-14 w-20 rounded-lg object-cover" />
-              ) : (
-                <div className="flex h-14 w-20 items-center justify-center rounded-lg bg-brand-50 text-brand-600 dark:bg-white/5 dark:text-brand-300">
-                  <CameraIcon className="h-6 w-6" />
-                </div>
-              )}
+              <div className="relative h-14 w-20 shrink-0 overflow-hidden rounded-lg">
+                {prefs.photo ? (
+                  <img src={prefs.photo} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-brand-50 text-brand-600 dark:bg-white/5 dark:text-brand-300">
+                    <CameraIcon className="h-6 w-6" />
+                  </div>
+                )}
+                <WaterFill active={uploading} done={uploadDone} className="rounded-lg" />
+              </div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">Flyer photo</p>
                 <p className="text-xs text-slate-500 dark:text-slate-400">

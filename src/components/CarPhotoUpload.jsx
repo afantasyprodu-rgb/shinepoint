@@ -1,5 +1,6 @@
 import { CameraIcon, CarIcon, XIcon } from './icons'
 import { useFileUpload } from '../hooks/useFileUpload'
+import WaterFill from './ui/WaterFill'
 
 // Compact square photo picker for a single vehicle — same upload contract as
 // AvatarUpload (both run on useFileUpload) but rounded-xl instead of circular,
@@ -8,7 +9,7 @@ import { useFileUpload } from '../hooks/useFileUpload'
 // onboarding photo scan has matched one) rings the thumbnail in the
 // vehicle's own paint color once one's known.
 export default function CarPhotoUpload({ photo, onFile, onChange, paintHex }) {
-  const { inputRef, busy, error, handlePick, open } = useFileUpload({ onFile, onChange })
+  const { inputRef, busy, justDone, error, handlePick, open } = useFileUpload({ onFile, onChange })
 
   return (
     <div className="relative shrink-0">
@@ -32,11 +33,7 @@ export default function CarPhotoUpload({ photo, onFile, onChange, paintHex }) {
         >
           <CameraIcon className="h-5 w-5" />
         </span>
-        {busy && (
-          <span className="absolute inset-0 flex items-center justify-center bg-black/55">
-            <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-          </span>
-        )}
+        <WaterFill active={busy} done={justDone} className="rounded-xl" />
       </button>
       {photo && !busy && (
         <button
