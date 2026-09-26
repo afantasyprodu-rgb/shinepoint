@@ -138,6 +138,9 @@ export const STRINGS = {
       resetSent: "If an account exists for that email, we've sent a reset link to",
     },
     qrQuickBook: {
+      boCard: "Hi! I'm Bo 🫧 Here's the card for {name} — tap it to peek at the menu, or let's get you booked.",
+      boServicesAsk: 'What does your car need today? Tap everything you want.',
+      cardBook: 'Book {first}',
       boGreet: "Hi! I'm Bo, the booking concierge for {name}. What does your car need today?",
       boPicked: 'Great choice — that comes to ${total} with {first}. Anything else?',
       boWhere: 'Where should {first} come? Driveway, office lot — anywhere works.',
@@ -2419,6 +2422,9 @@ export const STRINGS = {
       resetSent: 'Si existe una cuenta con ese correo, enviamos un enlace de restablecimiento a',
     },
     qrQuickBook: {
+      boCard: '¡Hola! Soy Bo 🫧 Esta es la tarjeta de {name} — tócala para ver el menú, o reservemos ya.',
+      boServicesAsk: '¿Qué necesita tu auto hoy? Toca todo lo que quieras.',
+      cardBook: 'Reservar con {first}',
       boGreet: '¡Hola! Soy Bo, el conserje de reservas de {name}. ¿Qué necesita tu auto hoy?',
       boPicked: '¡Buena elección! Son ${total} con {first}. ¿Algo más?',
       boWhere: '¿A dónde debe ir {first}? Entrada de casa, estacionamiento de la oficina — donde sea.',
