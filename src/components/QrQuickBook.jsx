@@ -26,6 +26,9 @@ const FAQ = {
   code: ['qAccount'],
 }
 const FAQ_ANSWER = { qHome: 'aHome', qPay: 'aPay', qRain: 'aRain', qAccount: 'aAccount', qFar: 'aFar' }
+// Phone codes go out through the send-sms-hook edge function (Sent), so the
+// text option only appears once that hook is set up in Supabase Auth.
+const PHONE_OTP_ENABLED = import.meta.env.VITE_PHONE_OTP_ENABLED === 'true'
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 function BoSays({ text }) {
@@ -73,6 +76,7 @@ export default function QrQuickBook({ detailer }) {
   const [phone, setPhone] = useState('')
   const [smsOptIn, setSmsOptIn] = useState(false)
   const [code, setCode] = useState('')
+  const [via, setVia] = useState('email') // email | sms
   const [captchaToken, setCaptchaToken] = useState(null)
   const captchaRef = useRef(null)
   const [busy, setBusy] = useState(false)
@@ -161,15 +165,17 @@ export default function QrQuickBook({ detailer }) {
 
   async function sendCode() {
     const digits = phone.replace(/\D/g, '')
+    const bySms = via === 'sms'
     if (!name.trim()) return setError(t('errName'))
-    if (!EMAIL_RE.test(email.trim())) return setError(t('errEmail'))
+    if (bySms && digits.length < 10) return setError(t('errPhoneForCode'))
+    if (bySms ? email.trim() && !EMAIL_RE.test(email.trim()) : !EMAIL_RE.test(email.trim())) return setError(t('errEmail'))
     if (digits && digits.length < 10) return setError(t('errPhone'))
     if (smsOptIn && !digits) return setError(t('errPhoneForSms'))
     if (isTurnstileConfigured && !captchaToken) return setError(t('errCaptcha'))
     setBusy(true)
     setError('')
     const { error: err } = await supabase.auth.signInWithOtp({
-      email: email.trim(),
+      ...(bySms ? { phone: normalizePhone(phone) } : { email: email.trim() }),
       options: {
         shouldCreateUser: true,
         data: { full_name: name.trim(), role: 'customer', ...(digits ? { phone: normalizePhone(phone) } : {}) },
@@ -187,9 +193,16 @@ export default function QrQuickBook({ detailer }) {
     if (!/^\d{6}$/.test(code)) return setError(t('errCode'))
     setBusy(true)
     setError('')
-    const { error: err } = await supabase.auth.verifyOtp({ email: email.trim(), token: code, type: 'email' })
+    const bySms = via === 'sms'
+    const { error: err } = await supabase.auth.verifyOtp(
+      bySms ? { phone: normalizePhone(phone), token: code, type: 'sms' } : { email: email.trim(), token: code, type: 'email' }
+    )
     setBusy(false)
     if (err) { setCode(''); return setError(err.message) }
+    // Texted-code signups have no auth email yet. Attach the one they typed;
+    // Supabase only makes it the account email after they click the confirm
+    // link, so nobody can claim someone else's address this way.
+    if (bySms && email.trim()) supabase.auth.updateUser({ email: email.trim() }).catch(() => {})
     const digits = phone.replace(/\D/g, '')
     // Unchecked means "didn't opt in here", not "opt out" — never clear an
     // existing customer's consent just because they skipped the box.
@@ -208,8 +221,8 @@ export default function QrQuickBook({ detailer }) {
       ? t('boPicked', { total: String(Math.round(total)), first })
       : signedInCustomer ? t('boWelcomeBack', { first }) : t('boServicesAsk'),
     where: t('boWhere', { first }),
-    you: t('boYou'),
-    code: t('boCode', { email: email.trim() }),
+    you: via === 'sms' ? t('boYouText') : t('boYou'),
+    code: via === 'sms' ? t('boCodeText', { phone: phone.trim() }) : t('boCode', { email: email.trim() }),
     finishing: t('boFinishing', { first }),
   }[step]
 
@@ -334,16 +347,28 @@ export default function QrQuickBook({ detailer }) {
 
           {step === 'you' && (
             <div className="card space-y-3 !p-4">
+              {PHONE_OTP_ENABLED && (
+                <div role="radiogroup" aria-label={t('codeVia')} className="flex items-center gap-2 text-sm">
+                  <span className="text-slate-600 dark:text-slate-400">{t('codeVia')}</span>
+                  {['email', 'sms'].map((v) => (
+                    <button key={v} type="button" role="radio" aria-checked={via === v}
+                      onClick={() => { setVia(v); setError('') }}
+                      className={`chip ${via === v ? 'bg-brand-600 text-white' : ''}`}>
+                      {v === 'sms' ? t('viaText') : t('viaEmail')}
+                    </button>
+                  ))}
+                </div>
+              )}
               <div>
                 <label htmlFor="qr-name" className="label">{t('nameLabel')}</label>
                 <input id="qr-name" autoComplete="name" value={name} onChange={(e) => { setName(e.target.value); setError('') }} className="input" />
               </div>
               <div>
-                <label htmlFor="qr-email" className="label">{t('emailLabel')}</label>
+                <label htmlFor="qr-email" className="label">{via === 'sms' ? t('emailOptional') : t('emailLabel')}</label>
                 <input id="qr-email" type="email" inputMode="email" autoComplete="email" value={email} onChange={(e) => { setEmail(e.target.value); setError('') }} className="input" />
               </div>
               <div>
-                <label htmlFor="qr-phone" className="label">{t('phoneLabel')}</label>
+                <label htmlFor="qr-phone" className="label">{via === 'sms' ? t('phoneRequired') : t('phoneLabel')}</label>
                 <input id="qr-phone" type="tel" inputMode="tel" autoComplete="tel" value={phone} onChange={(e) => { setPhone(e.target.value); setError('') }} className="input" placeholder="(555) 555-5555" />
               </div>
               <label className="flex cursor-pointer items-start gap-2.5 text-sm text-slate-600 dark:text-slate-400">
@@ -370,7 +395,7 @@ export default function QrQuickBook({ detailer }) {
                 onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
                 className="input text-center font-mono text-2xl tracking-[0.4em]" placeholder="••••••" />
               <button type="button" onClick={() => { setCode(''); go('you') }} className="text-xs font-semibold text-brand-600 dark:text-brand-300">
-                {t('changeEmail')}
+                {via === 'sms' ? t('changePhone') : t('changeEmail')}
               </button>
             </div>
           )}
@@ -401,7 +426,7 @@ export default function QrQuickBook({ detailer }) {
             >
               {busy
                 ? (step === 'code' ? t('verifying') : t('sending'))
-                : { card: t('cardBook', { first }), services: selected.length ? `${t('next')} · $${Math.round(total)}` : t('next'), where: t('next'), you: t('sendCode'), code: t('verify') }[step]}
+                : { card: t('cardBook', { first }), services: selected.length ? `${t('next')} · $${Math.round(total)}` : t('next'), where: t('next'), you: via === 'sms' ? t('textCode') : t('sendCode'), code: t('verify') }[step]}
             </button>
           </div>
         )}
