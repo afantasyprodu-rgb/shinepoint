@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import BoBlob from './ui/BoBlob'
+import DetailerCard3D from './DetailerCard3D'
 import AddressAutocomplete from './ui/AddressAutocomplete'
 import Turnstile, { isTurnstileConfigured } from './ui/Turnstile'
 import { supabase } from '../lib/supabase'
@@ -18,6 +19,7 @@ import { useT } from '../i18n/useT'
 // accountless booking rows, no changes to the booking guards.
 const STEPS = ['services', 'where', 'you', 'code']
 const FAQ = {
+  card: ['qHome', 'qPay'],
   services: ['qHome', 'qPay', 'qAccount'],
   where: ['qFar', 'qHome', 'qRain'],
   you: ['qAccount', 'qPay'],
@@ -61,7 +63,8 @@ export default function QrQuickBook({ detailer }) {
   const services = Array.isArray(detailer.services) ? detailer.services : []
   const signedInCustomer = Boolean(session) && profile?.role === 'customer'
 
-  const [step, setStep] = useState('services')
+  // Every visit opens on the detailer's animated card, which Bo presents.
+  const [step, setStep] = useState('card')
   const [selected, setSelected] = useState([])
   const [address, setAddress] = useState('')
   const [zip, setZip] = useState('')
@@ -200,9 +203,10 @@ export default function QrQuickBook({ detailer }) {
   }
 
   const boLine = {
+    card: t('boCard', { name: detailer.name || first }),
     services: selected.length
       ? t('boPicked', { total: String(Math.round(total)), first })
-      : signedInCustomer ? t('boWelcomeBack', { first }) : t('boGreet', { name: detailer.name || first }),
+      : signedInCustomer ? t('boWelcomeBack', { first }) : t('boServicesAsk'),
     where: t('boWhere', { first }),
     you: t('boYou'),
     code: t('boCode', { email: email.trim() }),
@@ -212,7 +216,8 @@ export default function QrQuickBook({ detailer }) {
   return (
     <div className="min-h-dvh bg-gradient-to-b from-brand-50 via-white to-white px-4 pb-10 pt-[max(env(safe-area-inset-top),1.5rem)] dark:from-[#1a1330] dark:via-[#141026] dark:to-[#141026]">
       <div className="mx-auto w-full max-w-md">
-        {/* Who they're booking */}
+        {/* Who they're booking — the card itself covers this on the first step */}
+        {step !== 'card' && (
         <div className="flex items-center gap-3">
           {detailer.photo ? (
             <img src={detailer.photo} alt="" className="h-12 w-12 rounded-full object-cover ring-2 ring-brand-500" />
@@ -224,13 +229,20 @@ export default function QrQuickBook({ detailer }) {
             {detailer.zip && <p className="text-xs text-slate-500 dark:text-slate-400">Mobile detailing · {detailer.zip}</p>}
           </div>
         </div>
+        )}
 
         {/* Progress */}
-        {step !== 'finishing' && (
+        {step !== 'finishing' && step !== 'card' && (
           <div className="mt-5 flex gap-1.5" aria-hidden="true">
             {visibleSteps.map((s, i) => (
               <div key={s} className={`h-1.5 flex-1 rounded-full transition-colors ${i <= stepIndex ? 'bg-brand-600' : 'bg-brand-100 dark:bg-white/10'}`} />
             ))}
+          </div>
+        )}
+
+        {step === 'card' && (
+          <div className="mt-2">
+            <DetailerCard3D detailer={detailer} first={first} />
           </div>
         )}
 
@@ -376,7 +388,7 @@ export default function QrQuickBook({ detailer }) {
 
         {step !== 'finishing' && (
           <div className="mt-6 flex gap-2">
-            {step !== 'services' && (
+            {step !== 'services' && step !== 'card' && (
               <button type="button" onClick={() => go(visibleSteps[stepIndex - 1])} disabled={busy} className="btn btn-outline">
                 {t('back')}
               </button>
@@ -384,12 +396,12 @@ export default function QrQuickBook({ detailer }) {
             <button
               type="button"
               disabled={busy}
-              onClick={{ services: nextFromServices, where: nextFromWhere, you: sendCode, code: verifyCode }[step]}
+              onClick={{ card: () => go('services'), services: nextFromServices, where: nextFromWhere, you: sendCode, code: verifyCode }[step]}
               className="btn btn-cta flex-1"
             >
               {busy
                 ? (step === 'code' ? t('verifying') : t('sending'))
-                : { services: selected.length ? `${t('next')} · $${Math.round(total)}` : t('next'), where: t('next'), you: t('sendCode'), code: t('verify') }[step]}
+                : { card: t('cardBook', { first }), services: selected.length ? `${t('next')} · $${Math.round(total)}` : t('next'), where: t('next'), you: t('sendCode'), code: t('verify') }[step]}
             </button>
           </div>
         )}
